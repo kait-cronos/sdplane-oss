@@ -353,6 +353,11 @@ DEFINE_COMMAND (restore_terminal,
 void
 default_install_command (struct command_set *cmdset)
 {
+  INSTALL_COMMAND (cmdset, exit);
+  INSTALL_COMMAND (cmdset, quit);
+  INSTALL_COMMAND (cmdset, logout);
+
+#if 0
   INSTALL_COMMAND (cmdset, enable_shell_debugging);
   INSTALL_COMMAND (cmdset, disable_shell_debugging);
   INSTALL_COMMAND (cmdset, show_history);
@@ -361,6 +366,7 @@ default_install_command (struct command_set *cmdset)
   INSTALL_COMMAND (cmdset, restore_stderr);
   INSTALL_COMMAND (cmdset, redirect_terminal_file);
   INSTALL_COMMAND (cmdset, restore_terminal);
+#endif
 }
 
 struct shell *
@@ -370,6 +376,7 @@ command_shell_create ()
 
   shell = shell_create ();
   shell->cmdset = cmdset_default;
+  //shell->cmdset = command_set_copy (cmdset_default);
 
   shell_install (shell, CONTROL('J'), command_shell_execute);
   shell_install (shell, CONTROL('M'), command_shell_execute);
