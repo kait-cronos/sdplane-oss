@@ -44,6 +44,8 @@ struct shell
   int interactive;
 
   char *prompt;
+  int prompt_size;
+
   char *command_line;
   int cursor;  /* cursor index, offset in command_line[] */
   int end;     /* end-of-string index, offset in command_line[] */

@@ -267,6 +267,9 @@ command_shell_ls_candidate (struct shell *shell)
                      node->cmdstr, node->helpstr);
 
           if (file_spec (node->cmdstr))
+#if 1
+            file_ls_candidate (shell->terminal, last);
+#else
             {
               char *path = strdup (last);
               char *dirname;
@@ -298,6 +301,7 @@ command_shell_ls_candidate (struct shell *shell)
               fprintf (shell->terminal, "\n");
               free (path);
             }
+#endif
         }
     }
 

@@ -387,6 +387,74 @@ file_replace (char *word)
   return filename;
 }
 
+void
+file_ls_candidate (FILE *terminal, char *file_path)
+{
+  char *path = strdup (file_path);
+  char *dirname;
+  char *filename;
+  int num = 0;
+  DIR *dir;
+  struct dirent *dirent;
+
+  fprintf (terminal, "\n");
+  path_disassemble (path, &dirname, &filename);
+
+  dir = opendir (dirname);
+  if (dir == NULL)
+    {
+      free (path);
+      return;
+    }
+
+  int maxlen = 0;
+  while ((dirent = readdir (dir)) != NULL)
+    {
+      if (dirent->d_name[0] == '.')
+        continue;
+      maxlen = (maxlen < dirent->d_namlen ? dirent->d_namlen : maxlen);
+    }
+  rewinddir (dir);
+
+  int lim = 1;
+  lim = (80 - 2) / (maxlen + 2);
+
+  fprintf (terminal, "maxlen: %d lim: %d\n", maxlen, lim);
+
+  char dirent_name[256];
+
+  while ((dirent = readdir (dir)) != NULL)
+    {
+      if (dirent->d_name[0] == '.')
+        continue;
+
+      if (dirent->d_type == DT_DIR)
+        snprintf (dirent_name, sizeof (dirent_name), "%s/", dirent->d_name);
+      else
+        snprintf (dirent_name, sizeof (dirent_name), "%s", dirent->d_name);
+
+      if (! strncmp (dirent->d_name, filename, strlen (filename)))
+        {
+          if (lim == 0)
+            {
+              fprintf (terminal, "  %s\n", dirent_name);
+            }
+          else
+            {
+              if (num % lim == 0)
+                fprintf (terminal, "  ");
+              fprintf (terminal, "%-*s", maxlen + 2, dirent_name);
+              if (num % lim == lim - 1)
+                fprintf (terminal, "\n");
+            }
+          num++;
+        }
+    }
+  fprintf (terminal, "\n");
+
+  free (path);
+}
+
 int
 line_spec (char *spec)
 {

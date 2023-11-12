@@ -97,6 +97,26 @@ shell_clear (struct shell *shell)
 }
 
 void
+shell_set_prompt (struct shell *shell, char *prompt)
+{
+  int newsize;
+  char *newprompt;
+  newsize = (strlen (prompt) / 128) + 128 ;
+  if (shell->prompt_size < newsize)
+    {
+      newprompt = realloc (shell->prompt, newsize);
+      if (! newprompt)
+        {
+          fprintf (stderr, "can't realloc new prompt.\n");
+          return;
+        }
+      shell->prompt = newprompt;
+      shell->prompt_size = newsize;
+    }
+  snprintf (shell->prompt, shell->prompt_size, "%s", prompt);
+}
+
+void
 shell_prompt (struct shell *shell)
 {
   if (shell->writefd < 0)
@@ -875,7 +895,8 @@ shell_create ()
 
   memcpy (shell->key_func, default_key_func,
           sizeof (shell->key_func));
-  shell->prompt = strdup ("prompt> ");
+  //shell->prompt = strdup ("prompt> ");
+  shell_set_prompt (shell, "prompt> ");
   shell->interactive = 1;
 
   shell->readfd = -1;
@@ -906,13 +927,6 @@ shell_set_terminal (struct shell *shell, int readfd, int writefd)
   shell->readfd = readfd;
   shell->writefd = writefd;
   shell->terminal = fdopen (writefd, "w");
-}
-
-void
-shell_set_prompt (struct shell *shell, char *prompt)
-{
-  free (shell->prompt);
-  shell->prompt = strdup (prompt);
 }
 
 void

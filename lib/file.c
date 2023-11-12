@@ -133,5 +133,6 @@ restore_stdio ()
   stdin = save_stdin;
   stdout = save_stdout;
   stderr = save_stderr;
+  return 0;
 }
 

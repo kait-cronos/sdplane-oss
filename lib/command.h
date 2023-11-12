@@ -96,6 +96,7 @@ struct command_node *
 command_match_node (char *command_line, struct command_set *cmdset);
 
 int file_spec (char *spec);
+void file_ls_candidate (FILE *terminal, char *file_path);
 
 void command_config_add (struct vector *config, int argc, char **argv);
 void command_config_clear (struct vector *config);
