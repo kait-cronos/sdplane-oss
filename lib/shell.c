@@ -182,6 +182,7 @@ shell_insert_char (struct shell *shell, char ch)
   char str[2];
   str[0] = ch;
   str[1] = '\0';
+  //fprintf (shell->terminal, "%s: ch: %#x\n", __func__, (u_char)ch);
   shell_insert (shell, str);
 }
 
@@ -645,7 +646,7 @@ shell_keyfunc_ctrl_w (struct shell *shell)
   shell_delete_word_backward (shell);
 }
 
-shell_keyfunc_t default_key_func[] =
+shell_keyfunc_t default_key_func[256] =
 {
   NULL,                    /* Function for CONTROL('@') */
   shell_keyfunc_ctrl_a,    /* Function for CONTROL('A') */
@@ -794,10 +795,17 @@ shell_input (struct shell *shell, unsigned char ch)
 
   /* for debug */
   inputch = ch;
+#if 0
+  fprintf (shell->terminal, "\n");
+  fprintf (shell->terminal, "%s: inputch: %#x\n", __func__, ch);
+  shell_refresh (shell);
+#endif /*0*/
 
   if (shell->key_func[ch])
     (*shell->key_func[ch]) (shell);
   else if (' ' <= ch && ch <= '~')
+    shell_insert_char (shell, ch);
+  else
     shell_insert_char (shell, ch);
 
   if (escaped)

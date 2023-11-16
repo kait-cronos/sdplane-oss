@@ -419,7 +419,7 @@ file_ls_candidate (FILE *terminal, char *file_path)
   int lim = 1;
   lim = (80 - 2) / (maxlen + 2);
 
-  fprintf (terminal, "maxlen: %d lim: %d\n", maxlen, lim);
+  //fprintf (terminal, "maxlen: %d lim: %d\n", maxlen, lim);
 
   char dirent_name[256];
 
