@@ -397,8 +397,9 @@ file_ls_candidate (FILE *terminal, char *file_path)
   DIR *dir;
   struct dirent *dirent;
 
-  fprintf (terminal, "\n");
   path_disassemble (path, &dirname, &filename);
+  fprintf (terminal, "  path: %s dir: %s filename: %s\n",
+           file_path, dirname, filename);
 
   dir = opendir (dirname);
   if (dir == NULL)
@@ -416,12 +417,14 @@ file_ls_candidate (FILE *terminal, char *file_path)
     }
   rewinddir (dir);
 
-  int lim = 1;
-  lim = (80 - 2) / (maxlen + 2);
+  int ncolumn = 1;
+  ncolumn = (80 - 2) / (maxlen + 2);
 
-  //fprintf (terminal, "maxlen: %d lim: %d\n", maxlen, lim);
+  fprintf (terminal, "  maxlen: %d ncol: %d\n", maxlen, ncolumn);
 
-  char dirent_name[256];
+  fprintf (terminal, "\n");
+
+  char dirent_name[1024];
 
   while ((dirent = readdir (dir)) != NULL)
     {
@@ -435,16 +438,16 @@ file_ls_candidate (FILE *terminal, char *file_path)
 
       if (! strncmp (dirent->d_name, filename, strlen (filename)))
         {
-          if (lim == 0)
+          if (ncolumn == 0)
             {
               fprintf (terminal, "  %s\n", dirent_name);
             }
           else
             {
-              if (num % lim == 0)
+              if (num % ncolumn == 0)
                 fprintf (terminal, "  ");
               fprintf (terminal, "%-*s", maxlen + 2, dirent_name);
-              if (num % lim == lim - 1)
+              if (num % ncolumn == ncolumn - 1)
                 fprintf (terminal, "\n");
             }
           num++;
@@ -806,7 +809,12 @@ command_complete (char *command_line, int point, struct command_set *cmdset)
     }
 
   if (match && file_spec (match->cmdstr))
-    snprintf (retbuf, sizeof (retbuf), "%s", file_complete (matched));
+    {
+      char *completion;
+      completion = file_complete (matched);
+      if (completion)
+        snprintf (retbuf, sizeof (retbuf), "%s", completion);
+    }
 
   if (match && ! is_command_node_variable (match))
     snprintf (retbuf, sizeof (retbuf), "%s ", &match->cmdstr[strlen (matched)]);
