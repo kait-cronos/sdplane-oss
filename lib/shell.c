@@ -795,11 +795,19 @@ shell_input (struct shell *shell, unsigned char ch)
 
   /* for debug */
   inputch = ch;
-#if 0
+
+#if 1
   fprintf (shell->terminal, "\n");
-  fprintf (shell->terminal, "%s: inputch: %#x\n", __func__, ch);
+  fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x",
+           __func__, ch, ch, ch);
+  if (CONTROL ('@') <= ch && ch <= CONTROL ('_'))
+    fprintf (shell->terminal, " CONTROL('%c')\n", ch + '@');
+  else if (ch == 127)
+    fprintf (shell->terminal, " DEL\n");
+  else
+    fprintf (shell->terminal, " '%c'\n", ch);
   shell_refresh (shell);
-#endif /*0*/
+#endif
 
   if (shell->key_func[ch])
     (*shell->key_func[ch]) (shell);

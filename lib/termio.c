@@ -32,7 +32,8 @@ termio_init ()
 
   /* disable canonical input */
   memcpy (&t, &oterm, sizeof (t));
-  t.c_lflag ^= ICANON | ECHO;
+  //t.c_lflag ^= ICANON | ECHO;
+  t.c_lflag ^= ICANON | ECHO | IXON ;
   //t.c_oflag |= ONOCR;
 
   /* change terminal settings */
