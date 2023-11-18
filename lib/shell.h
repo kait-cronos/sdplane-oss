@@ -52,7 +52,8 @@ struct shell
   int size;    /* buffer size of command_line[] */
   char *cut_buffer;
 
-  shell_keyfunc_t key_func[256];
+  shell_keyfunc_t *key_func;
+
   void *cmdset;
   void *module;
   void *context;

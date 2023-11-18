@@ -6,7 +6,7 @@ noinst_LIBRARIES = libzcmdsh.a
 
 libzcmdsh_a_SOURCES = \
 	log.c termio.c vector.c shell.c command.c \
-	command_shell.c file.c
+	command_shell.c file.c shell_fselect.c
 
 noinst_HEADERS = \
 	log.h termio.h vector.h shell.h command.h \

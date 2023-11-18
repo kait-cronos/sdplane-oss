@@ -806,15 +806,22 @@ shell_input (struct shell *shell, unsigned char ch)
     fprintf (shell->terminal, " DEL\n");
   else
     fprintf (shell->terminal, " '%c'\n", ch);
+  fprintf (shell->terminal, "key_func: %p, key_func[%d]: %p\n",
+           shell->key_func, ch, shell->key_func[ch]);
   shell_refresh (shell);
 #endif
 
   if (shell->key_func[ch])
     (*shell->key_func[ch]) (shell);
+#if 0
   else if (' ' <= ch && ch <= '~')
     shell_insert_char (shell, ch);
   else
     shell_insert_char (shell, ch);
+#else
+  else if (shell->key_func == default_key_func)
+    shell_insert_char (shell, ch);
+#endif
 
   if (escaped)
     FLAG_CLEAR (shell->flag, SHELL_FLAG_ESCAPE);
@@ -909,8 +916,18 @@ shell_create ()
   shell->size = INITIAL_COMMAND_LINE_SIZE;
   memset (shell->command_line, 0, shell->size);
 
-  memcpy (shell->key_func, default_key_func,
-          sizeof (shell->key_func));
+  //memcpy (shell->key_func, default_key_func,
+  //        sizeof (shell->key_func));
+#if 0
+  int i;
+  for (i = 0; i < 256; i++)
+    {
+      if (default_key_func[i] == NULL)
+        default_key_func[i] = (shell_keyfunc_t) shell_insert_char;
+    }
+#endif
+
+  shell->key_func = default_key_func;
   //shell->prompt = strdup ("prompt> ");
   shell_set_prompt (shell, "prompt> ");
   shell->interactive = 1;

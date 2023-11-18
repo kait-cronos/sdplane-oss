@@ -413,7 +413,8 @@ file_ls_candidate (FILE *terminal, char *file_path)
     {
       if (dirent->d_name[0] == '.')
         continue;
-      maxlen = (maxlen < dirent->d_namlen ? dirent->d_namlen : maxlen);
+      if (! strncmp (dirent->d_name, filename, strlen (filename)))
+        maxlen = (maxlen < dirent->d_namlen ? dirent->d_namlen : maxlen);
     }
   rewinddir (dir);
 
