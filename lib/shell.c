@@ -526,7 +526,6 @@ shell_refresh (struct shell *shell)
     shell_debug (shell);
 }
 
-
 void
 shell_keyfunc_ctrl_f (struct shell *shell)
 {
@@ -604,7 +603,7 @@ shell_keyfunc_ctrl_y (struct shell *shell)
 }
 
 void
-shell_keyfunc_ctrl_r (struct shell *shell)
+shell_keyfunc_refresh (struct shell *shell)
 {
   /* Refresh and Re-format */
   shell_linefeed (shell);
@@ -660,14 +659,14 @@ shell_keyfunc_t default_key_func[256] =
   shell_keyfunc_ctrl_i,    /* Function for CONTROL('I') */
   shell_keyfunc_ctrl_j,    /* Function for CONTROL('J') */
   shell_keyfunc_ctrl_k,    /* Function for CONTROL('K') */
-  NULL,                    /* Function for CONTROL('L') */
+  shell_keyfunc_refresh,   /* Function for CONTROL('L') */
   shell_keyfunc_ctrl_m,    /* Function for CONTROL('M') */
   NULL,                    /* Function for CONTROL('N') */
   NULL,                    /* Function for CONTROL('O') */
 
   NULL,                    /* Function for CONTROL('P') */
   NULL,                    /* Function for CONTROL('Q') */
-  shell_keyfunc_ctrl_r,    /* Function for CONTROL('R') */
+  shell_keyfunc_refresh,   /* Function for CONTROL('R') */
   NULL,                    /* Function for CONTROL('S') */
   NULL,                    /* Function for CONTROL('T') */
   shell_keyfunc_ctrl_u,    /* Function for CONTROL('U') */

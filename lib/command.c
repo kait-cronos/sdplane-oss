@@ -736,7 +736,8 @@ command_execute (char *command_line, struct command_set *cmdset,
           argsize *= 2;
         }
 
-      if (line_spec (match->cmdstr))
+      if (line_spec (match->cmdstr) ||
+          file_spec (match->cmdstr))
         {
           argv[argc++] = strstr (command_line, word);
           break;
@@ -851,7 +852,8 @@ command_match_node (char *command_line, struct command_set *cmdset)
       if (match == NULL)
         break;
 
-      if (! line_spec (match->cmdstr))
+      if (! line_spec (match->cmdstr) &&
+          ! file_spec (match->cmdstr))
         parent = match;
     }
 

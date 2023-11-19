@@ -30,8 +30,10 @@ fselect_ls_candidate (FILE *terminal)
     return;
 
   fprintf (terminal, "\n");
-  fprintf (terminal, "  maxlen: %d ncol: %d\n",
-           fselect_maxlen, fselect_ncolumn);
+  fprintf (terminal, "  path: %s dir: %s filename: %s\n",
+           fselect_path, fselect_dirname, fselect_filename);
+  fprintf (terminal, "  maxlen: %d ncol: %d nentry: %d index: %d\n",
+           fselect_maxlen, fselect_ncolumn, fselect_nentry, fselect_index);
   fprintf (terminal, "\n");
 
   char dirent_name[1024];
@@ -88,29 +90,36 @@ fselect_completion ()
   int num = 0;
   DIR *dir;
   struct dirent *dirent;
-  char *completion = NULL;
+  char completion[1024];
 
   dir = opendir (fselect_dirname);
   if (dir == NULL)
     return NULL;
+
+  completion[0] = '\0';
 
   while ((dirent = readdir (dir)) != NULL)
     {
       if (dirent->d_name[0] == '.')
         continue;
 
-      if (! strncmp (dirent->d_name, fselect_filename,
-                     strlen (fselect_filename)))
-        {
-          if (num == fselect_index)
-            completion = strdup (dirent->d_name);
+      if (strncmp (dirent->d_name, fselect_filename,
+                   strlen (fselect_filename)))
+        continue;
 
-          num++;
+      if (num == fselect_index)
+        {
+          snprintf (completion, sizeof (completion),
+                    "%s%s", dirent->d_name,
+                    (dirent->d_type == DT_DIR ? "/" : ""));
+          break;
         }
+
+      num++;
     }
 
   closedir (dir);
-  return completion;
+  return strdup (completion);
 }
 
 void
@@ -298,7 +307,7 @@ fselect_keyfunc_first (struct shell *shell)
 void
 fselect_keyfunc_end (struct shell *shell)
 {
-  fselect_index = fselect_nentry;
+  fselect_index = fselect_nentry - 1;
   fselect_ls_candidate (shell->terminal);
 }
 
