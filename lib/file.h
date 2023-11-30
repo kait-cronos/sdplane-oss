@@ -2,8 +2,8 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#ifndef _FILE_H_
-#define _FILE_H_
+#ifndef __FILE_H__
+#define __FILE_H__
 
 void path_disassemble (char *pathname, char **dirname, char **filename);
 
@@ -13,6 +13,4 @@ int file_truncate (char *file);
 int redirect_stdio (FILE *std, FILE *fp);
 int restore_stdio ();
 
-#endif /*_FILE_H_*/
-
-
+#endif /*__FILE_H__*/

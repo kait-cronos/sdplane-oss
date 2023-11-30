@@ -2,8 +2,8 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#ifndef _LOG_H_
-#define _LOG_H_
+#ifndef __LOG_H__
+#define __LOG_H__
 
 struct loginfo
 {
@@ -35,5 +35,4 @@ void log_info (const char *format, ...);
 void log_notice (const char *format, ...);
 void log_warn (const char *format, ...);
 
-#endif /*_LOG_H_*/
-
+#endif /*__LOG_H__*/

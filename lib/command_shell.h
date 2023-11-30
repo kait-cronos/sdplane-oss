@@ -2,8 +2,8 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#ifndef _COMMAND_SHELL_H_
-#define _COMMAND_SHELL_H_
+#ifndef __COMMAND_SHELL_H__
+#define __COMMAND_SHELL_H__
 
 extern char *prompt_default;
 extern struct command_set *cmdset_default;
@@ -40,7 +40,4 @@ void command_shell_finish ();
 void command_history_add (char *command_line,
        struct command_history *history, struct shell *shell);
 
-#endif /*_COMMAND_SHELL_H_*/
-
-
-
+#endif /*__COMMAND_SHELL_H__*/

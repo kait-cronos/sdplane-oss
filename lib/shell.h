@@ -2,19 +2,15 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#ifndef _SHELL_H_
-#define _SHELL_H_
+#ifndef __SHELL_H__
+#define __SHELL_H__
+
+#include "flag.h"
 
 #define SHELL_WORD_DELIMITERS " "
 #define SHELL_WORD_DELIMITERS_SUB " /"
 
 #define CONTROL(X) ((X) - '@')
-
-#ifndef FLAG_SET
-#define FLAG_CHECK(V,F)      ((V) & (F))
-#define FLAG_SET(V,F)        (V) = (V) | (F)
-#define FLAG_CLEAR(V,F)      (V) = (V) & ~(F)
-#endif /*FLAG_SET*/
 
 struct shell;
 typedef void (*shell_keyfunc_t) (struct shell *shell);
@@ -94,5 +90,4 @@ void shell_install (struct shell *shell, unsigned char key,
 
 int shell_running (struct shell *shell);
 
-#endif /*_SHELL_H_*/
-
+#endif /*__SHELL_H__*/

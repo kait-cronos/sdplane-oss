@@ -2,8 +2,8 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#ifndef _VECTOR_H_
-#define _VECTOR_H_
+#ifndef __VECTOR_H__
+#define __VECTOR_H__
 
 typedef int (*vector_cmp_t) (const void *, const void *);
 
@@ -59,5 +59,4 @@ int vector_empty_index (struct vector *v);
 struct vector *vector_catenate (struct vector *va, struct vector *vb);
 struct vector *vector_merge (struct vector *dst, struct vector *src);
 
-#endif /*_VECTOR_H_*/
-
+#endif /*__VECTOR_H__*/

@@ -2,11 +2,10 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#ifndef _TERMIO_H_
-#define _TERMIO_H_
+#ifndef __TERMIO_H__
+#define __TERMIO_H__
 
 void termio_init ();
 void termio_finish ();
 
-#endif /*_TERMIO_H_*/
-
+#endif /*__TERMIO_H__*/

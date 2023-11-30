@@ -2,8 +2,8 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#ifndef _COMMAND_H_
-#define _COMMAND_H_
+#ifndef __COMMAND_H__
+#define __COMMAND_H__
 
 #define COMMAND_WORD_DELIMITERS " "
 #define COMMAND_HELP_DELIMITERS "\n"
@@ -94,6 +94,4 @@ void command_config_write (struct vector *config, FILE *fp);
 #define IMPORT_HELP "import information\n"
 #define EXPORT_HELP "export information\n"
 
-#endif /*_COMMAND_H_*/
-
-
+#endif /*__COMMAND_H__*/
