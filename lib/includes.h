@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
