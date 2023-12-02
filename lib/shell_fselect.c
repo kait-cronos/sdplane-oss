@@ -4,6 +4,9 @@
 
 #include <includes.h>
 
+#include "flag.h"
+#include "debug.h"
+
 #include "vector.h"
 #include "file.h"
 #include "shell.h"
@@ -33,12 +36,15 @@ fselect_ls_candidate (FILE *terminal)
   if (dir == NULL)
     return;
 
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    {
   fprintf (terminal, "\n");
   fprintf (terminal, "  path: %s dir: %s filename: %s\n",
            fselect_path, fselect_dirname, fselect_filename);
   fprintf (terminal, "  maxlen: %d ncol: %d nentry: %d index: %d\n",
            fselect_maxlen, fselect_ncolumn, fselect_nentry, fselect_index);
   fprintf (terminal, "\n");
+    }
 
   char dirent_name[1024];
   int dirent_len;
@@ -168,8 +174,6 @@ fselect_keyfunc_start (struct shell *shell)
         }
     }
 
-  fprintf (shell->terminal, "debug...\n");
-
   key_func_orig = shell->key_func;
   shell->key_func = key_func_fselect;
 
@@ -177,8 +181,13 @@ fselect_keyfunc_start (struct shell *shell)
   fselect_path = strdup (&shell->command_line[last_head]);
 
   path_disassemble (fselect_path, &fselect_dirname, &fselect_filename);
+
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    {
+  fprintf (shell->terminal, "debug...\n");
   fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
            fselect_path, fselect_dirname, fselect_filename);
+    }
 
   dir = opendir (fselect_dirname);
   if (dir == NULL)
@@ -212,12 +221,16 @@ fselect_keyfunc_start (struct shell *shell)
 #endif
 
   fselect_index = 0;
+
+  shell_refresh (shell);
+  fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell->terminal);
 }
 
 void
 fselect_keyfunc_quit (struct shell *shell)
 {
+  shell_refresh (shell);
   free (fselect_path);
   shell->key_func = key_func_orig;
 }
@@ -228,6 +241,8 @@ fselect_keyfunc_enter (struct shell *shell)
   char *completion;
 
   //fprintf (shell->terminal, "%s: called.\n", __func__);
+
+  shell_refresh (shell);
 
   shell_moveto (shell, shell_word_end (shell, shell->cursor));
   completion = fselect_completion ();
@@ -246,6 +261,8 @@ fselect_keyfunc_left (struct shell *shell)
   if (fselect_ncolumn > 1 &&
       fselect_index % fselect_ncolumn > 0)
     fselect_index--;
+  shell_refresh (shell);
+  fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell->terminal);
 }
 
@@ -255,6 +272,8 @@ fselect_keyfunc_right (struct shell *shell)
   if (fselect_ncolumn > 1 &&
       fselect_index % fselect_ncolumn < fselect_ncolumn - 1)
     fselect_index++;
+  shell_refresh (shell);
+  fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell->terminal);
 }
 
@@ -263,6 +282,8 @@ fselect_keyfunc_up (struct shell *shell)
 {
   if (fselect_index - fselect_ncolumn >= 0)
     fselect_index -= fselect_ncolumn;
+  shell_refresh (shell);
+  fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell->terminal);
 }
 
@@ -271,12 +292,16 @@ fselect_keyfunc_down (struct shell *shell)
 {
   if (fselect_index + fselect_ncolumn < fselect_nentry)
     fselect_index += fselect_ncolumn;
+  shell_refresh (shell);
+  fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell->terminal);
 }
 
 void
 fselect_keyfunc_none (struct shell *shell)
 {
+  shell_refresh (shell);
+  fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell->terminal);
 }
 
@@ -286,6 +311,8 @@ fselect_keyfunc_leftmost (struct shell *shell)
   int leftmost;
   leftmost = (fselect_index / fselect_ncolumn) * fselect_ncolumn;
   fselect_index = leftmost;
+  shell_refresh (shell);
+  fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell->terminal);
 }
 
@@ -298,6 +325,8 @@ fselect_keyfunc_rightmost (struct shell *shell)
   if (rightmost > fselect_nentry - 1)
     rightmost = fselect_nentry - 1;
   fselect_index = rightmost;
+  shell_refresh (shell);
+  fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell->terminal);
 }
 
@@ -305,6 +334,8 @@ void
 fselect_keyfunc_first (struct shell *shell)
 {
   fselect_index = 0;
+  shell_refresh (shell);
+  fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell->terminal);
 }
 
@@ -312,6 +343,8 @@ void
 fselect_keyfunc_end (struct shell *shell)
 {
   fselect_index = fselect_nentry - 1;
+  shell_refresh (shell);
+  fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell->terminal);
 }
 
@@ -353,6 +386,4 @@ shell_fselect_init ()
 
   key_func_fselect['q'] = fselect_keyfunc_quit;
 }
-
-
 

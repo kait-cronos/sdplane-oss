@@ -4,6 +4,9 @@
 
 #include <includes.h>
 
+#include "flag.h"
+#include "debug.h"
+
 #include "file.h"
 #include "vector.h"
 #include "command.h"
@@ -382,8 +385,11 @@ file_ls_candidate (FILE *terminal, char *file_path)
   struct dirent *dirent;
 
   path_disassemble (path, &dirname, &filename);
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    {
   fprintf (terminal, "  path: %s dir: %s filename: %s\n",
            file_path, dirname, filename);
+    }
 
   dir = opendir (dirname);
   if (dir == NULL)
@@ -395,8 +401,11 @@ file_ls_candidate (FILE *terminal, char *file_path)
   int maxlen = 0;
   while ((dirent = readdir (dir)) != NULL)
     {
+      /* everything starts with '.' are hidden. */
       if (dirent->d_name[0] == '.')
         continue;
+
+      /* calculate the maxmum entry name length. */
       if (! strncmp (dirent->d_name, filename, strlen (filename)))
         maxlen = (maxlen < dirent->d_namlen ? dirent->d_namlen : maxlen);
     }
@@ -405,7 +414,10 @@ file_ls_candidate (FILE *terminal, char *file_path)
   int ncolumn = 1;
   ncolumn = (80 - 2) / (maxlen + 2);
 
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    {
   fprintf (terminal, "  maxlen: %d ncol: %d\n", maxlen, ncolumn);
+    }
 
   fprintf (terminal, "\n");
 
@@ -413,6 +425,7 @@ file_ls_candidate (FILE *terminal, char *file_path)
 
   while ((dirent = readdir (dir)) != NULL)
     {
+      /* everything starts with '.' are hidden. */
       if (dirent->d_name[0] == '.')
         continue;
 
@@ -685,8 +698,11 @@ command_install2 (struct command_set *cmdset,
   parents = vector_create ();
   next_parents = vector_create ();
 
-  printf ("vector_create: %p\n", parents);
-  printf ("vector_create: %p\n", next_parents);
+  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+    {
+      printf ("%s: vector_create: %p\n", __func__, parents);
+      printf ("%s: vector_create: %p\n", __func__, next_parents);
+    }
 
   vector_add (cmdset->root, parents);
 
@@ -698,7 +714,9 @@ command_install2 (struct command_set *cmdset,
   while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
     {
       char *p;
-      printf ("word: %s\n", word);
+
+      if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+        printf ("%s: word: %s\n", __func__, word);
 
       /* everything before '(' is ignored. */
       p = index (word, '(');
@@ -720,7 +738,9 @@ command_install2 (struct command_set *cmdset,
           if (strlen (subword))
             {
               word_help = strsep (&hstringp, COMMAND_HELP_DELIMITERS);
-              printf ("subword: %s help: %s\n", subword, word_help);
+              if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+                printf ("%s: subword: %s help: %s\n",
+                        __func__, subword, word_help);
             }
 
           /* for each parent, add the subword node below it,
@@ -734,8 +754,9 @@ command_install2 (struct command_set *cmdset,
               if (! strlen (subword))
                 {
                   vector_add (parent, next_parents);
-                  printf ("vector_add: node: %p to vector: %p\n",
-                          parent, next_parents);
+                  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+                    printf ("%s: vector_add: node: %p to vector: %p\n",
+                            __func__, parent, next_parents);
                   continue;
                 }
 
@@ -749,36 +770,45 @@ command_install2 (struct command_set *cmdset,
                   vector_sort (command_node_cmp, parent->cmdvec);
                 }
 
-              printf ("parent: %p (%s) -> child: %p (%s)\n",
-                      parent, parent->cmdstr, node, node->cmdstr);
+              if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+                printf ("%s: parent: %p (%s) -> child: %p (%s)\n",
+                        __func__, parent, parent->cmdstr, node, node->cmdstr);
               vector_add (node, next_parents);
-              printf ("vector_add: node: %p to vector: %p\n",
-                      node, next_parents);
+              if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+                printf ("%s: vector_add: node: %p to vector: %p\n",
+                        __func__, node, next_parents);
             }
         }
 
-      printf ("vector_delete: %p\n", parents);
+      if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+        printf ("%s: vector_delete: %p\n", __func__, parents);
       vector_delete (parents);
       parents = next_parents;
       next_parents = vector_create ();
-      printf ("vector_create: %p\n", next_parents);
+      if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+        printf ("%s: vector_create: %p\n", __func__, next_parents);
     }
 
   for (vn = vector_head (parents); vn; vn = vector_next (vn))
     {
       node = (struct command_node *) vn->data;
       node->func = func;
-      printf ("node: %p (%s) add func %p\n",
-              node, node->cmdstr, func);
+      if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+        printf ("%s: node: %p (%s) add func %p\n",
+                __func__, node, node->cmdstr, func);
     }
 
   /* attache the string memory to free in the last processed node. */
   node->cmdmem = cmd_dup;
   node->helpmem = help_dup;
-  printf ("save memory for free: node: %p\n", node);
+  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+    printf ("%s: save memory for free: node: %p\n", __func__, node);
 
-  printf ("vector_delete: %p\n", parents);
-  printf ("vector_delete: %p\n", next_parents);
+  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+    {
+      printf ("%s: vector_delete: %p\n", __func__, parents);
+      printf ("%s: vector_delete: %p\n", __func__, next_parents);
+    }
   vector_delete (parents);
   vector_delete (next_parents);
 }

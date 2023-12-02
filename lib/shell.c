@@ -4,6 +4,8 @@
 
 #include <includes.h>
 
+#include "flag.h"
+#include "debug.h"
 #include "vector.h"
 #include "shell.h"
 
@@ -780,6 +782,8 @@ shell_input (struct shell *shell, unsigned char ch)
   inputch = ch;
 
 #if 1
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    {
   fprintf (shell->terminal, "\n");
   fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x",
            __func__, ch, ch, ch);
@@ -792,6 +796,7 @@ shell_input (struct shell *shell, unsigned char ch)
   fprintf (shell->terminal, "key_func: %p, key_func[%d]: %p\n",
            shell->key_func, ch, shell->key_func[ch]);
   shell_refresh (shell);
+    }
 #endif
 
   if (shell->key_func[ch])

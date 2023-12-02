@@ -6,6 +6,9 @@
 #include <string.h>
 #include <termios.h>
 
+#include "flag.h"
+#include "debug.h"
+
 struct termios oterm;
 
 struct flag_name {
@@ -59,10 +62,16 @@ termio_init ()
   t.c_lflag &= ~(ICANON | ECHO | IEXTEN);
   //t.c_oflag |= ONOCR;
 
-  printf ("termios: c_lflag: old: ");
-  termio_print_lflags (oterm.c_lflag);
-  printf ("termios: c_lflag: new: ");
-  termio_print_lflags (t.c_lflag);
+  if (FLAG_CHECK (debug_config, DEBUG_TERMIO))
+    {
+      printf ("termios: c_lflag: old: ");
+      termio_print_lflags (oterm.c_lflag);
+    }
+  if (FLAG_CHECK (debug_config, DEBUG_TERMIO))
+    {
+      printf ("termios: c_lflag: new: ");
+      termio_print_lflags (t.c_lflag);
+    }
 
   /* change terminal settings */
   tcsetattr (0, TCSANOW, &t);

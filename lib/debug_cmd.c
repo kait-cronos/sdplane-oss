@@ -105,9 +105,12 @@ debug_func (void *context, int argc, char **argv)
   int i;
   int debug_type_size;
 
+  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+    {
   printf ("%s: argc: %d\n", __func__, argc);
   for (i = 0; i < argc; i++)
     printf ("%s: argv[%d]: %s\n", __func__, i, argv[i]);
+    }
 
   debug_type_size = sizeof (debug_types) / sizeof (struct debug_type);
 
@@ -163,8 +166,11 @@ debug_cmd_init ()
   debug_cmdstr_init ();
   debug_helpstr_init ();
 
+  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+    {
   printf ("debug_cmdstr: %s\n", debug_cmdstr);
   printf ("debug_helpstr: %s\n", debug_helpstr);
+    }
 
   debug_cmd.cmdstr = debug_cmdstr;
   debug_cmd.helpstr = debug_helpstr;
