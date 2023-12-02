@@ -55,6 +55,10 @@ struct command_header
   command_install (cmdset, cmdname ## _cmd.cmdstr,           \
                    cmdname ## _cmd.helpstr, cmdname ## _cmd.cmdfunc)
 
+#define INSTALL_COMMAND2(cmdset, cmdname)                     \
+  command_install2 (cmdset, cmdname ## _cmd.cmdstr,           \
+                    cmdname ## _cmd.helpstr, cmdname ## _cmd.cmdfunc)
+
 #define EXTERN_COMMAND(cmdname) \
   extern struct command_header cmdname ## _cmd
 
@@ -68,6 +72,12 @@ command_install (struct command_set *cmdset,
                  char *command_line,
                  char *help_string,
                  command_func_t func);
+void
+command_install2 (struct command_set *cmdset,
+                  char *command_line,
+                  char *help_string,
+                  command_func_t func);
+
 int
 command_execute (char *command_line, struct command_set *cmdset,
                  void *context);

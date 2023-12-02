@@ -668,6 +668,121 @@ command_install (struct command_set *cmdset,
   node->helpmem = help_dup;
 }
 
+void
+command_install2 (struct command_set *cmdset,
+                  char *command_line,
+                  char *help_string,
+                  command_func_t func)
+{
+  struct command_node *node;
+  char *cmd_dup, *help_dup, *stringp, *hstringp;
+  char *word, *subword, *word_help;
+
+  struct vector *parents, *next_parents;
+  struct vector_node *vn;
+  struct command_node *parent;
+
+  parents = vector_create ();
+  next_parents = vector_create ();
+
+  printf ("vector_create: %p\n", parents);
+  printf ("vector_create: %p\n", next_parents);
+
+  vector_add (cmdset->root, parents);
+
+  cmd_dup = strdup (command_line);
+  help_dup = strdup (help_string);
+  stringp = cmd_dup;
+  hstringp = help_dup;
+
+  while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
+    {
+      char *p;
+      printf ("word: %s\n", word);
+
+      /* everything before '(' is ignored. */
+      p = index (word, '(');
+      if (p)
+        {
+          *p++ = '\0';
+          word = p;
+        }
+
+      /* everything after '(' is ignored. */
+      p = index (word, ')');
+      if (p)
+        *p = '\0';
+
+      /* for each subword: the word is separated by the '|' delimeter. */
+      while ((subword = strsep (&word, "|")) != NULL)
+        {
+          //printf ("subword: %s\n", subword);
+          if (strlen (subword))
+            {
+              word_help = strsep (&hstringp, COMMAND_HELP_DELIMITERS);
+              printf ("subword: %s help: %s\n", subword, word_help);
+            }
+
+          /* for each parent, add the subword node below it,
+             and prepare the next parents */
+          for (vn = vector_head (parents); vn; vn = vector_next (vn))
+            {
+              parent = (struct command_node *) vn->data;
+
+              /* if no subword, just add the parent to the next_parents,
+                 allowing omitting this level of subword. */
+              if (! strlen (subword))
+                {
+                  vector_add (parent, next_parents);
+                  printf ("vector_add: node: %p to vector: %p\n",
+                          parent, next_parents);
+                  continue;
+                }
+
+              node = command_match_exact (parent, subword);
+              if (node == NULL)
+                {
+                  node = command_node_create ();
+                  node->cmdstr = subword;
+                  node->helpstr = word_help;
+                  vector_add (node, parent->cmdvec);
+                  vector_sort (command_node_cmp, parent->cmdvec);
+                }
+
+              printf ("parent: %p (%s) -> child: %p (%s)\n",
+                      parent, parent->cmdstr, node, node->cmdstr);
+              vector_add (node, next_parents);
+              printf ("vector_add: node: %p to vector: %p\n",
+                      node, next_parents);
+            }
+        }
+
+      printf ("vector_delete: %p\n", parents);
+      vector_delete (parents);
+      parents = next_parents;
+      next_parents = vector_create ();
+      printf ("vector_create: %p\n", next_parents);
+    }
+
+  for (vn = vector_head (parents); vn; vn = vector_next (vn))
+    {
+      node = (struct command_node *) vn->data;
+      node->func = func;
+      printf ("node: %p (%s) add func %p\n",
+              node, node->cmdstr, func);
+    }
+
+  /* attache the string memory to free in the last processed node. */
+  node->cmdmem = cmd_dup;
+  node->helpmem = help_dup;
+  printf ("save memory for free: node: %p\n", node);
+
+  printf ("vector_delete: %p\n", parents);
+  printf ("vector_delete: %p\n", next_parents);
+  vector_delete (parents);
+  vector_delete (next_parents);
+}
+
 char *
 command_replace (struct command_node *cmd, char *word)
 {

@@ -7,4 +7,7 @@
 
 void debug_cmd_init ();
 
+EXTERN_COMMAND (debug);
+EXTERN_COMMAND (show_debug);
+
 #endif /*__DEBUG_CMD_H__*/

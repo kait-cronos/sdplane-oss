@@ -13,7 +13,7 @@ extern uint64_t debug_config;
 
 #define DEBUG_SHELL   (1ULL << 0)
 #define DEBUG_COMMAND (1ULL << 1)
-#define DEBUG_TERMIOS (1ULL << 2)
+#define DEBUG_TERMIO  (1ULL << 2)
 
 //if (FLAG_CHECK (debug_config, DEBUG_SHELL))
 
