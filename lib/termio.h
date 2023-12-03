@@ -5,6 +5,9 @@
 #ifndef __TERMIO_H__
 #define __TERMIO_H__
 
+void termio_start ();
+void termio_reset ();
+
 void termio_init ();
 void termio_finish ();
 

@@ -9,7 +9,8 @@
 #include "flag.h"
 #include "debug.h"
 
-struct termios oterm;
+struct termios termios_old;
+struct termios termios_new;
 
 struct flag_name {
   int val;
@@ -50,38 +51,54 @@ termio_print_lflags (int c_lflag)
 }
 
 void
-termio_init ()
+termio_start ()
 {
-  struct termios t;
-
-  /* save original terminal settings */
-  tcgetattr (0, &oterm);
-
-  /* disable canonical input */
-  memcpy (&t, &oterm, sizeof (t));
-  t.c_lflag &= ~(ICANON | ECHO | IEXTEN);
-  //t.c_oflag |= ONOCR;
-
   if (FLAG_CHECK (debug_config, DEBUG_TERMIO))
     {
-      printf ("termios: c_lflag: old: ");
-      termio_print_lflags (oterm.c_lflag);
-    }
-  if (FLAG_CHECK (debug_config, DEBUG_TERMIO))
-    {
-      printf ("termios: c_lflag: new: ");
-      termio_print_lflags (t.c_lflag);
+      printf ("termios_new: c_lflag: ");
+      termio_print_lflags (termios_new.c_lflag);
     }
 
   /* change terminal settings */
-  tcsetattr (0, TCSANOW, &t);
+  tcsetattr (0, TCSANOW, &termios_new);
+}
+
+void
+termio_reset ()
+{
+  if (FLAG_CHECK (debug_config, DEBUG_TERMIO))
+    {
+      printf ("termios_old: c_lflag: ");
+      termio_print_lflags (termios_old.c_lflag);
+    }
+
+  /* change terminal settings */
+  tcsetattr (0, TCSANOW, &termios_old);
+}
+
+void
+termio_init ()
+{
+  /* save original terminal settings */
+  tcgetattr (0, &termios_old);
+
+  if (FLAG_CHECK (debug_config, DEBUG_TERMIO))
+    {
+      printf ("termios_old: c_lflag: ");
+      termio_print_lflags (termios_old.c_lflag);
+    }
+
+  /* disable canonical input */
+  memcpy (&termios_new, &termios_old, sizeof (termios_new));
+  termios_new.c_lflag &= ~(ICANON | ECHO | IEXTEN);
+  //termios_new.c_oflag |= ONOCR;
+
+  termio_start ();
 }
 
 void
 termio_finish ()
 {
-  /* restore terminal settings */
-  tcsetattr (0, TCSANOW, &oterm);
+  termio_reset ();
 }
-
 
