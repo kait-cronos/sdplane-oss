@@ -1,0 +1,21 @@
+
+BasedOnStyle: GNU
+AlwaysBreakBeforeMultilineStrings: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+
+IndentCaseLabels: false
+AlignEscapedNewlinesLeft: false
+AlignTrailingComments: true
+AllowAllParametersOfDeclarationOnNextLine: false
+AlignAfterOpenBracket: true
+SpaceAfterCStyleCast: true
+MaxEmptyLinesToKeep: 2
+
+AlignConsecutiveMacros: true
+SpaceAfterLogicalNot: true
+BreakBeforeBinaryOperators: None
+BreakStringLiterals: false
+SortIncludes:    false
+
