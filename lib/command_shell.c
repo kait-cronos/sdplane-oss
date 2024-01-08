@@ -4,6 +4,9 @@
 
 #include <includes.h>
 
+#include "log.h"
+#include "debug.h"
+
 #include "file.h"
 #include "vector.h"
 #include "shell.h"
@@ -208,23 +211,24 @@ timer_check (void)
   strftime (limit_str, sizeof (limit_str),
             "%Y/%m/%d %H:%M:%S", &limit_tm);
 
-#define TIMER_DEBUG 0
-#if TIMER_DEBUG
-  printf ("%9s %s\n", "start:", start_str);
-  printf ("%9s %s\n", "current:", current_str);
-  printf ("%9s %s\n", "end:", end_str);
-  printf ("%9s %s\n", "limit:", limit_str);
-#endif
+  if (FLAG_CHECK (debug_config, DEBUG_TIMER))
+    {
+      printf ("%9s %s\n", "start:", start_str);
+      printf ("%9s %s\n", "current:", current_str);
+      printf ("%9s %s\n", "end:", end_str);
+      printf ("%9s %s\n", "limit:", limit_str);
+    }
 
   double diff_end, diff_limit;
 
   diff_end = difftime (end, current);
   diff_limit = difftime (limit, current);
 
-#if TIMER_DEBUG
-  printf ("end diff: %.1lf\n", diff_end);
-  printf ("limit diff: %.1lf\n", diff_limit);
-#endif
+  if (FLAG_CHECK (debug_config, DEBUG_TIMER))
+    {
+      //printf ("end diff: %.1lf\n", diff_end);
+      printf ("limit diff: %.1lf\n", diff_limit);
+    }
 
 #if 0
   if (diff_end < 0)

@@ -14,6 +14,7 @@ struct debug_type debug_types[] =
   { DEBUG_SHELL,   "shell" },
   { DEBUG_COMMAND, "command" },
   { DEBUG_TERMIO,  "termio" },
+  { DEBUG_TIMER,   "timer" },
 };
 
 struct command_header debug_cmd;
