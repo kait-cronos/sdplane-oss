@@ -160,12 +160,98 @@ DEFINE_COMMAND (show_history,
 }
 
 void
+timer_check (void)
+{
+  int ret;
+
+  static time_t start = 0;
+  static start_str[64];
+
+  char end_str[64], limit_str[64], current_str[64];
+  time_t end, limit, current;
+  struct tm *end_tm, end_tm_buf, *current_tm, current_tm_buf;
+
+  int survival = 30;
+  struct tm limit_tm = {
+    .tm_sec = 59,
+    .tm_min = 59,
+    .tm_hour = 23,
+    .tm_mday = 31,
+    .tm_mon = 1,
+    .tm_year = 2024,
+    .tm_wday = 0,
+  };
+  limit_tm.tm_year -= 1900;
+  limit_tm.tm_mon -= 1;
+  limit = mktime (&limit_tm);
+
+  if (start == 0)
+    {
+      struct tm *start_tm, start_tm_buf;
+      time (&start);
+      start_tm = localtime_r (&start, &start_tm_buf);
+      strftime (start_str, sizeof (start_str),
+                "%Y/%m/%d %H:%M:%S", start_tm);
+    }
+
+  end = start + survival;
+  end_tm = localtime_r (&end, &end_tm_buf);
+  //printf ("start: %d end: %d\n", start, end);
+
+  time (&current);
+  current_tm = localtime_r (&current, &current_tm_buf);
+
+  strftime (current_str, sizeof (current_str),
+            "%Y/%m/%d %H:%M:%S", current_tm);
+  strftime (end_str, sizeof (end_str),
+            "%Y/%m/%d %H:%M:%S", end_tm);
+  strftime (limit_str, sizeof (limit_str),
+            "%Y/%m/%d %H:%M:%S", &limit_tm);
+
+#define TIMER_DEBUG 0
+#if TIMER_DEBUG
+  printf ("%9s %s\n", "start:", start_str);
+  printf ("%9s %s\n", "current:", current_str);
+  printf ("%9s %s\n", "end:", end_str);
+  printf ("%9s %s\n", "limit:", limit_str);
+#endif
+
+  double diff_end, diff_limit;
+
+  diff_end = difftime (end, current);
+  diff_limit = difftime (limit, current);
+
+#if TIMER_DEBUG
+  printf ("end diff: %.1lf\n", diff_end);
+  printf ("limit diff: %.1lf\n", diff_limit);
+#endif
+
+#if 0
+  if (diff_end < 0)
+    {
+      printf ("opensh: beta-version: duration-limit: %'d secs\n", survival);
+      printf ("opensh: shutdown.\n");
+      exit (1);
+    }
+#endif
+
+  if (diff_limit < 0)
+    {
+      printf ("opensh: beta-version: time-limit: %s\n", limit_str);
+      printf ("opensh: shutdown.\n");
+      exit (1);
+    }
+}
+
+void
 command_shell_execute (struct shell *shell)
 {
   int ret = 0;
   char *comment;
 
   shell_linefeed (shell);
+
+  timer_check ();
 
   /* comment handling */
   comment = strpbrk (shell->command_line, "#!");
