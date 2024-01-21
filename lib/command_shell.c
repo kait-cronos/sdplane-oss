@@ -333,7 +333,11 @@ file_ls_candidate (struct shell *shell, char *file_path)
 
       /* calculate the maxmum entry name length. */
       if (! strncmp (dirent->d_name, filename, strlen (filename)))
+#if 0
         maxlen = (maxlen < dirent->d_namlen ? dirent->d_namlen : maxlen);
+#else
+        maxlen = (maxlen < strlen (dirent->d_name) ? strlen (dirent->d_name) : maxlen);
+#endif
     }
   rewinddir (dir);
 
@@ -424,7 +428,7 @@ command_shell_ls_candidate (struct shell *shell)
 
           if (file_spec (node->cmdstr))
 #if 1
-            file_ls_candidate (shell->terminal, last);
+            file_ls_candidate (shell, last);
 #else
             {
               char *path = strdup (last);

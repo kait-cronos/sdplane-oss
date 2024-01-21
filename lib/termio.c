@@ -25,12 +25,16 @@ struct flag_name {
   { ECHOCTL,      "ECHOCTL" },
   { ISIG,         "ISIG" },
   { ICANON,       "ICANON" },
+#ifdef ALTWERASE
   { ALTWERASE,    "ALTWERASE" },
+#endif
   { IEXTEN,       "IEXTEN" },
   { EXTPROC,      "EXTPROC" },
   { TOSTOP,       "TOSTOP" },
   { FLUSHO,       "FLUSHO" },
+#ifdef NOKERNINFO
   { NOKERNINFO,   "NOKERNINFO" },
+#endif
   { PENDIN,       "PENDIN" },
   { NOFLSH,       "NOFLSH" },
 };

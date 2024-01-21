@@ -207,8 +207,13 @@ fselect_keyfunc_start (struct shell *shell)
                    strlen (fselect_filename)))
         continue;
 
+#if 0
       fselect_maxlen = (fselect_maxlen < dirent->d_namlen ?
                         dirent->d_namlen : fselect_maxlen);
+#else
+      fselect_maxlen = (fselect_maxlen < strlen (dirent->d_name) ?
+                        strlen (dirent->d_name) : fselect_maxlen);
+#endif
       fselect_nentry++;
     }
   closedir (dir);
