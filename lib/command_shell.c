@@ -168,7 +168,7 @@ timer_check (void)
   int ret;
 
   static time_t start = 0;
-  static start_str[64];
+  static char start_str[64];
 
   char end_str[64], limit_str[64], current_str[64];
   time_t end, limit, current;

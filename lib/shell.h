@@ -5,6 +5,8 @@
 #ifndef __SHELL_H__
 #define __SHELL_H__
 
+#include <sys/ioctl.h>
+
 #include "flag.h"
 
 #define SHELL_WORD_DELIMITERS " "
@@ -39,6 +41,8 @@ struct shell
   void *context;
   void *history;
   void *demand_matrix;
+
+  struct winsize winsize;
 };
 
 #define SHELL_FLAG_ESCAPE    0x01
