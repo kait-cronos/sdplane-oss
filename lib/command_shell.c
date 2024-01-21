@@ -301,6 +301,88 @@ command_shell_completion (struct shell *shell)
 }
 
 void
+file_ls_candidate (struct shell *shell, char *file_path)
+{
+  char *path = strdup (file_path);
+  char *dirname;
+  char *filename;
+  int num = 0;
+  DIR *dir;
+  struct dirent *dirent;
+
+  path_disassemble (path, &dirname, &filename);
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    {
+  fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
+           file_path, dirname, filename);
+    }
+
+  dir = opendir (dirname);
+  if (dir == NULL)
+    {
+      free (path);
+      return;
+    }
+
+  int maxlen = 0;
+  while ((dirent = readdir (dir)) != NULL)
+    {
+      /* everything starts with '.' are hidden. */
+      if (dirent->d_name[0] == '.')
+        continue;
+
+      /* calculate the maxmum entry name length. */
+      if (! strncmp (dirent->d_name, filename, strlen (filename)))
+        maxlen = (maxlen < dirent->d_namlen ? dirent->d_namlen : maxlen);
+    }
+  rewinddir (dir);
+
+  int ncolumn = 1;
+  ncolumn = (shell->winsize.ws_col - 2) / (maxlen + 2);
+
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    {
+  fprintf (shell->terminal, "  maxlen: %d ncol: %d\n", maxlen, ncolumn);
+    }
+
+  fprintf (shell->terminal, "\n");
+
+  char dirent_name[1024];
+
+  while ((dirent = readdir (dir)) != NULL)
+    {
+      /* everything starts with '.' are hidden. */
+      if (dirent->d_name[0] == '.')
+        continue;
+
+      if (dirent->d_type == DT_DIR)
+        snprintf (dirent_name, sizeof (dirent_name), "%s/", dirent->d_name);
+      else
+        snprintf (dirent_name, sizeof (dirent_name), "%s", dirent->d_name);
+
+      if (! strncmp (dirent->d_name, filename, strlen (filename)))
+        {
+          if (ncolumn == 0)
+            {
+              fprintf (shell->terminal, "  %s\n", dirent_name);
+            }
+          else
+            {
+              if (num % ncolumn == 0)
+                fprintf (shell->terminal, "  ");
+              fprintf (shell->terminal, "%-*s", maxlen + 2, dirent_name);
+              if (num % ncolumn == ncolumn - 1)
+                fprintf (shell->terminal, "\n");
+            }
+          num++;
+        }
+    }
+  fprintf (shell->terminal, "\n");
+
+  free (path);
+}
+
+void
 command_shell_ls_candidate (struct shell *shell)
 {
   char *cmd_dup;
