@@ -231,11 +231,10 @@ timer_check ()
 
   if (FLAG_CHECK (debug_config, DEBUG_TIMER))
     {
-      //printf ("end diff: %.1lf\n", diff_end);
+      printf ("end diff: %.1lf\n", diff_end);
       printf ("limit diff: %.1lf\n", diff_limit);
     }
 
-#if 1
   if (diff_end < 0)
     {
       printf ("opensh: beta-version: duration-limit: %'d secs\n",
@@ -243,7 +242,6 @@ timer_check ()
       printf ("opensh: shutdown.\n");
       exit (1);
     }
-#endif
 
   if (diff_limit < 0)
     {
@@ -312,14 +310,6 @@ print_dirent (struct shell *shell, struct dirent *dirent,
 {
   char printname[1024];
   char *suffix;
-
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    {
-      fprintf (shell->terminal, "%d: ncolumn: %d width: %d\n",
-               num, ncolumn, print_width);
-      fprintf (shell->terminal, "\"%s\" (%d)\n",
-               dirent->d_name, strlen (dirent->d_name));
-    }
 
   suffix = "";
   if (dirent->d_type == DT_DIR)
