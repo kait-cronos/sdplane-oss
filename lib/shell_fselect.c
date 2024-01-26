@@ -39,6 +39,8 @@ fselect_ls_candidate (struct shell *shell)
     return;
 
   fselect_ncolumn = (shell->winsize.ws_col - 2) / (fselect_maxlen + 2);
+  if (fselect_ncolumn == 0)
+    fselect_ncolumn = 1;
 
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
