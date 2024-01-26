@@ -300,21 +300,62 @@ command_shell_completion (struct shell *shell)
     shell_insert (shell, completion);
 }
 
+static void
+print_dirent (struct shell *shell, struct dirent *dirent,
+              int num, int ncolumn, int print_width)
+{
+  char printname[1024];
+  char *suffix;
+
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    {
+      fprintf (shell->terminal, "%d: ncolumn: %d width: %d\n",
+               num, ncolumn, print_width);
+      fprintf (shell->terminal, "\"%s\" (%d)\n",
+               dirent->d_name, strlen (dirent->d_name));
+    }
+
+  suffix = "";
+  if (dirent->d_type == DT_DIR)
+    suffix = "/";
+  snprintf (printname, sizeof (printname),
+            "%s%s", dirent->d_name, suffix);
+
+  if (num % ncolumn == 0)
+    fprintf (shell->terminal, "  ");
+
+  if (ncolumn != 1)
+    fprintf (shell->terminal, "%-*s", print_width, printname);
+  else
+    fprintf (shell->terminal, "%s", printname);
+
+  if (num % ncolumn == ncolumn - 1)
+    fprintf (shell->terminal, "\n");
+}
+
+int
+dirent_cmp (const void *va, const void *vb)
+{
+  struct dirent *da = *(struct dirent **) va;
+  struct dirent *db = *(struct dirent **) vb;
+  return strcmp (da->d_name, db->d_name);
+}
+
 void
 file_ls_candidate (struct shell *shell, char *file_path)
 {
   char *path = strdup (file_path);
   char *dirname;
   char *filename;
-  int num = 0;
+  int num;
   DIR *dir;
   struct dirent *dirent;
 
   path_disassemble (path, &dirname, &filename);
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-  fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
-           file_path, dirname, filename);
+      fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
+               file_path, dirname, filename);
     }
 
   dir = opendir (dirname);
@@ -325,64 +366,81 @@ file_ls_candidate (struct shell *shell, char *file_path)
     }
 
   int maxlen = 0;
+  num = 0;
   while ((dirent = readdir (dir)) != NULL)
     {
       /* everything starts with '.' are hidden. */
       if (dirent->d_name[0] == '.')
+        continue;
+
+      /* filter by the pattern */
+      if (strncmp (dirent->d_name, filename, strlen (filename)))
         continue;
 
       /* calculate the maxmum entry name length. */
-      if (! strncmp (dirent->d_name, filename, strlen (filename)))
 #if 0
-        maxlen = (maxlen < dirent->d_namlen ? dirent->d_namlen : maxlen);
+      maxlen = (maxlen < dirent->d_namlen ? dirent->d_namlen : maxlen);
 #else
-        maxlen = (maxlen < strlen (dirent->d_name) ? strlen (dirent->d_name) : maxlen);
+      maxlen = (maxlen < strlen (dirent->d_name) ?
+                strlen (dirent->d_name) : maxlen);
 #endif
+
+      num++;
     }
   rewinddir (dir);
 
-  int ncolumn = 1;
+  int sort_size;
+  struct dirent **sort_vector;
+
+  sort_size = num;
+  sort_vector = malloc (sizeof (struct dirent *) * sort_size);
+
+  int ncolumn;
   ncolumn = (shell->winsize.ws_col - 2) / (maxlen + 2);
+  if (ncolumn == 0)
+    ncolumn = 1;
 
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-  fprintf (shell->terminal, "  maxlen: %d ncol: %d\n", maxlen, ncolumn);
+      fprintf (shell->terminal, "  maxlen: %d ncol: %d\n",
+               maxlen, ncolumn);
     }
 
   fprintf (shell->terminal, "\n");
 
-  char dirent_name[1024];
-
+  num = 0;
   while ((dirent = readdir (dir)) != NULL)
     {
       /* everything starts with '.' are hidden. */
       if (dirent->d_name[0] == '.')
         continue;
 
-      if (dirent->d_type == DT_DIR)
-        snprintf (dirent_name, sizeof (dirent_name), "%s/", dirent->d_name);
-      else
-        snprintf (dirent_name, sizeof (dirent_name), "%s", dirent->d_name);
+      /* filter by the pattern */
+      if (strncmp (dirent->d_name, filename, strlen (filename)))
+        continue;
 
-      if (! strncmp (dirent->d_name, filename, strlen (filename)))
+      if (sort_vector)
+        sort_vector[num] = dirent;
+      else
+        print_dirent (shell, dirent, num, ncolumn, maxlen + 2);
+
+      num++;
+    }
+
+  if (sort_vector)
+    {
+      qsort ((void *) sort_vector, sort_size,
+             sizeof (struct dirent *), dirent_cmp);
+
+      for (int i = 0; i < sort_size; i++)
         {
-          if (ncolumn == 0)
-            {
-              fprintf (shell->terminal, "  %s\n", dirent_name);
-            }
-          else
-            {
-              if (num % ncolumn == 0)
-                fprintf (shell->terminal, "  ");
-              fprintf (shell->terminal, "%-*s", maxlen + 2, dirent_name);
-              if (num % ncolumn == ncolumn - 1)
-                fprintf (shell->terminal, "\n");
-            }
-          num++;
+          print_dirent (shell, sort_vector[i], i, ncolumn, maxlen + 2);
         }
     }
+
   fprintf (shell->terminal, "\n");
 
+  closedir (dir);
   free (path);
 }
 
@@ -427,41 +485,7 @@ command_shell_ls_candidate (struct shell *shell)
                      node->cmdstr, node->helpstr);
 
           if (file_spec (node->cmdstr))
-#if 1
             file_ls_candidate (shell, last);
-#else
-            {
-              char *path = strdup (last);
-              char *dirname;
-              char *filename;
-              int num = 0;
-              DIR *dir;
-              struct dirent *dirent;
-
-              fprintf (shell->terminal, "\n");
-              path_disassemble (path, &dirname, &filename);
-
-              dir = opendir (dirname);
-              if (dir == NULL)
-                {
-                  free (path);
-                  continue;
-                }
-
-              while ((dirent = readdir (dir)) != NULL)
-                if (! strncmp (dirent->d_name, filename, strlen (filename)))
-                  {
-                    if (num % 4 == 0)
-                      fprintf (shell->terminal, "  ");
-                    fprintf (shell->terminal, "%-16s", dirent->d_name);
-                    if (num % 4 == 3)
-                      fprintf (shell->terminal, "\n");
-                    num++;
-                  }
-              fprintf (shell->terminal, "\n");
-              free (path);
-            }
-#endif
         }
     }
 
@@ -572,6 +596,4 @@ command_shell_finish ()
 {
   command_set_delete (cmdset_default);
 }
-
-
 
