@@ -144,7 +144,7 @@ debug_func (void *context, int argc, char **argv)
 
 DEFINE_COMMAND (show_debug,
                 "show debugging",
-                "show information.\n"
+                SHOW_HELP
                 "show debugging information.\n")
 {
   struct shell *shell = (struct shell *) context;

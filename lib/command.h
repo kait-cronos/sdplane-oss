@@ -103,4 +103,6 @@ void command_config_write (struct vector *config, FILE *fp);
 #define IMPORT_HELP "import information\n"
 #define EXPORT_HELP "export information\n"
 
+#define SHOW_HELP "show information.\n"
+
 #endif /*__COMMAND_H__*/
