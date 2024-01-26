@@ -162,57 +162,62 @@ DEFINE_COMMAND (show_history,
       fprintf (shell->terminal, "[%3d] %s\n", i, history->array[i]);
 }
 
+int duration_limit;
+time_t start, end, limit;
+char start_str[64], end_str[64], limit_str[64];
+
+struct tm start_tm_buf, end_tm_buf, limit_tm_buf;
+struct tm *start_tm, *end_tm, *limit_tm;
+
 void
-timer_check (void)
+timer_init (int dura_limit, char *date_limit)
 {
   int ret;
 
-  static time_t start = 0;
-  static char start_str[64];
+  duration_limit = dura_limit;
+  ret = sscanf (date_limit, "%d/%d/%d %d:%d:%d",
+                &limit_tm_buf.tm_year,
+                &limit_tm_buf.tm_mon,
+                &limit_tm_buf.tm_mday,
+                &limit_tm_buf.tm_hour,
+                &limit_tm_buf.tm_min,
+                &limit_tm_buf.tm_sec);
+  assert (ret == 6);
+  limit_tm = &limit_tm_buf;
 
-  char end_str[64], limit_str[64], current_str[64];
-  time_t end, limit, current;
-  struct tm *end_tm, end_tm_buf, *current_tm, current_tm_buf;
+  limit_tm->tm_year -= 1900;
+  limit_tm->tm_mon -= 1;
 
-  int survival = 30;
-  struct tm limit_tm = {
-    .tm_sec = 59,
-    .tm_min = 59,
-    .tm_hour = 23,
-    .tm_mday = 31,
-    .tm_mon = 1,
-    .tm_year = 2024,
-    .tm_wday = 0,
-  };
-  limit_tm.tm_year -= 1900;
-  limit_tm.tm_mon -= 1;
-  limit = mktime (&limit_tm);
+  limit = mktime (limit_tm);
+  strftime (limit_str, sizeof (limit_str),
+            "%Y/%m/%d %H:%M:%S", limit_tm);
 
-  if (start == 0)
-    {
-      struct tm *start_tm, start_tm_buf;
-      time (&start);
-      start_tm = localtime_r (&start, &start_tm_buf);
-      strftime (start_str, sizeof (start_str),
-                "%Y/%m/%d %H:%M:%S", start_tm);
-    }
+  time (&start);
+  start_tm = localtime_r (&start, &start_tm_buf);
+  strftime (start_str, sizeof (start_str),
+            "%Y/%m/%d %H:%M:%S", start_tm);
 
-  end = start + survival;
+  end = start + duration_limit;
   end_tm = localtime_r (&end, &end_tm_buf);
-  //printf ("start: %d end: %d\n", start, end);
+  strftime (end_str, sizeof (end_str),
+            "%Y/%m/%d %H:%M:%S", end_tm);
+}
+
+void
+timer_check ()
+{
+  time_t current;
+  char current_str[64];
+  struct tm *current_tm, current_tm_buf;
 
   time (&current);
   current_tm = localtime_r (&current, &current_tm_buf);
-
   strftime (current_str, sizeof (current_str),
             "%Y/%m/%d %H:%M:%S", current_tm);
-  strftime (end_str, sizeof (end_str),
-            "%Y/%m/%d %H:%M:%S", end_tm);
-  strftime (limit_str, sizeof (limit_str),
-            "%Y/%m/%d %H:%M:%S", &limit_tm);
 
   if (FLAG_CHECK (debug_config, DEBUG_TIMER))
     {
+      printf ("%9s %d sec\n", "duration:", duration_limit);
       printf ("%9s %s\n", "start:", start_str);
       printf ("%9s %s\n", "current:", current_str);
       printf ("%9s %s\n", "end:", end_str);
@@ -230,10 +235,11 @@ timer_check (void)
       printf ("limit diff: %.1lf\n", diff_limit);
     }
 
-#if 0
+#if 1
   if (diff_end < 0)
     {
-      printf ("opensh: beta-version: duration-limit: %'d secs\n", survival);
+      printf ("opensh: beta-version: duration-limit: %'d secs\n",
+              duration_limit);
       printf ("opensh: shutdown.\n");
       exit (1);
     }
@@ -241,7 +247,7 @@ timer_check (void)
 
   if (diff_limit < 0)
     {
-      printf ("opensh: beta-version: time-limit: %s\n", limit_str);
+      printf ("opensh: beta-version: date-limit: %s\n", limit_str);
       printf ("opensh: shutdown.\n");
       exit (1);
     }
