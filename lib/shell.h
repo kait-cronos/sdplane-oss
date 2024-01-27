@@ -64,6 +64,9 @@ void shell_moveto (struct shell *shell, int index);
 int shell_word_head (struct shell *shell, int point);
 int shell_word_end (struct shell *shell, int point);
 
+int shell_subword_head (struct shell *shell, int point);
+void shell_delete_word_backward (struct shell *shell);
+
 void shell_keyfunc_ctrl_a (struct shell *shell);
 void shell_keyfunc_ctrl_b (struct shell *shell);
 void shell_keyfunc_ctrl_d (struct shell *shell);

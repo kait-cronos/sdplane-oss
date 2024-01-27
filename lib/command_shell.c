@@ -343,7 +343,6 @@ file_ls_candidate (struct shell *shell, char *file_path)
   char *path = strdup (file_path);
   char *dirname;
   char *filename;
-  int num;
   DIR *dir;
   struct dirent *dirent;
 
@@ -362,7 +361,7 @@ file_ls_candidate (struct shell *shell, char *file_path)
     }
 
   int maxlen = 0;
-  num = 0;
+  int nentry = 0;
   while ((dirent = readdir (dir)) != NULL)
     {
       /* everything starts with '.' are hidden. */
@@ -374,23 +373,20 @@ file_ls_candidate (struct shell *shell, char *file_path)
         continue;
 
       /* calculate the maxmum entry name length. */
-#if 0
-      maxlen = (maxlen < dirent->d_namlen ? dirent->d_namlen : maxlen);
-#else
       maxlen = (maxlen < strlen (dirent->d_name) ?
                 strlen (dirent->d_name) : maxlen);
-#endif
 
-      num++;
+      nentry++;
     }
   rewinddir (dir);
 
   int sort_size;
   struct dirent **sort_vector;
 
-  sort_size = num;
+  sort_size = nentry;
   sort_vector = malloc (sizeof (struct dirent *) * sort_size);
 
+  int num;
   int ncolumn;
   ncolumn = (shell->winsize.ws_col - 2) / (maxlen + 2);
   if (ncolumn == 0)
@@ -429,9 +425,7 @@ file_ls_candidate (struct shell *shell, char *file_path)
              sizeof (struct dirent *), dirent_cmp);
 
       for (int i = 0; i < sort_size; i++)
-        {
-          print_dirent (shell, sort_vector[i], i, ncolumn, maxlen + 2);
-        }
+        print_dirent (shell, sort_vector[i], i, ncolumn, maxlen + 2);
     }
 
   fprintf (shell->terminal, "\n");

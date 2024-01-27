@@ -27,10 +27,39 @@ char *fselect_filename;
 
 shell_keyfunc_t *key_func_orig;
 
+static void
+print_dirent_fselect (struct shell *shell, struct dirent *dirent,
+                      int num, int ncolumn, int print_width)
+{
+  char printname[1024];
+  char *suffix;
+
+  suffix = (dirent->d_type == DT_DIR ? "/" : "");
+  snprintf (printname, sizeof (printname),
+            "%s%s", dirent->d_name, suffix);
+
+  if (num % ncolumn == 0)
+    fprintf (shell->terminal, "  ");
+
+  if (num == fselect_index)
+    fprintf (shell->terminal, "%s", "\033[7m");
+
+  if (ncolumn != 1)
+    fprintf (shell->terminal, "%-*s", print_width, printname);
+  else
+    fprintf (shell->terminal, "%s", printname);
+
+  if (num == fselect_index)
+    fprintf (shell->terminal, "%s", "\033[0m");
+
+  if (num % ncolumn == ncolumn - 1)
+    fprintf (shell->terminal, "\n");
+}
+
 void
 fselect_ls_candidate (struct shell *shell)
 {
-  int num = 0;
+  int num;
   DIR *dir;
   struct dirent *dirent;
 
@@ -38,32 +67,48 @@ fselect_ls_candidate (struct shell *shell)
   if (dir == NULL)
     return;
 
+  int sort_size;
+  struct dirent **sort_vector;
+
+  sort_size = fselect_nentry;
+  sort_vector = malloc (sizeof (struct dirent *) * sort_size);
+
   fselect_ncolumn = (shell->winsize.ws_col - 2) / (fselect_maxlen + 2);
   if (fselect_ncolumn == 0)
     fselect_ncolumn = 1;
 
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-  fprintf (shell->terminal, "\n");
-  fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
-           fselect_path, fselect_dirname, fselect_filename);
-  fprintf (shell->terminal, "  maxlen: %d ncol: %d nentry: %d index: %d\n",
-           fselect_maxlen, fselect_ncolumn, fselect_nentry, fselect_index);
-  fprintf (shell->terminal, "\n");
+      fprintf (shell->terminal, "\n");
+      fprintf (shell->terminal,
+               "  path: %s dir: %s filename: %s\n",
+               fselect_path, fselect_dirname, fselect_filename);
+      fprintf (shell->terminal,
+               "  maxlen: %d ncol: %d nentry: %d index: %d\n",
+               fselect_maxlen, fselect_ncolumn,
+               fselect_nentry, fselect_index);
+      fprintf (shell->terminal, "\n");
     }
 
-  char dirent_name[1024];
-  int dirent_len;
-
+  num = 0;
   while ((dirent = readdir (dir)) != NULL)
     {
+      /* everything starts with '.' are hidden. */
       if (dirent->d_name[0] == '.')
         continue;
 
+      /* filter by the pattern */
       if (strncmp (dirent->d_name, fselect_filename,
                    strlen (fselect_filename)))
         continue;
 
+      if (sort_vector)
+        sort_vector[num] = dirent;
+      else
+        print_dirent_fselect (shell, dirent, num,
+                              fselect_ncolumn, fselect_maxlen + 2);
+
+#if 0
       snprintf (dirent_name, sizeof (dirent_name),
                 "%s%s",
                 dirent->d_name,
@@ -92,12 +137,23 @@ fselect_ls_candidate (struct shell *shell)
         }
       else
         fprintf (shell->terminal, "\n");
+#endif
 
       num++;
     }
 
-  closedir (dir);
+  if (sort_vector)
+    {
+      qsort ((void *) sort_vector, sort_size,
+             sizeof (struct dirent *), dirent_cmp);
+
+      for (int i = 0; i < sort_size; i++)
+        print_dirent_fselect (shell, sort_vector[i], i,
+                              fselect_ncolumn, fselect_maxlen + 2);
+    }
+
   fprintf (shell->terminal, "\n");
+  closedir (dir);
 }
 
 char *
@@ -112,26 +168,58 @@ fselect_completion ()
   if (dir == NULL)
     return NULL;
 
+  int sort_size;
+  struct dirent **sort_vector;
+
+  sort_size = fselect_nentry;
+  sort_vector = malloc (sizeof (struct dirent *) * sort_size);
+
   completion[0] = '\0';
 
   while ((dirent = readdir (dir)) != NULL)
     {
+      /* everything starts with '.' are hidden. */
       if (dirent->d_name[0] == '.')
         continue;
 
+      /* filter by the pattern */
       if (strncmp (dirent->d_name, fselect_filename,
                    strlen (fselect_filename)))
         continue;
 
-      if (num == fselect_index)
+      if (sort_vector)
+        sort_vector[num] = dirent;
+      else
         {
-          snprintf (completion, sizeof (completion),
-                    "%s%s", dirent->d_name,
-                    (dirent->d_type == DT_DIR ? "/" : ""));
-          break;
+          if (num == fselect_index)
+            {
+              char *suffix = (dirent->d_type == DT_DIR ? "/" : "");
+              snprintf (completion, sizeof (completion),
+                        "%s%s", dirent->d_name, suffix);
+              break;
+            }
         }
 
       num++;
+    }
+
+  if (sort_vector)
+    {
+      qsort ((void *) sort_vector, sort_size,
+             sizeof (struct dirent *), dirent_cmp);
+
+      for (int i = 0; i < sort_size; i++)
+        {
+          if (i == fselect_index)
+            {
+              char *suffix;
+              dirent = sort_vector[i];
+              suffix = (dirent->d_type == DT_DIR ? "/" : "");
+              snprintf (completion, sizeof (completion),
+                        "%s%s", dirent->d_name, suffix);
+              break;
+            }
+        }
     }
 
   closedir (dir);
@@ -190,9 +278,8 @@ fselect_keyfunc_start (struct shell *shell)
 
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-  fprintf (shell->terminal, "debug...\n");
-  fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
-           fselect_path, fselect_dirname, fselect_filename);
+      fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
+               fselect_path, fselect_dirname, fselect_filename);
     }
 
   dir = opendir (fselect_dirname);
@@ -203,32 +290,28 @@ fselect_keyfunc_start (struct shell *shell)
   fselect_nentry = 0;
   while ((dirent = readdir (dir)) != NULL)
     {
+      /* everything starts with '.' are hidden. */
       if (dirent->d_name[0] == '.')
         continue;
+
+      /* filter by the pattern */
       if (strncmp (dirent->d_name, fselect_filename,
                    strlen (fselect_filename)))
         continue;
 
-#if 0
-      fselect_maxlen = (fselect_maxlen < dirent->d_namlen ?
-                        dirent->d_namlen : fselect_maxlen);
-#else
+      /* calculate the maxmum entry name length. */
       fselect_maxlen = (fselect_maxlen < strlen (dirent->d_name) ?
                         strlen (dirent->d_name) : fselect_maxlen);
-#endif
+
       fselect_nentry++;
     }
   closedir (dir);
 
+#if 0
+  /* ncolumn is set inside fselect_ls_candidate() */
   fselect_ncolumn = (shell->winsize.ws_col - 2) / (fselect_maxlen + 2);
   if (fselect_ncolumn == 0)
     fselect_ncolumn = 1;
-
-#if 0
-  fprintf (shell->terminal, "\n");
-  fprintf (shell->terminal, "  maxlen: %d ncol: %d\n",
-           fselect_maxlen, fselect_ncolumn);
-  fprintf (shell->terminal, "\n");
 #endif
 
   fselect_index = 0;
@@ -250,15 +333,30 @@ void
 fselect_keyfunc_enter (struct shell *shell)
 {
   char *completion;
+  int cursor_orig, last_head, last_end, last_subword_head;
 
   //fprintf (shell->terminal, "%s: called.\n", __func__);
 
   shell_refresh (shell);
 
-  shell_moveto (shell, shell_word_end (shell, shell->cursor));
+  cursor_orig = shell->cursor;
+  last_head = shell_word_head (shell, cursor_orig);
+  last_end = shell_word_end (shell, cursor_orig);
+
+  shell_moveto (shell, last_end);
   completion = fselect_completion ();
   if (completion)
     {
+#if 0
+      last_subword_head = shell_subword_head (shell, cursor_orig);
+      shell_cut (shell, last_subword_head, shell->end);
+#else
+      shell_moveto (shell, cursor_orig);
+      last_subword_head = shell_subword_head (shell, cursor_orig);
+      if (last_subword_head < shell->cursor)
+        shell_delete_word_backward (shell);
+#endif
+
       shell_insert (shell, completion);
       free (completion);
     }
