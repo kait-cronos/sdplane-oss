@@ -2,8 +2,12 @@
 
 #set -x
 
+style=`dirname $0`
+
+echo $style
+
 diffcmd=`which diff`
-fixdefun=style/fix-defun.awk
+fixdefun=$style/fix-defun.awk
 clangformat=clang-format
 
 IGNORE_PATHS=""
