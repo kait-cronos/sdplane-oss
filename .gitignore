@@ -1,1 +1,6 @@
 *.bak
+
+/l2fwd/build
+/l3fwd/build
+/soft-dplane/build
+
