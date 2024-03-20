@@ -1542,6 +1542,77 @@ l3fwd_event_service_setup (void)
 }
 #endif
 
+void
+get_winsize (struct shell *shell)
+{
+  ioctl (shell->writefd, TIOCGWINSZ, &shell->winsize);
+  fprintf (shell->terminal, "row: %d col: %d\n",
+           shell->winsize.ws_row, shell->winsize.ws_col);
+}
+
+#include <lthread.h>
+
+#include "debug.h"
+#include "termio.h"
+#include "vector.h"
+#include "shell.h"
+#include "command.h"
+#include "command_shell.h"
+#include "debug_cmd.h"
+#include "shell_fselect.h"
+
+void
+lthread_shell (void *arg)
+{
+  struct shell *shell = NULL;
+
+  /* library initialization. */
+  debug_cmd_init ();
+  command_shell_init ();
+
+  shell = command_shell_create ();
+  shell_set_prompt_cwd (shell);
+  shell_set_terminal (shell, 0, 1);
+  get_winsize (shell);
+
+  INSTALL_COMMAND2 (shell->cmdset, show_version);
+
+  INSTALL_COMMAND2 (shell->cmdset, chdir);
+  INSTALL_COMMAND2 (shell->cmdset, list);
+
+  INSTALL_COMMAND2 (shell->cmdset, debug);
+  INSTALL_COMMAND2 (shell->cmdset, show_debug);
+
+  INSTALL_COMMAND (shell->cmdset, pwd);
+  INSTALL_COMMAND (shell->cmdset, open);
+  INSTALL_COMMAND2 (shell->cmdset, terminal);
+  INSTALL_COMMAND2 (shell->cmdset, launch_shell);
+  INSTALL_COMMAND2 (shell->cmdset, edit_vi);
+
+  shell_install (shell, '>', fselect_keyfunc_start);
+  shell_install (shell, CONTROL ('D'), opensh_shell_keyfunc_ctrl_d);
+
+  termio_init ();
+  shell_fselect_init ();
+
+  shell_clear (shell);
+  shell_prompt (shell);
+
+  while (shell_running (shell))
+    shell_read (shell);
+
+  termio_finish ();
+}
+
+int
+lthread_launch (__rte_unused void *dummy)
+{
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, lthread_shell, NULL);
+  lthread_run ();
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1657,8 +1728,25 @@ main (int argc, char **argv)
   check_all_ports_link_status (enabled_port_mask);
 
   ret = 0;
+
+#if 0
   /* launch per-lcore init on every lcore */
   rte_eal_mp_remote_launch (l3fwd_lkp.main_loop, NULL, CALL_MAIN);
+#else
+  for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
+    {
+      if (rte_lcore_is_enabled (lcore_id) == 0)
+        continue;
+      rte_eal_remote_launch (lthread_launch, NULL, 0);
+      break;
+    }
+  for (; lcore_id < RTE_MAX_LCORE; lcore_id++)
+    {
+      if (rte_lcore_is_enabled (lcore_id) == 0)
+        continue;
+      rte_eal_remote_launch (l3fwd_lkp.main_loop, NULL, lcore_id);
+    }
+#endif
 
 #ifdef RTE_LIB_EVENTDEV
   if (evt_rsrc->enabled)
