@@ -1542,14 +1542,8 @@ l3fwd_event_service_setup (void)
 }
 #endif
 
-void
-get_winsize (struct shell *shell)
-{
-  ioctl (shell->writefd, TIOCGWINSZ, &shell->winsize);
-  fprintf (shell->terminal, "row: %d col: %d\n",
-           shell->winsize.ws_row, shell->winsize.ws_col);
-}
-
+#include <unistd.h>
+#include <sys/ioctl.h>
 #include <lthread.h>
 
 #include "debug.h"
@@ -1558,8 +1552,16 @@ get_winsize (struct shell *shell)
 #include "shell.h"
 #include "command.h"
 #include "command_shell.h"
-#include "debug_cmd.h"
-#include "shell_fselect.h"
+//#include "debug_cmd.h"
+//#include "shell_fselect.h"
+
+void
+get_winsize (struct shell *shell)
+{
+  ioctl (shell->writefd, TIOCGWINSZ, &shell->winsize);
+  fprintf (shell->terminal, "row: %d col: %d\n",
+           shell->winsize.ws_row, shell->winsize.ws_col);
+}
 
 void
 lthread_shell (void *arg)
@@ -1567,33 +1569,33 @@ lthread_shell (void *arg)
   struct shell *shell = NULL;
 
   /* library initialization. */
-  debug_cmd_init ();
+  //debug_cmd_init ();
   command_shell_init ();
 
   shell = command_shell_create ();
-  shell_set_prompt_cwd (shell);
+  //shell_set_prompt_cwd (shell);
   shell_set_terminal (shell, 0, 1);
   get_winsize (shell);
 
-  INSTALL_COMMAND2 (shell->cmdset, show_version);
+  //INSTALL_COMMAND2 (shell->cmdset, show_version);
 
-  INSTALL_COMMAND2 (shell->cmdset, chdir);
-  INSTALL_COMMAND2 (shell->cmdset, list);
+  //INSTALL_COMMAND2 (shell->cmdset, chdir);
+  //INSTALL_COMMAND2 (shell->cmdset, list);
 
-  INSTALL_COMMAND2 (shell->cmdset, debug);
-  INSTALL_COMMAND2 (shell->cmdset, show_debug);
+  //INSTALL_COMMAND2 (shell->cmdset, debug);
+  //INSTALL_COMMAND2 (shell->cmdset, show_debug);
 
-  INSTALL_COMMAND (shell->cmdset, pwd);
-  INSTALL_COMMAND (shell->cmdset, open);
-  INSTALL_COMMAND2 (shell->cmdset, terminal);
-  INSTALL_COMMAND2 (shell->cmdset, launch_shell);
-  INSTALL_COMMAND2 (shell->cmdset, edit_vi);
+  //INSTALL_COMMAND (shell->cmdset, pwd);
+  //INSTALL_COMMAND (shell->cmdset, open);
+  //INSTALL_COMMAND2 (shell->cmdset, terminal);
+  //INSTALL_COMMAND2 (shell->cmdset, launch_shell);
+  //INSTALL_COMMAND2 (shell->cmdset, edit_vi);
 
-  shell_install (shell, '>', fselect_keyfunc_start);
-  shell_install (shell, CONTROL ('D'), opensh_shell_keyfunc_ctrl_d);
+  //shell_install (shell, '>', fselect_keyfunc_start);
+  //shell_install (shell, CONTROL ('D'), opensh_shell_keyfunc_ctrl_d);
 
   termio_init ();
-  shell_fselect_init ();
+  //shell_fselect_init ();
 
   shell_clear (shell);
   shell_prompt (shell);

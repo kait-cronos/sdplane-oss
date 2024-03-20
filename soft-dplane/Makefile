@@ -29,6 +29,10 @@ CFLAGS += -DALLOW_EXPERIMENTAL_API
 LDFLAGS_SHARED = $(shell $(PKGCONF) --libs libdpdk)
 LDFLAGS_STATIC = $(shell $(PKGCONF) --static --libs libdpdk)
 
+CFLAGS += -I/home/yasu/local/include
+LDFLAGS_SHARED += -llthread -L/home/yasu/local/lib -lzcmdsh
+LDFLAGS_STATIC += -llthread -L/home/yasu/local/lib -lzcmdsh
+
 ifeq ($(MAKECMDGOALS),static)
 # check for broken pkg-config
 ifeq ($(shell echo $(LDFLAGS_STATIC) | grep 'whole-archive.*l:lib.*no-whole-archive'),)
