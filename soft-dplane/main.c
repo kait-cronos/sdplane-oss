@@ -81,6 +81,7 @@ static int per_port_pool; /**< Use separate buffer pools per port; disabled */
                           /**< by default */
 
 volatile bool force_quit;
+volatile bool force_stop[RTE_MAX_LCORE];
 
 /* ethernet addresses of ports */
 uint64_t dest_eth_addr[RTE_MAX_ETHPORTS];
@@ -138,6 +139,9 @@ static struct rte_mempool *vector_pool[RTE_MAX_ETHPORTS];
 #endif
 static struct rte_mempool *pktmbuf_pool[RTE_MAX_ETHPORTS][NB_SOCKETS];
 static uint8_t lkp_per_socket[NB_SOCKETS];
+
+int
+lthread_launch (__rte_unused void *dummy);
 
 struct l3fwd_lkp_mode
 {
@@ -1542,85 +1546,6 @@ l3fwd_event_service_setup (void)
 }
 #endif
 
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <lthread.h>
-
-#include "debug.h"
-#include "termio.h"
-#include "vector.h"
-#include "shell.h"
-#include "command.h"
-#include "command_shell.h"
-//#include "debug_cmd.h"
-//#include "shell_fselect.h"
-
-void
-get_winsize (struct shell *shell)
-{
-  ioctl (shell->writefd, TIOCGWINSZ, &shell->winsize);
-  fprintf (shell->terminal, "row: %d col: %d\n",
-           shell->winsize.ws_row, shell->winsize.ws_col);
-}
-
-void
-lthread_shell (void *arg)
-{
-  struct shell *shell = NULL;
-
-  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
-
-  /* library initialization. */
-  //debug_cmd_init ();
-  command_shell_init ();
-
-  shell = command_shell_create ();
-  //shell_set_prompt_cwd (shell);
-  shell_set_terminal (shell, 0, 1);
-  get_winsize (shell);
-
-  //INSTALL_COMMAND2 (shell->cmdset, show_version);
-
-  //INSTALL_COMMAND2 (shell->cmdset, chdir);
-  //INSTALL_COMMAND2 (shell->cmdset, list);
-
-  //INSTALL_COMMAND2 (shell->cmdset, debug);
-  //INSTALL_COMMAND2 (shell->cmdset, show_debug);
-
-  //INSTALL_COMMAND (shell->cmdset, pwd);
-  //INSTALL_COMMAND (shell->cmdset, open);
-  //INSTALL_COMMAND2 (shell->cmdset, terminal);
-  //INSTALL_COMMAND2 (shell->cmdset, launch_shell);
-  //INSTALL_COMMAND2 (shell->cmdset, edit_vi);
-
-  //shell_install (shell, '>', fselect_keyfunc_start);
-  //shell_install (shell, CONTROL ('D'), opensh_shell_keyfunc_ctrl_d);
-
-  termio_init ();
-  //shell_fselect_init ();
-
-  shell_clear (shell);
-  shell_prompt (shell);
-
-  while (shell_running (shell))
-    shell_read (shell);
-
-  termio_finish ();
-}
-
-int
-lthread_launch (__rte_unused void *dummy)
-{
-  lthread_t *lt = NULL;
-
-  /* timer set */
-  timer_init (60 * 60, "2025/03/31 23:59:59");
-
-  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
-  lthread_create (&lt, lthread_shell, NULL);
-  lthread_run ();
-}
-
 int
 main (int argc, char **argv)
 {
@@ -1740,7 +1665,7 @@ main (int argc, char **argv)
 #if 0
   /* launch per-lcore init on every lcore */
   rte_eal_mp_remote_launch (l3fwd_lkp.main_loop, NULL, CALL_MAIN);
-#else
+#elif 0
   for (lcore_id = 1; lcore_id < RTE_MAX_LCORE; lcore_id++)
     {
       if (rte_lcore_is_enabled (lcore_id) == 0)
@@ -1755,6 +1680,15 @@ main (int argc, char **argv)
         continue;
       printf ("rte_eal_remote_launch: l3fwd on lcore: %d\n", lcore_id);
       rte_eal_remote_launch (l3fwd_lkp.main_loop, NULL, lcore_id);
+    }
+#else
+  for (lcore_id = 1; lcore_id < RTE_MAX_LCORE; lcore_id++)
+    {
+      if (rte_lcore_is_enabled (lcore_id) == 0)
+        continue;
+      printf ("rte_eal_remote_launch: lthread on lcore: %d\n", lcore_id);
+      rte_eal_remote_launch (lthread_launch, NULL, lcore_id++);
+      break;
     }
 #endif
 

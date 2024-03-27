@@ -184,7 +184,7 @@ lpm_main_loop (__rte_unused void *dummy)
   cur_tsc = rte_rdtsc ();
   prev_tsc = cur_tsc;
 
-  while (! force_quit)
+  while (! force_quit && ! force_stop[lcore_id])
     {
 
       /*
