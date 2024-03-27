@@ -1568,6 +1568,8 @@ lthread_shell (void *arg)
 {
   struct shell *shell = NULL;
 
+  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
+
   /* library initialization. */
   //debug_cmd_init ();
   command_shell_init ();
@@ -1611,6 +1613,10 @@ lthread_launch (__rte_unused void *dummy)
 {
   lthread_t *lt = NULL;
 
+  /* timer set */
+  timer_init (60 * 60, "2025/03/31 23:59:59");
+
+  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
   lthread_create (&lt, lthread_shell, NULL);
   lthread_run ();
 }
@@ -1735,17 +1741,19 @@ main (int argc, char **argv)
   /* launch per-lcore init on every lcore */
   rte_eal_mp_remote_launch (l3fwd_lkp.main_loop, NULL, CALL_MAIN);
 #else
-  for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
+  for (lcore_id = 1; lcore_id < RTE_MAX_LCORE; lcore_id++)
     {
       if (rte_lcore_is_enabled (lcore_id) == 0)
         continue;
-      rte_eal_remote_launch (lthread_launch, NULL, 0);
+      printf ("rte_eal_remote_launch: lthread on lcore: %d\n", lcore_id);
+      rte_eal_remote_launch (lthread_launch, NULL, lcore_id++);
       break;
     }
   for (; lcore_id < RTE_MAX_LCORE; lcore_id++)
     {
       if (rte_lcore_is_enabled (lcore_id) == 0)
         continue;
+      printf ("rte_eal_remote_launch: l3fwd on lcore: %d\n", lcore_id);
       rte_eal_remote_launch (l3fwd_lkp.main_loop, NULL, lcore_id);
     }
 #endif
