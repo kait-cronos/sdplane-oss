@@ -1665,31 +1665,8 @@ main (int argc, char **argv)
 #if 0
   /* launch per-lcore init on every lcore */
   rte_eal_mp_remote_launch (l3fwd_lkp.main_loop, NULL, CALL_MAIN);
-#elif 0
-  for (lcore_id = 1; lcore_id < RTE_MAX_LCORE; lcore_id++)
-    {
-      if (rte_lcore_is_enabled (lcore_id) == 0)
-        continue;
-      printf ("rte_eal_remote_launch: lthread on lcore: %d\n", lcore_id);
-      rte_eal_remote_launch (lthread_launch, NULL, lcore_id++);
-      break;
-    }
-  for (; lcore_id < RTE_MAX_LCORE; lcore_id++)
-    {
-      if (rte_lcore_is_enabled (lcore_id) == 0)
-        continue;
-      printf ("rte_eal_remote_launch: l3fwd on lcore: %d\n", lcore_id);
-      rte_eal_remote_launch (l3fwd_lkp.main_loop, NULL, lcore_id);
-    }
 #else
-  for (lcore_id = 1; lcore_id < RTE_MAX_LCORE; lcore_id++)
-    {
-      if (rte_lcore_is_enabled (lcore_id) == 0)
-        continue;
-      printf ("rte_eal_remote_launch: lthread on lcore: %d\n", lcore_id);
-      rte_eal_remote_launch (lthread_launch, NULL, lcore_id++);
-      break;
-    }
+  rte_eal_remote_launch (lthread_launch, NULL, 1);
 #endif
 
 #ifdef RTE_LIB_EVENTDEV

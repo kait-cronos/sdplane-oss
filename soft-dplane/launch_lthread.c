@@ -87,12 +87,44 @@ DEFINE_COMMAND (stop_forwarder,
   struct shell *shell = (struct shell *) context;
   int lcore_id;
   lcore_id = strtol (argv[2], NULL, 0);
+
+  if (lcore_id == rte_lcore_id ())
+    {
+      fprintf (shell->terminal, "can't stop lthread lcore: %d\n", lcore_id);
+      return;
+    }
+
   fprintf (shell->terminal, "stopping forwarder on lcore: %d\n", lcore_id);
 
   force_stop[lcore_id] = true;
   rte_eal_wait_lcore (lcore_id);
 
   fprintf (shell->terminal, "stopped: lcore: %d\n", lcore_id);
+}
+
+DEFINE_COMMAND (show_workers,
+                "show workers",
+                "show information\n"
+                "show workers\n")
+{
+  struct shell *shell = (struct shell *) context;
+  unsigned int lcore_id;
+  uint32_t nb_lcores;
+  unsigned int main_lcore_id;
+  char *enabled;
+  char *state;
+  char *ismain;
+  nb_lcores = rte_lcore_count ();
+  main_lcore_id = rte_get_main_lcore ();
+  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
+    {
+      enabled = (rte_lcore_is_enabled (lcore_id) ? "enabled" : "disabled");
+      state = (rte_eal_get_lcore_state (lcore_id) == RUNNING ?
+               "running" : "wait");
+      ismain = (lcore_id == main_lcore_id ? " (main)" : "");
+      fprintf (shell->terminal, "lcore[%d]: %s, %s%s\n",
+               lcore_id, enabled, state, ismain);
+    }
 }
 
 void
@@ -113,6 +145,7 @@ lthread_shell (void *arg)
 
   INSTALL_COMMAND2 (shell->cmdset, start_forwarder);
   INSTALL_COMMAND2 (shell->cmdset, stop_forwarder);
+  INSTALL_COMMAND2 (shell->cmdset, show_workers);
 
   //INSTALL_COMMAND2 (shell->cmdset, show_version);
 
