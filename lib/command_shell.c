@@ -259,7 +259,7 @@ command_shell_execute (struct shell *shell)
 
   shell_linefeed (shell);
 
-  timer_check ();
+  //timer_check ();
 
   /* comment handling */
   comment = strpbrk (shell->command_line, "#!");
