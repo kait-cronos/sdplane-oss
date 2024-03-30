@@ -54,8 +54,88 @@
 #include "shell.h"
 #include "command.h"
 #include "command_shell.h"
-//#include "debug_cmd.h"
+#include "debug_cmd.h"
 //#include "shell_fselect.h"
+
+
+int lthread_launch (__rte_unused void *dummy);
+
+extern uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
+int l2fwd_launch_one_lcore (__rte_unused void *dummy);
+
+struct lcore_worker
+{
+  lcore_function_t *func;
+  void *arg;
+  char *func_name;
+};
+struct lcore_worker lcore_workers[RTE_MAX_LCORE];
+
+DEFINE_COMMAND (set_lcore_worker,
+                "(set|reset|restart) lcore <0-16> "
+                "(|none|l2fwd|l3fwd|l3fwd-lpm)",
+                "set information\n"
+                "reset information\n"
+                "restart lcore worker\n"
+                "set lcore information\n"
+                "lcore number\n"
+                "set lcore not to launch anything\n"
+                "set lcore to launch l2fwd\n"
+                "set lcore to launch l3fwd (default: lpm)\n"
+                "set lcore to launch l3fwd-lpm\n"
+               )
+{
+  struct shell *shell = (struct shell *) context;
+  int lcore_id;
+  lcore_id = strtol (argv[2], NULL, 0);
+  lcore_function_t *func;
+  void *arg = NULL;
+
+  if (argc == 3)
+    func = NULL;
+  else if (! strcmp (argv[3], "none"))
+    func = NULL;
+  else if (! strcmp (argv[3], "l2fwd"))
+    func = l2fwd_launch_one_lcore;
+  else /* if (! strcmp (argv[3], "l3fwd")) */
+    func = lpm_main_loop;
+
+  if (lcore_workers[lcore_id].func == lthread_launch)
+    {
+      fprintf (shell->terminal, "cannot override lthread: lcore[%d].\n",
+               lcore_id);
+      return;
+    }
+
+  char *func_name;
+  if (func == lpm_main_loop)
+    func_name = "l3fwd-lpm";
+  else if (func == l2fwd_launch_one_lcore)
+    func_name = "l2fwd";
+  else
+    func_name = "none";
+
+  lcore_workers[lcore_id].func = func;
+  lcore_workers[lcore_id].arg = arg;
+  lcore_workers[lcore_id].func_name = func_name;
+
+  fprintf (shell->terminal, "worker set to lcore[%d]: func: %s\n",
+           lcore_id, func_name);
+
+  if (! strcmp (argv[0], "reset") ||
+      ! strcmp (argv[0], "restart"))
+    {
+      force_stop[lcore_id] = true;
+      rte_eal_wait_lcore (lcore_id);
+      force_stop[lcore_id] = false;
+      rte_eal_remote_launch (lcore_workers[lcore_id].func,
+                             lcore_workers[lcore_id].arg, lcore_id);
+      fprintf (shell->terminal, "worker[%d]: restarted.\n", lcore_id);
+    }
+  else
+    fprintf (shell->terminal,
+             "workers need to be reset for changes to take effect.\n");
+}
 
 void
 get_winsize (struct shell *shell)
@@ -75,7 +155,9 @@ DEFINE_COMMAND (start_forwarder,
   int lcore_id;
   lcore_id = strtol (argv[2], NULL, 0);
   fprintf (shell->terminal, "starting forwarder on lcore: %d\n", lcore_id);
-  rte_eal_remote_launch (lpm_main_loop, NULL, lcore_id);
+  force_stop[lcore_id] = false;
+  rte_eal_remote_launch (lcore_workers[lcore_id].func,
+                         lcore_workers[lcore_id].arg, lcore_id);
 }
 
 DEFINE_COMMAND (stop_forwarder,
@@ -122,8 +204,9 @@ DEFINE_COMMAND (show_workers,
       state = (rte_eal_get_lcore_state (lcore_id) == RUNNING ?
                "running" : "wait");
       ismain = (lcore_id == main_lcore_id ? " (main)" : "");
-      fprintf (shell->terminal, "lcore[%d]: %s, %s%s\n",
-               lcore_id, enabled, state, ismain);
+      fprintf (shell->terminal, "lcore[%d]: %8s %8s %s%s\n",
+               lcore_id, enabled, state,
+               lcore_workers[lcore_id].func_name, ismain);
     }
 }
 
@@ -135,7 +218,7 @@ lthread_shell (void *arg)
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
 
   /* library initialization. */
-  //debug_cmd_init ();
+  debug_cmd_init ();
   command_shell_init ();
 
   shell = command_shell_create ();
@@ -146,14 +229,15 @@ lthread_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, start_forwarder);
   INSTALL_COMMAND2 (shell->cmdset, stop_forwarder);
   INSTALL_COMMAND2 (shell->cmdset, show_workers);
+  INSTALL_COMMAND2 (shell->cmdset, set_lcore_worker);
 
   //INSTALL_COMMAND2 (shell->cmdset, show_version);
 
   //INSTALL_COMMAND2 (shell->cmdset, chdir);
   //INSTALL_COMMAND2 (shell->cmdset, list);
 
-  //INSTALL_COMMAND2 (shell->cmdset, debug);
-  //INSTALL_COMMAND2 (shell->cmdset, show_debug);
+  INSTALL_COMMAND2 (shell->cmdset, debug);
+  INSTALL_COMMAND2 (shell->cmdset, show_debug);
 
   //INSTALL_COMMAND (shell->cmdset, pwd);
   //INSTALL_COMMAND (shell->cmdset, open);
@@ -183,6 +267,18 @@ lthread_launch (__rte_unused void *dummy)
 
   /* timer set */
   timer_init (60 * 60, "2025/03/31 23:59:59");
+
+  /* initialize workers */
+  int lcore_id;
+  for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
+    {
+      lcore_workers[lcore_id].func = NULL;
+      lcore_workers[lcore_id].arg = NULL;
+    }
+
+  lcore_id = rte_lcore_id ();
+  lcore_workers[lcore_id].func = lthread_launch;
+  lcore_workers[lcore_id].func_name = "lthread_launch";
 
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
   lthread_create (&lt, lthread_shell, NULL);
