@@ -67,7 +67,7 @@ static struct rte_ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
 static uint32_t l2fwd_enabled_port_mask = 0;
 
 /* list of enabled ports */
-static uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
+uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
 
 struct port_pair_params
 {
@@ -303,7 +303,7 @@ l2fwd_main_loop (void)
     }
 }
 
-static int
+int
 l2fwd_launch_one_lcore (__rte_unused void *dummy)
 {
   l2fwd_main_loop ();
@@ -671,7 +671,7 @@ signal_handler (int signum)
 }
 
 int
-main (int argc, char **argv)
+l2fwd_main (int argc, char **argv)
 {
   struct lcore_queue_conf *qconf;
   int ret;

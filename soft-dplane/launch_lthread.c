@@ -57,6 +57,80 @@
 //#include "debug_cmd.h"
 //#include "shell_fselect.h"
 
+extern uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
+int l2fwd_launch_one_lcore (__rte_unused void *dummy);
+
+struct lcore_worker
+{
+  lcore_function_t *func;
+  void *arg;
+};
+struct lcore_worker lcore_workers[RTE_MAX_LCORE];
+
+DEFINE_COMMAND (set_lcore_worker,
+                "(set|reset|restart) lcore <0-16> "
+                "(|none|l2fwd|l3fwd|l3fwd-lpm)",
+                "set information\n"
+                "reset information\n"
+                "restart lcore worker\n"
+                "set lcore information\n"
+                "lcore number\n"
+                "set lcore not to launch anything\n"
+                "set lcore to launch l2fwd\n"
+                "set lcore to launch l3fwd (default: lpm)\n"
+                "set lcore to launch l3fwd-lpm\n"
+               )
+{
+  struct shell *shell = (struct shell *) context;
+  int lcore_id;
+  lcore_id = strtol (argv[2], NULL, 0);
+  lcore_function_t *func;
+  void *arg = NULL;
+
+  if (argc == 3)
+    func = NULL;
+  else if (! strcmp (argv[3], "none"))
+    func = NULL;
+  else if (! strcmp (argv[3], "l2fwd"))
+    func = l2fwd_launch_one_lcore;
+  else /* if (! strcmp (argv[3], "l3fwd")) */
+    func = lpm_main_loop;
+
+  if (lcore_workers[lcore_id].func == launch_lthread)
+    {
+      fprintf (shell->terminal, "cannot override lthread: lcore[%d].\n",
+               lcore_id);
+      return;
+    }
+
+  lcore_workers[lcore_id].func = func;
+  lcore_workers[lcore_id].arg = arg;
+
+  char *func_name;
+  if (func == lpm_main_loop)
+    func_name = "l3fwd-lpm";
+  else if (func == l2fwd_launch_one_lcore)
+    func_name = "l2fwd";
+  else
+    func_name = "none";
+  fprintf (shell->terminal, "worker set to lcore[%d]: func: %s\n",
+           lcore_id, func_name);
+
+  if (! strcmp (argv[0], "reset") ||
+      ! strcmp (argv[0], "restart"))
+    {
+      force_stop[lcore_id] = true;
+      rte_eal_wait_lcore (lcore_id);
+      force_stop[lcore_id] = false;
+      rte_eal_remote_launch (lcore_workers[lcore_id].func,
+                             lcore_workers[lcore_id].arg, lcore_id);
+      fprintf (shell->terminal, "worker[%d]: restarted.\n", lcore_id);
+    }
+  else
+    fprintf (shell->terminal,
+             "workers need to be reset for changes to take effect.\n");
+}
+
 void
 get_winsize (struct shell *shell)
 {
@@ -75,7 +149,9 @@ DEFINE_COMMAND (start_forwarder,
   int lcore_id;
   lcore_id = strtol (argv[2], NULL, 0);
   fprintf (shell->terminal, "starting forwarder on lcore: %d\n", lcore_id);
-  rte_eal_remote_launch (lpm_main_loop, NULL, lcore_id);
+  force_stop[lcore_id] = false;
+  rte_eal_remote_launch (lcore_workers[lcore_id].func,
+                         lcore_workers[lcore_id].arg, lcore_id);
 }
 
 DEFINE_COMMAND (stop_forwarder,
@@ -183,6 +259,15 @@ lthread_launch (__rte_unused void *dummy)
 
   /* timer set */
   timer_init (60 * 60, "2025/03/31 23:59:59");
+
+  /* initialize workers */
+  int lcore_id;
+  for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
+    {
+      lcore_workers[lcore_id].func = NULL;
+      lcore_workers[lcore_id].arg = NULL;
+    }
+  lcore_workers[lcore_id].func = lthread_launch;
 
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
   lthread_create (&lt, lthread_shell, NULL);
