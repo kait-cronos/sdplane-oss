@@ -58,7 +58,7 @@
 //#include "shell_fselect.h"
 
 
-int lthread_launch (__rte_unused void *dummy);
+int lthread_main (__rte_unused void *dummy);
 
 extern uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
 int l2fwd_launch_one_lcore (__rte_unused void *dummy);
@@ -71,14 +71,55 @@ struct lcore_worker
 };
 struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 
-DEFINE_COMMAND (set_lcore_worker,
-                "(set|reset|restart) lcore <0-16> "
+void
+start_lcore (struct shell *shell, int lcore_id)
+{
+  fprintf (shell->terminal, "starting worker on lcore: %d\n", lcore_id);
+  if (lcore_workers[lcore_id].func == NULL)
+    {
+      fprintf (shell->terminal,
+               "can't start a null worker on lcore: %d\n", lcore_id);
+      return;
+    }
+  force_stop[lcore_id] = false;
+  rte_eal_remote_launch (lcore_workers[lcore_id].func,
+                         lcore_workers[lcore_id].arg, lcore_id);
+  fprintf (shell->terminal, "started worker on lcore: %d\n", lcore_id);
+}
+
+void
+stop_lcore (struct shell *shell, int lcore_id)
+{
+  if (lcore_id == rte_lcore_id ())
+    {
+      fprintf (shell->terminal, "can't stop lthread lcore: %d\n", lcore_id);
+      return;
+    }
+  fprintf (shell->terminal, "stopping worker on lcore: %d\n", lcore_id);
+  force_stop[lcore_id] = true;
+  rte_eal_wait_lcore (lcore_id);
+  fprintf (shell->terminal, "stopped worker on lcore: %d\n", lcore_id);
+}
+
+//#define SHOW_HELP "show information\n"
+#define SET_HELP "set information\n"
+#define RESET_HELP "reset information\n"
+#define START_HELP "start information\n"
+#define STOP_HELP "stop information\n"
+#define RESTART_HELP "restart information\n"
+#define WORKER_HELP "worker information\n"
+#define LCORE_HELP "lcore information\n"
+#define LCORE_NUMBER_HELP "specify lcore number\n"
+
+DEFINE_COMMAND (set_worker,
+                "(set|reset|restart) worker lcore <0-16> "
                 "(|none|l2fwd|l3fwd|l3fwd-lpm)",
-                "set information\n"
-                "reset information\n"
-                "restart lcore worker\n"
-                "set lcore information\n"
-                "lcore number\n"
+                SET_HELP
+                RESET_HELP
+                RESTART_HELP
+                WORKER_HELP
+                LCORE_HELP
+                LCORE_NUMBER_HELP
                 "set lcore not to launch anything\n"
                 "set lcore to launch l2fwd\n"
                 "set lcore to launch l3fwd (default: lpm)\n"
@@ -87,20 +128,20 @@ DEFINE_COMMAND (set_lcore_worker,
 {
   struct shell *shell = (struct shell *) context;
   int lcore_id;
-  lcore_id = strtol (argv[2], NULL, 0);
+  lcore_id = strtol (argv[3], NULL, 0);
   lcore_function_t *func;
   void *arg = NULL;
 
-  if (argc == 3)
+  if (argc == 4)
+    func = lcore_workers[lcore_id].func;
+  else if (! strcmp (argv[4], "none"))
     func = NULL;
-  else if (! strcmp (argv[3], "none"))
-    func = NULL;
-  else if (! strcmp (argv[3], "l2fwd"))
+  else if (! strcmp (argv[4], "l2fwd"))
     func = l2fwd_launch_one_lcore;
-  else /* if (! strcmp (argv[3], "l3fwd")) */
+  else /* if (! strcmp (argv[4], "l3fwd")) */
     func = lpm_main_loop;
 
-  if (lcore_workers[lcore_id].func == lthread_launch)
+  if (lcore_workers[lcore_id].func == lthread_main)
     {
       fprintf (shell->terminal, "cannot override lthread: lcore[%d].\n",
                lcore_id);
@@ -112,6 +153,8 @@ DEFINE_COMMAND (set_lcore_worker,
     func_name = "l3fwd-lpm";
   else if (func == l2fwd_launch_one_lcore)
     func_name = "l2fwd";
+  else if (func == lthread_main)
+    func_name = "lthread_main";
   else
     func_name = "none";
 
@@ -125,16 +168,100 @@ DEFINE_COMMAND (set_lcore_worker,
   if (! strcmp (argv[0], "reset") ||
       ! strcmp (argv[0], "restart"))
     {
-      force_stop[lcore_id] = true;
-      rte_eal_wait_lcore (lcore_id);
-      force_stop[lcore_id] = false;
-      rte_eal_remote_launch (lcore_workers[lcore_id].func,
-                             lcore_workers[lcore_id].arg, lcore_id);
+      stop_lcore (shell, lcore_id);
+      start_lcore (shell, lcore_id);
       fprintf (shell->terminal, "worker[%d]: restarted.\n", lcore_id);
     }
+  else if (! strcmp (argv[0], "set") && argc == 4)
+    fprintf (shell->terminal, "nothing changed.\n");
   else
     fprintf (shell->terminal,
              "workers need to be reset for changes to take effect.\n");
+}
+
+DEFINE_COMMAND (start_stop_worker,
+                "(start|stop) worker lcore <0-16>",
+                START_HELP
+                STOP_HELP
+                WORKER_HELP
+                LCORE_HELP
+                LCORE_NUMBER_HELP
+               )
+{
+  struct shell *shell = (struct shell *) context;
+  int lcore_id;
+  lcore_id = strtol (argv[2], NULL, 0);
+  if (! strcmp (argv[0], "start"))
+    start_lcore (shell, lcore_id);
+  else if (! strcmp (argv[0], "stop"))
+    stop_lcore (shell, lcore_id);
+}
+
+DEFINE_COMMAND (start_stop_worker_all,
+                "(start|stop) worker lcore all",
+                START_HELP
+                STOP_HELP
+                WORKER_HELP
+                LCORE_HELP
+                LCORE_NUMBER_HELP
+                "all lcore\n"
+               )
+{
+  struct shell *shell = (struct shell *) context;
+  unsigned int lcore_id;
+  uint32_t nb_lcores;
+  nb_lcores = rte_lcore_count ();
+  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
+    {
+      if (! strcmp (argv[0], "start"))
+        start_lcore (shell, lcore_id);
+      else if (! strcmp (argv[0], "stop"))
+        stop_lcore (shell, lcore_id);
+    }
+}
+
+DEFINE_COMMAND (show_worker,
+                "show worker",
+                SHOW_HELP
+                WORKER_HELP
+               )
+{
+  struct shell *shell = (struct shell *) context;
+  unsigned int lcore_id;
+  uint32_t nb_lcores;
+  unsigned int main_lcore_id;
+  char *state;
+  char flags[16];
+  char lcore_name[16];
+  nb_lcores = rte_lcore_count ();
+  main_lcore_id = rte_get_main_lcore ();
+  fprintf (shell->terminal, "%-9s: %-12s %-8s %s\n",
+           "lcore", "flags", "state", "func_name");
+  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
+    {
+      snprintf (flags, sizeof (flags), "%s%s",
+                (rte_lcore_is_enabled (lcore_id) ? "enabled" : "disabled"),
+                (lcore_id == main_lcore_id ? ",main" : ""));
+      state = (rte_eal_get_lcore_state (lcore_id) == RUNNING ?
+               "running" : "wait");
+      snprintf (lcore_name, sizeof (lcore_name),
+                "lcore[%d]", lcore_id);
+      fprintf (shell->terminal, "%-9s: %-12s %-8s %s\n",
+               lcore_name, flags, state, lcore_workers[lcore_id].func_name);
+    }
+}
+
+DEFINE_COMMAND (exit_cmd,
+               "(exit|quit|logout)",
+               "exit\n"
+               "quite\n"
+               "logout\n")
+{
+  struct shell *shell = (struct shell *) context;
+  fprintf (shell->terminal, "exit !\n");
+  FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
+  /* don't shell_close(): this closes stdout. */
+  //shell_close (shell);
 }
 
 void
@@ -143,71 +270,6 @@ get_winsize (struct shell *shell)
   ioctl (shell->writefd, TIOCGWINSZ, &shell->winsize);
   fprintf (shell->terminal, "row: %d col: %d\n",
            shell->winsize.ws_row, shell->winsize.ws_col);
-}
-
-DEFINE_COMMAND (start_forwarder,
-                "start forwarder <0-16>",
-                "start worker\n"
-                "start forwarder\n"
-                "lcore number\n")
-{
-  struct shell *shell = (struct shell *) context;
-  int lcore_id;
-  lcore_id = strtol (argv[2], NULL, 0);
-  fprintf (shell->terminal, "starting forwarder on lcore: %d\n", lcore_id);
-  force_stop[lcore_id] = false;
-  rte_eal_remote_launch (lcore_workers[lcore_id].func,
-                         lcore_workers[lcore_id].arg, lcore_id);
-}
-
-DEFINE_COMMAND (stop_forwarder,
-                "stop forwarder <0-16>",
-                "stop worker\n"
-                "stop forwarder\n"
-                "lcore number\n")
-{
-  struct shell *shell = (struct shell *) context;
-  int lcore_id;
-  lcore_id = strtol (argv[2], NULL, 0);
-
-  if (lcore_id == rte_lcore_id ())
-    {
-      fprintf (shell->terminal, "can't stop lthread lcore: %d\n", lcore_id);
-      return;
-    }
-
-  fprintf (shell->terminal, "stopping forwarder on lcore: %d\n", lcore_id);
-
-  force_stop[lcore_id] = true;
-  rte_eal_wait_lcore (lcore_id);
-
-  fprintf (shell->terminal, "stopped: lcore: %d\n", lcore_id);
-}
-
-DEFINE_COMMAND (show_workers,
-                "show workers",
-                "show information\n"
-                "show workers\n")
-{
-  struct shell *shell = (struct shell *) context;
-  unsigned int lcore_id;
-  uint32_t nb_lcores;
-  unsigned int main_lcore_id;
-  char *enabled;
-  char *state;
-  char *ismain;
-  nb_lcores = rte_lcore_count ();
-  main_lcore_id = rte_get_main_lcore ();
-  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
-    {
-      enabled = (rte_lcore_is_enabled (lcore_id) ? "enabled" : "disabled");
-      state = (rte_eal_get_lcore_state (lcore_id) == RUNNING ?
-               "running" : "wait");
-      ismain = (lcore_id == main_lcore_id ? " (main)" : "");
-      fprintf (shell->terminal, "lcore[%d]: %8s %8s %s%s\n",
-               lcore_id, enabled, state,
-               lcore_workers[lcore_id].func_name, ismain);
-    }
 }
 
 void
@@ -226,10 +288,12 @@ lthread_shell (void *arg)
   shell_set_terminal (shell, 0, 1);
   get_winsize (shell);
 
-  INSTALL_COMMAND2 (shell->cmdset, start_forwarder);
-  INSTALL_COMMAND2 (shell->cmdset, stop_forwarder);
-  INSTALL_COMMAND2 (shell->cmdset, show_workers);
-  INSTALL_COMMAND2 (shell->cmdset, set_lcore_worker);
+  INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
+
+  INSTALL_COMMAND2 (shell->cmdset, show_worker);
+  INSTALL_COMMAND2 (shell->cmdset, set_worker);
+  INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
+  INSTALL_COMMAND2 (shell->cmdset, start_stop_worker_all);
 
   //INSTALL_COMMAND2 (shell->cmdset, show_version);
 
@@ -257,11 +321,13 @@ lthread_shell (void *arg)
   while (shell_running (shell))
     shell_read (shell);
 
+  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+
   termio_finish ();
 }
 
 int
-lthread_launch (__rte_unused void *dummy)
+lthread_main (__rte_unused void *dummy)
 {
   lthread_t *lt = NULL;
 
@@ -274,11 +340,12 @@ lthread_launch (__rte_unused void *dummy)
     {
       lcore_workers[lcore_id].func = NULL;
       lcore_workers[lcore_id].arg = NULL;
+      lcore_workers[lcore_id].func_name = NULL;
     }
 
   lcore_id = rte_lcore_id ();
-  lcore_workers[lcore_id].func = lthread_launch;
-  lcore_workers[lcore_id].func_name = "lthread_launch";
+  lcore_workers[lcore_id].func = lthread_main;
+  lcore_workers[lcore_id].func_name = "lthread_main";
 
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
   lthread_create (&lt, lthread_shell, NULL);

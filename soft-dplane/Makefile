@@ -7,7 +7,7 @@ APP = l3fwd
 # all source are stored in SRCS-y
 SRCS-y := main.c l3fwd_acl.c l3fwd_lpm.c l3fwd_fib.c l3fwd_em.c l3fwd_event.c
 SRCS-y += l3fwd_event_generic.c l3fwd_event_internal_port.c
-SRCS-y += launch_lthread.c l2fwd_main.c
+SRCS-y += lthread_main.c l2fwd_main.c
 
 PKGCONF ?= pkg-config
 
