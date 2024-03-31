@@ -10,5 +10,5 @@ libzcmdsh_la_SOURCES = \
 
 include_HEADERS = \
 	log.h termio.h vector.h flag.h debug.h \
-	shell.h command.h command_shell.h file.h
+	shell.h command.h command_shell.h file.h debug_cmd.h
 
