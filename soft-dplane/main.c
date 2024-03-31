@@ -141,7 +141,7 @@ static struct rte_mempool *pktmbuf_pool[RTE_MAX_ETHPORTS][NB_SOCKETS];
 static uint8_t lkp_per_socket[NB_SOCKETS];
 
 int
-lthread_launch (__rte_unused void *dummy);
+lthread_main (__rte_unused void *dummy);
 
 struct l3fwd_lkp_mode
 {
@@ -1658,7 +1658,7 @@ main (int argc, char **argv)
         }
     }
 
-  check_all_ports_link_status (enabled_port_mask);
+  //check_all_ports_link_status (enabled_port_mask);
 
   ret = 0;
 
@@ -1666,7 +1666,8 @@ main (int argc, char **argv)
   /* launch per-lcore init on every lcore */
   rte_eal_mp_remote_launch (l3fwd_lkp.main_loop, NULL, CALL_MAIN);
 #else
-  rte_eal_remote_launch (lthread_launch, NULL, 1);
+  /* launch one lthread main. All other things are launched there. */
+  rte_eal_remote_launch (lthread_main, NULL, 1);
 #endif
 
 #ifdef RTE_LIB_EVENTDEV
