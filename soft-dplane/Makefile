@@ -31,8 +31,8 @@ LDFLAGS_SHARED = $(shell $(PKGCONF) --libs libdpdk)
 LDFLAGS_STATIC = $(shell $(PKGCONF) --static --libs libdpdk)
 
 CFLAGS += -I/home/yasu/local/include
-LDFLAGS_SHARED += -llthread -L/home/yasu/local/lib -lzcmdsh
-LDFLAGS_STATIC += -llthread -L/home/yasu/local/lib -lzcmdsh
+LDFLAGS_SHARED += -llthread -L/home/yasu/local/lib/x86_64-linux-gnu -lzcmdsh
+LDFLAGS_STATIC += -llthread -L/home/yasu/local/lib/x86_64-linux-gnu -lzcmdsh
 
 ifeq ($(MAKECMDGOALS),static)
 # check for broken pkg-config

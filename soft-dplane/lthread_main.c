@@ -110,6 +110,7 @@ stop_lcore (struct shell *shell, int lcore_id)
 #define WORKER_HELP "worker information\n"
 #define LCORE_HELP "lcore information\n"
 #define LCORE_NUMBER_HELP "specify lcore number\n"
+#define LCORE_ALL_HELP "do for all lcores\n"
 
 DEFINE_COMMAND (set_worker,
                 "(set|reset|restart) worker lcore <0-16> "
@@ -180,43 +181,40 @@ DEFINE_COMMAND (set_worker,
 }
 
 DEFINE_COMMAND (start_stop_worker,
-                "(start|stop) worker lcore <0-16>",
+                "(start|stop|reset|restart) worker lcore (<0-16>|all)",
                 START_HELP
                 STOP_HELP
+                RESET_HELP
+                RESTART_HELP
                 WORKER_HELP
                 LCORE_HELP
                 LCORE_NUMBER_HELP
+                LCORE_ALL_HELP
                )
 {
   struct shell *shell = (struct shell *) context;
-  int lcore_id;
-  lcore_id = strtol (argv[2], NULL, 0);
-  if (! strcmp (argv[0], "start"))
-    start_lcore (shell, lcore_id);
-  else if (! strcmp (argv[0], "stop"))
-    stop_lcore (shell, lcore_id);
-}
-
-DEFINE_COMMAND (start_stop_worker_all,
-                "(start|stop) worker lcore all",
-                START_HELP
-                STOP_HELP
-                WORKER_HELP
-                LCORE_HELP
-                LCORE_NUMBER_HELP
-                "all lcore\n"
-               )
-{
-  struct shell *shell = (struct shell *) context;
-  unsigned int lcore_id;
   uint32_t nb_lcores;
+  unsigned int lcore_id;
+  unsigned int lcore_spec = -1;
+
+  if (strcmp (argv[3], "all"))
+    lcore_spec = strtol (argv[3], NULL, 0);
+
   nb_lcores = rte_lcore_count ();
   for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
     {
+      if (lcore_spec != -1 && lcore_spec != lcore_id)
+        continue;
       if (! strcmp (argv[0], "start"))
         start_lcore (shell, lcore_id);
       else if (! strcmp (argv[0], "stop"))
         stop_lcore (shell, lcore_id);
+      else if (! strcmp (argv[0], "reset") ||
+               ! strcmp (argv[0], "restart"))
+        {
+          stop_lcore (shell, lcore_id);
+          start_lcore (shell, lcore_id);
+        }
     }
 }
 
@@ -293,7 +291,6 @@ lthread_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, show_worker);
   INSTALL_COMMAND2 (shell->cmdset, set_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
-  INSTALL_COMMAND2 (shell->cmdset, start_stop_worker_all);
 
   //INSTALL_COMMAND2 (shell->cmdset, show_version);
 
