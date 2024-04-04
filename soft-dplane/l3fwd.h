@@ -94,6 +94,7 @@ struct lcore_conf
 } __rte_cache_aligned;
 
 extern volatile bool force_quit;
+extern volatile bool force_stop[RTE_MAX_LCORE];
 
 /* RX and TX queue depths */
 extern uint16_t nb_rxd;

@@ -81,6 +81,7 @@ static int per_port_pool; /**< Use separate buffer pools per port; disabled */
                           /**< by default */
 
 volatile bool force_quit;
+volatile bool force_stop[RTE_MAX_LCORE];
 
 /* ethernet addresses of ports */
 uint64_t dest_eth_addr[RTE_MAX_ETHPORTS];
@@ -138,6 +139,9 @@ static struct rte_mempool *vector_pool[RTE_MAX_ETHPORTS];
 #endif
 static struct rte_mempool *pktmbuf_pool[RTE_MAX_ETHPORTS][NB_SOCKETS];
 static uint8_t lkp_per_socket[NB_SOCKETS];
+
+int
+lthread_main (__rte_unused void *dummy);
 
 struct l3fwd_lkp_mode
 {
@@ -1654,11 +1658,17 @@ main (int argc, char **argv)
         }
     }
 
-  check_all_ports_link_status (enabled_port_mask);
+  //check_all_ports_link_status (enabled_port_mask);
 
   ret = 0;
+
+#if 0
   /* launch per-lcore init on every lcore */
   rte_eal_mp_remote_launch (l3fwd_lkp.main_loop, NULL, CALL_MAIN);
+#else
+  /* launch one lthread main. All other things are launched there. */
+  rte_eal_remote_launch (lthread_main, NULL, 1);
+#endif
 
 #ifdef RTE_LIB_EVENTDEV
   if (evt_rsrc->enabled)
