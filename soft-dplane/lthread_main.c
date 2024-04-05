@@ -44,6 +44,8 @@
 #include "l3fwd_event.h"
 #include "l3fwd_route.h"
 
+#include "l2fwd.h"
+
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <lthread.h>
@@ -113,10 +115,11 @@ stop_lcore (struct shell *shell, int lcore_id)
 #define LCORE_ALL_HELP "do for all lcores\n"
 
 DEFINE_COMMAND (set_worker,
-                "(set|reset|restart) worker lcore <0-16> "
+                "(set|reset|start|restart) worker lcore <0-16> "
                 "(|none|l2fwd|l3fwd|l3fwd-lpm)",
                 SET_HELP
                 RESET_HELP
+                START_HELP
                 RESTART_HELP
                 WORKER_HELP
                 LCORE_HELP
@@ -260,7 +263,21 @@ DEFINE_COMMAND (exit_cmd,
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
   /* don't shell_close(): this closes stdout. */
   //shell_close (shell);
+
+  int nb_lcores = rte_lcore_count ();
+  for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
+    stop_lcore (shell, lcore_id);
 }
+
+DEFINE_COMMAND (l2fwd_init,
+               "l2fwd init",
+               "l2fwd\n"
+               "init\n")
+{
+  struct shell *shell = (struct shell *) context;
+  l2fwd_init (0, NULL);
+}
+
 
 void
 get_winsize (struct shell *shell)
@@ -299,6 +316,8 @@ lthread_shell (void *arg)
 
   INSTALL_COMMAND2 (shell->cmdset, debug);
   INSTALL_COMMAND2 (shell->cmdset, show_debug);
+
+  INSTALL_COMMAND2 (shell->cmdset, l2fwd_init);
 
   //INSTALL_COMMAND (shell->cmdset, pwd);
   //INSTALL_COMMAND (shell->cmdset, open);

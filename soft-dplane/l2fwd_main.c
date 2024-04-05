@@ -41,46 +41,54 @@
 static volatile bool force_quit;
 
 /* MAC updating enabled by default */
-static int mac_updating = 1;
+int mac_updating = 1;
 
 /* Ports set in promiscuous mode off by default. */
-static int promiscuous_on;
+int promiscuous_on;
 
 #define RTE_LOGTYPE_L2FWD RTE_LOGTYPE_USER1
 
+#if 0
 #define MAX_PKT_BURST      32
 #define BURST_TX_DRAIN_US  100 /* TX drain every ~100us */
 #define MEMPOOL_CACHE_SIZE 256
+#endif
 
 /*
  * Configurable number of RX/TX ring descriptors
  */
+#if 0
 #define RX_DESC_DEFAULT 1024
 #define TX_DESC_DEFAULT 1024
-static uint16_t nb_rxd = RX_DESC_DEFAULT;
-static uint16_t nb_txd = TX_DESC_DEFAULT;
+uint16_t nb_rxd = RX_DESC_DEFAULT;
+uint16_t nb_txd = TX_DESC_DEFAULT;
+#endif
 
 /* ethernet addresses of ports */
-static struct rte_ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
+struct rte_ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
 
 /* mask of enabled ports */
-static uint32_t l2fwd_enabled_port_mask = 0;
+uint32_t l2fwd_enabled_port_mask = 0;
 
 /* list of enabled ports */
 uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
 
+#if 0
 struct port_pair_params
 {
 #define NUM_PORTS 2
   uint16_t port[NUM_PORTS];
 } __rte_cache_aligned;
+#endif
+#include "l2fwd.h"
 
-static struct port_pair_params port_pair_params_array[RTE_MAX_ETHPORTS / 2];
-static struct port_pair_params *port_pair_params;
-static uint16_t nb_port_pair_params;
+struct port_pair_params port_pair_params_array[RTE_MAX_ETHPORTS / 2];
+struct port_pair_params *port_pair_params;
+uint16_t nb_port_pair_params;
 
-static unsigned int l2fwd_rx_queue_per_lcore = 1;
+unsigned int l2fwd_rx_queue_per_lcore = 1;
 
+#if 0
 #define MAX_RX_QUEUE_PER_LCORE 16
 #define MAX_TX_QUEUE_PER_PORT  16
 /* List of queues to be polled for a given lcore. 8< */
@@ -89,12 +97,13 @@ struct lcore_queue_conf
   unsigned n_rx_port;
   unsigned rx_port_list[MAX_RX_QUEUE_PER_LCORE];
 } __rte_cache_aligned;
+#endif
 struct lcore_queue_conf lcore_queue_conf[RTE_MAX_LCORE];
 /* >8 End of list of queues to be polled for a given lcore. */
 
-static struct rte_eth_dev_tx_buffer *tx_buffer[RTE_MAX_ETHPORTS];
+struct rte_eth_dev_tx_buffer *tx_buffer[RTE_MAX_ETHPORTS];
 
-static struct rte_eth_conf port_conf = {
+struct rte_eth_conf port_conf = {
 	.txmode = {
 		.mq_mode = RTE_ETH_MQ_TX_NONE,
 	},
@@ -103,17 +112,19 @@ static struct rte_eth_conf port_conf = {
 struct rte_mempool *l2fwd_pktmbuf_pool = NULL;
 
 /* Per-port statistics struct */
+#if 0
 struct l2fwd_port_statistics
 {
   uint64_t tx;
   uint64_t rx;
   uint64_t dropped;
 } __rte_cache_aligned;
+#endif
 struct l2fwd_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 
 #define MAX_TIMER_PERIOD 86400 /* 1 day max */
 /* A tsc-based timer responsible for triggering statistics printout */
-static uint64_t timer_period = 10; /* default period is 10 seconds */
+uint64_t timer_period = 10; /* default period is 10 seconds */
 
 /* Print out statistics on packets dropped */
 static void
@@ -231,7 +242,7 @@ l2fwd_main_loop (void)
       RTE_LOG (INFO, L2FWD, " -- lcoreid=%u portid=%u\n", lcore_id, portid);
     }
 
-  while (! force_quit)
+  while (! force_quit && ! force_stop[lcore_id])
     {
 
       /* Drains TX queue in its main loop. 8< */
@@ -549,7 +560,7 @@ l2fwd_parse_args (int argc, char **argv)
  * Check port pair config with enabled port mask,
  * and for valid port pair combinations.
  */
-static int
+int
 check_port_pair_config (void)
 {
   uint32_t port_pair_config_mask = 0;
@@ -591,7 +602,7 @@ check_port_pair_config (void)
 }
 
 /* Check the link status of all ports in up to 9s, and print them finally */
-static void
+void
 check_all_ports_link_status (uint32_t port_mask)
 {
 #define CHECK_INTERVAL 100 /* 100ms */
