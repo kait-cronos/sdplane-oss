@@ -59,6 +59,7 @@
 #include "debug_cmd.h"
 //#include "shell_fselect.h"
 
+#include "soft_dplane.h"
 
 int lthread_main (__rte_unused void *dummy);
 
@@ -102,17 +103,6 @@ stop_lcore (struct shell *shell, int lcore_id)
   rte_eal_wait_lcore (lcore_id);
   fprintf (shell->terminal, "stopped worker on lcore: %d\n", lcore_id);
 }
-
-//#define SHOW_HELP "show information\n"
-#define SET_HELP "set information\n"
-#define RESET_HELP "reset information\n"
-#define START_HELP "start information\n"
-#define STOP_HELP "stop information\n"
-#define RESTART_HELP "restart information\n"
-#define WORKER_HELP "worker information\n"
-#define LCORE_HELP "lcore information\n"
-#define LCORE_NUMBER_HELP "specify lcore number\n"
-#define LCORE_ALL_HELP "do for all lcores\n"
 
 DEFINE_COMMAND (set_worker,
                 "(set|reset|start|restart) worker lcore <0-16> "
@@ -170,6 +160,7 @@ DEFINE_COMMAND (set_worker,
            lcore_id, func_name);
 
   if (! strcmp (argv[0], "reset") ||
+      ! strcmp (argv[0], "restart") ||
       ! strcmp (argv[0], "restart"))
     {
       stop_lcore (shell, lcore_id);
@@ -180,7 +171,7 @@ DEFINE_COMMAND (set_worker,
     fprintf (shell->terminal, "nothing changed.\n");
   else
     fprintf (shell->terminal,
-             "workers need to be reset for changes to take effect.\n");
+             "workers need to be restarted for changes to take effect.\n");
 }
 
 DEFINE_COMMAND (start_stop_worker,
@@ -287,6 +278,9 @@ get_winsize (struct shell *shell)
            shell->winsize.ws_row, shell->winsize.ws_col);
 }
 
+
+void l2fwd_cmd_init (struct command_set *cmdset);
+
 void
 lthread_shell (void *arg)
 {
@@ -327,6 +321,9 @@ lthread_shell (void *arg)
 
   //shell_install (shell, '>', fselect_keyfunc_start);
   //shell_install (shell, CONTROL ('D'), opensh_shell_keyfunc_ctrl_d);
+
+  l2fwd_cmd_init (shell->cmdset);
+  soft_dplane_cmd_init (shell->cmdset);
 
   termio_init ();
   //shell_fselect_init ();
