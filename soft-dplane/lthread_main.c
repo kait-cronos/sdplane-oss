@@ -40,12 +40,6 @@
 #include <cmdline_parse.h>
 #include <cmdline_parse_etheraddr.h>
 
-#include "l3fwd.h"
-#include "l3fwd_event.h"
-#include "l3fwd_route.h"
-
-#include "l2fwd.h"
-
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <lthread.h>
@@ -59,6 +53,12 @@
 #include "debug_cmd.h"
 //#include "shell_fselect.h"
 
+#include "l3fwd.h"
+#include "l3fwd_event.h"
+#include "l3fwd_route.h"
+
+#include "l2fwd.h"
+
 #include "soft_dplane.h"
 
 int lthread_main (__rte_unused void *dummy);
@@ -66,12 +66,6 @@ int lthread_main (__rte_unused void *dummy);
 extern uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
 int l2fwd_launch_one_lcore (__rte_unused void *dummy);
 
-struct lcore_worker
-{
-  lcore_function_t *func;
-  void *arg;
-  char *func_name;
-};
 struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 
 void

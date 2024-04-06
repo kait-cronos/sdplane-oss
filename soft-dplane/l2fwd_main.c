@@ -68,7 +68,7 @@ uint16_t nb_txd = TX_DESC_DEFAULT;
 struct rte_ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
 
 /* mask of enabled ports */
-uint32_t l2fwd_enabled_port_mask = 0;
+uint32_t l2fwd_enabled_port_mask = 3;
 
 /* list of enabled ports */
 uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
@@ -86,7 +86,7 @@ struct port_pair_params port_pair_params_array[RTE_MAX_ETHPORTS / 2];
 struct port_pair_params *port_pair_params;
 uint16_t nb_port_pair_params;
 
-unsigned int l2fwd_rx_queue_per_lcore = 1;
+unsigned int l2fwd_rx_queue_per_lcore = 2;
 
 #if 0
 #define MAX_RX_QUEUE_PER_LCORE 16
@@ -127,7 +127,7 @@ struct l2fwd_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 uint64_t timer_period = 10; /* default period is 10 seconds */
 
 /* Print out statistics on packets dropped */
-static void
+void
 print_stats (void)
 {
   uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;

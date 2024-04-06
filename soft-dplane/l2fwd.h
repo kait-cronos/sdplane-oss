@@ -55,5 +55,6 @@ int check_port_pair_config (void);
 void check_all_ports_link_status (uint32_t port_mask);
 
 int l2fwd_init (int argc, char **argv);
+void print_stats (void);
 
 #endif /*__L2FWD_H__*/

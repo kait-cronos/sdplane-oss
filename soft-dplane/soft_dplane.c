@@ -107,6 +107,44 @@ DEFINE_COMMAND (set_locale,
     fprintf (shell->terminal, "setlocale(): %s.\n", ret);
 }
 
+DEFINE_COMMAND (start_stop_port,
+                "(start|stop|reset) port (|<0-16>|all)",
+                START_HELP
+                STOP_HELP
+                RESET_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                PORT_ALL_HELP
+               )
+{
+  struct shell *shell = (struct shell *) context;
+  int port_id;
+  int port_spec = -1;
+  uint16_t nb_ports;
+  int ret;
+  bool all = false;
+
+  if (argc == 2)
+    all = true;
+  else if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (! all && port_spec != -1 && port_spec != port_id)
+        continue;
+      if (! strcmp (argv[0], "start"))
+        ret = rte_eth_dev_start (port_id);
+      else if (! strcmp (argv[0], "stop"))
+        ret = rte_eth_dev_stop (port_id);
+      else if (! strcmp (argv[0], "reset"))
+        ret = rte_eth_dev_reset (port_id);
+      printf ("rte_eth_dev_%s (): ret: %d port: %u\n",
+              argv[0], ret, port_id);
+    }
+}
+
 DEFINE_COMMAND (show_port,
                 "show port (|<0-16>|all)",
                 SHOW_HELP
@@ -203,11 +241,26 @@ DEFINE_COMMAND (show_port,
     }
 }
 
+DEFINE_COMMAND (clear_cmd,
+                "clear",
+                CLEAR_HELP)
+{
+  struct shell *shell = (struct shell *) context;
+  const char clr[] = { 27, '[', '2', 'J', '\0' };
+  const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+
+  /* Clear screen and move to top left */
+  fprintf (shell->terminal, "%s%s", clr, topLeft);
+  fflush (shell->terminal);
+}
+
 void
 soft_dplane_cmd_init (struct command_set *cmdset)
 {
   setlocale (LC_ALL, "en_US.utf8");
+  INSTALL_COMMAND2 (cmdset, clear_cmd);
   INSTALL_COMMAND2 (cmdset, show_port);
   INSTALL_COMMAND2 (cmdset, set_locale);
+  INSTALL_COMMAND2 (cmdset, start_stop_port);
 }
 

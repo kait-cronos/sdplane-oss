@@ -35,7 +35,14 @@
 #include <rte_mbuf.h>
 #include <rte_string_fns.h>
 
+#include "command.h"
+#include "shell.h"
+
 #include "l2fwd.h"
+
+#include "soft_dplane.h"
+
+int l2fwd_launch_one_lcore (__rte_unused void *dummy);
 
 #define rte_exit(x, ...) \
   do { printf (__VA_ARGS__); return -1; } while (0)
@@ -75,9 +82,9 @@ l2fwd_init (int argc, char **argv)
   /* >8 End of init EAL. */
 
   printf ("MAC updating %s\n", mac_updating ? "enabled" : "disabled");
-#else
-  l2fwd_enabled_port_mask = 0x7;
 #endif
+
+  printf ("debug: %s: line %d\n", __func__, __LINE__);
 
   /* convert to number of cycles */
   timer_period *= rte_get_timer_hz ();
@@ -86,11 +93,15 @@ l2fwd_init (int argc, char **argv)
   if (nb_ports == 0)
     rte_exit (EXIT_FAILURE, "No Ethernet ports - bye\n");
 
+  printf ("debug: %s: line %d\n", __func__, __LINE__);
+
   if (port_pair_params != NULL)
     {
       if (check_port_pair_config () < 0)
         rte_exit (EXIT_FAILURE, "Invalid port pair config\n");
     }
+
+  printf ("debug: %s: line %d\n", __func__, __LINE__);
 
   /* check port mask to possible port mask */
   if (l2fwd_enabled_port_mask & ~((1 << nb_ports) - 1))
@@ -99,10 +110,14 @@ l2fwd_init (int argc, char **argv)
 
   /* Initialization of the driver. 8< */
 
+  printf ("debug: %s: line %d\n", __func__, __LINE__);
+
   /* reset l2fwd_dst_ports */
   for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++)
     l2fwd_dst_ports[portid] = 0;
   last_port = 0;
+
+  printf ("debug: %s: line %d\n", __func__, __LINE__);
 
   /* populate destination port details */
   if (port_pair_params != NULL)
@@ -144,6 +159,16 @@ l2fwd_init (int argc, char **argv)
     }
   /* >8 End of initialization of the driver. */
 
+  printf ("debug: %s: line %d\n", __func__, __LINE__);
+
+  for (rx_lcore_id = 0; rx_lcore_id < RTE_MAX_LCORE; rx_lcore_id++)
+    {
+      lcore_queue_conf[rx_lcore_id].n_rx_port = 0;
+    }
+
+
+  printf ("debug: %s: line %d\n", __func__, __LINE__); fflush (stdout);
+
   rx_lcore_id = 0;
   qconf = NULL;
 
@@ -156,11 +181,14 @@ l2fwd_init (int argc, char **argv)
 
     /* get the lcore_id for this port */
     while (rte_lcore_is_enabled (rx_lcore_id) == 0 ||
+           lcore_workers[rx_lcore_id].func != l2fwd_launch_one_lcore ||
            lcore_queue_conf[rx_lcore_id].n_rx_port == l2fwd_rx_queue_per_lcore)
       {
         rx_lcore_id++;
         if (rx_lcore_id >= RTE_MAX_LCORE)
           rte_exit (EXIT_FAILURE, "Not enough cores\n");
+        printf ("try lcore %d for rx_lcore of port %d...\n",
+                rx_lcore_id, portid);
       }
 
     if (qconf != &lcore_queue_conf[rx_lcore_id])
@@ -176,17 +204,22 @@ l2fwd_init (int argc, char **argv)
             l2fwd_dst_ports[portid]);
   }
 
+  printf ("debug: %s: line %d\n", __func__, __LINE__); fflush (stdout);
+
   nb_mbufs = RTE_MAX (nb_ports * (nb_rxd + nb_txd + MAX_PKT_BURST +
                                   nb_lcores * MEMPOOL_CACHE_SIZE),
                       8192U);
 
   /* Create the mbuf pool. 8< */
-  l2fwd_pktmbuf_pool =
+  if (l2fwd_pktmbuf_pool == NULL)
+    l2fwd_pktmbuf_pool =
       rte_pktmbuf_pool_create ("mbuf_pool", nb_mbufs, MEMPOOL_CACHE_SIZE, 0,
                                RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id ());
   if (l2fwd_pktmbuf_pool == NULL)
     rte_exit (EXIT_FAILURE, "Cannot init mbuf pool\n");
   /* >8 End of create the mbuf pool. */
+
+  printf ("debug: %s: line %d\n", __func__, __LINE__); fflush (stdout);
 
   /* Initialise each port */
   RTE_ETH_FOREACH_DEV (portid)
@@ -259,7 +292,8 @@ l2fwd_init (int argc, char **argv)
     /* >8 End of init one TX queue on each port. */
 
     /* Initialize TX buffers */
-    tx_buffer[portid] = rte_zmalloc_socket (
+    if (tx_buffer[portid] == NULL)
+      tx_buffer[portid] = rte_zmalloc_socket (
         "tx_buffer", RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
         rte_eth_dev_socket_id (portid));
     if (tx_buffer[portid] == NULL)
@@ -302,11 +336,15 @@ l2fwd_init (int argc, char **argv)
     memset (&port_statistics, 0, sizeof (port_statistics));
   }
 
+  printf ("debug: %s: line %d\n", __func__, __LINE__); fflush (stdout);
+
   if (! nb_ports_available)
     {
       rte_warn (EXIT_FAILURE,
                 "All available ports are disabled. Please set portmask.\n");
     }
+
+  printf ("debug: %s: line %d\n", __func__, __LINE__); fflush (stdout);
 
 #if 0
   check_all_ports_link_status (l2fwd_enabled_port_mask);
