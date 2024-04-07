@@ -62,6 +62,7 @@
 #include "soft_dplane.h"
 
 int lthread_main (__rte_unused void *dummy);
+int tap_handler (__rte_unused void *dummy);
 
 extern uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
 int l2fwd_launch_one_lcore (__rte_unused void *dummy);
@@ -103,7 +104,7 @@ stop_lcore (struct shell *shell, int lcore_id)
 
 DEFINE_COMMAND (set_worker,
                 "(set|reset|start|restart) worker lcore <0-16> "
-                "(|none|l2fwd|l3fwd|l3fwd-lpm)",
+                "(|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler)",
                 SET_HELP
                 RESET_HELP
                 START_HELP
@@ -115,6 +116,7 @@ DEFINE_COMMAND (set_worker,
                 "set lcore to launch l2fwd\n"
                 "set lcore to launch l3fwd (default: lpm)\n"
                 "set lcore to launch l3fwd-lpm\n"
+                "set lcore to launch tap-handler\n"
                )
 {
   struct shell *shell = (struct shell *) context;
@@ -129,6 +131,8 @@ DEFINE_COMMAND (set_worker,
     func = NULL;
   else if (! strcmp (argv[4], "l2fwd"))
     func = l2fwd_launch_one_lcore;
+  else if (! strcmp (argv[4], "tap-handler"))
+    func = tap_handler;
   else /* if (! strcmp (argv[4], "l3fwd")) */
     func = lpm_main_loop;
 
@@ -146,6 +150,8 @@ DEFINE_COMMAND (set_worker,
     func_name = "l2fwd";
   else if (func == lthread_main)
     func_name = "lthread_main";
+  else if (func == tap_handler)
+    func_name = "tap-handler";
   else
     func_name = "none";
 
@@ -351,8 +357,8 @@ lthread_shell (void *arg)
 
 extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
 
-void
-lthread_tap_manager (void *arg)
+int
+tap_handler (__rte_unused void *dummy)
 {
   int fd;
   struct ifreq ifr;
@@ -364,12 +370,12 @@ lthread_tap_manager (void *arg)
   if (fd < 0)
     {
       printf ("%s: can't open /dev/net/tun. quit", __func__);
-      return;
+      return -1;
     }
 
   memset (&ifr, 0, sizeof (ifr));
-  ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
   snprintf (ifr.ifr_name, IFNAMSIZ, "peek0");
+  ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
 
   ret = ioctl (fd, TUNSETIFF, (void *) &ifr);
   if (ret < 0)
@@ -377,26 +383,43 @@ lthread_tap_manager (void *arg)
       printf ("%s: ioctl (TUNSETIFF) failed: %s\n",
               __func__, strerror (errno));
       close (fd);
-      return;
+      return -1;
     }
 
-#if 0
-  ret = ioctl (fd, SIOCGIFFLAGS, &ifr);
-  if (ret < 0)
+#if 1
+  int sockfd;
+  sockfd = socket (AF_INET, SOCK_DGRAM, 0);
+  if (sockfd < 0)
     {
-      printf ("%s: ioctl (SOICGIFFLAGs) failed: %s\n",
+      printf ("%s: socket() failed: %s\n",
               __func__, strerror (errno));
-      close (fd);
-      return;
     }
-  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-  ret = ioctl (fd, SIOCSIFFLAGS, &ifr);
-  if (ret < 0)
+  else
     {
-      printf ("%s: ioctl (SOICSIFFLAGs) failed: %s\n",
-              __func__, strerror (errno));
-      close (fd);
-      return;
+      memset (&ifr, 0, sizeof (ifr));
+      snprintf (ifr.ifr_name, IFNAMSIZ, "peek0");
+
+      ret = ioctl (sockfd, SIOCGIFFLAGS, &ifr);
+      if (ret < 0)
+        {
+          printf ("%s: ioctl (SOICGIFFLAG) failed: %s\n",
+                  __func__, strerror (errno));
+          close (sockfd);
+          sockfd = -1;
+        }
+    }
+
+  if (sockfd > 0)
+    {
+      ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+      ret = ioctl (sockfd, SIOCSIFFLAGS, &ifr);
+      if (ret < 0)
+        {
+          printf ("%s: ioctl (SOICSIFFLAG) failed: %s\n",
+                  __func__, strerror (errno));
+          close (sockfd);
+          sockfd = -1;
+        }
     }
 #endif
 
@@ -407,7 +430,7 @@ lthread_tap_manager (void *arg)
   while (! force_quit && ! force_stop[tap_manager_id])
     {
       unsigned lcore_id;
-      lthread_sleep (0); // yield.
+      //lthread_sleep (0); // yield.
       for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
         {
           struct rte_ring *tap_ring;
@@ -450,6 +473,7 @@ lthread_tap_manager (void *arg)
   close (fd);
   printf ("%s on lcore[%d]: finished.\n",
           __func__, rte_lcore_id ());
+  return 0;
 }
 
 int
@@ -475,7 +499,7 @@ lthread_main (__rte_unused void *dummy)
 
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
   lthread_create (&lt, lthread_shell, NULL);
-  lthread_create (&lt, lthread_tap_manager, NULL);
+  //lthread_create (&lt, lthread_tap_manager, NULL);
   lthread_run ();
 }
 

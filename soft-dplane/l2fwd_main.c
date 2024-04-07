@@ -41,7 +41,7 @@
 static volatile bool force_quit;
 
 /* MAC updating enabled by default */
-int mac_updating = 1;
+int mac_updating = 0;
 
 /* Ports set in promiscuous mode off by default. */
 int promiscuous_on;
@@ -196,7 +196,10 @@ l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
   uint32_t pkt_len;
   uint16_t data_len;
   char *m_start, *c_start;
-#if 0
+  pkt_len = rte_pktmbuf_pkt_len (m);
+  data_len = rte_pktmbuf_data_len (m);
+  printf ("%s: m: %p (%d/%d) from port: %d\n", __func__, m, data_len, pkt_len, portid);
+#if 1
   c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
 #elif 0
   c = rte_pktmbuf_clone (m, m->pool);
