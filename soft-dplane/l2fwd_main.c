@@ -186,6 +186,31 @@ l2fwd_mac_updating (struct rte_mbuf *m, unsigned dest_portid)
   rte_ether_addr_copy (&l2fwd_ports_eth_addr[dest_portid], &eth->src_addr);
 }
 
+struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
+__thread struct rte_ring *thread_ring_to_tap;
+
+static void
+l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
+{
+  struct rte_mbuf *c;
+  uint32_t pkt_len;
+  uint16_t data_len;
+  char *m_start, *c_start;
+#if 0
+  c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+#elif 0
+  c = rte_pktmbuf_clone (m, m->pool);
+#else
+  c = rte_pktmbuf_alloc (m->pool);
+  data_len = rte_pktmbuf_data_len (m);
+  rte_pktmbuf_append (c, data_len);
+  m_start = rte_pktmbuf_mtod (m, char *);
+  c_start = rte_pktmbuf_mtod (c, char *);
+  memcpy (c_start, m_start, data_len);
+#endif
+  rte_ring_enqueue (thread_ring_to_tap, c);
+}
+
 /* Simple forward. 8< */
 static void
 l2fwd_simple_forward (struct rte_mbuf *m, unsigned portid)
@@ -226,6 +251,14 @@ l2fwd_main_loop (void)
 
   lcore_id = rte_lcore_id ();
   qconf = &lcore_queue_conf[lcore_id];
+
+#define RING_TO_TAP_SIZE 64
+  char ring_name[32];
+  snprintf (ring_name, sizeof (ring_name), "ring_to_tap_%d", lcore_id);
+  thread_ring_to_tap =
+    rte_ring_create (ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
+                     (RING_F_SP_ENQ | RING_F_SC_DEQ));
+  tap_ring_by_lcore[lcore_id] = thread_ring_to_tap;
 
   if (qconf->n_rx_port == 0)
     {
@@ -307,6 +340,7 @@ l2fwd_main_loop (void)
             {
               m = pkts_burst[j];
               rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
+              l2fwd_copy_to_tap_ring (m, portid);
               l2fwd_simple_forward (m, portid);
             }
         }

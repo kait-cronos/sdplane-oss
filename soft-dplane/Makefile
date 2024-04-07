@@ -24,7 +24,7 @@ static: build/$(APP)-static
 	ln -sf $(APP)-static build/$(APP)
 
 PC_FILE := $(shell $(PKGCONF) --path libdpdk 2>/dev/null)
-CFLAGS += -O0 $(shell $(PKGCONF) --cflags libdpdk)
+CFLAGS += -g -O0 $(shell $(PKGCONF) --cflags libdpdk)
 # Added for 'rte_eth_link_to_str()'
 CFLAGS += -DALLOW_EXPERIMENTAL_API
 LDFLAGS_SHARED = $(shell $(PKGCONF) --libs libdpdk)

@@ -264,3 +264,13 @@ soft_dplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, start_stop_port);
 }
 
+extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
+
+void
+soft_dplane_init ()
+{
+  int lcore_id;
+  for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
+    tap_ring_by_lcore[lcore_id] = NULL;
+}
+

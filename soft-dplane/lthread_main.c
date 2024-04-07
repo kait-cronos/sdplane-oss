@@ -87,15 +87,18 @@ start_lcore (struct shell *shell, int lcore_id)
 void
 stop_lcore (struct shell *shell, int lcore_id)
 {
+  fprintf (shell->terminal, "stopping worker on lcore: %d\n", lcore_id);
+  force_stop[lcore_id] = true;
+
   if (lcore_id == rte_lcore_id ())
     {
       fprintf (shell->terminal, "can't stop lthread lcore: %d\n", lcore_id);
-      return;
     }
-  fprintf (shell->terminal, "stopping worker on lcore: %d\n", lcore_id);
-  force_stop[lcore_id] = true;
-  rte_eal_wait_lcore (lcore_id);
-  fprintf (shell->terminal, "stopped worker on lcore: %d\n", lcore_id);
+  else
+    {
+      rte_eal_wait_lcore (lcore_id);
+      fprintf (shell->terminal, "stopped worker on lcore: %d\n", lcore_id);
+    }
 }
 
 DEFINE_COMMAND (set_worker,
@@ -154,7 +157,7 @@ DEFINE_COMMAND (set_worker,
            lcore_id, func_name);
 
   if (! strcmp (argv[0], "reset") ||
-      ! strcmp (argv[0], "restart") ||
+      ! strcmp (argv[0], "start") ||
       ! strcmp (argv[0], "restart"))
     {
       stop_lcore (shell, lcore_id);
@@ -185,7 +188,14 @@ DEFINE_COMMAND (start_stop_worker,
   unsigned int lcore_id;
   unsigned int lcore_spec = -1;
 
-  if (strcmp (argv[3], "all"))
+  if (! strcmp (argv[3], "all"))
+    {
+      if (! strcmp (argv[0], "stop"))
+        force_quit = true;
+      else
+        force_quit = false;
+    }
+  else
     lcore_spec = strtol (argv[3], NULL, 0);
 
   nb_lcores = rte_lcore_count ();
@@ -238,10 +248,10 @@ DEFINE_COMMAND (show_worker,
 }
 
 DEFINE_COMMAND (exit_cmd,
-               "(exit|quit|logout)",
-               "exit\n"
-               "quite\n"
-               "logout\n")
+                "(exit|quit|logout)",
+                "exit\n"
+                "quite\n"
+                "logout\n")
 {
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "exit !\n");
@@ -326,11 +336,120 @@ lthread_shell (void *arg)
   shell_prompt (shell);
 
   while (shell_running (shell))
-    shell_read (shell);
+    {
+      lthread_sleep (0); // yield.
+      shell_read (shell);
+    }
 
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
 
   termio_finish ();
+}
+
+#include <linux/if.h>
+#include <linux/if_tun.h>
+
+extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
+
+void
+lthread_tap_manager (void *arg)
+{
+  int fd;
+  struct ifreq ifr;
+  int ret;
+
+  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
+
+  fd = open ("/dev/net/tun", O_RDWR);
+  if (fd < 0)
+    {
+      printf ("%s: can't open /dev/net/tun. quit", __func__);
+      return;
+    }
+
+  memset (&ifr, 0, sizeof (ifr));
+  ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+  snprintf (ifr.ifr_name, IFNAMSIZ, "peek0");
+
+  ret = ioctl (fd, TUNSETIFF, (void *) &ifr);
+  if (ret < 0)
+    {
+      printf ("%s: ioctl (TUNSETIFF) failed: %s\n",
+              __func__, strerror (errno));
+      close (fd);
+      return;
+    }
+
+#if 0
+  ret = ioctl (fd, SIOCGIFFLAGS, &ifr);
+  if (ret < 0)
+    {
+      printf ("%s: ioctl (SOICGIFFLAGs) failed: %s\n",
+              __func__, strerror (errno));
+      close (fd);
+      return;
+    }
+  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+  ret = ioctl (fd, SIOCSIFFLAGS, &ifr);
+  if (ret < 0)
+    {
+      printf ("%s: ioctl (SOICSIFFLAGs) failed: %s\n",
+              __func__, strerror (errno));
+      close (fd);
+      return;
+    }
+#endif
+
+  printf ("%s on lcore[%d]: started.\n",
+          __func__, rte_lcore_id ());
+
+  unsigned tap_manager_id = rte_lcore_id ();
+  while (! force_quit && ! force_stop[tap_manager_id])
+    {
+      unsigned lcore_id;
+      lthread_sleep (0); // yield.
+      for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
+        {
+          struct rte_ring *tap_ring;
+          struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
+          unsigned int dequeued = 0, avail = 0;
+          int i;
+
+          tap_ring = tap_ring_by_lcore[lcore_id];
+          do {
+            if (tap_ring)
+              dequeued = rte_ring_dequeue_burst (tap_ring, (void **) pkts_burst,
+                                                 MAX_PKT_BURST, &avail);
+            for (i = 0; i < dequeued; i++)
+              {
+                struct rte_mbuf *m;
+                uint32_t pkt_len;
+                uint16_t data_len;
+                char *pkt;
+
+                m = pkts_burst[i];
+                pkt_len = rte_pktmbuf_pkt_len (m);
+                data_len = rte_pktmbuf_data_len (m);
+                pkt = rte_pktmbuf_mtod (m, char *);
+                if (data_len < pkt_len)
+                  printf ("%s: warning: multi-seg mbuf: %u < %u\n",
+                          __func__, data_len, pkt_len);
+                ret = write (fd, pkt, data_len);
+                if (ret < 0)
+                  printf ("%s: warning: write () failed: %s\n",
+                          __func__, strerror (errno));
+                else
+                  printf ("%s: capture pkt: len: %d(%d) from lcore[%d]\n",
+                          __func__, pkt_len, data_len, lcore_id);
+                rte_pktmbuf_free (m);
+              }
+          } while (avail);
+        }
+    }
+
+  close (fd);
+  printf ("%s on lcore[%d]: finished.\n",
+          __func__, rte_lcore_id ());
 }
 
 int
@@ -356,6 +475,7 @@ lthread_main (__rte_unused void *dummy)
 
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
   lthread_create (&lt, lthread_shell, NULL);
+  lthread_create (&lt, lthread_tap_manager, NULL);
   lthread_run ();
 }
 

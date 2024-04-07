@@ -140,8 +140,8 @@ static struct rte_mempool *vector_pool[RTE_MAX_ETHPORTS];
 static struct rte_mempool *pktmbuf_pool[RTE_MAX_ETHPORTS][NB_SOCKETS];
 static uint8_t lkp_per_socket[NB_SOCKETS];
 
-int
-lthread_main (__rte_unused void *dummy);
+int lthread_main (__rte_unused void *dummy);
+void soft_dplane_init ();
 
 struct l3fwd_lkp_mode
 {
@@ -1558,6 +1558,8 @@ main (int argc, char **argv)
   unsigned int lcore_id;
   uint8_t queue;
   int ret;
+
+  soft_dplane_init ();
 
   /* init EAL */
   ret = rte_eal_init (argc, argv);
