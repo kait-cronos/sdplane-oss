@@ -86,6 +86,7 @@ void shell_keyfunc_ctrl_lb (struct shell *shell);
 
 void shell_close (struct shell *shell);
 int shell_read (struct shell *shell);
+int shell_read_nowait (struct shell *shell);
 
 struct shell *shell_create ();
 void shell_delete (struct shell *shell);

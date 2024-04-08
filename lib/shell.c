@@ -890,6 +890,22 @@ shell_read (struct shell *shell)
   return 0;
 }
 
+#include <poll.h>
+
+int
+shell_read_nowait (struct shell *shell)
+{
+  int ret;
+  struct pollfd pollfds[1];
+  pollfds[0].fd = shell->readfd;
+  pollfds[0].events = POLLIN;
+  pollfds[0].revents = 0;
+  ret = poll (pollfds, 1, 0);
+  if (ret > 0)
+    return shell_read (shell);
+  return ret;
+}
+
 struct shell *
 shell_create ()
 {

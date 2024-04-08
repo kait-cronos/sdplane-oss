@@ -384,10 +384,15 @@ int
 var_spec (char *spec)
 {
   char *p;
+#if 0
   for (p = spec; *p; p++)
     if (! isupper (*p))
       return 0;
   return 1;
+#else
+  /* disable all capital letters variables */
+  return 0;
+#endif
 }
 
 char *
