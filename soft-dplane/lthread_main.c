@@ -104,7 +104,11 @@ stop_lcore (struct shell *shell, int lcore_id)
 
 DEFINE_COMMAND (set_worker,
                 "(set|reset|start|restart) worker lcore <0-16> "
+#if 0
                 "(|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler)",
+#else
+                "(|none|l2fwd|l3fwd|l3fwd-lpm)",
+#endif
                 SET_HELP
                 RESET_HELP
                 START_HELP
@@ -131,8 +135,10 @@ DEFINE_COMMAND (set_worker,
     func = NULL;
   else if (! strcmp (argv[4], "l2fwd"))
     func = l2fwd_launch_one_lcore;
+#if 0
   else if (! strcmp (argv[4], "tap-handler"))
     func = tap_handler;
+#endif
   else /* if (! strcmp (argv[4], "l3fwd")) */
     func = lpm_main_loop;
 
@@ -150,8 +156,10 @@ DEFINE_COMMAND (set_worker,
     func_name = "l2fwd";
   else if (func == lthread_main)
     func_name = "lthread_main";
+#if 0
   else if (func == tap_handler)
     func_name = "tap-handler";
+#endif
   else
     func_name = "none";
 
@@ -344,12 +352,59 @@ lthread_shell (void *arg)
   while (shell_running (shell))
     {
       lthread_sleep (0); // yield.
-      shell_read (shell);
+      //printf ("%s: schedule.\n", __func__);
+      shell_read_nowait (shell);
     }
 
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
 
   termio_finish ();
+}
+
+struct rte_eth_stats stats_prev[RTE_MAX_ETHPORTS];
+struct rte_eth_stats stats_current[RTE_MAX_ETHPORTS];
+struct rte_eth_stats stats_per_sec[RTE_MAX_ETHPORTS];
+
+static inline void
+rte_eth_stats_per_sec (struct rte_eth_stats *per_sec,
+                       struct rte_eth_stats *stats_current,
+                       struct rte_eth_stats *stats_prev)
+{
+  per_sec->ipackets = stats_current->ipackets - stats_prev->ipackets;
+  per_sec->opackets = stats_current->opackets - stats_prev->opackets;
+  per_sec->ibytes = stats_current->ibytes - stats_prev->ibytes;
+  per_sec->obytes = stats_current->obytes - stats_prev->obytes;
+  per_sec->ierrors = stats_current->ierrors - stats_prev->ierrors;
+  per_sec->oerrors = stats_current->oerrors - stats_prev->oerrors;
+}
+
+int
+stat_collector (__rte_unused void *dummy)
+{
+  int i, port_id;
+  uint16_t nb_ports;
+
+  memset (stats_prev, 0, sizeof (stats_prev));
+  memset (stats_current, 0, sizeof (stats_current));
+  memset (stats_per_sec, 0, sizeof (stats_per_sec));
+
+  nb_ports = rte_eth_dev_count_avail ();
+  unsigned stat_collector_id = rte_lcore_id ();
+  while (! force_quit && ! force_stop[stat_collector_id])
+    {
+      lthread_sleep (1000); // yield.
+      //printf ("%s: schedule.\n", __func__);
+      for (port_id = 0; port_id < nb_ports; port_id++)
+        stats_prev[port_id] = stats_current[port_id];
+      for (port_id = 0; port_id < nb_ports; port_id++)
+        rte_eth_stats_get (port_id, &stats_current[port_id]);
+      for (port_id = 0; port_id < nb_ports; port_id++)
+        rte_eth_stats_per_sec (&stats_per_sec[port_id],
+                               &stats_current[port_id],
+                               &stats_prev[port_id]);
+      //printf ("%s: stats collected.\n", __func__);
+    }
+  return 0;
 }
 
 #include <linux/if.h>
@@ -426,11 +481,12 @@ tap_handler (__rte_unused void *dummy)
   printf ("%s on lcore[%d]: started.\n",
           __func__, rte_lcore_id ());
 
-  unsigned tap_manager_id = rte_lcore_id ();
-  while (! force_quit && ! force_stop[tap_manager_id])
+  unsigned tap_handler_id = rte_lcore_id ();
+  while (! force_quit && ! force_stop[tap_handler_id])
     {
       unsigned lcore_id;
-      //lthread_sleep (0); // yield.
+      lthread_sleep (0); // yield.
+      //printf ("%s: schedule.\n", __func__);
       for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
         {
           struct rte_ring *tap_ring;
@@ -498,8 +554,9 @@ lthread_main (__rte_unused void *dummy)
   lcore_workers[lcore_id].func_name = "lthread_main";
 
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
-  lthread_create (&lt, lthread_shell, NULL);
-  //lthread_create (&lt, lthread_tap_manager, NULL);
+  lthread_create (&lt, (lthread_func) lthread_shell, NULL);
+  lthread_create (&lt, (lthread_func) tap_handler, NULL);
+  lthread_create (&lt, (lthread_func) stat_collector, NULL);
   lthread_run ();
 }
 

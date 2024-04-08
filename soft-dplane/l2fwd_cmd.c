@@ -36,6 +36,7 @@
 #include <rte_udp.h>
 #include <rte_string_fns.h>
 #include <rte_cpuflags.h>
+#include <rte_ethdev.h>
 
 #include "debug.h"
 #include "termio.h"

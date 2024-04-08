@@ -241,6 +241,69 @@ DEFINE_COMMAND (show_port,
     }
 }
 
+DEFINE_COMMAND (show_port_statistics,
+                "show port statistics (pps|total|bps|total-bytes)",
+                SHOW_HELP
+                PORT_HELP
+                "statistics\n"
+                "pps\n"
+                "total packets\n"
+                "bps\n"
+                "total bytes\n"
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  int i, port_id;
+  uint16_t nb_ports;
+  char name[16];
+  bool packets = false;
+  bool total = false;
+  struct rte_eth_stats *stats, *stats_array;
+
+  if (! strcmp (argv[3], "pps"))
+    {
+      packets = true; total = false;
+      stats_array = stats_per_sec;
+    }
+  else if (! strcmp (argv[3], "total"))
+    {
+      packets = true; total = true;
+      stats_array = stats_current;
+    }
+  else if (! strcmp (argv[3], "bps"))
+    {
+      packets = false; total = false;
+      stats_array = stats_per_sec;
+    }
+  else if (! strcmp (argv[3], "total-bytes"))
+    {
+      packets = false; total = true;
+      stats_array = stats_current;
+    }
+
+  if (packets)
+    fprintf (t, "%16s %8s %8s %8s %8s\n",
+             "port name:", "rx", "tx", "ierrors", "oerrors");
+  else
+    fprintf (t, "%16s %8s %8s\n",
+             "port name:", "bytes-in", "bytes-out");
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      stats = &stats_array[port_id];
+      snprintf (name, sizeof (name), "port[%d]:", port_id);
+      if (packets)
+      fprintf (t, "%16s %8lu %8lu %8lu %8lu\n", name,
+               stats->ipackets, stats->opackets,
+               stats->ierrors, stats->oerrors);
+      else
+      fprintf (t, "%16s %8lu %8lu\n", name,
+               stats->ibytes, stats->obytes);
+    }
+}
+
 DEFINE_COMMAND (clear_cmd,
                 "clear",
                 CLEAR_HELP)
@@ -260,6 +323,7 @@ soft_dplane_cmd_init (struct command_set *cmdset)
   setlocale (LC_ALL, "en_US.utf8");
   INSTALL_COMMAND2 (cmdset, clear_cmd);
   INSTALL_COMMAND2 (cmdset, show_port);
+  INSTALL_COMMAND2 (cmdset, show_port_statistics);
   INSTALL_COMMAND2 (cmdset, set_locale);
   INSTALL_COMMAND2 (cmdset, start_stop_port);
 }
