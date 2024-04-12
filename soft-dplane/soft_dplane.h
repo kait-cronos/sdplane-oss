@@ -33,6 +33,9 @@ extern struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 #define ALL_HELP "all variables\n"
 #define VARS_HELP "all variables\n"
 
+#define ENABLE_HELP "enable feature\n"
+#define DISABLE_HELP "disable feature\n"
+
 int lthread_main (__rte_unused void *dummy);
 void soft_dplane_cmd_init (struct command_set *cmdset);
 void soft_dplane_init ();

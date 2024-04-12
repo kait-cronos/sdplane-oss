@@ -55,6 +55,57 @@ struct flag_name link_speeds[] =
   { "400G",     RTE_ETH_LINK_SPEED_400G },
 };
 
+struct flag_name rx_offload_capa[] =
+{
+  { "VLAN_STRIP", RTE_ETH_RX_OFFLOAD_VLAN_STRIP       },
+  { "IPV4_CKSUM", RTE_ETH_RX_OFFLOAD_IPV4_CKSUM       },
+  { "UDP_CKSUM", RTE_ETH_RX_OFFLOAD_UDP_CKSUM         },
+  { "TCP_CKSUM", RTE_ETH_RX_OFFLOAD_TCP_CKSUM         },
+  { "TCP_LRO", RTE_ETH_RX_OFFLOAD_TCP_LRO             },
+  { "QINQ_STRIP", RTE_ETH_RX_OFFLOAD_QINQ_STRIP       },
+  { "OUTER_IPV4_CKSUM", RTE_ETH_RX_OFFLOAD_OUTER_IPV4_CKSUM },
+  { "MACSEC_STRIP", RTE_ETH_RX_OFFLOAD_MACSEC_STRIP   },
+  { "VLAN_FILTER", RTE_ETH_RX_OFFLOAD_VLAN_FILTER     },
+  { "VLAN_EXTEND", RTE_ETH_RX_OFFLOAD_VLAN_EXTEND     },
+  { "SCATTER", RTE_ETH_RX_OFFLOAD_SCATTER             },
+
+  { "TIMESTAMP", RTE_ETH_RX_OFFLOAD_TIMESTAMP         },
+  { "SECURITY", RTE_ETH_RX_OFFLOAD_SECURITY           },
+  { "KEEP_CRC", RTE_ETH_RX_OFFLOAD_KEEP_CRC           },
+  { "SCTP_CKSUM", RTE_ETH_RX_OFFLOAD_SCTP_CKSUM       },
+  { "OUTER_UDP_CKSUM", RTE_ETH_RX_OFFLOAD_OUTER_UDP_CKSUM  },
+  { "RSS_HASH", RTE_ETH_RX_OFFLOAD_RSS_HASH           },
+  { "BUFFER_SPLIT", RTE_ETH_RX_OFFLOAD_BUFFER_SPLIT   },
+};
+
+struct flag_name tx_offload_capa[] =
+{
+  { "VLAN_INSERT", RTE_ETH_TX_OFFLOAD_VLAN_INSERT      },
+  { "IPV4_CKSUM", RTE_ETH_TX_OFFLOAD_IPV4_CKSUM       },
+  { "UDP_CKSUM", RTE_ETH_TX_OFFLOAD_UDP_CKSUM        },
+  { "TCP_CKSUM", RTE_ETH_TX_OFFLOAD_TCP_CKSUM        },
+  { "SCTP_CKSUM", RTE_ETH_TX_OFFLOAD_SCTP_CKSUM       },
+  { "TCP_TSO", RTE_ETH_TX_OFFLOAD_TCP_TSO          },
+  { "UDP_TSO", RTE_ETH_TX_OFFLOAD_UDP_TSO          },
+  { "OUTER_IPV4_CKSUM", RTE_ETH_TX_OFFLOAD_OUTER_IPV4_CKSUM },
+  { "QINQ_INSERT", RTE_ETH_TX_OFFLOAD_QINQ_INSERT      },
+  { "VXLAN_TNL_TSO", RTE_ETH_TX_OFFLOAD_VXLAN_TNL_TSO    },
+  { "GRE_TNL_TSO", RTE_ETH_TX_OFFLOAD_GRE_TNL_TSO      },
+  { "IPIP_TNL_TSO", RTE_ETH_TX_OFFLOAD_IPIP_TNL_TSO     },
+  { "GENEVE_TNL_TSO", RTE_ETH_TX_OFFLOAD_GENEVE_TNL_TSO   },
+  { "MACSEC_INSERT", RTE_ETH_TX_OFFLOAD_MACSEC_INSERT    },
+
+  { "MT_LOCKFREE", RTE_ETH_TX_OFFLOAD_MT_LOCKFREE      },
+  { "MULTI_SEGS", RTE_ETH_TX_OFFLOAD_MULTI_SEGS       },
+  { "MBUF_FAST_FREE", RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE   },
+  { "SECURITY", RTE_ETH_TX_OFFLOAD_SECURITY         },
+  { "UDP_TNL_TSO", RTE_ETH_TX_OFFLOAD_UDP_TNL_TSO      },
+  { "IP_TNL_TSO", RTE_ETH_TX_OFFLOAD_IP_TNL_TSO       },
+  { "OUTER_UDP_CKSUM", RTE_ETH_TX_OFFLOAD_OUTER_UDP_CKSUM  },
+  { "SEND_ON_TIMESTAMP", RTE_ETH_TX_OFFLOAD_SEND_ON_TIMESTAMP},
+};
+
+
 int
 snprintf_flags (char *buf, int size, uint64_t flags,
                 struct flag_name *flag_names,
@@ -237,6 +288,44 @@ DEFINE_COMMAND (show_port,
           fprintf (t, "  speed_capa: <%s>\n", link_capa);
           fprintf (t, "  nb_rx_queues: %'u nb_tx_queues: %'u\n",
                    dev->nb_rx_queues, dev->nb_tx_queues);
+
+          char rx_offload_str[128];
+          char tx_offload_str[128];
+          snprintf_flags (rx_offload_str, sizeof (rx_offload_str),
+                      dev_info.rx_offload_capa, rx_offload_capa, "|",
+                      sizeof (rx_offload_capa) / sizeof (struct flag_name));
+          snprintf_flags (tx_offload_str, sizeof (tx_offload_str),
+                      dev_info.tx_offload_capa, tx_offload_capa, "|",
+                      sizeof (tx_offload_capa) / sizeof (struct flag_name));
+          fprintf (t, "  rx_offload_capa: <%s>\n",
+                   rx_offload_str);
+          fprintf (t, "  tx_offload_capa: <%s>\n",
+                   tx_offload_str);
+
+          char rx_conf_str[128];
+          char tx_conf_str[128];
+          memset (rx_conf_str, 0, sizeof (rx_conf_str));
+          memset (tx_conf_str, 0, sizeof (tx_conf_str));
+          snprintf_flags (rx_conf_str, sizeof (rx_conf_str),
+                      dev_info.default_rxconf.offloads, rx_offload_capa, "|",
+                      sizeof (rx_offload_capa) / sizeof (struct flag_name));
+          snprintf_flags (tx_conf_str, sizeof (tx_conf_str),
+                      dev_info.default_txconf.offloads, tx_offload_capa, "|",
+                      sizeof (tx_offload_capa) / sizeof (struct flag_name));
+          fprintf (t, "  default_rxconf.offloads: <%s>\n", rx_conf_str);
+          fprintf (t, "  default_txconf.offloads: <%s>\n", tx_conf_str);
+
+          int i;
+          uint32_t ptypes[32];
+          char ptypes_name[32];
+          ret = rte_eth_dev_get_supported_ptypes (port_id, RTE_PTYPE_ALL_MASK,
+                  ptypes, 32);
+          for (i = 0; i < ret && i < 32; i++)
+            {
+              rte_get_ptype_name (ptypes[i], ptypes_name,
+                                  sizeof (ptypes_name));
+              fprintf (t, "  ptypes[%d]: %s\n", i, ptypes_name);
+            }
         }
     }
 }
@@ -304,6 +393,74 @@ DEFINE_COMMAND (show_port_statistics,
     }
 }
 
+DEFINE_COMMAND (set_port_promiscuous,
+                "set port (<0-16>|all) promiscuous (enable|disable)",
+                SET_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                ALL_HELP
+                "promiscuous\n"
+                ENABLE_HELP
+                DISABLE_HELP
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+      if (! strcmp (argv[4], "enable"))
+        ret = rte_eth_promiscuous_enable (port_id);
+      else
+        ret = rte_eth_promiscuous_disable (port_id);
+      if (ret < 0)
+        fprintf (shell->terminal, "set promiscuous error: ret: %d\n", ret);
+    }
+}
+
+DEFINE_COMMAND (show_port_promiscuous,
+                "show port (<0-16>|all) promiscuous",
+                SHOW_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                ALL_HELP
+                "promiscuous\n"
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+      ret = rte_eth_promiscuous_get (port_id);
+      if (ret < 0)
+        fprintf (shell->terminal, "get promiscuous error: ret: %d\n", ret);
+      else if (ret == 1)
+        fprintf (shell->terminal, "port[%d]: promiscuous: enabled.\n",
+                 port_id);
+      else
+        fprintf (shell->terminal, "port[%d]: promiscuous: disabled.\n",
+                 port_id);
+    }
+}
+
+
 DEFINE_COMMAND (clear_cmd,
                 "clear",
                 CLEAR_HELP)
@@ -326,6 +483,7 @@ soft_dplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_port_statistics);
   INSTALL_COMMAND2 (cmdset, set_locale);
   INSTALL_COMMAND2 (cmdset, start_stop_port);
+  INSTALL_COMMAND2 (cmdset, set_port_promiscuous);
 }
 
 extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];

@@ -507,6 +507,8 @@ tap_handler (__rte_unused void *dummy)
                 char *pkt;
 
                 m = pkts_burst[i];
+                if (! m)
+                  continue;
                 pkt_len = rte_pktmbuf_pkt_len (m);
                 data_len = rte_pktmbuf_data_len (m);
                 pkt = rte_pktmbuf_mtod (m, char *);

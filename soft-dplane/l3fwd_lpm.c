@@ -727,6 +727,8 @@ lpm_cb_parse_ptype (uint16_t port __rte_unused, uint16_t queue __rte_unused,
 {
   unsigned int i;
 
+  printf ("%s: %d packets.\n", __func__, nb_pkts);
+
   if (unlikely (nb_pkts == 0))
     return nb_pkts;
   rte_prefetch0 (rte_pktmbuf_mtod (pkts[0], struct ether_hdr *));
