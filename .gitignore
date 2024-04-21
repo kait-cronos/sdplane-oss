@@ -3,4 +3,13 @@
 /l2fwd/build
 /l3fwd/build
 /soft-dplane/build
+/sdplane/build
+
+/sdplane_*.debian.tar.xz
+/sdplane_*.dsc
+/sdplane_*.orig.tar.gz
+/sdplane_*_amd64.build
+/sdplane_*_amd64.buildinfo
+/sdplane_*_amd64.changes
+/sdplane_*_amd64.deb
 
