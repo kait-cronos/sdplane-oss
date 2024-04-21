@@ -20,6 +20,12 @@
 /sdplane/debian/sdplane/DEBIAN/md5sums
 /sdplane/debian/sdplane/usr/share/doc/sdplane/changelog.gz
 
+/sdplane/debian/.debhelper
+/sdplane/debian/autoreconf.after
+/sdplane/debian/autoreconf.before
+/sdplane/debian/sdplane.debhelper.log
+/sdplane/debian/sdplane
+
 /sdplane/.deps
 /sdplane/Makefile.in
 /sdplane/Makefile
@@ -29,6 +35,7 @@
 /sdplane/compile
 /sdplane/config.h
 /sdplane/config.h.in
+/sdplane/config.h.in~
 /sdplane/config.log
 /sdplane/config.status
 /sdplane/configure
