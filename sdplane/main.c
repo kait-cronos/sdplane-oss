@@ -15,6 +15,8 @@
 #include <signal.h>
 #include <stdbool.h>
 
+#include <unistd.h>
+
 #include <rte_common.h>
 #include <rte_vect.h>
 #include <rte_byteorder.h>
@@ -1550,8 +1552,27 @@ l3fwd_event_service_setup (void)
 }
 #endif
 
+extern bool reboot;
+
+int argc_saved;
+char *argv_saved[128];
+
+void
+argv_save (int argc, char **argv)
+{
+  int i;
+  argc_saved = argc;
+  for (i = 0; i < 128; i++)
+    argv_saved[i] = NULL;
+
+  if (argc_saved > 128)
+    argc_saved = 128;
+  for (i = 0; i < argc_saved; i++)
+    argv_saved[i] = strdup (argv[i]);
+}
+
 int
-main (int argc, char **argv)
+main (int argc, char **argv, char **envp)
 {
 #ifdef RTE_LIB_EVENTDEV
   struct l3fwd_event_resources *evt_rsrc;
@@ -1563,6 +1584,7 @@ main (int argc, char **argv)
   uint8_t queue;
   int ret;
 
+  argv_save (argc, argv);
   soft_dplane_init ();
 
   /* init EAL */
@@ -1729,6 +1751,28 @@ main (int argc, char **argv)
   rte_eal_cleanup ();
 
   printf ("Bye...\n");
+
+  if (reboot)
+    {
+      printf ("rebooting: prog: %s argc: %d.\n", argv[0], argc_saved);
+      for (i = 0; i < argc_saved; i++)
+        printf ("argv[%d]: %s\n", i, argv_saved[i]);
+      printf ("\n");
+      int sec = 5;
+      printf ("sleeping %d secs", sec);
+      fflush (stdout);
+      for (i = 0; i < sec; i++)
+        {
+          printf (".");
+          fflush (stdout);
+          sleep (1);
+        }
+      printf ("done.\n");
+
+      ret = execve (argv[0], argv_saved, envp);
+      if (ret < 0)
+        printf ("reboot failed: %s\n", strerror (errno));
+    }
 
   return ret;
 }

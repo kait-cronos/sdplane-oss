@@ -384,11 +384,11 @@ DEFINE_COMMAND (show_port_statistics,
       stats = &stats_array[port_id];
       snprintf (name, sizeof (name), "port[%d]:", port_id);
       if (packets)
-      fprintf (t, "%16s %8lu %8lu %8lu %8lu\n", name,
+      fprintf (t, "%16s %'8lu %'8lu %'8lu %'8lu\n", name,
                stats->ipackets, stats->opackets,
                stats->ierrors, stats->oerrors);
       else
-      fprintf (t, "%16s %8lu %8lu\n", name,
+      fprintf (t, "%16s %'8lu %'8lu\n", name,
                stats->ibytes, stats->obytes);
     }
 }
@@ -460,24 +460,10 @@ DEFINE_COMMAND (show_port_promiscuous,
     }
 }
 
-DEFINE_COMMAND (clear_cmd,
-                "clear",
-                CLEAR_HELP)
-{
-  struct shell *shell = (struct shell *) context;
-  const char clr[] = { 27, '[', '2', 'J', '\0' };
-  const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
-
-  /* Clear screen and move to top left */
-  fprintf (shell->terminal, "%s%s", clr, topLeft);
-  fflush (shell->terminal);
-}
-
 void
 soft_dplane_cmd_init (struct command_set *cmdset)
 {
   setlocale (LC_ALL, "en_US.utf8");
-  INSTALL_COMMAND2 (cmdset, clear_cmd);
   INSTALL_COMMAND2 (cmdset, show_port);
   INSTALL_COMMAND2 (cmdset, show_port_statistics);
   INSTALL_COMMAND2 (cmdset, set_locale);

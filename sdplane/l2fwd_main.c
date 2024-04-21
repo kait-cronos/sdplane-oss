@@ -233,10 +233,11 @@ l2fwd_simple_forward (struct rte_mbuf *m, unsigned portid)
 
   char ptype[32];
   rte_get_ptype_name (m->packet_type, ptype, sizeof (ptype));
-  printf ("m: %p: %s: port: %d -> %d: len: %d/%d ptype: %#x: %s\n",
-          m, __func__, portid, dst_port,
-          rte_pktmbuf_data_len (m), rte_pktmbuf_pkt_len (m),
-          m->packet_type, ptype);
+  if (FLAG_CHECK (debug_config, DEBUG_SDPLANE_WIRETAP))
+    printf ("m: %p: %s: port: %d -> %d: len: %d/%d ptype: %#x: %s\n",
+            m, __func__, portid, dst_port,
+            rte_pktmbuf_data_len (m), rte_pktmbuf_pkt_len (m),
+            m->packet_type, ptype);
 
   buffer = tx_buffer[dst_port];
   sent = rte_eth_tx_buffer (dst_port, 0, buffer, m);

@@ -278,6 +278,24 @@ DEFINE_COMMAND (exit_cmd,
     stop_lcore (shell, lcore_id);
 }
 
+bool reboot = false;
+
+DEFINE_COMMAND (reboot_cmd,
+                "reboot",
+                "reboot\n")
+{
+  struct shell *shell = (struct shell *) context;
+  fprintf (shell->terminal, "reboot !\n");
+  reboot = true;
+  FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
+  /* don't shell_close(): this closes stdout. */
+  //shell_close (shell);
+
+  int nb_lcores = rte_lcore_count ();
+  for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
+    stop_lcore (shell, lcore_id);
+}
+
 DEFINE_COMMAND (l2fwd_init,
                "l2fwd init",
                "l2fwd\n"
@@ -300,15 +318,83 @@ get_winsize (struct shell *shell)
 void l2fwd_cmd_init (struct command_set *cmdset);
 
 void
-lthread_shell (void *arg)
+load_startup_config (void *arg)
 {
   struct shell *shell = NULL;
 
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
 
-  /* library initialization. */
-  debug_cmd_init ();
-  command_shell_init ();
+  shell = command_shell_create ();
+  //shell_set_terminal (shell, 0, 1);
+  //get_winsize (shell);
+
+  INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
+  INSTALL_COMMAND2 (shell->cmdset, reboot_cmd);
+
+  //INSTALL_COMMAND2 (shell->cmdset, show_worker);
+  INSTALL_COMMAND2 (shell->cmdset, set_worker);
+  INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
+
+  INSTALL_COMMAND2 (shell->cmdset, debug);
+  //INSTALL_COMMAND2 (shell->cmdset, show_debug);
+
+  INSTALL_COMMAND2 (shell->cmdset, l2fwd_init);
+
+  l2fwd_cmd_init (shell->cmdset);
+  soft_dplane_cmd_init (shell->cmdset);
+
+  //termio_init ();
+
+  shell_clear (shell);
+  shell_prompt (shell);
+
+  char *config_file = "/etc/sdplane.conf";
+  printf ("%s[%d]: %s: opening %s.\n",
+          __FILE__, __LINE__, __func__, config_file);
+  int fd;
+  fd = open (config_file, O_RDONLY);
+  if (fd >= 0)
+    {
+      shell_set_terminal (shell, fd, 1);
+      while (shell_running (shell))
+        {
+          lthread_sleep (0); // yield.
+          shell_read_nowait (shell);
+        }
+    }
+  else
+    printf ("%s[%d]: %s: opening %s: failed: %s.\n",
+            __FILE__, __LINE__, __func__, config_file, strerror (errno));
+
+  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+
+  //termio_finish ();
+}
+
+void
+shell_keyfunc_clear_terminal (struct shell *shell)
+{
+  const char clr[] = { 27, '[', '2', 'J', '\0' };
+  const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+  /* Clear screen and move to top left */
+  fprintf (shell->terminal, "%s%s", clr, topLeft);
+  fflush (shell->terminal);
+}
+
+DEFINE_COMMAND (clear_cmd,
+                "clear",
+                CLEAR_HELP)
+{
+  struct shell *shell = (struct shell *) context;
+  shell_keyfunc_clear_terminal (shell);
+}
+
+void
+lthread_shell (void *arg)
+{
+  struct shell *shell = NULL;
+
+  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
 
   shell = command_shell_create ();
   //shell_set_prompt_cwd (shell);
@@ -339,6 +425,9 @@ lthread_shell (void *arg)
 
   //shell_install (shell, '>', fselect_keyfunc_start);
   //shell_install (shell, CONTROL ('D'), opensh_shell_keyfunc_ctrl_d);
+
+  INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
+  shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
 
   l2fwd_cmd_init (shell->cmdset);
   soft_dplane_cmd_init (shell->cmdset);
@@ -559,6 +648,12 @@ lthread_main (__rte_unused void *dummy)
   lcore_workers[lcore_id].func_name = "lthread_main";
 
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
+
+  /* library initialization. */
+  debug_cmd_init ();
+  command_shell_init ();
+
+  lthread_create (&lt, (lthread_func) load_startup_config, NULL);
   lthread_create (&lt, (lthread_func) lthread_shell, NULL);
   lthread_create (&lt, (lthread_func) tap_handler, NULL);
   lthread_create (&lt, (lthread_func) stat_collector, NULL);

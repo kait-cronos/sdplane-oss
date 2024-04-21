@@ -12,6 +12,13 @@
 /sdplane_*_amd64.buildinfo
 /sdplane_*_amd64.changes
 /sdplane_*_amd64.deb
+/sdplane-dbgsym_*_amd64.ddeb
+
+/sdplane/debian/files
+/sdplane/debian/sdplane.substvars
+/sdplane/debian/sdplane/DEBIAN/control
+/sdplane/debian/sdplane/DEBIAN/md5sums
+/sdplane/debian/sdplane/usr/share/doc/sdplane/changelog.gz
 
 /sdplane/.deps
 /sdplane/Makefile.in
