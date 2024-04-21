@@ -38,6 +38,8 @@
 #include <rte_mbuf.h>
 #include <rte_string_fns.h>
 
+#include "debug.h"
+
 static volatile bool force_quit;
 
 /* MAC updating enabled by default */
@@ -198,7 +200,9 @@ l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
   char *m_start, *c_start;
   pkt_len = rte_pktmbuf_pkt_len (m);
   data_len = rte_pktmbuf_data_len (m);
-  printf ("%s: m: %p (%d/%d) from port: %d\n", __func__, m, data_len, pkt_len, portid);
+  if (FLAG_CHECK (debug_config, DEBUG_SDPLANE_WIRETAP))
+    printf ("%s: m: %p (%d/%d) from port: %d\n",
+            __func__, m, data_len, pkt_len, portid);
 #if 1
   c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
 #elif 0

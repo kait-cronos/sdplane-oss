@@ -1172,7 +1172,11 @@ check_all_ports_link_status (uint32_t port_mask)
 static void
 signal_handler (int signum)
 {
-  if (signum == SIGINT || signum == SIGTERM)
+  if (signum == SIGINT)
+    {
+      printf ("\n\nSignal %d received.\n", signum);
+    }
+  else if (signum == SIGTERM)
     {
       printf ("\n\nSignal %d received, preparing to exit...\n", signum);
       force_quit = true;

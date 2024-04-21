@@ -460,7 +460,6 @@ DEFINE_COMMAND (show_port_promiscuous,
     }
 }
 
-
 DEFINE_COMMAND (clear_cmd,
                 "clear",
                 CLEAR_HELP)

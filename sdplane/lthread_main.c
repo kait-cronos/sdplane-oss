@@ -520,8 +520,11 @@ tap_handler (__rte_unused void *dummy)
                   printf ("%s: warning: write () failed: %s\n",
                           __func__, strerror (errno));
                 else
-                  printf ("%s: capture pkt: len: %d(%d) from lcore[%d]\n",
-                          __func__, pkt_len, data_len, lcore_id);
+                  {
+                    if (FLAG_CHECK (debug_config, DEBUG_SDPLANE_WIRETAP))
+                      printf ("%s: capture pkt: len: %d(%d) from lcore[%d]\n",
+                              __func__, pkt_len, data_len, lcore_id);
+                  }
                 rte_pktmbuf_free (m);
               }
           } while (avail);
