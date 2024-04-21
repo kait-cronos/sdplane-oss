@@ -14,15 +14,8 @@
 /sdplane_*_amd64.deb
 
 /sdplane/.deps
-/sdplane/AUTHORS
-/sdplane/COPYING
-/sdplane/ChangeLog
-/sdplane/INSTALL
-/sdplane/Makefile.am
 /sdplane/Makefile.in
 /sdplane/Makefile
-/sdplane/NEWS
-/sdplane/README
 /sdplane/aclocal.m4
 /sdplane/autom4te.cache
 /sdplane/autoscan.log
@@ -32,7 +25,6 @@
 /sdplane/config.log
 /sdplane/config.status
 /sdplane/configure
-/sdplane/configure.ac
 /sdplane/depcomp
 /sdplane/install-sh
 /sdplane/missing
