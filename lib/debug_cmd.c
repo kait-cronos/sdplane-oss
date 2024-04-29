@@ -15,6 +15,7 @@ struct debug_type debug_types[] =
   { DEBUG_COMMAND, "command" },
   { DEBUG_TERMIO,  "termio" },
   { DEBUG_TIMER,   "timer" },
+  { DEBUG_SDPLANE_WIRETAP,   "sdplane-wiretap" },
 };
 
 struct command_header debug_cmd;
