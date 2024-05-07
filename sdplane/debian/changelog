@@ -1,3 +1,7 @@
+sdplane (0.0.5) UNRELEASED; urgency=low
+
+  * port flow control command.
+
 sdplane (0.0.4) UNRELEASED; urgency=low
 
   * startup config succeeded. reboot_cmd test.

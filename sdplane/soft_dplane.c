@@ -460,6 +460,150 @@ DEFINE_COMMAND (show_port_promiscuous,
     }
 }
 
+DEFINE_COMMAND (show_port_flowcontrol,
+                "show port (<0-16>|all) flowcontrol",
+                SHOW_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                ALL_HELP
+                "flowcontrol\n"
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+  struct rte_eth_fc_conf fc_conf;
+  bool rx_enabled = false;
+  bool tx_enabled = false;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      ret = rte_eth_dev_flow_ctrl_get (port_id, &fc_conf);
+      if (ret < 0)
+        {
+          fprintf (shell->terminal, "get flow_ctrl error: ret: %d\n", ret);
+          continue;
+        }
+
+      if (fc_conf.mode == RTE_ETH_FC_FULL)
+        {
+          rx_enabled = tx_enabled = true;
+        }
+      else
+        {
+          if (fc_conf.mode == RTE_ETH_FC_RX_PAUSE)
+            rx_enabled = true;
+          if (fc_conf.mode == RTE_ETH_FC_TX_PAUSE)
+            tx_enabled = true;
+        }
+
+      fprintf (shell->terminal, "port[%d]: flow control:\n", port_id);
+      fprintf (shell->terminal, "rx pause: %s\n", (rx_enabled ? "on" : "off"));
+      fprintf (shell->terminal, "tx pause: %s\n", (tx_enabled ? "on" : "off"));
+      fprintf (shell->terminal, "autoneg: %s\n",
+               (fc_conf.autoneg ? "on" : "off"));
+      fprintf (shell->terminal, "pause time: %'u\n", fc_conf.pause_time);
+      fprintf (shell->terminal, "high waterline: %'u\n", fc_conf.high_water);
+      fprintf (shell->terminal, "low waterline: %'u\n", fc_conf.low_water);
+      fprintf (shell->terminal, "send xon: %s\n",
+               (fc_conf.send_xon ? "on" : "off"));
+      fprintf (shell->terminal, "forward mac control frames: %s\n",
+               (fc_conf.mac_ctrl_frame_fwd ? "on" : "off"));
+    }
+}
+
+DEFINE_COMMAND (set_port_flowcontrol,
+                "set port (<0-16>|all) flowcontrol (rx|tx) (on|off)",
+                SET_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                ALL_HELP
+                "flowcontrol\n"
+                "flowcontrol rx\n"
+                "flowcontrol tx\n"
+                "flowcontrol on\n"
+                "flowcontrol off\n"
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+  struct rte_eth_fc_conf fc_conf;
+
+  bool rx_enabled = false;
+  bool tx_enabled = false;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      ret = rte_eth_dev_flow_ctrl_get (port_id, &fc_conf);
+      if (ret < 0)
+        {
+          fprintf (shell->terminal, "get flow_ctrl error: ret: %d\n", ret);
+          continue;
+        }
+
+      /* read the current flow control config. */
+      if (fc_conf.mode == RTE_ETH_FC_FULL)
+        {
+          rx_enabled = tx_enabled = true;
+        }
+      else
+        {
+          if (fc_conf.mode == RTE_ETH_FC_RX_PAUSE)
+            rx_enabled = true;
+          if (fc_conf.mode == RTE_ETH_FC_TX_PAUSE)
+            tx_enabled = true;
+        }
+
+      /* update the config */
+      if (! strcmp (argv[4], "rx"))
+        {
+          if (! strcmp (argv[5], "on"))
+            rx_enabled = true;
+          else
+            rx_enabled = false;
+        }
+      else
+        {
+          if (! strcmp (argv[5], "on"))
+            tx_enabled = true;
+          else
+            tx_enabled = false;
+        }
+
+      /* fill in back to the fc_conf */
+      if (rx_enabled && tx_enabled)
+        fc_conf.mode = RTE_ETH_FC_FULL;
+      else if (rx_enabled)
+        fc_conf.mode = RTE_ETH_FC_RX_PAUSE;
+      else if (tx_enabled)
+        fc_conf.mode = RTE_ETH_FC_TX_PAUSE;
+      else
+        fc_conf.mode = RTE_ETH_FC_NONE;
+
+      fprintf (shell->terminal, "port[%d]: flow control:\n", port_id);
+      fprintf (shell->terminal, "rx pause: %s\n", (rx_enabled ? "on" : "off"));
+      fprintf (shell->terminal, "tx pause: %s\n", (tx_enabled ? "on" : "off"));
+    }
+}
+
+
 void
 soft_dplane_cmd_init (struct command_set *cmdset)
 {
@@ -469,6 +613,9 @@ soft_dplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_locale);
   INSTALL_COMMAND2 (cmdset, start_stop_port);
   INSTALL_COMMAND2 (cmdset, set_port_promiscuous);
+  INSTALL_COMMAND2 (cmdset, show_port_promiscuous);
+  INSTALL_COMMAND2 (cmdset, show_port_flowcontrol);
+  INSTALL_COMMAND2 (cmdset, set_port_flowcontrol);
 }
 
 extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];

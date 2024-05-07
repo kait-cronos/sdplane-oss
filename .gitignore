@@ -31,7 +31,6 @@
 /sdplane/Makefile
 /sdplane/aclocal.m4
 /sdplane/autom4te.cache
-/sdplane/autoscan.log
 /sdplane/compile
 /sdplane/config.h
 /sdplane/config.h.in
