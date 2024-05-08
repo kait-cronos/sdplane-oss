@@ -1,7 +1,11 @@
 *.bak
 
 /l2fwd/build
+/l2fwd/*.o
 /l3fwd/build
+/l3fwd/*.o
+/l3fwd/.deps
+/l3fwd/.dirstamp
 /soft-dplane/build
 /sdplane/build
 
@@ -37,7 +41,10 @@
 /sdplane/config.h.in~
 /sdplane/config.log
 /sdplane/config.status
+/sdplane/config.guess
+/sdplane/config.sub
 /sdplane/configure
+/sdplane/configure~
 /sdplane/depcomp
 /sdplane/install-sh
 /sdplane/missing

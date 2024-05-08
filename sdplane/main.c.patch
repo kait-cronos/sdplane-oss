@@ -1,0 +1,128 @@
+--- main.orig.c	2024-04-22 22:06:39.140894437 +0900
++++ main.c	2024-05-04 23:43:21.603006341 +0900
+@@ -15,6 +15,8 @@
+ #include <signal.h>
+ #include <stdbool.h>
+ 
++#include <unistd.h>
++
+ #include <rte_common.h>
+ #include <rte_vect.h>
+ #include <rte_byteorder.h>
+@@ -81,6 +83,7 @@
+                           /**< by default */
+ 
+ volatile bool force_quit;
++volatile bool force_stop[RTE_MAX_LCORE];
+ 
+ /* ethernet addresses of ports */
+ uint64_t dest_eth_addr[RTE_MAX_ETHPORTS];
+@@ -139,6 +142,9 @@
+ static struct rte_mempool *pktmbuf_pool[RTE_MAX_ETHPORTS][NB_SOCKETS];
+ static uint8_t lkp_per_socket[NB_SOCKETS];
+ 
++int lthread_main (__rte_unused void *dummy);
++void soft_dplane_init ();
++
+ struct l3fwd_lkp_mode
+ {
+   void (*read_config_files) (void);
+@@ -1168,7 +1174,11 @@
+ static void
+ signal_handler (int signum)
+ {
+-  if (signum == SIGINT || signum == SIGTERM)
++  if (signum == SIGINT)
++    {
++      printf ("\n\nSignal %d received.\n", signum);
++    }
++  else if (signum == SIGTERM)
+     {
+       printf ("\n\nSignal %d received, preparing to exit...\n", signum);
+       force_quit = true;
+@@ -1542,8 +1552,27 @@
+ }
+ #endif
+ 
++extern bool reboot;
++
++int argc_saved;
++char *argv_saved[128];
++
++void
++argv_save (int argc, char **argv)
++{
++  int i;
++  argc_saved = argc;
++  for (i = 0; i < 128; i++)
++    argv_saved[i] = NULL;
++
++  if (argc_saved > 128)
++    argc_saved = 128;
++  for (i = 0; i < argc_saved; i++)
++    argv_saved[i] = strdup (argv[i]);
++}
++
+ int
+-main (int argc, char **argv)
++main (int argc, char **argv, char **envp)
+ {
+ #ifdef RTE_LIB_EVENTDEV
+   struct l3fwd_event_resources *evt_rsrc;
+@@ -1555,6 +1584,9 @@
+   uint8_t queue;
+   int ret;
+ 
++  argv_save (argc, argv);
++  soft_dplane_init ();
++
+   /* init EAL */
+   ret = rte_eal_init (argc, argv);
+   if (ret < 0)
+@@ -1654,11 +1686,17 @@
+         }
+     }
+ 
+-  check_all_ports_link_status (enabled_port_mask);
++  //check_all_ports_link_status (enabled_port_mask);
+ 
+   ret = 0;
++
++#if 0
+   /* launch per-lcore init on every lcore */
+   rte_eal_mp_remote_launch (l3fwd_lkp.main_loop, NULL, CALL_MAIN);
++#else
++  /* launch one lthread main. All other things are launched there. */
++  rte_eal_remote_launch (lthread_main, NULL, 1);
++#endif
+ 
+ #ifdef RTE_LIB_EVENTDEV
+   if (evt_rsrc->enabled)
+@@ -1714,5 +1752,27 @@
+ 
+   printf ("Bye...\n");
+ 
++  if (reboot)
++    {
++      printf ("rebooting: prog: %s argc: %d.\n", argv[0], argc_saved);
++      for (i = 0; i < argc_saved; i++)
++        printf ("argv[%d]: %s\n", i, argv_saved[i]);
++      printf ("\n");
++      int sec = 5;
++      printf ("sleeping %d secs", sec);
++      fflush (stdout);
++      for (i = 0; i < sec; i++)
++        {
++          printf (".");
++          fflush (stdout);
++          sleep (1);
++        }
++      printf ("done.\n");
++
++      ret = execve (argv[0], argv_saved, envp);
++      if (ret < 0)
++        printf ("reboot failed: %s\n", strerror (errno));
++    }
++
+   return ret;
+ }
