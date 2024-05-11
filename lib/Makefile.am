@@ -1,14 +1,18 @@
 ## Process this file with automake to produce Makefile.in.
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/lib
+AM_CPPFLAGS = -I$(top_srcdir)/lib
 
 lib_LTLIBRARIES = libzcmdsh.la
 
 libzcmdsh_la_SOURCES = \
-	log.c termio.c vector.c debug.c debug_cmd.c \
-	shell.c command.c command_shell.c file.c shell_fselect.c
+	include.h zcmdsh/flag.h \
+	zcmdsh/debug.c zcmdsh/log.c zcmdsh/vector.c \
+	zcmdsh/termio.h zcmdsh/termio.c \
+	zcmdsh/shell.c zcmdsh/command.c zcmdsh/command_shell.c \
+	zcmdsh/file.c zcmdsh/shell_fselect.c \
+	zcmdsh/debug_cmd.c
 
-include_HEADERS = \
-	log.h termio.h vector.h flag.h debug.h \
-	shell.h command.h command_shell.h file.h debug_cmd.h
-
+nobase_include_HEADERS = \
+	zcmdsh/log.h zcmdsh/vector.h zcmdsh/debug.h \
+	zcmdsh/shell.h zcmdsh/command.h zcmdsh/command_shell.h \
+	zcmdsh/debug_cmd.h

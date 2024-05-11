@@ -23,7 +23,8 @@ DEFINE_COMMAND (exit,
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "exit !\n");
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
-  shell_close (shell);
+  /* don't shell_close(): this closes stdout. */
+  //shell_close (shell);
 }
 
 ALIAS_COMMAND (logout, exit, "logout", "logout\n");
