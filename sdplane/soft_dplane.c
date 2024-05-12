@@ -16,13 +16,13 @@
 #include <rte_ethdev.h>
 #include <rte_bus_pci.h>
 
-#include "debug.h"
-#include "termio.h"
-#include "vector.h"
-#include "shell.h"
-#include "command.h"
-#include "command_shell.h"
-#include "debug_cmd.h"
+#include <zcmdsh/debug.h>
+#include <zcmdsh/termio.h>
+#include <zcmdsh/vector.h>
+#include <zcmdsh/shell.h>
+#include <zcmdsh/command.h>
+#include <zcmdsh/command_shell.h>
+#include <zcmdsh/debug_cmd.h>
 
 #include "l2fwd.h"
 

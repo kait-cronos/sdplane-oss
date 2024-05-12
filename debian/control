@@ -1,10 +1,10 @@
 Source: sdplane
-Section: unknown
+Section: net
 Priority: optional
-Maintainer: Yasuhiro Ohara <>
-Build-Depends: debhelper-compat (= 12)
+Maintainer: Yasuhiro Ohara <yasu1976@gmail.com>
+Build-Depends: debhelper-compat (= 12), zcmdsh (>= 0.3.6)
 Standards-Version: 4.5.0
-Homepage: <insert the upstream URL, if relevant>
+Homepage: http://www.yasuhironet.net/
 
 Package: sdplane
 Architecture: any

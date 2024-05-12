@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([sdplane], [0.0.1], [yasu1976@gmail.com])
-AC_CONFIG_SRCDIR([l3fwd.h])
+AC_CONFIG_SRCDIR([sdplane/main.c])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([subdir-objects])
@@ -38,5 +38,5 @@ AC_CHECK_FUNCS([memset setlocale socket strchr strerror strtol strtoul strtoull]
 
 PKG_CHECK_MODULES(DPDK, [libdpdk])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile l2fwd/Makefile l3fwd/Makefile sdplane/Makefile])
 AC_OUTPUT

@@ -1,0 +1,35 @@
+sdplane (0.0.6-1) UNRELEASED; urgency=low
+
+  * directory layout change.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 14:45:56 +0900
+
+sdplane (0.0.5-1) UNRELEASED; urgency=low
+
+  * port flow control command.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 21 Apr 2024 14:45:56 +0900
+
+sdplane (0.0.4-1) UNRELEASED; urgency=low
+
+  * startup config succeeded. reboot_cmd test.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 21 Apr 2024 14:45:56 +0900
+
+sdplane (0.0.3-1) UNRELEASED; urgency=low
+
+  * startup config test.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 21 Apr 2024 14:45:56 +0900
+
+sdplane (0.0.2-1) UNRELEASED; urgency=low
+
+  * automake/autoconf.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 21 Apr 2024 14:45:56 +0900
+
+sdplane (0.0.1-1) UNRELEASED; urgency=low
+
+  * Initial release.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 21 Apr 2024 14:45:56 +0900

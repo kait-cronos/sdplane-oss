@@ -38,7 +38,7 @@
 #include <rte_mbuf.h>
 #include <rte_string_fns.h>
 
-#include "debug.h"
+#include <zcmdsh/debug.h>
 
 static volatile bool force_quit;
 

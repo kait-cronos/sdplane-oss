@@ -35,8 +35,8 @@
 #include <rte_mbuf.h>
 #include <rte_string_fns.h>
 
-#include "command.h"
-#include "shell.h"
+#include <zcmdsh/command.h>
+#include <zcmdsh/shell.h>
 
 #include "l2fwd.h"
 
