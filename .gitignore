@@ -1,4 +1,5 @@
 *.bak
+*.orig.c
 
 /l2fwd/build
 /l2fwd/l2fwd

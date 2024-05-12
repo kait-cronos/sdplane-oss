@@ -1,5 +1,5 @@
---- sdplane/l2fwd.orig.c	2024-05-12 20:51:15.670437634 +0900
-+++ sdplane/l2fwd.c	2024-05-12 23:14:42.923578851 +0900
+--- sdplane/l2fwd.orig.c	2024-05-12 23:43:18.411508892 +0900
++++ sdplane/l2fwd.c	2024-05-12 23:40:07.992573354 +0900
 @@ -38,10 +38,20 @@
  #include <rte_mbuf.h>
  #include <rte_string_fns.h>
@@ -142,7 +142,16 @@
  
  	/* convert to number of cycles */
  	timer_period *= rte_get_timer_hz();
-@@ -900,6 +943,7 @@
+@@ -745,6 +788,8 @@
+ 
+ 		/* get the lcore_id for this port */
+ 		while (rte_lcore_is_enabled(rx_lcore_id) == 0 ||
++		       lcore_workers[rx_lcore_id].func !=
++		       l2fwd_launch_one_lcore ||
+ 		       lcore_queue_conf[rx_lcore_id].n_rx_port ==
+ 		       l2fwd_rx_queue_per_lcore) {
+ 			rx_lcore_id++;
+@@ -900,6 +945,7 @@
  			"All available ports are disabled. Please set portmask.\n");
  	}
  
@@ -150,7 +159,7 @@
  	check_all_ports_link_status(l2fwd_enabled_port_mask);
  
  	ret = 0;
-@@ -927,6 +971,7 @@
+@@ -927,6 +973,7 @@
  	/* clean up the EAL */
  	rte_eal_cleanup();
  	printf("Bye...\n");

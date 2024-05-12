@@ -788,6 +788,8 @@ l2fwd_init (int argc, char **argv)
 
 		/* get the lcore_id for this port */
 		while (rte_lcore_is_enabled(rx_lcore_id) == 0 ||
+		       lcore_workers[rx_lcore_id].func !=
+		       l2fwd_launch_one_lcore ||
 		       lcore_queue_conf[rx_lcore_id].n_rx_port ==
 		       l2fwd_rx_queue_per_lcore) {
 			rx_lcore_id++;

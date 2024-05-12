@@ -1,3 +1,9 @@
+sdplane (0.0.9-1) UNRELEASED; urgency=low
+
+  * l2fwd port config debug (2).
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 14:45:56 +0900
+
 sdplane (0.0.8-1) UNRELEASED; urgency=low
 
   * l2fwd port config debug.
