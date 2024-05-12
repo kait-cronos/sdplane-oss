@@ -1,3 +1,15 @@
+sdplane (0.0.8-1) UNRELEASED; urgency=low
+
+  * l2fwd port config debug.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 14:45:56 +0900
+
+sdplane (0.0.7-1) UNRELEASED; urgency=low
+
+  * module names change.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 14:45:56 +0900
+
 sdplane (0.0.6-1) UNRELEASED; urgency=low
 
   * directory layout change.

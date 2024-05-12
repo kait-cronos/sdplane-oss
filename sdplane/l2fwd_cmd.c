@@ -46,10 +46,10 @@
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
 
-#include "l2fwd.h"
+#include "l2fwd_export.h"
 #include "l2fwd_cmd.h"
 
-#include "soft_dplane.h"
+#include "sdplane.h"
 
 DEFINE_COMMAND (set_l2fwd_vars_mask,
                 "set l2fwd l2fwd_enabled_port_mask <0x0-0xffffffff>",

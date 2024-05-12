@@ -24,9 +24,11 @@
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
 
-#include "l2fwd.h"
+#include "l2fwd_export.h"
 
-#include "soft_dplane.h"
+#include "sdplane.h"
+
+volatile bool force_stop[RTE_MAX_LCORE];
 
 struct flag_name
 {

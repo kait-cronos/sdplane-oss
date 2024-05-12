@@ -40,7 +40,7 @@
 
 #include "l2fwd.h"
 
-#include "soft_dplane.h"
+#include "sdplane.h"
 
 int l2fwd_launch_one_lcore (__rte_unused void *dummy);
 

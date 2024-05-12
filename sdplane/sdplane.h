@@ -1,6 +1,7 @@
 #ifndef __SOFT_DPLANE_H__
 #define __SOFT_DPLANE_H__
 
+extern volatile bool force_stop[RTE_MAX_LCORE];
 
 extern struct rte_eth_stats stats_prev[RTE_MAX_ETHPORTS];
 extern struct rte_eth_stats stats_current[RTE_MAX_ETHPORTS];

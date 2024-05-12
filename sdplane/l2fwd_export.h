@@ -1,7 +1,7 @@
-#ifndef __L2FWD_H__
-#define __L2FWD_H__
+#ifndef __L2FWD_EXPORT_H__
+#define __L2FWD_EXPORT_H__
 
-extern volatile bool force_stop[RTE_MAX_LCORE];
+//extern volatile bool force_stop[RTE_MAX_LCORE];
 
 #define MAX_PKT_BURST      32
 #define BURST_TX_DRAIN_US  100 /* TX drain every ~100us */
@@ -57,4 +57,4 @@ void check_all_ports_link_status (uint32_t port_mask);
 int l2fwd_init (int argc, char **argv);
 void print_stats (void);
 
-#endif /*__L2FWD_H__*/
+#endif /*__L2FWD_EXPORT_H__*/

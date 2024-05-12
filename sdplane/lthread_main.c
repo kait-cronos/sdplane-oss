@@ -57,9 +57,9 @@
 #include "l3fwd_event.h"
 #include "l3fwd_route.h"
 
-#include "l2fwd.h"
+#include "l2fwd_export.h"
 
-#include "soft_dplane.h"
+#include "sdplane.h"
 
 int lthread_main (__rte_unused void *dummy);
 int tap_handler (__rte_unused void *dummy);

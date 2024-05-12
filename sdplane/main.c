@@ -50,6 +50,9 @@
 #include "l3fwd_event.h"
 #include "l3fwd_route.h"
 
+#include <zcmdsh/command.h>
+#include "sdplane.h"
+
 #define MAX_TX_QUEUE_PER_PORT RTE_MAX_LCORE
 #define MAX_RX_QUEUE_PER_PORT 128
 
@@ -83,7 +86,6 @@ static int per_port_pool; /**< Use separate buffer pools per port; disabled */
                           /**< by default */
 
 volatile bool force_quit;
-volatile bool force_stop[RTE_MAX_LCORE];
 
 /* ethernet addresses of ports */
 uint64_t dest_eth_addr[RTE_MAX_ETHPORTS];
