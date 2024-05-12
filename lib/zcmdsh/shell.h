@@ -7,7 +7,7 @@
 
 #include <sys/ioctl.h>
 
-#include "flag.h"
+#include <zcmdsh/flag.h>
 
 #define SHELL_WORD_DELIMITERS " "
 #define SHELL_WORD_DELIMITERS_SUB " /"
