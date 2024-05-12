@@ -189,7 +189,7 @@ l2fwd_mac_updating (struct rte_mbuf *m, unsigned dest_portid)
 }
 
 struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
-__thread struct rte_ring *thread_ring_to_tap;
+__thread struct rte_ring *thread_ring_to_tap = NULL;
 
 static void
 l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)

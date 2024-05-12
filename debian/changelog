@@ -1,3 +1,9 @@
+sdplane (0.0.9a-1) UNRELEASED; urgency=low
+
+  * l2fwd thread_ring_to_tap allocation.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 23:45:56 +0900
+
 sdplane (0.0.9-1) UNRELEASED; urgency=low
 
   * l2fwd port config debug (2).
