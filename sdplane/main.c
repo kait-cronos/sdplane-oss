@@ -1697,7 +1697,8 @@ main (int argc, char **argv, char **envp)
   rte_eal_mp_remote_launch (l3fwd_lkp.main_loop, NULL, CALL_MAIN);
 #else
   /* launch one lthread main. All other things are launched there. */
-  rte_eal_remote_launch (lthread_main, NULL, 1);
+  //rte_eal_remote_launch (lthread_main, NULL, 1);
+  lthread_main (NULL);
 #endif
 
 #ifdef RTE_LIB_EVENTDEV

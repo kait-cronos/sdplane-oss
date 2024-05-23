@@ -104,7 +104,7 @@ stop_lcore (struct shell *shell, int lcore_id)
 
 DEFINE_COMMAND (set_worker,
                 "(set|reset|start|restart) worker lcore <0-16> "
-#if 0
+#if 1
                 "(|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler)",
 #else
                 "(|none|l2fwd|l3fwd|l3fwd-lpm)",
@@ -135,7 +135,7 @@ DEFINE_COMMAND (set_worker,
     func = NULL;
   else if (! strcmp (argv[4], "l2fwd"))
     func = l2fwd_launch_one_lcore;
-#if 0
+#if 1
   else if (! strcmp (argv[4], "tap-handler"))
     func = tap_handler;
 #endif
@@ -156,7 +156,7 @@ DEFINE_COMMAND (set_worker,
     func_name = "l2fwd";
   else if (func == lthread_main)
     func_name = "lthread_main";
-#if 0
+#if 1
   else if (func == tap_handler)
     func_name = "tap-handler";
 #endif
@@ -507,6 +507,7 @@ tap_handler (__rte_unused void *dummy)
   int fd;
   struct ifreq ifr;
   int ret;
+  uint64_t loop_counter = 0;
 
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
 
@@ -574,8 +575,8 @@ tap_handler (__rte_unused void *dummy)
   while (! force_quit && ! force_stop[tap_handler_id])
     {
       unsigned lcore_id;
-      lthread_sleep (0); // yield.
-      //printf ("%s: schedule.\n", __func__);
+      //lthread_sleep (0); // yield.
+      //printf ("%s: schedule: %lu.\n", __func__, loop_counter);
       for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
         {
           struct rte_ring *tap_ring;
@@ -618,6 +619,8 @@ tap_handler (__rte_unused void *dummy)
               }
           } while (avail);
         }
+
+      loop_counter++;
     }
 
   close (fd);
@@ -655,7 +658,7 @@ lthread_main (__rte_unused void *dummy)
 
   lthread_create (&lt, (lthread_func) load_startup_config, NULL);
   lthread_create (&lt, (lthread_func) lthread_shell, NULL);
-  lthread_create (&lt, (lthread_func) tap_handler, NULL);
+  //lthread_create (&lt, (lthread_func) tap_handler, NULL);
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
   lthread_run ();
 }
