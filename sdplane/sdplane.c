@@ -523,7 +523,7 @@ DEFINE_COMMAND (show_port_flowcontrol,
 }
 
 DEFINE_COMMAND (set_port_flowcontrol,
-                "set port (<0-16>|all) flowcontrol (rx|tx) (on|off)",
+                "set port (<0-16>|all) flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)",
                 SET_HELP
                 PORT_HELP
                 PORT_NUMBER_HELP
@@ -531,6 +531,9 @@ DEFINE_COMMAND (set_port_flowcontrol,
                 "flowcontrol\n"
                 "flowcontrol rx\n"
                 "flowcontrol tx\n"
+                "flowcontrol autoneg\n"
+                "flowcontrol send-xon\n"
+                "flowcontrol forward mac control frames\n"
                 "flowcontrol on\n"
                 "flowcontrol off\n"
                 )
@@ -574,22 +577,32 @@ DEFINE_COMMAND (set_port_flowcontrol,
         }
 
       /* update the config */
-      if (! strcmp (argv[4], "rx"))
-        {
-          if (! strcmp (argv[5], "on"))
-            rx_enabled = true;
-          else
-            rx_enabled = false;
-        }
+      bool newval;
+      if (! strcmp (argv[5], "on"))
+        newval = true;
       else
+        newval = false;
+
+      if (! strcmp (argv[4], "rx"))
+        rx_enabled = newval;
+      else if (! strcmp (argv[4], "tx"))
+        tx_enabled = newval;
+      else if (! strcmp (argv[4], "autoneg"))
+        fc_conf.autoneg = newval;
+      else if (! strcmp (argv[4], "send-xon"))
+        fc_conf.send_xon = newval;
+      else if (! strcmp (argv[4], "fwd-mac-ctrl"))
+        fc_conf.mac_ctrl_frame_fwd = newval;
+      else if (! strcmp (argv[4], "all"))
         {
-          if (! strcmp (argv[5], "on"))
-            tx_enabled = true;
-          else
-            tx_enabled = false;
+          rx_enabled = newval;
+          tx_enabled = newval;
+          fc_conf.autoneg = newval;
+          fc_conf.send_xon = newval;
+          fc_conf.mac_ctrl_frame_fwd = newval;
         }
 
-      /* fill in back to the fc_conf */
+      /* fill in back the mode to the fc_conf */
       if (rx_enabled && tx_enabled)
         fc_conf.mode = RTE_ETH_FC_FULL;
       else if (rx_enabled)
@@ -602,9 +615,11 @@ DEFINE_COMMAND (set_port_flowcontrol,
       fprintf (shell->terminal, "port[%d]: flow control:\n", port_id);
       fprintf (shell->terminal, "rx pause: %s\n", (rx_enabled ? "on" : "off"));
       fprintf (shell->terminal, "tx pause: %s\n", (tx_enabled ? "on" : "off"));
+      fprintf (shell->terminal, "autoneg: %s\n", (fc_conf.autoneg ? "on" : "off"));
+      fprintf (shell->terminal, "send-xon: %s\n", (fc_conf.send_xon ? "on" : "off"));
+      fprintf (shell->terminal, "fwd-mac-ctrl: %s\n", (fc_conf.send_xon ? "on" : "off"));
     }
 }
-
 
 void
 soft_dplane_cmd_init (struct command_set *cmdset)
