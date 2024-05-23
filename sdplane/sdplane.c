@@ -618,6 +618,9 @@ DEFINE_COMMAND (set_port_flowcontrol,
       fprintf (shell->terminal, "autoneg: %s\n", (fc_conf.autoneg ? "on" : "off"));
       fprintf (shell->terminal, "send-xon: %s\n", (fc_conf.send_xon ? "on" : "off"));
       fprintf (shell->terminal, "fwd-mac-ctrl: %s\n", (fc_conf.send_xon ? "on" : "off"));
+
+      ret = rte_eth_dev_flow_ctrl_set (port_id, &fc_conf);
+      fprintf (shell->terminal, "set flow_ctrl error: ret: %d\n", ret);
     }
 }
 
