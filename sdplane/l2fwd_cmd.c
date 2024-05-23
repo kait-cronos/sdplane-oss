@@ -48,8 +48,7 @@
 
 #include "l2fwd_export.h"
 #include "l2fwd_cmd.h"
-
-#include "sdplane.h"
+#include "l2fwd_support.h"
 
 DEFINE_COMMAND (set_l2fwd_vars_mask,
                 "set l2fwd l2fwd_enabled_port_mask <0x0-0xffffffff>",
@@ -118,6 +117,8 @@ DEFINE_COMMAND (show_l2fwd_all,
   else if (! strcmp (argv[2], "all"))
     all = true;
 
+  fprintf (shell->terminal, "enable_tap_copy = %d\n",
+           enable_tap_copy);
   fprintf (shell->terminal, "l2fwd_enabled_port_mask = %#x\n",
            l2fwd_enabled_port_mask);
   fprintf (shell->terminal, "l2fwd_rx_queue_per_lcore = %d\n",
@@ -202,6 +203,21 @@ DEFINE_COMMAND (show_l2fwd_stats,
   print_stats ();
 }
 
+DEFINE_COMMAND (enable_l2fwd_tap_copy,
+                "(enable|disable) l2fwd tap-copy",
+                ENABLE_HELP
+                DISABLE_HELP
+                "l2fwd\n"
+                "tap-copy\n"
+               )
+{
+  struct shell *shell = (struct shell *) context;
+  if (! strcmp (argv[0], "enable"))
+    enable_tap_copy = true;
+  else
+    enable_tap_copy = false;
+}
+
 void
 l2fwd_cmd_init (struct command_set *cmdset)
 {
@@ -211,5 +227,6 @@ l2fwd_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_l2fwd_vars_mask);
   INSTALL_COMMAND2 (cmdset, set_l2fwd_vars_integer);
   INSTALL_COMMAND2 (cmdset, show_l2fwd_stats);
+  INSTALL_COMMAND2 (cmdset, enable_l2fwd_tap_copy);
 }
 
