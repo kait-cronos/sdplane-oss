@@ -37,7 +37,27 @@ extern struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 #define ENABLE_HELP "enable feature\n"
 #define DISABLE_HELP "disable feature\n"
 
+void start_lcore (struct shell *shell, int lcore_id);
+void stop_lcore (struct shell *shell, int lcore_id);
+
+EXTERN_COMMAND (set_worker);
+EXTERN_COMMAND (start_stop_worker);
+EXTERN_COMMAND (show_worker);
+
+EXTERN_COMMAND (set_locale);
+
+EXTERN_COMMAND (start_stop_port);
+EXTERN_COMMAND (show_port);
+EXTERN_COMMAND (show_port_statistics);
+EXTERN_COMMAND (set_port_promiscuous);
+EXTERN_COMMAND (show_port_promiscuous);
+EXTERN_COMMAND (show_port_flowcontrol);
+EXTERN_COMMAND (set_port_flowcontrol);
+
 int lthread_main (__rte_unused void *dummy);
+int stat_collector (__rte_unused void *dummy);
+int load_startup_config (__rte_unused void *dummy);
+
 void soft_dplane_cmd_init (struct command_set *cmdset);
 void soft_dplane_init ();
 

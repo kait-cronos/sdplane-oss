@@ -48,7 +48,8 @@
 
 #include "l2fwd_export.h"
 #include "l2fwd_cmd.h"
-#include "l2fwd_support.h"
+
+#include "tap_handler.h"
 
 DEFINE_COMMAND (set_l2fwd_vars_mask,
                 "set l2fwd l2fwd_enabled_port_mask <0x0-0xffffffff>",
@@ -218,9 +219,20 @@ DEFINE_COMMAND (enable_l2fwd_tap_copy,
     enable_tap_copy = false;
 }
 
+DEFINE_COMMAND (l2fwd_init,
+               "l2fwd init",
+               "l2fwd\n"
+               "init\n")
+{
+  struct shell *shell = (struct shell *) context;
+  l2fwd_init (0, NULL);
+}
+
 void
 l2fwd_cmd_init (struct command_set *cmdset)
 {
+  INSTALL_COMMAND2 (cmdset, l2fwd_init);
+
   INSTALL_COMMAND2 (cmdset, show_l2fwd_lcore);
   INSTALL_COMMAND2 (cmdset, show_l2fwd_vars);
   INSTALL_COMMAND2 (cmdset, show_l2fwd_all);

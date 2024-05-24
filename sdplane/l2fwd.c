@@ -38,7 +38,7 @@
 #include <rte_mbuf.h>
 #include <rte_string_fns.h>
 
-#include "l2fwd_support.h"
+#include "tap_handler.h"
 #include "rte_override.h"
 
 static volatile bool force_quit;
@@ -220,7 +220,9 @@ l2fwd_main_loop(void)
 	lcore_id = rte_lcore_id();
 	qconf = &lcore_queue_conf[lcore_id];
 
-	l2fwd_support_init ();
+        per_thread_tap_ring_init ();
+        /* MAC updating disabled for sdplane. */
+        mac_updating = 0;
 
 	if (qconf->n_rx_port == 0) {
 		RTE_LOG(INFO, L2FWD, "lcore %u has nothing to do\n", lcore_id);

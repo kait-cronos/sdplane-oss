@@ -1,3 +1,11 @@
+sdplane (0.0.9c-1) UNRELEASED; urgency=low
+
+  * timer limitation changed: 1H, ~2024/12/31.
+  * sample configuration file: /etc/sdplane/sdplane.conf.sample
+  * restructuring module layout.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 23:45:56 +0900
+
 sdplane (0.0.9b-1) UNRELEASED; urgency=low
 
   * set port <0-9> flowcontrol autoneg and others.

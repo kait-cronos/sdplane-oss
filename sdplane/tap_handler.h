@@ -1,12 +1,11 @@
-#ifndef __L2FWD_SUPPORT_H__
-#define __L2FWD_SUPPORT_H__
+#ifndef __TAP_HANDLER_H__
+#define __TAP_HANDLER_H__
 
 #include <zcmdsh/debug.h>
 #include <zcmdsh/command.h>
 
 #include "sdplane.h"
 
-/* should be moved to tap_handler module. */
 extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
 extern __thread struct rte_ring *thread_ring_to_tap;
 
@@ -37,7 +36,8 @@ l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
     }
 }
 
-void l2fwd_init_tap_ring ();
-void l2fwd_support_init ();
+void per_thread_tap_ring_init ();
+
+int tap_handler (__rte_unused void *dummy);
 
 #endif /*__L2fWD_SUPPORT_H__*/

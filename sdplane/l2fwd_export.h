@@ -25,6 +25,7 @@ extern struct lcore_queue_conf lcore_queue_conf[RTE_MAX_LCORE];
 /* >8 End of list of queues to be polled for a given lcore. */
 
 extern uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
+int l2fwd_launch_one_lcore (__rte_unused void *dummy);
 
 extern struct rte_mempool *l2fwd_pktmbuf_pool;
 

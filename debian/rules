@@ -11,6 +11,10 @@ override_dh_shlibdeps:
 %:
 	dh $@  
 
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		--sysconfdir=/etc/sdplane
+
 #override_dh_auto_install:
 #	dh_auto_install -- prefix=/usr
 

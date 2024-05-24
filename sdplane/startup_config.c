@@ -1,0 +1,79 @@
+#include <stdio.h>
+#include <stdbool.h>
+
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <lthread.h>
+
+#include <rte_ether.h>
+#include <rte_ethdev.h>
+
+#include <zcmdsh/debug.h>
+#include <zcmdsh/termio.h>
+#include <zcmdsh/vector.h>
+#include <zcmdsh/shell.h>
+#include <zcmdsh/command.h>
+#include <zcmdsh/command_shell.h>
+#include <zcmdsh/debug_cmd.h>
+//#include <zcmdsh/shell_fselect.h>
+
+#include "l3fwd.h"
+#include "l2fwd_cmd.h"
+#include "sdplane.h"
+
+int
+load_startup_config (__rte_unused void *dummy)
+{
+  struct shell *shell = NULL;
+
+  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
+
+  shell = command_shell_create ();
+  //shell_set_terminal (shell, 0, 1);
+  //get_winsize (shell);
+
+  //INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
+  //INSTALL_COMMAND2 (shell->cmdset, reboot_cmd);
+
+  //INSTALL_COMMAND2 (shell->cmdset, show_worker);
+  INSTALL_COMMAND2 (shell->cmdset, set_worker);
+  INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
+
+  INSTALL_COMMAND2 (shell->cmdset, debug);
+  //INSTALL_COMMAND2 (shell->cmdset, show_debug);
+
+  INSTALL_COMMAND2 (shell->cmdset, l2fwd_init);
+
+  l2fwd_cmd_init (shell->cmdset);
+  soft_dplane_cmd_init (shell->cmdset);
+
+  //termio_init ();
+
+  shell_clear (shell);
+  shell_prompt (shell);
+
+  char *config_file = "/etc/sdplane/sdplane.conf";
+  printf ("%s[%d]: %s: opening %s.\n",
+          __FILE__, __LINE__, __func__, config_file);
+  int fd;
+  fd = open (config_file, O_RDONLY);
+  if (fd >= 0)
+    {
+      shell_set_terminal (shell, fd, 1);
+      while (shell_running (shell))
+        {
+          lthread_sleep (0); // yield.
+          shell_read_nowait (shell);
+        }
+    }
+  else
+    printf ("%s[%d]: %s: opening %s: failed: %s.\n",
+            __FILE__, __LINE__, __func__, config_file, strerror (errno));
+
+  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+
+  //termio_finish ();
+  return 0;
+}
+
+
