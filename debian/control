@@ -12,3 +12,4 @@ Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: DPDK software data-plane,
   with interactive command shell.
+  (test-version: runnable for 1H, until 2024/12/31.)

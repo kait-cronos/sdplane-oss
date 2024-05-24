@@ -635,7 +635,7 @@ lthread_main (__rte_unused void *dummy)
   lthread_t *lt = NULL;
 
   /* timer set */
-  timer_init (60 * 60, "2025/03/31 23:59:59");
+  timer_init (60 * 60, "2024/12/31 23:59:59");
 
   /* initialize workers */
   int lcore_id;
