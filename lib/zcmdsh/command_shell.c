@@ -253,6 +253,7 @@ timer_check ()
           printf ("opensh: beta-version: duration-limit: %'d secs\n",
                   duration_limit);
           printf ("opensh: shutdown.\n");
+          termio_finish ();
           exit (1);
         }
     }
@@ -268,6 +269,7 @@ timer_check ()
         {
           printf ("opensh: beta-version: date-limit: %s\n", limit_str);
           printf ("opensh: shutdown.\n");
+          termio_finish ();
           exit (1);
         }
     }
