@@ -250,9 +250,9 @@ timer_check ()
         printf ("end diff: %.1lf\n", diff_end);
       if (diff_end < 0)
         {
-          printf ("opensh: beta-version: duration-limit: %'d secs\n",
+          printf ("zcmdsh: beta-version: duration-limit: %'d secs\n",
                   duration_limit);
-          printf ("opensh: shutdown.\n");
+          printf ("zcmdsh: shutdown.\n");
           termio_finish ();
           exit (1);
         }
@@ -267,8 +267,8 @@ timer_check ()
         printf ("limit diff: %.1lf\n", diff_limit);
       if (diff_limit < 0)
         {
-          printf ("opensh: beta-version: date-limit: %s\n", limit_str);
-          printf ("opensh: shutdown.\n");
+          printf ("zcmdsh: beta-version: date-limit: %s\n", limit_str);
+          printf ("zcmdsh: shutdown.\n");
           termio_finish ();
           exit (1);
         }
