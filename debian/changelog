@@ -1,0 +1,73 @@
+sdplane (0.0.9c-1) UNRELEASED; urgency=low
+
+  * timer limitation changed: 1H, ~2024/12/31.
+  * sample configuration file: /etc/sdplane/sdplane.conf.sample
+  * restructuring module layout.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 23:45:56 +0900
+
+sdplane (0.0.9b-1) UNRELEASED; urgency=low
+
+  * set port <0-9> flowcontrol autoneg and others.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 23:45:56 +0900
+
+sdplane (0.0.9a-1) UNRELEASED; urgency=low
+
+  * l2fwd thread_ring_to_tap allocation.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 23:45:56 +0900
+
+sdplane (0.0.9-1) UNRELEASED; urgency=low
+
+  * l2fwd port config debug (2).
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 14:45:56 +0900
+
+sdplane (0.0.8-1) UNRELEASED; urgency=low
+
+  * l2fwd port config debug.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 14:45:56 +0900
+
+sdplane (0.0.7-1) UNRELEASED; urgency=low
+
+  * module names change.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 14:45:56 +0900
+
+sdplane (0.0.6-1) UNRELEASED; urgency=low
+
+  * directory layout change.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 12 May 2024 14:45:56 +0900
+
+sdplane (0.0.5-1) UNRELEASED; urgency=low
+
+  * port flow control command.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 21 Apr 2024 14:45:56 +0900
+
+sdplane (0.0.4-1) UNRELEASED; urgency=low
+
+  * startup config succeeded. reboot_cmd test.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 21 Apr 2024 14:45:56 +0900
+
+sdplane (0.0.3-1) UNRELEASED; urgency=low
+
+  * startup config test.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 21 Apr 2024 14:45:56 +0900
+
+sdplane (0.0.2-1) UNRELEASED; urgency=low
+
+  * automake/autoconf.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 21 Apr 2024 14:45:56 +0900
+
+sdplane (0.0.1-1) UNRELEASED; urgency=low
+
+  * Initial release.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 21 Apr 2024 14:45:56 +0900

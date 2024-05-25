@@ -1,0 +1,7 @@
+
+sbin_PROGRAMS = l2fwd
+
+l2fwd_SOURCES = main.c
+l2fwd_CFLAGS = -O3 @DPDK_CFLAGS@ -DALLOW_EXPERIMENTAL_API
+l2fwd_LDADD = @DPDK_LIBS@
+

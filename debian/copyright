@@ -1,0 +1,85 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: soft
+Upstream-Contact: <preferred name and address to reach the upstream project>
+Source: <url://example.com>
+#
+# Please double check copyright with the licensecheck(1) command.
+
+Files:     debug_cmd.h
+           em_route_parse.c
+           l2fwd_main.c
+           l3fwd.h
+           l3fwd_acl.c
+           l3fwd_acl.h
+           l3fwd_acl_scalar.h
+           l3fwd_altivec.h
+           l3fwd_common.h
+           l3fwd_em.c
+           l3fwd_em.h
+           l3fwd_em_hlm.h
+           l3fwd_em_hlm_neon.h
+           l3fwd_em_hlm_sse.h
+           l3fwd_em_sequential.h
+           l3fwd_event.c
+           l3fwd_event.h
+           l3fwd_event_generic.c
+           l3fwd_event_internal_port.c
+           l3fwd_fib.c
+           l3fwd_lpm.c
+           l3fwd_lpm.h
+           l3fwd_lpm_altivec.h
+           l3fwd_lpm_neon.h
+           l3fwd_lpm_sse.h
+           l3fwd_neon.h
+           l3fwd_sse.h
+           lpm_route_parse.c
+           main.c
+Copyright: 2007-2023 Yasuhiro Ohara.
+           2010-2018 Intel Corporation.
+           2010-2022 Intel Corporation
+           2017 IBM Corporation.
+           2017-2018 Linaro Limited.
+           2019 Marvell International Ltd.
+License:   __NO_LICENSE__
+
+Files:     build-debian.sh
+           em_default_v4.cfg
+           em_default_v6.cfg
+           l2fwd.h
+           l2fwd_cmd.c
+           l2fwd_cmd.h
+           l2fwd_init.c
+           lpm_default_v4.cfg
+           lpm_default_v6.cfg
+           lthread_main.c
+           run-l3fwd.sh
+           soft_dplane.c
+           soft_dplane.h
+Copyright: __NO_COPYRIGHT_NOR_LICENSE__
+License:   __NO_COPYRIGHT_NOR_LICENSE__
+
+Files:     Makefile
+Copyright: 2010-2016 Intel Corporation
+License:   __UNKNOWN__
+ binary name
+
+Files:     l3fwd_route.h
+Copyright: 2021 Intel Corporation
+License:   __UNKNOWN__
+ Log file related character defs.
+
+Files:     meson.build
+Copyright: 2017 Intel Corporation
+License:   __UNKNOWN__
+ meson file, for building this example as part of a main DPDK build.
+ .
+ To build this example as a standalone application with an already-installed
+ DPDK instance, use 'make'
+
+#----------------------------------------------------------------------------
+# huge files   (skipped):
+#         build/l3fwd-shared
+
+#----------------------------------------------------------------------------
+# Files marked as NO_LICENSE_TEXT_FOUND may be covered by the following
+# license/copyright files.

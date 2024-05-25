@@ -1,0 +1,11 @@
+
+set worker lcore 1 l2fwd
+set worker lcore 2 l2fwd
+set worker lcore 3 tap-handler
+set l2fwd l2fwd_enabled_port_mask 0x3
+set l2fwd l2fwd_rx_queue_per_lcore 1
+stop port all
+l2fwd init
+start worker lcore all
+set port all promiscuous enable
+
