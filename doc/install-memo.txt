@@ -1,7 +1,17 @@
 
-(ver. 3: 2024/05/25 13:07)
+(ver. 4: 2024/06/01 18:07)
 
 * Ubuntu 22.04.4 LTS (Server) を OS install
+  - Ubuntu 20.04.6 のインストーラーUSBを使用。
+  - English を選ぶ。
+  - Installer update available で update to the new installer を選ぶ。
+    ubuntu 24 installer 72.24MiB のダウンロード。
+  - keyboard layout: English / English で Done.
+  - Ubuntu server で Done.
+  - DHCP アドレス取れてることを確認して Done.
+  - Proxy 空白で Done.
+  - Mirror: jp.archive で Done.
+  -> Sorry, installer has restarted because of an error. で終わった。
 
 * timezone 設定
   # timedatectl set-timezone Asia/Tokyo

@@ -1,5 +1,4 @@
-*.bak
-*.orig.c
+.DS_Store
 
 /l2fwd/build
 /l2fwd/l2fwd
