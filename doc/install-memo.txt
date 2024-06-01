@@ -1,15 +1,21 @@
 
-(ver. 5: 2024/06/01 18:35)
+(ver. 6: 2024/06/01 19:55)
 
-* Ubuntu 22.04.4 LTS (Server) を OS install
-  - Ubuntu 20.04.6 のインストーラーUSBを使用。
+* Ubuntu 起動 iso の作成。
+  macbook pro で
+  % sudo dd if=ubuntu-24.04-live-server-amd64.iso of=/dev/disk4 bs=4028
+  Password:
+  683957+1 records in
+  683957+1 records out
+  2754981888 bytes transferred in 669.343831 secs (4115944 bytes/sec)
+
+* Ubuntu 24.04 live server iso で USB から起動。
   - English を選ぶ。
-  - Installer update available で continue without updating.
   - keyboard layout: English / English で Done.
+  - Ubuntu Server で Done.
   - DHCP アドレス取れてることを確認して Done.
   - Proxy 空白で Done.
   - Mirror: jp.archive で Done.
-  -> 一瞬 crash reboot って見える。
   -> Sorry, installer has restarted because of an error. で終わった。
 
 * timezone 設定
