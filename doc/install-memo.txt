@@ -1,16 +1,19 @@
 
-(ver. 6: 2024/06/01 19:55)
+(ver. 7: 2024/06/01 20:23)
 
 * Ubuntu 起動 iso の作成。
   macbook pro で
-  % sudo dd if=ubuntu-24.04-live-server-amd64.iso of=/dev/disk4 bs=4028
-  Password:
-  683957+1 records in
-  683957+1 records out
-  2754981888 bytes transferred in 669.343831 secs (4115944 bytes/sec)
+  % diskutil list (/dev/disk4 を確認)
+  % sudo dd if=ubuntu-22.04.4-live-server-amd64.iso of=/dev/disk4 bs=4028 status=progress
+    2098169088 bytes (2098 MB, 2001 MiB) transferred 456.004s, 4601 kB/s
+  522444+1 records in
+  522444+1 records out
+  2104408064 bytes transferred in 456.829542 secs (4606550 bytes/sec)
 
-* Ubuntu 24.04 live server iso で USB から起動。
+* Ubuntu 22.04.4 live server iso で USB から起動。
+
   - English を選ぶ。
+  - Installer update available で Continue without updating
   - keyboard layout: English / English で Done.
   - Ubuntu Server で Done.
   - DHCP アドレス取れてることを確認して Done.
