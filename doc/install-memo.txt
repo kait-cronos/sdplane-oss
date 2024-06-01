@@ -1,24 +1,25 @@
 
-(ver. 7: 2024/06/01 20:23)
+(ver. 8: 2024/06/01 21:55)
 
 * Ubuntu 起動 iso の作成。
   macbook pro で
   % diskutil list (/dev/disk4 を確認)
-  % sudo dd if=ubuntu-22.04.4-live-server-amd64.iso of=/dev/disk4 bs=4028 status=progress
-    2098169088 bytes (2098 MB, 2001 MiB) transferred 456.004s, 4601 kB/s
-  522444+1 records in
-  522444+1 records out
-  2104408064 bytes transferred in 456.829542 secs (4606550 bytes/sec)
+  % sudo dd if=ubuntu-20.04.6-live-server-amd64.iso of=/dev/disk4 bs=4028 status=progress
+  Password:
+    1486489092 bytes (1486 MB, 1418 MiB) transferred 331.003s, 4491 kB/s
+  369250+1 records in
+  369250+1 records out
+  1487339520 bytes transferred in 331.106946 secs (4492021 bytes/sec)
 
-* Ubuntu 22.04.4 live server iso で USB から起動。
-
+* Ubuntu 20.04.6 live server iso で USB から起動。
   - English を選ぶ。
   - Installer update available で Continue without updating
   - keyboard layout: English / English で Done.
-  - Ubuntu Server で Done.
+  # - Ubuntu Server で Done.
   - DHCP アドレス取れてることを確認して Done.
   - Proxy 空白で Done.
   - Mirror: jp.archive で Done.
+  -> generating crash report.
   -> Sorry, installer has restarted because of an error. で終わった。
 
 * timezone 設定
