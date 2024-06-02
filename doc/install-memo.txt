@@ -1,5 +1,5 @@
 
-(ver. 10: 2024/06/01 23:56)
+(ver. 11: 2024/06/02 19:38)
 
 * Ubuntu 起動 iso の作成。
   - https://qiita.com/kapibarasensei/items/9fb81f0102f9ccc31559
@@ -181,6 +181,7 @@
   # apt install meson ninja-build
   # apt install python3-pyelftools
   # apt install libnuma-dev
+  # apt install pkgconf
 
 * DPDK 23.11.1 を install
   $ wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
@@ -189,13 +190,12 @@
   $ meson setup build
   $ cd build
   $ ninja (コンパイル、結構時間かかる)
-  ******(一旦install-memo.txt を git commit)
   # meson install
   # ldconfig
 
   確認:
   $ pkg-config --modversion libdpdk
-  23.11.0
+  23.11.1
 
 * Hugepage メモリ設定
   (2MB hugepage を1500, 1GbE x 2 で必要。NICによってもっと必要かも。)
@@ -204,23 +204,23 @@
   # update-grub
 
 * zcmdsh の install
-  # wget https://www.yasuhironet.net/download/zcmdsh_0.3.7-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.7-1_amd64.deb
   # apt install ./zcmdsh_0.3.7-1_amd64.deb
 
 * sdplane の install
-  # wget https://www.yasuhironet.net/download/sdplane_0.0.9c-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/sdplane_0.0.9c-1_amd64.deb
   # apt install ./sdplane_0.0.9c-1_amd64.deb
 
 * sdplane startup config:
   # cp /etc/sdplane/sdplane.conf.sample /etc/sdplane/sdplane.conf
 
-* (option)(TODO)(現段階はskip) pktgen の install
-  <https://git.dpdk.org/apps/pktgen-dpdk/refs/>
-  <https://git.dpdk.org/apps/pktgen-dpdk/tag/?h=pktgen-24.03.0>
-  (pktgen-dpdk-pktgen-24.03.0.tar.xz は動いた。)
+# * (option)(TODO)(現段階はskip) pktgen の install
+#   <https://git.dpdk.org/apps/pktgen-dpdk/refs/>
+#   <https://git.dpdk.org/apps/pktgen-dpdk/tag/?h=pktgen-24.03.0>
+#   (pktgen-dpdk-pktgen-24.03.0.tar.xz は動いた。)
 
-* (option)(TODO)(現段階はskip) 100GbE Mellanox NIC のときには、OFED install
-  NVidia/Mellanox には OFED というドライバ群がある。
+# * (option)(TODO)(現段階はskip) 100GbE Mellanox NIC のときには、OFED install
+#   NVidia/Mellanox には OFED というドライバ群がある。
 
 * 再起動。
 
@@ -244,7 +244,12 @@
   # dpdk-devbind.py -b uio_pci_generic 02:00.0 03:00.0 04:00.0
   (01:00.0 はマネジメントI/Fで、OSで使う想定。)
 
+* screen and .screenrc
+  $ wget http://www.yasuhironet.net/download/dot.screenrc
+  $ mv dot.screenrc ~/.screenrc
+
 * sdplaneの起動
+  $ screen (screenしないとsdplaneコンソールしかないので困る)
   # /usr/sbin/sdplane -c 0xf -- -p 0x3 --config="(0,0,1),(1,0,2)"
   (将来的には sytemctl 管理。)
 
