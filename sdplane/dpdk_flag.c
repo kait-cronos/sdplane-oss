@@ -16,6 +16,9 @@
 #include <rte_ethdev.h>
 #include <rte_bus_pci.h>
 
+#include "dpdk_flag.h"
+
+#if 0
 struct flag_name link_speeds[] =
 {
   { "Fix",      RTE_ETH_LINK_SPEED_FIXED },
@@ -86,6 +89,7 @@ struct flag_name tx_offload_capa[] =
   { "OUTER_UDP_CKSUM", RTE_ETH_TX_OFFLOAD_OUTER_UDP_CKSUM  },
   { "SEND_ON_TIMESTAMP", RTE_ETH_TX_OFFLOAD_SEND_ON_TIMESTAMP},
 };
+#endif
 
 
 int

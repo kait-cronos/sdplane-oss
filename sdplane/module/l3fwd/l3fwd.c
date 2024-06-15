@@ -1574,7 +1574,7 @@ argv_save (int argc, char **argv)
 }
 
 int
-main (int argc, char **argv, char **envp)
+l3fwd_init (int argc, char **argv, char **envp)
 {
 #ifdef RTE_LIB_EVENTDEV
   struct l3fwd_event_resources *evt_rsrc;
@@ -1698,9 +1698,24 @@ main (int argc, char **argv, char **envp)
 #else
   /* launch one lthread main. All other things are launched there. */
   //rte_eal_remote_launch (lthread_main, NULL, 1);
-  lthread_main (NULL);
+  //lthread_main (NULL);
 #endif
 
+  return ret;
+}
+
+int
+l3fwd_terminate (int argc, char**argv)
+{
+  //struct lcore_conf *qconf;
+  uint16_t queueid, portid;
+  //unsigned int lcore_id;
+  //uint8_t queue;
+  int ret = 0;
+#ifdef RTE_LIB_EVENTDEV
+  struct l3fwd_event_resources *evt_rsrc;
+  int i;
+#endif
 #ifdef RTE_LIB_EVENTDEV
   if (evt_rsrc->enabled)
     {
@@ -1755,6 +1770,7 @@ main (int argc, char **argv, char **envp)
 
   printf ("Bye...\n");
 
+#if 0
   if (reboot)
     {
       printf ("rebooting: prog: %s argc: %d.\n", argv[0], argc_saved);
@@ -1776,6 +1792,7 @@ main (int argc, char **argv, char **envp)
       if (ret < 0)
         printf ("reboot failed: %s\n", strerror (errno));
     }
+#endif
 
   return ret;
 }
