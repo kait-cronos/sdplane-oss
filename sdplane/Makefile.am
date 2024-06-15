@@ -16,7 +16,7 @@ sdplane_SOURCES = \
         $(L2FWD_MODULE_DIR)/l2fwd.c \
         $(L2FWD_MODULE_DIR)/l2fwd_cmd.c $(L2FWD_MODULE_DIR)/l2fwd_cmd.h \
         tap_handler.h tap_handler.c stat_collector.c \
-        startup_config.c dpdk_flag.c dpdk_flag.h \
+        startup_config.c snprintf_flags.c dpdk_flag.h \
         dpdk_lcore_cmd.c dpdk_port_cmd.c \
         main.c lthread_main.c sdplane.h sdplane.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_DIR) -I$(L3FWD_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR)

@@ -30,7 +30,7 @@
 #include "sdplane.h"
 #include "tap_handler.h"
 
-#include "dpdk_flag.h"
+#include "snprintf_flags.h"
 
 struct flag_name link_speeds[] =
 {
