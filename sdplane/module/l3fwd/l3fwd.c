@@ -1587,7 +1587,7 @@ l3fwd_init (int argc, char **argv, char **envp)
   int ret;
 
   argv_save (argc, argv);
-  soft_dplane_init ();
+  //soft_dplane_init ();
 
   /* init EAL */
   ret = rte_eal_init (argc, argv);
@@ -1715,6 +1715,9 @@ l3fwd_terminate (int argc, char**argv)
 #ifdef RTE_LIB_EVENTDEV
   struct l3fwd_event_resources *evt_rsrc;
   int i;
+#endif
+#ifdef RTE_LIB_EVENTDEV
+  evt_rsrc = l3fwd_get_eventdev_rsrc ();
 #endif
 #ifdef RTE_LIB_EVENTDEV
   if (evt_rsrc->enabled)

@@ -51,6 +51,8 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
+#include <zcmdsh/debug_module.h>
+#include <zcmdsh/debug_module_cmd.h>
 //#include <zcmdsh/shell_fselect.h>
 
 #include "l3fwd.h"
@@ -62,6 +64,8 @@
 
 #include "sdplane.h"
 #include "tap_handler.h"
+
+#include "debug_sdplane.h"
 
 DEFINE_COMMAND (exit_cmd,
                 "(exit|quit|logout)",
@@ -150,6 +154,9 @@ lthread_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, debug);
   INSTALL_COMMAND2 (shell->cmdset, show_debug);
 
+  INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
+  INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
+
   //INSTALL_COMMAND (shell->cmdset, pwd);
   //INSTALL_COMMAND (shell->cmdset, open);
   //INSTALL_COMMAND2 (shell->cmdset, terminal);
@@ -209,6 +216,8 @@ lthread_main (__rte_unused void *dummy)
   /* library initialization. */
   debug_cmd_init ();
   command_shell_init ();
+
+  debug_module_cmd_init ();
 
   lthread_create (&lt, (lthread_func) load_startup_config, NULL);
   lthread_create (&lt, (lthread_func) lthread_shell, NULL);
