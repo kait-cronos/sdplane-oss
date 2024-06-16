@@ -49,6 +49,49 @@ DEFINE_COMMAND (set_locale,
     fprintf (shell->terminal, "setlocale(): %s.\n", ret);
 }
 
+#define L3FWD_ARGV_MAX 16
+char *l3fwd_argv[L3FWD_ARGV_MAX];
+int l3fwd_argc;
+
+DEFINE_COMMAND (set_l3fwd_argv,
+                "set l3fwd argv <WORD>[14]",
+                SET_HELP
+                L3FWD_HELP
+                "set command-line arguments.\n"
+                "arbitrary word\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i;
+  char **t_argv;
+  int t_argc = 0;
+
+  if (argc - 2 >= L3FWD_ARGV_MAX - 2)
+    {
+      fprintf (shell->terminal, "too many arguments: %d.\n", argc);
+      return EXIT_FAILURE;
+    }
+
+  t_argc = argc - 2;
+  t_argv = &argv[2];
+
+  l3fwd_argc = 0;
+  memset (l3fwd_argv, 0, sizeof (l3fwd_argv));
+  l3fwd_argv[l3fwd_argc++] = "sdplane";
+
+  while (t_argc)
+    {
+      l3fwd_argv[l3fwd_argc++] = t_argv++;
+      t_argc--;
+    }
+
+  fprintf (shell->terminal, "l3fwd_argv[%d]:", l3fwd_argc);
+  for (i = 0; i < l3fwd_argc; i++)
+    {
+      fprintf (shell->terminal, " %s", l3fwd_argv[i]);
+    }
+  fprintf (shell->terminal, "\n");
+}
+
 void
 soft_dplane_cmd_init (struct command_set *cmdset)
 {
