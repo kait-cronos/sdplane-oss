@@ -56,7 +56,7 @@ int l3fwd_argc;
 DEFINE_COMMAND (set_l3fwd_argv,
                 "set l3fwd argv <WORD>[14]",
                 SET_HELP
-                L3FWD_HELP
+                "set l3fwd-related information.\n"
                 "set command-line arguments.\n"
                 "arbitrary word\n")
 {
@@ -68,7 +68,7 @@ DEFINE_COMMAND (set_l3fwd_argv,
   if (argc - 2 >= L3FWD_ARGV_MAX - 2)
     {
       fprintf (shell->terminal, "too many arguments: %d.\n", argc);
-      return EXIT_FAILURE;
+      return;
     }
 
   t_argc = argc - 2;
@@ -80,7 +80,8 @@ DEFINE_COMMAND (set_l3fwd_argv,
 
   while (t_argc)
     {
-      l3fwd_argv[l3fwd_argc++] = t_argv++;
+      l3fwd_argv[l3fwd_argc++] = *t_argv;
+      t_argv++;
       t_argc--;
     }
 
@@ -91,6 +92,9 @@ DEFINE_COMMAND (set_l3fwd_argv,
     }
   fprintf (shell->terminal, "\n");
 }
+
+void dpdk_lcore_cmd_init (struct command_set *cmdset);
+void dpdk_port_cmd_init (struct command_set *cmdset);
 
 void
 soft_dplane_cmd_init (struct command_set *cmdset)
