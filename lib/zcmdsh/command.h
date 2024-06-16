@@ -62,6 +62,14 @@ struct command_header
 #define EXTERN_COMMAND(cmdname) \
   extern struct command_header cmdname ## _cmd
 
+#define INSTALL_COMMAND3(cmdset, cmdname, index)              \
+  command_install2 (cmdset, cmdname ## _cmd[index].cmdstr,    \
+                    cmdname ## _cmd[index].helpstr,           \
+                    cmdname ## _cmd[index].cmdfunc)
+
+#define EXTERN_COMMAND3(cmdname) \
+  extern struct command_header cmdname ## _cmd[]
+
 struct command_set *command_set_create ();
 void command_set_delete (struct command_set *cmdset);
 

@@ -854,7 +854,7 @@ command_complete (char *command_line, int point, struct command_set *cmdset)
 
   while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
     {
-      match = command_match_unique (parent, word);
+      match = command_match_unique_exact (parent, word);
       if (match == NULL)
         break;
       matched = word;

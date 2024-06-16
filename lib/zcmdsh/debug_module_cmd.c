@@ -9,15 +9,11 @@
 #include "shell.h"
 #include "command.h"
 #include "debug_module.h"
+#include "debug_module_cmd.h"
 
 static int debug_module_size;
 
-struct debug_module_type
-{
-  char *module_name;
-  int debug_type_size;
-  struct debug_type *debug_types;
-} debug_module_slots[DEBUG_MODULE_MAX];
+struct debug_module_type debug_module_slots[DEBUG_MODULE_MAX];
 
 #if 0
 /* placeholder for names for all debug modules */
@@ -245,6 +241,5 @@ debug_module_cmd_init ()
       debug_module_cmd[i].helpstr = debug_module_helpstr[i];
       debug_module_cmd[i].cmdfunc = debug_module_func;
     }
-
 }
 
