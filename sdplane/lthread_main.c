@@ -170,6 +170,7 @@ lthread_shell (void *arg)
   shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
 
   l2fwd_cmd_init (shell->cmdset);
+  l3fwd_cmd_init (shell->cmdset);
   soft_dplane_cmd_init (shell->cmdset);
 
   termio_init ();
@@ -219,10 +220,11 @@ lthread_main (__rte_unused void *dummy)
 
   debug_module_cmd_init ();
 
+  void *ptr;
   lthread_create (&lt, (lthread_func) load_startup_config, NULL);
   lthread_create (&lt, (lthread_func) lthread_shell, NULL);
-  //lthread_create (&lt, (lthread_func) tap_handler, NULL);
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
-  lthread_run ();
+  //lthread_create (&lt, (lthread_func) tap_handler, NULL);
+  //lthread_run ();
 }
 

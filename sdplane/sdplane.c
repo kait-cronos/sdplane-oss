@@ -52,12 +52,11 @@ DEFINE_COMMAND (set_locale,
     fprintf (shell->terminal, "setlocale(): %s.\n", ret);
 }
 
-#define L3FWD_ARGV_MAX 16
 char *l3fwd_argv[L3FWD_ARGV_MAX];
-int l3fwd_argc;
+int l3fwd_argc = 0;
 
 DEFINE_COMMAND (set_l3fwd_argv,
-                "set l3fwd argv <WORD>[14]",
+                "set l3fwd argv <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
                 SET_HELP
                 "set l3fwd-related information.\n"
                 "set command-line arguments.\n"
@@ -65,8 +64,9 @@ DEFINE_COMMAND (set_l3fwd_argv,
 {
   struct shell *shell = (struct shell *) context;
   int i;
-  char **t_argv;
-  int t_argc = 0;
+
+  for (i = 0; i < argc; i++)
+    fprintf (shell->terminal, "argv[%d]: %s\n", i, argv[i]);
 
   if (argc - 2 >= L3FWD_ARGV_MAX - 2)
     {
@@ -74,18 +74,13 @@ DEFINE_COMMAND (set_l3fwd_argv,
       return;
     }
 
-  t_argc = argc - 2;
-  t_argv = &argv[2];
-
   l3fwd_argc = 0;
   memset (l3fwd_argv, 0, sizeof (l3fwd_argv));
   l3fwd_argv[l3fwd_argc++] = "sdplane";
 
-  while (t_argc)
+  for (i = 3; i < argc; i++)
     {
-      l3fwd_argv[l3fwd_argc++] = *t_argv;
-      t_argv++;
-      t_argc--;
+      l3fwd_argv[l3fwd_argc++] = strdup (argv[i]);
     }
 
   fprintf (shell->terminal, "l3fwd_argv[%d]:", l3fwd_argc);
@@ -94,6 +89,9 @@ DEFINE_COMMAND (set_l3fwd_argv,
       fprintf (shell->terminal, " %s", l3fwd_argv[i]);
     }
   fprintf (shell->terminal, "\n");
+
+  for (i = 0; i < l3fwd_argc; i++)
+    fprintf (shell->terminal, "l3fwd_argv[%d]: %s\n", i, l3fwd_argv[i]);
 }
 
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
@@ -105,6 +103,7 @@ soft_dplane_cmd_init (struct command_set *cmdset)
   setlocale (LC_ALL, "en_US.utf8");
   dpdk_lcore_cmd_init (cmdset);
   dpdk_port_cmd_init (cmdset);
+  INSTALL_COMMAND2 (cmdset, set_l3fwd_argv);
 }
 
 extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];

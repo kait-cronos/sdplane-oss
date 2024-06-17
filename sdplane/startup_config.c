@@ -18,6 +18,7 @@
 //#include <zcmdsh/shell_fselect.h>
 
 #include "l3fwd.h"
+#include "l3fwd_cmd.h"
 #include "l2fwd_cmd.h"
 #include "sdplane.h"
 
@@ -45,6 +46,7 @@ load_startup_config (__rte_unused void *dummy)
   INSTALL_COMMAND2 (shell->cmdset, l2fwd_init);
 
   l2fwd_cmd_init (shell->cmdset);
+  l3fwd_cmd_init (shell->cmdset);
   soft_dplane_cmd_init (shell->cmdset);
 
   //termio_init ();
@@ -62,7 +64,7 @@ load_startup_config (__rte_unused void *dummy)
       shell_set_terminal (shell, fd, 1);
       while (shell_running (shell))
         {
-          lthread_sleep (0); // yield.
+          //lthread_sleep (0); // yield.
           shell_read_nowait (shell);
         }
     }

@@ -13,6 +13,7 @@ sdplane_SOURCES = \
         $(L3FWD_DIR)/l3fwd_event_generic.c \
         $(L3FWD_DIR)/l3fwd_event_internal_port.c \
         $(L3FWD_MODULE_DIR)/l3fwd.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_cmd.c $(L3FWD_MODULE_DIR)/l3fwd_cmd.h \
         $(L2FWD_MODULE_DIR)/l2fwd.c \
         $(L2FWD_MODULE_DIR)/l2fwd_cmd.c $(L2FWD_MODULE_DIR)/l2fwd_cmd.h \
         tap_handler.h tap_handler.c stat_collector.c \

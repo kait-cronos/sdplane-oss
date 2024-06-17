@@ -1,6 +1,11 @@
 #ifndef __SOFT_DPLANE_H__
 #define __SOFT_DPLANE_H__
 
+#define L3FWD_ARGV_MAX 16
+extern char *l3fwd_argv[L3FWD_ARGV_MAX];
+extern int l3fwd_argc;
+
+
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
 extern struct rte_eth_stats stats_prev[RTE_MAX_ETHPORTS];
