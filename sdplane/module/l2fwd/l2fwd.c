@@ -41,7 +41,14 @@
 #include "tap_handler.h"
 #include "rte_override.h"
 
+#include <zcmdsh/debug.h>
+#include <zcmdsh/debug_module.h>
+#include <zcmdsh/debug_module_cmd.h>
+#include "debug_sdplane.h"
+
 static volatile bool force_quit;
+
+uint64_t loop_l2fwd = 0;
 
 /* MAC updating enabled by default */
 int mac_updating = 1;
@@ -240,6 +247,11 @@ l2fwd_main_loop(void)
 	}
 
 	while (! force_quit && ! force_stop[lcore_id]) {
+               loop_l2fwd++;
+               if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                               DEBUG_SDPLANE_L2FWD))
+                 printf ("%s[%d]: %s: l2fwd scheduled.\n",
+                         __FILE__, __LINE__, __func__);
 
 		/* Drains TX queue in its main loop. 8< */
 		cur_tsc = rte_rdtsc();

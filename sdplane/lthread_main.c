@@ -128,6 +128,8 @@ DEFINE_COMMAND (clear_cmd,
   shell_keyfunc_clear_terminal (shell);
 }
 
+uint64_t loop_console = 0;
+
 void
 lthread_shell (void *arg)
 {
@@ -181,8 +183,13 @@ lthread_shell (void *arg)
 
   while (shell_running (shell))
     {
+      loop_console++;
       lthread_sleep (0); // yield.
-      //printf ("%s: schedule.\n", __func__);
+      if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                      DEBUG_SDPLANE_LTHREAD))
+        printf ("%s[%d]: %s: shell_read_nowait().\n",
+                __FILE__, __LINE__, __func__);
+
       shell_read_nowait (shell);
     }
 
@@ -197,7 +204,8 @@ lthread_main (__rte_unused void *dummy)
   lthread_t *lt = NULL;
 
   /* timer set */
-  timer_init (60 * 60, "2024/12/31 23:59:59");
+  //timer_init (60 * 60, "2024/12/31 23:59:59");
+  timer_init (0, NULL);
 
   /* initialize workers */
   int lcore_id;

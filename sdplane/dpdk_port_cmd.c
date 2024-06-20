@@ -28,6 +28,7 @@
 #include "l2fwd_export.h"
 
 #include "sdplane.h"
+#include "stat_collector.h"
 #include "tap_handler.h"
 
 #include "snprintf_flags.h"

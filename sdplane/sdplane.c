@@ -30,6 +30,7 @@
 #include "l2fwd_export.h"
 
 #include "sdplane.h"
+#include "stat_collector.h"
 #include "tap_handler.h"
 #include "debug_sdplane.h"
 
@@ -94,6 +95,34 @@ DEFINE_COMMAND (set_l3fwd_argv,
     fprintf (shell->terminal, "l3fwd_argv[%d]: %s\n", i, l3fwd_argv[i]);
 }
 
+DEFINE_COMMAND (show_loop_count,
+                "show loop-count (console|l2fwd) (pps|total)",
+                SHOW_HELP
+                "loop count\n"
+                "console shell\n"
+                "pps\n"
+                "total count\n"
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+
+  char name[16];
+
+  snprintf (name, sizeof (name), "console:");
+
+  if (! strcmp (argv[3], "pps"))
+    {
+      fprintf (t, "%16s %'8lu\n",
+               name, loop_console_pps);
+    }
+  else if (! strcmp (argv[3], "total"))
+    {
+      fprintf (t, "%16s %'8lu\n",
+               name, loop_console_current);
+    }
+}
+
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
 
@@ -104,6 +133,7 @@ soft_dplane_cmd_init (struct command_set *cmdset)
   dpdk_lcore_cmd_init (cmdset);
   dpdk_port_cmd_init (cmdset);
   INSTALL_COMMAND2 (cmdset, set_l3fwd_argv);
+  INSTALL_COMMAND2 (cmdset, show_loop_count);
 }
 
 extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];

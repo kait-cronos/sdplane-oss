@@ -15,12 +15,15 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
+#include <zcmdsh/debug_module.h>
+#include <zcmdsh/debug_module_cmd.h>
 //#include <zcmdsh/shell_fselect.h>
 
 #include "l3fwd.h"
 #include "l3fwd_cmd.h"
 #include "l2fwd_cmd.h"
 #include "sdplane.h"
+#include "debug_sdplane.h"
 
 int
 load_startup_config (__rte_unused void *dummy)
@@ -42,6 +45,9 @@ load_startup_config (__rte_unused void *dummy)
 
   INSTALL_COMMAND2 (shell->cmdset, debug);
   //INSTALL_COMMAND2 (shell->cmdset, show_debug);
+
+  INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
+  INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
 
   INSTALL_COMMAND2 (shell->cmdset, l2fwd_init);
 

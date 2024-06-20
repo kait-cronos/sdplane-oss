@@ -9,6 +9,12 @@
 extern volatile bool force_quit;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
+extern uint64_t loop_console;
+uint64_t loop_console_prev, loop_console_current, loop_console_pps;
+
+extern uint64_t loop_l2fwd;
+uint64_t loop_l2fwd_prev, loop_l2fwd_current, loop_l2fwd_pps;
+
 struct rte_eth_stats stats_prev[RTE_MAX_ETHPORTS];
 struct rte_eth_stats stats_current[RTE_MAX_ETHPORTS];
 struct rte_eth_stats stats_per_sec[RTE_MAX_ETHPORTS];
@@ -51,6 +57,14 @@ stat_collector (__rte_unused void *dummy)
                                &stats_current[port_id],
                                &stats_prev[port_id]);
       //printf ("%s: stats collected.\n", __func__);
+
+      loop_console_prev = loop_console_current;
+      loop_console_current = loop_console;
+      loop_console_pps = loop_console_current - loop_console_prev;
+
+      loop_l2fwd_prev = loop_l2fwd_current;
+      loop_l2fwd_current = loop_l2fwd;
+      loop_l2fwd_pps = loop_l2fwd_current - loop_l2fwd_prev;
     }
   return 0;
 }

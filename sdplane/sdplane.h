@@ -5,12 +5,7 @@
 extern char *l3fwd_argv[L3FWD_ARGV_MAX];
 extern int l3fwd_argc;
 
-
 extern volatile bool force_stop[RTE_MAX_LCORE];
-
-extern struct rte_eth_stats stats_prev[RTE_MAX_ETHPORTS];
-extern struct rte_eth_stats stats_current[RTE_MAX_ETHPORTS];
-extern struct rte_eth_stats stats_per_sec[RTE_MAX_ETHPORTS];
 
 struct lcore_worker
 {
