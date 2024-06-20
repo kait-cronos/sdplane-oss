@@ -45,10 +45,11 @@
 #include <zcmdsh/debug_module.h>
 #include <zcmdsh/debug_module_cmd.h>
 #include "debug_sdplane.h"
+#include "stat_collector.h"
 
 static volatile bool force_quit;
 
-uint64_t loop_l2fwd = 0;
+__thread uint64_t loop_l2fwd = 0;
 
 /* MAC updating enabled by default */
 int mac_updating = 1;
@@ -245,6 +246,8 @@ l2fwd_main_loop(void)
 			portid);
 
 	}
+
+        loop_l2fwd_ptr[lcore_id] = &loop_l2fwd;
 
 	while (! force_quit && ! force_stop[lcore_id]) {
                loop_l2fwd++;

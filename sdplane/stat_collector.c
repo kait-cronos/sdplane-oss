@@ -12,8 +12,10 @@ extern volatile bool force_stop[RTE_MAX_LCORE];
 extern uint64_t loop_console;
 uint64_t loop_console_prev, loop_console_current, loop_console_pps;
 
-extern uint64_t loop_l2fwd;
-uint64_t loop_l2fwd_prev, loop_l2fwd_current, loop_l2fwd_pps;
+uint64_t *loop_l2fwd_ptr[RTE_MAX_LCORE] = { NULL };
+uint64_t loop_l2fwd_prev[RTE_MAX_LCORE];
+uint64_t loop_l2fwd_current[RTE_MAX_LCORE];
+uint64_t loop_l2fwd_pps[RTE_MAX_LCORE];
 
 struct rte_eth_stats stats_prev[RTE_MAX_ETHPORTS];
 struct rte_eth_stats stats_current[RTE_MAX_ETHPORTS];
@@ -62,9 +64,15 @@ stat_collector (__rte_unused void *dummy)
       loop_console_current = loop_console;
       loop_console_pps = loop_console_current - loop_console_prev;
 
-      loop_l2fwd_prev = loop_l2fwd_current;
-      loop_l2fwd_current = loop_l2fwd;
-      loop_l2fwd_pps = loop_l2fwd_current - loop_l2fwd_prev;
+      for (i = 0; i < RTE_MAX_LCORE; i++)
+        {
+          if (loop_l2fwd_ptr[i])
+            {
+              loop_l2fwd_prev[i] = loop_l2fwd_current[i];
+              loop_l2fwd_current[i] = *loop_l2fwd_ptr[i];
+              loop_l2fwd_pps[i] = loop_l2fwd_current[i] - loop_l2fwd_prev[i];
+            }
+        }
     }
   return 0;
 }

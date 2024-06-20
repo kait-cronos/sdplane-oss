@@ -100,6 +100,7 @@ DEFINE_COMMAND (show_loop_count,
                 SHOW_HELP
                 "loop count\n"
                 "console shell\n"
+                "l2fwd loop\n"
                 "pps\n"
                 "total count\n"
                 )
@@ -107,19 +108,38 @@ DEFINE_COMMAND (show_loop_count,
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
 
-  char name[16];
+  char name[32];
 
-  snprintf (name, sizeof (name), "console:");
-
-  if (! strcmp (argv[3], "pps"))
+  if (! strcmp (argv[2], "console"))
     {
-      fprintf (t, "%16s %'8lu\n",
-               name, loop_console_pps);
+      snprintf (name, sizeof (name), "console:");
+      if (! strcmp (argv[3], "pps"))
+        {
+          fprintf (t, "%16s %'8lu\n", name, loop_console_pps);
+        }
+      else if (! strcmp (argv[3], "total"))
+        {
+          fprintf (t, "%16s %'8lu\n", name, loop_console_current);
+        }
     }
-  else if (! strcmp (argv[3], "total"))
+  else if (! strcmp (argv[2], "l2fwd"))
     {
-      fprintf (t, "%16s %'8lu\n",
-               name, loop_console_current);
+      int i;
+      for (i = 0; i < RTE_MAX_LCORE; i++)
+        {
+          snprintf (name, sizeof (name), "l2fwd: core[%d]:", i);
+          if (loop_l2fwd_current[i])
+            {
+              if (! strcmp (argv[3], "pps"))
+                {
+                  fprintf (t, "%24s %'8lu\n", name, loop_l2fwd_pps[i]);
+                }
+              else if (! strcmp (argv[3], "total"))
+                {
+                  fprintf (t, "%24s %'8lu\n", name, loop_l2fwd_current[i]);
+                }
+            }
+        }
     }
 }
 
