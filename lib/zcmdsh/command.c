@@ -377,22 +377,19 @@ file_replace (char *word)
 int
 line_spec (char *spec)
 {
-  return (! strcmp (spec, "LINE"));
+  return (! strcmp (spec, "<LINE>"));
+}
+
+int
+word_spec (char *spec)
+{
+  return (! strcmp (spec, "<WORD>"));
 }
 
 int
 var_spec (char *spec)
 {
-  char *p;
-#if 0
-  for (p = spec; *p; p++)
-    if (! isupper (*p))
-      return 0;
-  return 1;
-#else
-  /* disable all capital letters variables */
-  return 0;
-#endif
+  return (! strcmp (spec, "<VAR>"));
 }
 
 char *
@@ -444,6 +441,10 @@ is_command_match_variable (char *spec, char *word)
         return 1;
     }
   if (line_spec (spec))
+    {
+      return 1;
+    }
+  if (word_spec (spec))
     {
       return 1;
     }
@@ -801,7 +802,13 @@ command_execute (char *command_line, struct command_set *cmdset,
     }
 
   if (match && match->func)
-    (*match->func) (context, argc, argv);
+    {
+      printf ("%s[%d]: %s: argv[%d]:", __FILE__, __LINE__, __func__, argc);
+      for (int i = 0; i < argc; i++)
+        printf (" %s", argv[i]);
+      printf ("\n");
+      (*match->func) (context, argc, argv);
+    }
   else
     ret = -1;
 
