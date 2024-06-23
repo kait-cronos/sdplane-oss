@@ -130,14 +130,14 @@ debug_func (void *context, int argc, char **argv)
           if (negate)
             {
               FLAG_CLEAR (debug_config, debug_types[i].flag);
-              fprintf (shell->terminal, "debug: %s: disabled.\n",
-                       debug_types[i].name);
+              fprintf (shell->terminal, "debug: %s: disabled.%s",
+                       debug_types[i].name, shell->LF);
             }
           else
             {
               FLAG_SET (debug_config, debug_types[i].flag);
-              fprintf (shell->terminal, "debug: %s: enabled.\n",
-                       debug_types[i].name);
+              fprintf (shell->terminal, "debug: %s: enabled.%s",
+                       debug_types[i].name, shell->LF);
             }
         }
     }
@@ -155,10 +155,10 @@ DEFINE_COMMAND (show_debug,
 
   for (i = 0; i < debug_type_size; i++)
     {
-      fprintf (shell->terminal, "debug: %s: %s.\n",
+      fprintf (shell->terminal, "debug: %s: %s.%s",
                debug_types[i].name,
                (FLAG_CHECK (debug_config, debug_types[i].flag) ?
-               "on" : "off"));
+               "on" : "off"), shell->LF);
     }
 }
 
