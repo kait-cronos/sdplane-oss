@@ -1,50 +1,39 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <poll.h>
 
 #include <lthread.h>
 
-struct vty_client
-{
-  struct sockaddr_in peer_addr;
-  int fd;
-};
-typedef struct vty_client vty_client_t;
+#include <rte_common.h>
+#include <rte_launch.h>
 
-void
-vty_shell (void *arg)
-{
-  vty_client_t *client = (vty_client_t *) arg;
+#include <zcmdsh/shell.h>
+#include <zcmdsh/command.h>
+#include <zcmdsh/command_shell.h>
 
-  char client_addr_str[128];
-  inet_ntop (AF_INET, &client->peer_addr.sin_addr,
-             client_addr_str, sizeof (client_addr_str));
+#include <zcmdsh/debug.h>
+#include <zcmdsh/debug_cmd.h>
+#include <zcmdsh/debug_module.h>
+#include <zcmdsh/debug_module_cmd.h>
+#include "debug_sdplane.h"
 
-  printf ("%s for %s.\n", __func__, client_addr_str);
+#include "sdplane.h"
 
-  char send_buf[1024];
-  char buf[1024];
-  int ret;
-  ret = lthread_recv (client->fd, buf, sizeof (buf), 0, 5000);
-  if (ret == -2)
-    {
-      snprintf (send_buf, sizeof (send_buf), "timeout.\n");
-      lthread_send (client->fd, send_buf, strlen (send_buf), 0);
-      lthread_close (client->fd);
-      return;
-    }
+#include "l3fwd_cmd.h"
+#include "l2fwd_cmd.h"
 
-  snprintf (send_buf, sizeof (send_buf), "your message: %s\n", buf);
-  lthread_send (client->fd, send_buf, strlen (send_buf), 0);
-  lthread_close (client->fd);
+#include "vty_server.h"
+#include "vty_shell.h"
 
-  printf ("%s finished for %s.\n", __func__, client_addr_str);
+extern int lthread_core;
+extern volatile bool force_stop[RTE_MAX_LCORE];
 
-  return;
-}
+vty_client_t client_info[VTY_CLIENT_MAX];
 
 void
 vty_server (void *arg)
@@ -52,6 +41,8 @@ vty_server (void *arg)
   int sockfd;
   int ret;
   int client_fd;
+
+  lthread_detach ();
 
   sockfd = lthread_socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sockfd == -1)
@@ -88,14 +79,34 @@ vty_server (void *arg)
   printf ("Starting vty_server on port 9882\n");
 
   int client_size = 0;
-  vty_client_t client_info[5];
+  int i, client_id;
   lthread_t *client_lt = NULL;
+
+  /* initialize */
+  for (i = 0; i < VTY_CLIENT_MAX; i++)
+    {
+      client_info[i].id = i;
+      client_info[i].fd = -1;
+    }
 
   listen (sockfd, 128);
 
-  while (1)
+  struct pollfd fds[2];
+
+  while (! force_stop[lthread_core])
     {
-      printf ("%s: schedule.\n");
+      lthread_sleep (1000); // yield.
+
+      if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                      DEBUG_SDPLANE_LTHREAD))
+        printf ("%s: schedule.\n", __func__);
+
+      fds[0].fd = sockfd;
+      fds[0].events = POLLIN;
+      poll (fds, 1, 0);
+      if ((fds[0].revents & (POLLIN | POLLERR)) == 0)
+        continue;
+
       client_fd = lthread_accept (sockfd, (struct sockaddr *) &peer_addr,
                                   &addrlen);
       if (client_fd < 0)
@@ -104,12 +115,31 @@ vty_server (void *arg)
           continue;
         }
 
-      printf ("%s: lthread_accept: client[%d]\n", client_size);
-      client_info[client_size].peer_addr = peer_addr;
-      client_info[client_size].fd = client_fd;
-      ret = lthread_create (&client_lt, vty_shell, &client_info[client_size]);
+      client_id = -1;
+      for (i = 0; i < VTY_CLIENT_MAX; i++)
+        {
+          if (client_info[i].fd == -1)
+            {
+              client_id = i;
+              break;
+            }
+        }
+      if (client_id == -1)
+        {
+          printf ("%s: can't create new client: already served %d. ignore.\n",
+                  __func__, VTY_CLIENT_MAX);
+          lthread_close (client_fd);
+          continue;
+        }
 
-      client_size++;
+      printf ("%s: lthread_accept: client[%d]\n", __func__, client_id);
+      client_info[client_id].peer_addr = peer_addr;
+      client_info[client_id].fd = client_fd;
+      ret = lthread_create (&client_lt, vty_shell, &client_info[client_id]);
+      if (client_size < client_id)
+        client_size = client_id + 1;
     }
+
+  printf ("%s finished.\n", __func__);
 }
 

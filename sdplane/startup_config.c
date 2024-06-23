@@ -30,6 +30,8 @@ load_startup_config (__rte_unused void *dummy)
 {
   struct shell *shell = NULL;
 
+  lthread_detach ();
+
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
 
   shell = command_shell_create ();
@@ -70,7 +72,12 @@ load_startup_config (__rte_unused void *dummy)
       shell_set_terminal (shell, fd, 1);
       while (shell_running (shell))
         {
-          //lthread_sleep (0); // yield.
+          lthread_sleep (10); // yield.
+
+          if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                          DEBUG_SDPLANE_LTHREAD))
+            printf ("%s: schedule.\n", __func__);
+
           shell_read_nowait (shell);
         }
     }
@@ -79,6 +86,7 @@ load_startup_config (__rte_unused void *dummy)
             __FILE__, __LINE__, __func__, config_file, strerror (errno));
 
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+  fflush (stdout);
 
   //termio_finish ();
   return 0;

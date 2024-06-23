@@ -66,8 +66,10 @@ DEFINE_COMMAND (set_l3fwd_argv,
   struct shell *shell = (struct shell *) context;
   int i;
 
+#if 0
   for (i = 0; i < argc; i++)
     fprintf (shell->terminal, "argv[%d]: %s\n", i, argv[i]);
+#endif
 
   if (argc - 2 >= L3FWD_ARGV_MAX - 2)
     {
@@ -84,12 +86,14 @@ DEFINE_COMMAND (set_l3fwd_argv,
       l3fwd_argv[l3fwd_argc++] = strdup (argv[i]);
     }
 
+#if 0
   fprintf (shell->terminal, "l3fwd_argv[%d]:", l3fwd_argc);
   for (i = 0; i < l3fwd_argc; i++)
     {
       fprintf (shell->terminal, " %s", l3fwd_argv[i]);
     }
   fprintf (shell->terminal, "\n");
+#endif
 
   for (i = 0; i < l3fwd_argc; i++)
     fprintf (shell->terminal, "l3fwd_argv[%d]: %s\n", i, l3fwd_argv[i]);

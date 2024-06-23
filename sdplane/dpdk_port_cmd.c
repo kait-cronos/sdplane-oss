@@ -172,9 +172,9 @@ DEFINE_COMMAND (show_port,
     port_spec = strtol (argv[2], NULL, 0);
 
   if (brief)
-    fprintf (t, "%-8s %-12s %6s %7s %-13s <%-24s>\n",
+    fprintf (t, "%-8s %-12s %6s %7s %-13s <%-24s>%s",
              "port:", "device", "status", "speed",
-             "driver", "capability");
+             "driver", "capability", shell->LF);
 
   nb_ports = rte_eth_dev_count_avail ();
   for (port_id = 0; port_id < nb_ports; port_id++)
@@ -185,7 +185,8 @@ DEFINE_COMMAND (show_port,
       ret = rte_eth_dev_info_get (port_id, &dev_info);
       if (ret != 0)
         {
-          fprintf (t, "rte_eth_dev_info_get() returned %d.\n", ret);
+          fprintf (t, "rte_eth_dev_info_get() returned %d.%s",
+                   ret, shell->LF);
           continue;
         }
 
@@ -193,8 +194,8 @@ DEFINE_COMMAND (show_port,
       ret = rte_eth_link_get_nowait (port_id, &link);
       if (ret < 0)
         {
-          fprintf (t, "port[%d]: rte_eth_link_get_nowait() failed: %d.\n",
-                   port_id, ret);
+          fprintf (t, "port[%d]: rte_eth_link_get_nowait() failed: %d.%s",
+                   port_id, ret, shell->LF);
         }
       status = (link.link_status ? "up" : "down");
 
@@ -208,32 +209,32 @@ DEFINE_COMMAND (show_port,
         {
           char port_name[16];
           snprintf (port_name, sizeof (port_name), "port[%d]:", port_id);
-          fprintf (t, "%-8s %-12s %6s %'7d %-13s <%-24s>\n",
+          fprintf (t, "%-8s %-12s %6s %'7d %-13s <%-24s>%s",
                    port_name, devname, status, link.link_speed,
-                   dev->driver_name, link_capa);
+                   dev->driver_name, link_capa, shell->LF);
         }
       else
         {
-          fprintf (t, "port[%d]:\n", port_id);
-          fprintf (t, "  link speed: %'d\n", link.link_speed);
-          fprintf (t, "  link duplex: %d\n", link.link_duplex);
-          fprintf (t, "  link autoneg: %d\n", link.link_autoneg);
-          fprintf (t, "  link status: %d\n", link.link_status);
-          fprintf (t, "  device name: %s\n", devname);
-          fprintf (t, "  bus info: %s\n", businfo);
-          fprintf (t, "  driver_name: %s\n", dev->driver_name);
-          fprintf (t, "  if_index: %'u\n", dev->if_index);
-          fprintf (t, "  min_mtu: %'u max_mtu: %'u\n",
-                   dev->min_mtu, dev->max_mtu);
-          fprintf (t, "  min_rx_bufsize: %'u max_rx_bufsize: %'u\n",
-                   dev->min_rx_bufsize, dev->max_rx_bufsize);
-          fprintf (t, "  max_rx_pktlen: %'u max_lro_pkt_size: %'u\n",
-                   dev->max_rx_pktlen, dev->max_lro_pkt_size);
-          fprintf (t, "  max_rx_queues: %'u max_tx_queues: %'u\n",
-                   dev->max_rx_queues, dev->max_tx_queues);
-          fprintf (t, "  speed_capa: <%s>\n", link_capa);
-          fprintf (t, "  nb_rx_queues: %'u nb_tx_queues: %'u\n",
-                   dev->nb_rx_queues, dev->nb_tx_queues);
+          fprintf (t, "port[%d]:%s", port_id, shell->LF);
+          fprintf (t, "  link speed: %'d%s", link.link_speed, shell->LF);
+          fprintf (t, "  link duplex: %d%s", link.link_duplex, shell->LF);
+          fprintf (t, "  link autoneg: %d%s", link.link_autoneg, shell->LF);
+          fprintf (t, "  link status: %d%s", link.link_status, shell->LF);
+          fprintf (t, "  device name: %s%s", devname, shell->LF);
+          fprintf (t, "  bus info: %s%s", businfo, shell->LF);
+          fprintf (t, "  driver_name: %s%s", dev->driver_name, shell->LF);
+          fprintf (t, "  if_index: %'u%s", dev->if_index, shell->LF);
+          fprintf (t, "  min_mtu: %'u max_mtu: %'u%s",
+                   dev->min_mtu, dev->max_mtu, shell->LF);
+          fprintf (t, "  min_rx_bufsize: %'u max_rx_bufsize: %'u%s",
+                   dev->min_rx_bufsize, dev->max_rx_bufsize, shell->LF);
+          fprintf (t, "  max_rx_pktlen: %'u max_lro_pkt_size: %'u%s",
+                   dev->max_rx_pktlen, dev->max_lro_pkt_size, shell->LF);
+          fprintf (t, "  max_rx_queues: %'u max_tx_queues: %'u%s",
+                   dev->max_rx_queues, dev->max_tx_queues, shell->LF);
+          fprintf (t, "  speed_capa: <%s>%s", link_capa, shell->LF);
+          fprintf (t, "  nb_rx_queues: %'u nb_tx_queues: %'u%s",
+                   dev->nb_rx_queues, dev->nb_tx_queues, shell->LF);
 
           char rx_offload_str[128];
           char tx_offload_str[128];
@@ -243,10 +244,10 @@ DEFINE_COMMAND (show_port,
           snprintf_flags (tx_offload_str, sizeof (tx_offload_str),
                       dev_info.tx_offload_capa, tx_offload_capa, "|",
                       sizeof (tx_offload_capa) / sizeof (struct flag_name));
-          fprintf (t, "  rx_offload_capa: <%s>\n",
-                   rx_offload_str);
-          fprintf (t, "  tx_offload_capa: <%s>\n",
-                   tx_offload_str);
+          fprintf (t, "  rx_offload_capa: <%s>%s",
+                   rx_offload_str, shell->LF);
+          fprintf (t, "  tx_offload_capa: <%s>%s",
+                   tx_offload_str, shell->LF);
 
           char rx_conf_str[128];
           char tx_conf_str[128];
@@ -258,8 +259,8 @@ DEFINE_COMMAND (show_port,
           snprintf_flags (tx_conf_str, sizeof (tx_conf_str),
                       dev_info.default_txconf.offloads, tx_offload_capa, "|",
                       sizeof (tx_offload_capa) / sizeof (struct flag_name));
-          fprintf (t, "  default_rxconf.offloads: <%s>\n", rx_conf_str);
-          fprintf (t, "  default_txconf.offloads: <%s>\n", tx_conf_str);
+          fprintf (t, "  default_rxconf.offloads: <%s>%s", rx_conf_str, shell->LF);
+          fprintf (t, "  default_txconf.offloads: <%s>%s", tx_conf_str, shell->LF);
 
           int i;
           uint32_t ptypes[32];
@@ -270,7 +271,7 @@ DEFINE_COMMAND (show_port,
             {
               rte_get_ptype_name (ptypes[i], ptypes_name,
                                   sizeof (ptypes_name));
-              fprintf (t, "  ptypes[%d]: %s\n", i, ptypes_name);
+              fprintf (t, "  ptypes[%d]: %s%s", i, ptypes_name, shell->LF);
             }
         }
     }
@@ -318,11 +319,11 @@ DEFINE_COMMAND (show_port_statistics,
     }
 
   if (packets)
-    fprintf (t, "%16s %8s %8s %8s %8s\n",
-             "port name:", "rx", "tx", "ierrors", "oerrors");
+    fprintf (t, "%16s %8s %8s %8s %8s%s",
+             "port name:", "rx", "tx", "ierrors", "oerrors", shell->LF);
   else
-    fprintf (t, "%16s %8s %8s\n",
-             "port name:", "bytes-in", "bytes-out");
+    fprintf (t, "%16s %8s %8s%s",
+             "port name:", "bytes-in", "bytes-out", shell->LF);
 
   nb_ports = rte_eth_dev_count_avail ();
   for (port_id = 0; port_id < nb_ports; port_id++)
@@ -330,12 +331,12 @@ DEFINE_COMMAND (show_port_statistics,
       stats = &stats_array[port_id];
       snprintf (name, sizeof (name), "port[%d]:", port_id);
       if (packets)
-      fprintf (t, "%16s %'8lu %'8lu %'8lu %'8lu\n", name,
+      fprintf (t, "%16s %'8lu %'8lu %'8lu %'8lu%s", name,
                stats->ipackets, stats->opackets,
-               stats->ierrors, stats->oerrors);
+               stats->ierrors, stats->oerrors, shell->LF);
       else
-      fprintf (t, "%16s %'8lu %'8lu\n", name,
-               stats->ibytes, stats->obytes);
+      fprintf (t, "%16s %'8lu %'8lu%s", name,
+               stats->ibytes, stats->obytes, shell->LF);
     }
 }
 
@@ -363,13 +364,13 @@ DEFINE_COMMAND (show_port_promiscuous,
         continue;
       ret = rte_eth_promiscuous_get (port_id);
       if (ret < 0)
-        fprintf (shell->terminal, "get promiscuous error: ret: %d\n", ret);
+        fprintf (shell->terminal, "get promiscuous error: ret: %d%s", ret, shell->LF);
       else if (ret == 1)
-        fprintf (shell->terminal, "port[%d]: promiscuous: enabled.\n",
-                 port_id);
+        fprintf (shell->terminal, "port[%d]: promiscuous: enabled.%s",
+                 port_id, shell->LF);
       else
-        fprintf (shell->terminal, "port[%d]: promiscuous: disabled.\n",
-                 port_id);
+        fprintf (shell->terminal, "port[%d]: promiscuous: disabled.%s",
+                 port_id, shell->LF);
     }
 }
 
@@ -418,20 +419,21 @@ DEFINE_COMMAND (show_port_flowcontrol,
             tx_enabled = true;
         }
 
-      fprintf (shell->terminal, "port[%d]: flow control:\n", port_id);
-      fprintf (shell->terminal, "rx pause: %s\n", (rx_enabled ? "on" : "off"));
-      fprintf (shell->terminal, "tx pause: %s\n", (tx_enabled ? "on" : "off"));
-      fprintf (shell->terminal, "autoneg: %s\n",
-               (fc_conf.autoneg ? "on" : "off"));
-      fprintf (shell->terminal, "pause time: %'u\n", fc_conf.pause_time);
-      fprintf (shell->terminal, "high waterline: %'u\n", fc_conf.high_water);
-      fprintf (shell->terminal, "low waterline: %'u\n", fc_conf.low_water);
-      fprintf (shell->terminal, "send xon: %s\n",
-               (fc_conf.send_xon ? "on" : "off"));
-      fprintf (shell->terminal, "forward mac control frames: %s\n",
-               (fc_conf.mac_ctrl_frame_fwd ? "on" : "off"));
+      fprintf (shell->terminal, "port[%d]: flow control:%s", port_id, shell->LF);
+      fprintf (shell->terminal, "rx pause: %s%s", (rx_enabled ? "on" : "off"), shell->LF);
+      fprintf (shell->terminal, "tx pause: %s%s", (tx_enabled ? "on" : "off"), shell->LF);
+      fprintf (shell->terminal, "autoneg: %s%s",
+               (fc_conf.autoneg ? "on" : "off"), shell->LF);
+      fprintf (shell->terminal, "pause time: %'u%s", fc_conf.pause_time, shell->LF);
+      fprintf (shell->terminal, "high waterline: %'u%s", fc_conf.high_water, shell->LF);
+      fprintf (shell->terminal, "low waterline: %'u%s", fc_conf.low_water, shell->LF);
+      fprintf (shell->terminal, "send xon: %s%s",
+               (fc_conf.send_xon ? "on" : "off"), shell->LF);
+      fprintf (shell->terminal, "forward mac control frames: %s%s",
+               (fc_conf.mac_ctrl_frame_fwd ? "on" : "off"), shell->LF);
     }
 }
+
 DEFINE_COMMAND (set_port_promiscuous,
                 "set port (<0-16>|all) promiscuous (enable|disable)",
                 SET_HELP

@@ -13,6 +13,8 @@ struct debug_type debug_sdplane_types[] =
   { DEBUG_SDPLANE_TAPHANDLER, "tap-handler" },
   { DEBUG_SDPLANE_L2FWD,      "l2fwd" },
   { DEBUG_SDPLANE_L3FWD,      "l3fwd" },
+  { DEBUG_SDPLANE_VTY_SERVER, "vty-server" },
+  { DEBUG_SDPLANE_VTY_SHELL,  "vty-shell" },
 };
 
 int debug_module_sdplane = 0;

@@ -1,9 +1,14 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <lthread.h>
 
 #include <rte_common.h>
 
+#include <zcmdsh/shell.h>
+#include <zcmdsh/command.h>
+
 #include "module/l3fwd/l3fwd.h"
+
 #include "sdplane.h"
 
 int

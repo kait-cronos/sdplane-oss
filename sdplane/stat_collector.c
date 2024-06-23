@@ -9,6 +9,8 @@
 extern volatile bool force_quit;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
+extern int lthread_core;
+
 extern uint64_t loop_console;
 uint64_t loop_console_prev, loop_console_current, loop_console_pps;
 
@@ -45,8 +47,7 @@ stat_collector (__rte_unused void *dummy)
   memset (stats_per_sec, 0, sizeof (stats_per_sec));
 
   nb_ports = rte_eth_dev_count_avail ();
-  unsigned stat_collector_id = rte_lcore_id ();
-  while (! force_quit && ! force_stop[stat_collector_id])
+  while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (1000); // yield.
       //printf ("%s: schedule.\n", __func__);

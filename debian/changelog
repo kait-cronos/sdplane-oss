@@ -1,3 +1,11 @@
+sdplane (0.0.9d-1) UNRELEASED; urgency=low
+
+  * timer limitation released.
+  * vty_server.c, vty_shell.c.
+  * telnet support.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 24 Jun 2024 2:56:56 +0900
+
 sdplane (0.0.9c-1) UNRELEASED; urgency=low
 
   * timer limitation changed: 1H, ~2024/12/31.

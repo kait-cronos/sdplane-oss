@@ -34,6 +34,8 @@ volatile bool force_stop[RTE_MAX_LCORE];
 
 struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 
+extern int lthread_core;
+
 void
 start_lcore (struct shell *shell, int lcore_id)
 {
@@ -45,6 +47,12 @@ start_lcore (struct shell *shell, int lcore_id)
       return;
     }
   force_stop[lcore_id] = false;
+  if (lcore_id == lthread_core)
+    {
+      fprintf (shell->terminal, "skip for lthread lcore: %d\n", lcore_id);
+      return;
+    }
+
   rte_eal_remote_launch (lcore_workers[lcore_id].func,
                          lcore_workers[lcore_id].arg, lcore_id);
   fprintf (shell->terminal, "started worker on lcore: %d\n", lcore_id);
@@ -210,8 +218,8 @@ DEFINE_COMMAND (show_worker,
   char lcore_name[16];
   nb_lcores = rte_lcore_count ();
   main_lcore_id = rte_get_main_lcore ();
-  fprintf (shell->terminal, "%-9s: %-12s %-8s %s\n",
-           "lcore", "flags", "state", "func_name");
+  fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s",
+           "lcore", "flags", "state", "func_name", shell->LF);
   for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
     {
       snprintf (flags, sizeof (flags), "%s%s",
@@ -221,8 +229,9 @@ DEFINE_COMMAND (show_worker,
                "running" : "wait");
       snprintf (lcore_name, sizeof (lcore_name),
                 "lcore[%d]", lcore_id);
-      fprintf (shell->terminal, "%-9s: %-12s %-8s %s\n",
-               lcore_name, flags, state, lcore_workers[lcore_id].func_name);
+      fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s",
+               lcore_name, flags, state, lcore_workers[lcore_id].func_name,
+               shell->LF);
     }
 }
 

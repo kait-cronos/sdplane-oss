@@ -58,6 +58,7 @@
 #include "l3fwd.h"
 #include "l3fwd_event.h"
 #include "l3fwd_route.h"
+#include "l3fwd_cmd.h"
 
 #include "l2fwd_export.h"
 #include "l2fwd_cmd.h"
@@ -66,6 +67,7 @@
 #include "tap_handler.h"
 
 #include "debug_sdplane.h"
+#include "vty_shell.h"
 
 DEFINE_COMMAND (exit_cmd,
                 "(exit|quit|logout)",
@@ -74,7 +76,7 @@ DEFINE_COMMAND (exit_cmd,
                 "logout\n")
 {
   struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "exit !\n");
+  fprintf (shell->terminal, "console exit !\n");
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
   /* don't shell_close(): this closes stdout. */
   //shell_close (shell);
@@ -110,24 +112,6 @@ get_winsize (struct shell *shell)
            shell->winsize.ws_row, shell->winsize.ws_col);
 }
 
-void
-shell_keyfunc_clear_terminal (struct shell *shell)
-{
-  const char clr[] = { 27, '[', '2', 'J', '\0' };
-  const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
-  /* Clear screen and move to top left */
-  fprintf (shell->terminal, "%s%s", clr, topLeft);
-  fflush (shell->terminal);
-}
-
-DEFINE_COMMAND (clear_cmd,
-                "clear",
-                CLEAR_HELP)
-{
-  struct shell *shell = (struct shell *) context;
-  shell_keyfunc_clear_terminal (shell);
-}
-
 uint64_t loop_console = 0;
 
 void
@@ -138,8 +122,8 @@ console_shell (void *arg)
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
 
   shell = command_shell_create ();
-  //shell_set_prompt_cwd (shell);
   shell_set_terminal (shell, 0, 1);
+  shell_set_prompt (shell, "console> ");
   get_winsize (shell);
 
   INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
@@ -148,25 +132,11 @@ console_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, set_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
 
-  //INSTALL_COMMAND2 (shell->cmdset, show_version);
-
-  //INSTALL_COMMAND2 (shell->cmdset, chdir);
-  //INSTALL_COMMAND2 (shell->cmdset, list);
-
   INSTALL_COMMAND2 (shell->cmdset, debug);
   INSTALL_COMMAND2 (shell->cmdset, show_debug);
 
   INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
   INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
-
-  //INSTALL_COMMAND (shell->cmdset, pwd);
-  //INSTALL_COMMAND (shell->cmdset, open);
-  //INSTALL_COMMAND2 (shell->cmdset, terminal);
-  //INSTALL_COMMAND2 (shell->cmdset, launch_shell);
-  //INSTALL_COMMAND2 (shell->cmdset, edit_vi);
-
-  //shell_install (shell, '>', fselect_keyfunc_start);
-  //shell_install (shell, CONTROL ('D'), opensh_shell_keyfunc_ctrl_d);
 
   INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
   shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
@@ -176,7 +146,6 @@ console_shell (void *arg)
   soft_dplane_cmd_init (shell->cmdset);
 
   termio_init ();
-  //shell_fselect_init ();
 
   shell_clear (shell);
   shell_prompt (shell);
@@ -184,11 +153,11 @@ console_shell (void *arg)
   while (shell_running (shell))
     {
       loop_console++;
-      lthread_sleep (0); // yield.
+      lthread_sleep (100); // yield.
+
       if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
                       DEBUG_SDPLANE_LTHREAD))
-        printf ("%s[%d]: %s: shell_read_nowait().\n",
-                __FILE__, __LINE__, __func__);
+        printf ("%s: schedule.\n", __func__);
 
       shell_read_nowait (shell);
     }
@@ -199,6 +168,8 @@ console_shell (void *arg)
 }
 
 void vty_server (void *arg);
+
+int lthread_core = 0;
 
 int
 lthread_main (__rte_unused void *dummy)
@@ -219,10 +190,14 @@ lthread_main (__rte_unused void *dummy)
     }
 
   lcore_id = rte_lcore_id ();
+  if (lcore_id < 0)
+    lcore_id = 0;
+  lthread_core = lcore_id;
   lcore_workers[lcore_id].func = lthread_main;
   lcore_workers[lcore_id].func_name = "lthread_main";
 
-  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
+  printf ("%s[%d]: %s: enter at core[%d].\n",
+          __FILE__, __LINE__, __func__, lthread_core);
 
   /* library initialization. */
   debug_cmd_init ();

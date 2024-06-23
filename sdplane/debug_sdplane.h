@@ -7,6 +7,8 @@
 #define DEBUG_SDPLANE_TAPHANDLER (1ULL << 2)
 #define DEBUG_SDPLANE_L2FWD      (1ULL << 3)
 #define DEBUG_SDPLANE_L3FWD      (1ULL << 4)
+#define DEBUG_SDPLANE_VTY_SERVER (1ULL << 5)
+#define DEBUG_SDPLANE_VTY_SHELL  (1ULL << 6)
 
 extern int debug_module_sdplane;
 
