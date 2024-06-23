@@ -24,6 +24,7 @@
 /debian/autoreconf.after
 /debian/autoreconf.before
 /debian/sdplane.debhelper.log
+/debian/sdplane.postrm.debhelper
 /debian/sdplane
 
 *.o
