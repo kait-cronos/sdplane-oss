@@ -131,7 +131,7 @@ DEFINE_COMMAND (clear_cmd,
 uint64_t loop_console = 0;
 
 void
-lthread_shell (void *arg)
+console_shell (void *arg)
 {
   struct shell *shell = NULL;
 
@@ -230,9 +230,8 @@ lthread_main (__rte_unused void *dummy)
 
   void *ptr;
   lthread_create (&lt, (lthread_func) load_startup_config, NULL);
-  lthread_create (&lt, (lthread_func) lthread_shell, NULL);
+  lthread_create (&lt, (lthread_func) console_shell, NULL);
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
   //lthread_create (&lt, (lthread_func) tap_handler, NULL);
-  //lthread_run ();
 }
 
