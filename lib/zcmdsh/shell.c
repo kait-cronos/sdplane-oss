@@ -935,6 +935,7 @@ shell_create ()
   //shell->prompt = strdup ("prompt> ");
   shell_set_prompt (shell, "prompt> ");
   shell->interactive = 1;
+  shell->LF = "\n";
 
   shell->readfd = -1;
   shell->writefd = -1;

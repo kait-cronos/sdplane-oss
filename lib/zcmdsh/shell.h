@@ -25,6 +25,8 @@ struct shell
   FILE *terminal;
   int interactive;
 
+  char *LF;
+
   char *prompt;
   int prompt_size;
 

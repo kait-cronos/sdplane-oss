@@ -490,15 +490,15 @@ command_shell_ls_candidate (struct shell *shell)
   if (match)
     {
       if (last_head == shell->cursor && match->func)
-        fprintf (shell->terminal, "  %-16s %s\n",
-                 "<cr>", match->helpstr);
+        fprintf (shell->terminal, "  %-16s %s%s",
+                 "<cr>", match->helpstr, shell->LF);
 
       for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
         {
           node = (struct command_node *) vn->data;
           if (is_command_match (node->cmdstr, last))
-            fprintf (shell->terminal, "  %-16s %s\n",
-                     node->cmdstr, node->helpstr);
+            fprintf (shell->terminal, "  %-16s %s%s",
+                     node->cmdstr, node->helpstr, shell->LF);
 
           if (file_spec (node->cmdstr))
             file_ls_candidate (shell, last);
