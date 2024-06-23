@@ -36,6 +36,7 @@ struct shell
   int size;    /* buffer size of command_line[] */
   char *cut_buffer;
 
+  char inputch;
   shell_keyfunc_t *key_func;
 
   void *cmdset;

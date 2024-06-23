@@ -303,19 +303,22 @@ command_shell_execute (struct shell *shell)
     {
       shell_clear (shell);
       shell_prompt (shell);
+      shell_refresh (shell);
       return;
     }
 
   ret = command_execute (shell->command_line, shell->cmdset, shell);
   if (ret < 0)
-    fprintf (shell->terminal, "no such command: %s\n", shell->command_line);
+    fprintf (shell->terminal, "no such command: %s%s",
+             shell->command_line, shell->LF);
   command_history_add (shell->command_line, shell->history, shell);
-
-  /* FILE buffer must be flushed before raw-writing the same file */
-  fflush (shell->terminal);
 
   shell_clear (shell);
   shell_prompt (shell);
+  shell_refresh (shell);
+
+  /* FILE buffer must be flushed before raw-writing the same file */
+  //fflush (shell->terminal);
 }
 
 void
@@ -328,6 +331,8 @@ command_shell_completion (struct shell *shell)
                                  shell->cmdset);
   if (completion)
     shell_insert (shell, completion);
+
+  fflush (shell->terminal);
 }
 
 static void
@@ -579,8 +584,8 @@ command_shell_create ()
   struct shell *shell;
 
   shell = shell_create ();
-  shell->cmdset = cmdset_default;
-  //shell->cmdset = command_set_copy (cmdset_default);
+  shell->cmdset = command_set_create ();
+  default_install_command (shell->cmdset);
 
   shell_install (shell, CONTROL('J'), command_shell_execute);
   shell_install (shell, CONTROL('M'), command_shell_execute);

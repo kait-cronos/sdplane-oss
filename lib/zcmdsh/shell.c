@@ -67,7 +67,11 @@ shell_format (struct shell *shell)
 void
 shell_linefeed (struct shell *shell)
 {
+#if 0
   writec (shell->writefd, '\n');
+#else
+  fprintf (shell->terminal, "%s", shell->LF);
+#endif
 }
 
 void
@@ -105,6 +109,7 @@ shell_set_prompt (struct shell *shell, char *prompt)
 void
 shell_prompt (struct shell *shell)
 {
+  int ret;
   if (shell->writefd < 0)
     return;
 
@@ -113,7 +118,7 @@ shell_prompt (struct shell *shell)
     writec (shell->writefd, '\r');
 
   /* print prompt */
-  write (shell->writefd, shell->prompt, strlen (shell->prompt));
+  ret = write (shell->writefd, shell->prompt, strlen (shell->prompt));
 }
 
 static void
@@ -140,6 +145,7 @@ void
 shell_insert (struct shell *shell, char *s)
 {
   int i;
+  int ret;
 
   /* expand command_line */
   while (shell->end + strlen (s) + 1 > shell->size)
@@ -154,8 +160,8 @@ shell_insert (struct shell *shell, char *s)
 
   if (shell->writefd >= 0)
     {
-      write (shell->writefd, &shell->command_line[shell->cursor],
-             strlen (&shell->command_line[shell->cursor]));
+      ret = write (shell->writefd, &shell->command_line[shell->cursor],
+                   strlen (&shell->command_line[shell->cursor]));
       shell->cursor += strlen (s);
       for (i = shell->end; shell->cursor < i; i--)
         writec (shell->writefd, CONTROL('H'));
@@ -177,6 +183,7 @@ shell_delete_string (struct shell *shell, int start, int end)
 {
   int i, movesize;
   int size;
+  int ret;
 
   assert (0 <= start && start <= end);
   assert (start <= end && end <= shell->end);
@@ -200,8 +207,8 @@ shell_delete_string (struct shell *shell, int start, int end)
     writec (shell->writefd, CONTROL('H'));
 
   /* redraw the part related to this deletion */
-  write (shell->writefd, &shell->command_line[start],
-         strlen (&shell->command_line[start]));
+  ret = write (shell->writefd, &shell->command_line[start],
+               strlen (&shell->command_line[start]));
 
   /* adjust the cursor pointer and go back to it */
   shell->cursor = start;
@@ -376,6 +383,42 @@ shell_word_end (struct shell *shell, int point)
 }
 
 int
+shell_word_next_head (struct shell *shell, int point)
+{
+  char *start;
+  char *stringp;
+  char *next, *word;
+  int head = 0;
+  int passed = 0;
+
+  assert (0 <= point && point <= shell->end);
+
+  shell_terminate (shell);
+  start = strdup (shell->command_line);
+  stringp = start;
+
+  next = NULL;
+  while ((word = strsep (&stringp, SHELL_WORD_DELIMITERS)) != NULL)
+    {
+      if (passed)
+        {
+          if (*word != '\0')
+            next = word;
+          break;
+        }
+      if (word - start <= point && point <= word - start + strlen (word))
+        passed++;
+    }
+
+  if (next)
+    head = next - start;
+  else
+    head = shell->end;
+  free (start);
+  return head;
+}
+
+int
 shell_word_prev_head (struct shell *shell, int point)
 {
   char *start;
@@ -443,16 +486,38 @@ shell_delete_word_backward (struct shell *shell)
   shell_cut (shell, start, shell->cursor);
 }
 
+void
+shell_move_word_backward (struct shell *shell)
+{
+  int start;
+
+  start = shell_subword_head (shell, shell->cursor);
+  if (start == shell->cursor)
+    start = shell_subword_prev_head (shell, shell->cursor);
+
+  shell_moveto (shell, start);
+}
+
+void
+shell_move_word_forward (struct shell *shell)
+{
+  int start;
+
+  start = shell_word_next_head (shell, shell->cursor);
+  shell_moveto (shell, start);
+}
+
 #define DEBUG_POS 82
 void
 shell_debug (struct shell *shell)
 {
   int i;
   char debug[64];
+  int ret;
 
   shell_terminate (shell);
-  write (shell->writefd, &shell->command_line[shell->cursor],
-         strlen (&shell->command_line[shell->cursor]));
+  ret = write (shell->writefd, &shell->command_line[shell->cursor],
+               strlen (&shell->command_line[shell->cursor]));
 
   /* Go to the position where the debugging info will be out */
   if (shell->end < DEBUG_POS)
@@ -475,7 +540,7 @@ shell_debug (struct shell *shell)
             shell_word_end (shell, shell->cursor),
             shell->cursor, shell->end,
             inputch, inputch, shell->size);
-  write (shell->writefd, debug, strlen (debug));
+  ret = write (shell->writefd, debug, strlen (debug));
 
   /* Go back to the position where the cursor should be */
   if (shell->end < DEBUG_POS + strlen (debug))
@@ -488,8 +553,8 @@ shell_debug (struct shell *shell)
     {
       /* go forward */
       i = shell->end - DEBUG_POS - strlen (debug);
-      write (shell->writefd,
-             &shell->command_line[DEBUG_POS + strlen (debug)], i);
+      ret = write (shell->writefd,
+                   &shell->command_line[DEBUG_POS + strlen (debug)], i);
     }
 }
 
@@ -497,12 +562,14 @@ void
 shell_refresh (struct shell *shell)
 {
   int i;
+  int ret;
 
   shell_prompt (shell);
 
   /* print current command line */
   shell_terminate (shell);
-  write (shell->writefd, shell->command_line, strlen (shell->command_line));
+  ret = write (shell->writefd, shell->command_line,
+               strlen (shell->command_line));
 
   /* move cursor back to its position */
   for (i = shell->end; shell->cursor < i; i--)
@@ -510,6 +577,8 @@ shell_refresh (struct shell *shell)
 
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
     shell_debug (shell);
+
+  fflush (shell->terminal);
 }
 
 void
@@ -603,6 +672,7 @@ shell_keyfunc_ctrl_j (struct shell *shell)
   shell_linefeed (shell);
   shell_clear (shell);
   shell_prompt (shell);
+  fflush (shell->terminal);
 }
 
 void
@@ -611,6 +681,7 @@ shell_keyfunc_ctrl_m (struct shell *shell)
   shell_linefeed (shell);
   shell_clear (shell);
   shell_prompt (shell);
+  fflush (shell->terminal);
 }
 
 void
@@ -770,7 +841,6 @@ shell_keyfunc_t default_key_func[256] =
   shell_keyfunc_ctrl_d,    /* Function for DEL */
 };
 
-
 void
 shell_input (struct shell *shell, unsigned char ch)
 {
@@ -780,21 +850,23 @@ shell_input (struct shell *shell, unsigned char ch)
 
   /* for debug */
   inputch = ch;
+  shell->inputch = ch;
 
 #if 1
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-  fprintf (shell->terminal, "\n");
+  fprintf (shell->terminal, "%s", shell->LF);
   fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x",
            __func__, ch, ch, ch);
   if (CONTROL ('@') <= ch && ch <= CONTROL ('_'))
-    fprintf (shell->terminal, " CONTROL('%c')\n", ch + '@');
+    fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->LF);
   else if (ch == 127)
-    fprintf (shell->terminal, " DEL\n");
+    fprintf (shell->terminal, " DEL%s", shell->LF);
   else
-    fprintf (shell->terminal, " '%c'\n", ch);
-  fprintf (shell->terminal, "key_func: %p, key_func[%d]: %p\n",
-           shell->key_func, ch, shell->key_func[ch]);
+    fprintf (shell->terminal, " '%c'%s", ch, shell->LF);
+  fprintf (shell->terminal, "key_func: %p, key_func[%d]: %p%s",
+           (void *)shell->key_func, ch, (void *)shell->key_func[ch],
+           shell->LF);
   shell_refresh (shell);
     }
 #endif
