@@ -240,6 +240,8 @@
     Hugetlb:         3145728 kB
 
 * NIC の DPDK 設定 (intel時オンリー)
+  # ip link set down dev enp2s0
+  # ip link set down dev enp3s0
   # modprobe uio_pci_generic
   # dpdk-devbind.py -b uio_pci_generic 02:00.0 03:00.0 04:00.0
   (01:00.0 はマネジメントI/Fで、OSで使う想定。)

@@ -16,7 +16,7 @@ main (int argc, char **argv)
   lthread_create (&lt, (lthread_func) lthread_main, NULL);
   lthread_run ();
 
-  //l3fwd_terminate (argc, argv);
+  l3fwd_terminate (argc, argv);
   return EXIT_SUCCESS;
 }
 

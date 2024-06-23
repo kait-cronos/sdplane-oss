@@ -198,6 +198,8 @@ console_shell (void *arg)
   termio_finish ();
 }
 
+void vty_server (void *arg);
+
 int
 lthread_main (__rte_unused void *dummy)
 {
@@ -233,5 +235,6 @@ lthread_main (__rte_unused void *dummy)
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
   //lthread_create (&lt, (lthread_func) tap_handler, NULL);
+  lthread_create (&lt, (lthread_func) vty_server, NULL);
 }
 
