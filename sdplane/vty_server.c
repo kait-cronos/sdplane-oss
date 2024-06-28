@@ -93,7 +93,7 @@ vty_server (void *arg)
 
   struct pollfd fds[2];
 
-  while (! force_stop[lthread_core])
+  while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (1000); // yield.
 
@@ -140,6 +140,6 @@ vty_server (void *arg)
         client_size = client_id + 1;
     }
 
-  printf ("%s finished.\n", __func__);
+  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
 }
 

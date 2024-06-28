@@ -47,7 +47,7 @@
 #include "debug_sdplane.h"
 #include "stat_collector.h"
 
-static volatile bool force_quit;
+extern volatile bool force_quit;
 
 __thread uint64_t loop_l2fwd = 0;
 

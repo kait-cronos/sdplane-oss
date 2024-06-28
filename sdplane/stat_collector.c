@@ -75,6 +75,8 @@ stat_collector (__rte_unused void *dummy)
             }
         }
     }
+
+  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
   return 0;
 }
 

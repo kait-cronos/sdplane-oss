@@ -270,7 +270,8 @@ vty_shell (void *arg)
   shell_clear (shell);
   shell_prompt (shell);
 
-  while (shell_running (shell) && ! force_stop[lthread_core])
+  while (! force_quit && ! force_stop[lthread_core] &&
+         shell_running (shell))
     {
       lthread_sleep (100); // yield.
 
@@ -321,9 +322,11 @@ vty_shell (void *arg)
     }
 #endif
 
+  printf ("%s[%d]: %s: terminating for client[%d]: %s.\n",
+          __FILE__, __LINE__, __func__,
+          client->id, client_addr_str);
+
   lthread_close (client->fd);
-  printf ("%s[%d] finished for client[%d]: %s.\n",
-          __func__, client->id, client->id, client_addr_str);
   client->fd = -1;
 
   return;

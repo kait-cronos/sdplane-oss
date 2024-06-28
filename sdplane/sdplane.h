@@ -5,6 +5,7 @@
 extern char *l3fwd_argv[L3FWD_ARGV_MAX];
 extern int l3fwd_argc;
 
+extern volatile bool force_quit;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
 struct lcore_worker

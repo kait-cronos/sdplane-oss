@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <lthread.h>
+#include <signal.h>
 
 #include <rte_common.h>
 
@@ -11,10 +12,32 @@
 
 #include "sdplane.h"
 
+void
+signal_handler (int signum)
+{
+  printf ("%s:%d: %s: Signal %d received.\n",
+          __FILE__, __LINE__, __func__, signum);
+
+  if (signum == SIGINT)
+    {
+      /* do nothing. */
+      printf ("Signal %d received.\n", signum);
+    }
+  else if (signum == SIGTERM)
+    {
+      printf ("Signal %d received, preparing to exit...\n", signum);
+      force_quit = true;
+    }
+}
+
 int
 main (int argc, char **argv)
 {
   lthread_t *lt = NULL;
+
+  signal (SIGINT, signal_handler);
+  signal (SIGTERM, signal_handler);
+  signal (SIGHUP, signal_handler);
 
   soft_dplane_init ();
 
@@ -24,4 +47,3 @@ main (int argc, char **argv)
   l3fwd_terminate (argc, argv);
   return EXIT_SUCCESS;
 }
-

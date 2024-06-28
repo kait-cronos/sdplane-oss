@@ -69,6 +69,8 @@
 #include "debug_sdplane.h"
 #include "vty_shell.h"
 
+int lthread_core = 0;
+
 DEFINE_COMMAND (exit_cmd,
                 "(exit|quit|logout)",
                 "exit\n"
@@ -150,7 +152,8 @@ console_shell (void *arg)
   shell_clear (shell);
   shell_prompt (shell);
 
-  while (shell_running (shell))
+  while (! force_quit && ! force_stop[lthread_core] &&
+         shell_running (shell))
     {
       loop_console++;
       lthread_sleep (100); // yield.
@@ -168,8 +171,6 @@ console_shell (void *arg)
 }
 
 void vty_server (void *arg);
-
-int lthread_core = 0;
 
 int
 lthread_main (__rte_unused void *dummy)
