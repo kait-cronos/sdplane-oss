@@ -9,7 +9,7 @@
 #include "vector.h"
 #include "shell.h"
 
-static unsigned char inputch = 0;
+//static unsigned char inputch = 0;
 
 int
 writec (int fd, char c)
@@ -516,46 +516,34 @@ shell_debug (struct shell *shell)
   int ret;
 
   shell_terminate (shell);
-  ret = write (shell->writefd, &shell->command_line[shell->cursor],
-               strlen (&shell->command_line[shell->cursor]));
-
-  /* Go to the position where the debugging info will be out */
-  if (shell->end < DEBUG_POS)
-    {
-      /* go forward */
-      for (i = shell->end; i < DEBUG_POS; i++)
-        writec (shell->writefd, ' ');
-    }
-  else if (shell->end > DEBUG_POS)
-    {
-      /* go backward */
-      for (i = shell->end; i > DEBUG_POS; i--)
-        writec (shell->writefd, CONTROL('H'));
-    }
 
   snprintf (debug, sizeof (debug),
-            "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%0x('%c') size=%d",
+            "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%0x('%c') size=%d%s",
             shell_word_prev_head (shell, shell->cursor),
             shell_word_head (shell, shell->cursor),
             shell_word_end (shell, shell->cursor),
             shell->cursor, shell->end,
-            inputch, inputch, shell->size);
+            shell->inputch, shell->inputch, shell->size, shell->LF);
   ret = write (shell->writefd, debug, strlen (debug));
 
-  /* Go back to the position where the cursor should be */
-  if (shell->end < DEBUG_POS + strlen (debug))
+  for (i = 0; i < shell->end; i++)
     {
-      /* go backward */
-      for (i = DEBUG_POS + strlen (debug); i > shell->cursor; i--)
-        writec (shell->writefd, CONTROL('H'));
+      int cmdch;
+      cmdch = shell->command_line[i];
+      if (isascii (cmdch))
+        write (shell->writefd, (char)cmdch, 1);
+      else
+        {
+          snprintf (debug, sizeof (debug), "(%02x|%d)", cmdch, cmdch);
+          write (shell->writefd, debug, strlen (debug));
+        }
     }
-  else if (DEBUG_POS + strlen (debug) < shell->end)
-    {
-      /* go forward */
-      i = shell->end - DEBUG_POS - strlen (debug);
-      ret = write (shell->writefd,
-                   &shell->command_line[DEBUG_POS + strlen (debug)], i);
-    }
+  snprintf (debug, sizeof (debug), "%s", shell->LF);
+  write (shell->writefd, debug, strlen (debug));
+#if 0
+  ret = write (shell->writefd, &shell->command_line[shell->cursor],
+               strlen (&shell->command_line[shell->cursor]));
+#endif
 }
 
 void
@@ -563,6 +551,10 @@ shell_refresh (struct shell *shell)
 {
   int i;
   int ret;
+
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG) ||
+      FLAG_CHECK (debug_config, SHELL_FLAG_DEBUG))
+    shell_debug (shell);
 
   shell_prompt (shell);
 
@@ -574,9 +566,6 @@ shell_refresh (struct shell *shell)
   /* move cursor back to its position */
   for (i = shell->end; shell->cursor < i; i--)
     writec (shell->writefd, CONTROL('H'));
-
-  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
-    shell_debug (shell);
 
   fflush (shell->terminal);
 }
@@ -849,7 +838,7 @@ shell_input (struct shell *shell, unsigned char ch)
     escaped++;
 
   /* for debug */
-  inputch = ch;
+  //inputch = ch;
   shell->inputch = ch;
 
 #if 1
@@ -862,8 +851,10 @@ shell_input (struct shell *shell, unsigned char ch)
     fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->LF);
   else if (ch == 127)
     fprintf (shell->terminal, " DEL%s", shell->LF);
-  else
+  else if (isascii (ch))
     fprintf (shell->terminal, " '%c'%s", ch, shell->LF);
+  else
+    fprintf (shell->terminal, "%s", shell->LF);
   fprintf (shell->terminal, "key_func: %p, key_func[%d]: %p%s",
            (void *)shell->key_func, ch, (void *)shell->key_func[ch],
            shell->LF);
