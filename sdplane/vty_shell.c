@@ -256,12 +256,17 @@ extern volatile bool force_stop[RTE_MAX_LCORE];
 
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <sys/utsname.h>
 
 int
-snprintf_hwaddr_signature (char *buf, int size, char *ifname)
+snprintf_signature (char *buf, int size, char *ifname)
 {
-  int sockfd;
   int ret;
+
+  struct utsname utsname;
+  ret = uname (&utsname);
+
+  int sockfd;
   struct ifreq ifr;
   memset (&ifr, 0, sizeof (ifr));
   sockfd = socket (AF_PACKET, SOCK_RAW, IPPROTO_RAW);
@@ -279,8 +284,9 @@ snprintf_hwaddr_signature (char *buf, int size, char *ifname)
       return ret;
     }
 
-  ret = snprintf (buf, size, "hwaddr: %s: %02x:%02x:%02x:%02x:%02x:%02x",
-                  ifname,
+  ret = snprintf (buf, size,
+                  "%s %s %s: %02x:%02x:%02x:%02x:%02x:%02x",
+                  utsname.nodename, utsname.machine, ifname,
                   ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[0],
                   ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[1],
                   ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[2],
@@ -297,47 +303,10 @@ vty_banner (struct shell *shell)
   int ret;
   char signature[1024];
 
-  snprintf_hwaddr_signature (signature, sizeof (signature), "enp1s0");
-
-#if 0
-  struct ifaddrs *ifa_head;
-  struct ifaddrs *ifa;
-  struct sockaddr_storage sa_storage;
-  struct sockaddr *sa;
-  sa = (struct sockaddr *)&sa_storage;
-
-  ret = getifaddrs (&ifa_head);
-  ifa = ifa_head;
-  while (ifa)
-    {
-      if (ifa->ifa_addr)
-        printf ("%s:%d: %s: %p: ifname: %s family: %d\n",
-              __FILE__, __LINE__, __func__, ifa,
-              ifa->ifa_name, ifa->ifa_addr->sa_family);
-      else
-        printf ("%s:%d: %s: %p: ifname: %s no addr\n",
-              __FILE__, __LINE__, __func__, ifa,
-              ifa->ifa_name);
-
-      if (ifa->ifa_addr)
-        {
-          if (! strcmp (ifa->ifa_name, "enp1s0") &&
-              ifa->ifa_addr->sa_family == 17)
-            {
-              *sa = *ifa->ifa_addr;
-              printf ("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
-                      sa->sa_data[0], sa->sa_data[1], sa->sa_data[2],
-                      sa->sa_data[3], sa->sa_data[4], sa->sa_data[5]);
-            }
-        }
-
-      ifa = ifa->ifa_next;
-    }
-  freeifaddrs (ifa_head);
-#endif
+  snprintf_signature (signature, sizeof (signature), "enp1s0");
 
   fprintf (shell->terminal, "welcome to sdplane vty_shell.%s", shell->LF);
-  fprintf (shell->terminal, "version: %s%s", SDPLANE_VERSION, shell->LF);
+  fprintf (shell->terminal, "sdplane version: %s%s", SDPLANE_VERSION, shell->LF);
   fprintf (shell->terminal, "signature: %s%s", signature, shell->LF);
   fflush (shell->terminal);
 }

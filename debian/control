@@ -2,7 +2,7 @@ Source: sdplane
 Section: net
 Priority: optional
 Maintainer: Yasuhiro Ohara <yasu1976@gmail.com>
-Build-Depends: debhelper-compat (= 12), zcmdsh (>= 0.3.16)
+Build-Depends: debhelper-compat (= 12), zcmdsh (>= 0.3.19)
 Standards-Version: 4.5.0
 Homepage: http://www.yasuhironet.net/
 
@@ -12,4 +12,3 @@ Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: DPDK software data-plane,
   with interactive command shell.
-  (test-version: runnable for 1H, until 2024/12/31.)

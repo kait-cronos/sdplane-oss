@@ -1,6 +1,8 @@
 #ifndef __SOFT_DPLANE_H__
 #define __SOFT_DPLANE_H__
 
+#include <zcmdsh/shell.h>
+
 #define L3FWD_ARGV_MAX 16
 extern char *l3fwd_argv[L3FWD_ARGV_MAX];
 extern int l3fwd_argc;
