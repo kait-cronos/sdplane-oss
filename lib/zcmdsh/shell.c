@@ -517,15 +517,24 @@ shell_debug (struct shell *shell)
 
   shell_terminate (shell);
 
+  fprintf (shell->terminal, "cmd: [");
+  for (i = 0; i < shell->end; i++)
+    fprintf (shell->terminal, " %#02x", shell->command_line[i]);
+  fprintf (shell->terminal, " ]%s", shell->LF);
+  fprintf (shell->terminal, "size: %d cursor: %d end: %d%s",
+           shell->size, shell->cursor, shell->end, shell->LF);
+  fflush (shell->terminal);
+
   snprintf (debug, sizeof (debug),
-            "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%0x('%c') size=%d%s",
+            "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d%s",
             shell_word_prev_head (shell, shell->cursor),
             shell_word_head (shell, shell->cursor),
             shell_word_end (shell, shell->cursor),
             shell->cursor, shell->end,
-            shell->inputch, shell->inputch, shell->size, shell->LF);
+            shell->inputch, shell->size, shell->LF);
   ret = write (shell->writefd, debug, strlen (debug));
 
+#if 0
   for (i = 0; i < shell->end; i++)
     {
       int cmdch;
@@ -540,6 +549,8 @@ shell_debug (struct shell *shell)
     }
   snprintf (debug, sizeof (debug), "%s", shell->LF);
   write (shell->writefd, debug, strlen (debug));
+#endif
+
 #if 0
   ret = write (shell->writefd, &shell->command_line[shell->cursor],
                strlen (&shell->command_line[shell->cursor]));
@@ -553,7 +564,7 @@ shell_refresh (struct shell *shell)
   int ret;
 
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG) ||
-      FLAG_CHECK (debug_config, SHELL_FLAG_DEBUG))
+      FLAG_CHECK (debug_config, DEBUG_SHELL))
     shell_debug (shell);
 
   shell_prompt (shell);

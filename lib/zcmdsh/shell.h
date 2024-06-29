@@ -47,6 +47,8 @@ struct shell
 
   struct winsize winsize;
 
+  unsigned char telnet_cmd;
+  unsigned char telnet_opt;
   int subnego_size;
   char subnego_buf[256];
 };
