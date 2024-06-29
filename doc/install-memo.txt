@@ -1,5 +1,7 @@
 
-(ver. 12: 2024/06/24 03:07)
+(ver. 13: 2024/06/29 13:34)
+zcmdsh_0.3.19-1_amd64.deb
+sdplane_0.0.9e-1_amd64.deb
 
 ***********************
 * Ubuntu 起動 iso の作成。
@@ -215,12 +217,12 @@
   # update-grub
 
 * zcmdsh の install
-  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.16-1_amd64.deb
-  # apt install ./zcmdsh_0.3.16-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.19-1_amd64.deb
+  # apt install ./zcmdsh_0.3.19-1_amd64.deb
 
 * sdplane の install
-  $ wget https://www.yasuhironet.net/download/sdplane_0.0.9d-1_amd64.deb
-  # apt install ./sdplane_0.0.9d-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/sdplane_0.0.9e-1_amd64.deb
+  # apt install ./sdplane_0.0.9e-1_amd64.deb
 
 * sdplane startup config:
   # cp /etc/sdplane/sdplane.conf.sample /etc/sdplane/sdplane.conf
@@ -253,17 +255,17 @@
     Hugepagesize:       2048 kB
     Hugetlb:         3145728 kB
 
-* NIC の DPDK 設定
-  # ip link set down dev enp2s0
-  # ip link set down dev enp3s0
-  # modprobe uio_pci_generic
-  # dpdk-devbind.py -b uio_pci_generic 02:00.0 03:00.0 04:00.0
-  (01:00.0 はマネジメントI/Fで、OSで使う想定。)
-
 * sdplaneの起動を確認
   $ systemctl status sdplane
 
-* sdplaneシェルにアクセス
+* sdplaneシェルにアクセス、バナーを確認・保存
   telnet localhost 9882
+  Trying 127.0.0.1...
+  Connected to localhost.
+  Escape character is '^]'.
+  welcome to sdplane vty_shell.
+  sdplane version: 0.0.9e
+  signature: partaker x86_64 enp1s0: 00:e0:67:30:d9:ba
+  vty[1]> 
 
 
