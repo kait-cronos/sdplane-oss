@@ -14,6 +14,8 @@
 
 #include <arpa/telnet.h>
 
+#include <ifaddrs.h>
+
 #include <rte_common.h>
 #include <rte_launch.h>
 
@@ -36,9 +38,12 @@
 
 #include "debug_sdplane.h"
 
+#include "sdplane_version.h"
+
 shell_keyfunc_t key_func_escape_1[256];
 shell_keyfunc_t key_func_escape_2[256];
-shell_keyfunc_t key_func_iac[256];
+shell_keyfunc_t key_func_iac_1[256];
+shell_keyfunc_t key_func_iac_2[256];
 shell_keyfunc_t key_func_subnego[256];
 
 shell_keyfunc_t *key_func_orig;
@@ -90,25 +95,63 @@ vty_shell_delete_word_backward (struct shell *shell)
 void
 vty_shell_keyfunc_iac_start (struct shell *shell)
 {
-  shell->key_func = key_func_iac;
-  fprintf (shell->terminal, "%s: IAC received.%s", __func__, shell->LF);
+  shell->key_func = key_func_iac_1;
+  shell->telnet_cmd = 0;
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL) ||
+      FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                  DEBUG_SDPLANE_TELNET_OPT))
+    fprintf (shell->terminal, "%s: IAC received.%s", __func__, shell->LF);
   fflush (shell->terminal);
 }
 
 void
-vty_shell_keyfunc_iac_end (struct shell *shell)
+vty_shell_keyfunc_telnet_opt (struct shell *shell)
 {
   shell->key_func = key_func_orig;
-  fprintf (shell->terminal, "%s: IAC %#hhx.%s",
-           __func__, shell->inputch, shell->LF);
+  shell->telnet_opt = (u_char) shell->inputch;
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL) ||
+      FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                  DEBUG_SDPLANE_TELNET_OPT))
+    fprintf (shell->terminal, "%s: IAC %#02x %#02x.%s",
+             __func__, shell->telnet_cmd, (u_char)shell->telnet_opt, shell->LF);
+  fflush (shell->terminal);
+}
+
+void
+vty_shell_keyfunc_telnet_cmd (struct shell *shell)
+{
+  char *telnet_cmd_str;
+  shell->key_func = key_func_iac_2;
+  shell->telnet_cmd = (u_char) shell->inputch;
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL) ||
+      FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                  DEBUG_SDPLANE_TELNET_OPT))
+    {
+      switch (shell->telnet_cmd)
+        {
+          case DO: telnet_cmd_str = "DO"; break;
+          case WILL: telnet_cmd_str = "WILL"; break;
+          case DONT: telnet_cmd_str = "DONT"; break;
+          case WONT: telnet_cmd_str = "WONT"; break;
+          default: telnet_cmd_str = NULL; break;
+        }
+      if (telnet_cmd_str)
+        fprintf (shell->terminal, "%s: IAC %s.%s",
+                 __func__, telnet_cmd_str, shell->LF);
+      else
+        fprintf (shell->terminal, "%s: IAC %d(%#02x).%s",
+                 __func__, (u_char)shell->inputch,
+                 (u_char)shell->inputch, shell->LF);
+    }
   fflush (shell->terminal);
 }
 
 void
 vty_shell_keyfunc_subnego (struct shell *shell)
 {
-  fprintf (shell->terminal, "%s: subnego[%d] %#hhx.%s",
-           __func__, shell->subnego_size, shell->inputch, shell->LF);
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    fprintf (shell->terminal, "%s: subnego[%d] %#hhx.%s",
+             __func__, shell->subnego_size, shell->inputch, shell->LF);
   if (shell->subnego_size < sizeof (shell->subnego_buf))
     {
       shell->subnego_buf[shell->subnego_size] = shell->inputch;
@@ -122,8 +165,9 @@ vty_shell_keyfunc_sb_start (struct shell *shell)
 {
   shell->key_func = key_func_subnego;
   shell->subnego_size = 0;
-  fprintf (shell->terminal, "%s: IAC SB: %#hhx.%s",
-           __func__, shell->inputch, shell->LF);
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    fprintf (shell->terminal, "%s: IAC SB: %#hhx.%s",
+             __func__, shell->inputch, shell->LF);
   fflush (shell->terminal);
 }
 
@@ -131,18 +175,22 @@ void
 vty_shell_keyfunc_sb_end (struct shell *shell)
 {
   shell->key_func = key_func_orig;
-  fprintf (shell->terminal, "%s: IAC SE: %#hhx.%s",
-           __func__, shell->inputch, shell->LF);
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    fprintf (shell->terminal, "%s: IAC SE: %#hhx.%s",
+             __func__, shell->inputch, shell->LF);
   fflush (shell->terminal);
 
   int i;
-  fprintf (shell->terminal, "telnet_sb: len: %d [", shell->subnego_size);
-  for (i = 0; i < shell->subnego_size; i++)
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-      fprintf (shell->terminal, " %#hhx", shell->subnego_buf[i]);
+      fprintf (shell->terminal, "telnet_sb: len: %d [", shell->subnego_size);
+      for (i = 0; i < shell->subnego_size; i++)
+        {
+          fprintf (shell->terminal, " %#hhx", shell->subnego_buf[i]);
+        }
+      fprintf (shell->terminal, "]%s", shell->LF);
+      fflush (shell->terminal);
     }
-  fprintf (shell->terminal, "]%s", shell->LF);
-  fflush (shell->terminal);
 }
 
 void
@@ -152,13 +200,15 @@ vty_shell_keyfunc_init (struct shell *shell)
   key_func_orig = shell->key_func;
   memset (key_func_escape_1, 0, sizeof (key_func_escape_1));
   memset (key_func_escape_2, 0, sizeof (key_func_escape_2));
-  memset (key_func_iac, 0, sizeof (key_func_iac));
+  memset (key_func_iac_1, 0, sizeof (key_func_iac_1));
+  memset (key_func_iac_2, 0, sizeof (key_func_iac_2));
   memset (key_func_subnego, 0, sizeof (key_func_subnego));
   for (i = 0; i < 256; i++)
     {
       key_func_escape_1[i] = vty_shell_keyfunc_normal;
       key_func_escape_2[i] = vty_shell_keyfunc_normal;
-      key_func_iac[i] = vty_shell_keyfunc_iac_end;
+      key_func_iac_1[i] = vty_shell_keyfunc_telnet_opt;
+      key_func_iac_2[i] = vty_shell_keyfunc_telnet_opt;
       key_func_subnego[i] = vty_shell_keyfunc_subnego;
     }
 
@@ -169,8 +219,13 @@ vty_shell_keyfunc_init (struct shell *shell)
 
   key_func_escape_1['['] = vty_shell_keyfunc_escape_2;
 
-  key_func_iac[SB] = vty_shell_keyfunc_sb_start;
-  key_func_iac[SE] = vty_shell_keyfunc_sb_end;
+  key_func_iac_1[SB] = vty_shell_keyfunc_sb_start;
+  key_func_iac_1[SE] = vty_shell_keyfunc_sb_end;
+
+  key_func_iac_1[DO] = vty_shell_keyfunc_telnet_cmd;
+  key_func_iac_1[WILL] = vty_shell_keyfunc_telnet_cmd;
+  key_func_iac_1[DONT] = vty_shell_keyfunc_telnet_cmd;
+  key_func_iac_1[WONT] = vty_shell_keyfunc_telnet_cmd;
 
   key_func_subnego[IAC] = vty_shell_keyfunc_iac_start;
 
@@ -198,6 +253,94 @@ DEFINE_COMMAND (clear_cmd,
 
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
+
+#include <sys/ioctl.h>
+#include <net/if.h>
+
+int
+snprintf_hwaddr_signature (char *buf, int size, char *ifname)
+{
+  int sockfd;
+  int ret;
+  struct ifreq ifr;
+  memset (&ifr, 0, sizeof (ifr));
+  sockfd = socket (AF_PACKET, SOCK_RAW, IPPROTO_RAW);
+  if (sockfd < 0)
+    {
+      printf ("socket (AF_PACKET) failed: %s\n", strerror (errno));
+      return -1;
+    }
+
+  snprintf (ifr.ifr_name, sizeof (ifr.ifr_name), "%s", ifname);
+  ret = ioctl (sockfd, SIOCGIFHWADDR, &ifr);
+  if (ret < 0)
+    {
+      printf ("ioctl (SIOCGIFHWADDR) failed: %s\n", strerror (errno));
+      return ret;
+    }
+
+  ret = snprintf (buf, size, "hwaddr: %s: %02x:%02x:%02x:%02x:%02x:%02x",
+                  ifname,
+                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[0],
+                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[1],
+                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[2],
+                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[3],
+                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[4],
+                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[5]);
+
+  return ret;
+}
+
+void
+vty_banner (struct shell *shell)
+{
+  int ret;
+  char signature[1024];
+
+  snprintf_hwaddr_signature (signature, sizeof (signature), "enp1s0");
+
+#if 0
+  struct ifaddrs *ifa_head;
+  struct ifaddrs *ifa;
+  struct sockaddr_storage sa_storage;
+  struct sockaddr *sa;
+  sa = (struct sockaddr *)&sa_storage;
+
+  ret = getifaddrs (&ifa_head);
+  ifa = ifa_head;
+  while (ifa)
+    {
+      if (ifa->ifa_addr)
+        printf ("%s:%d: %s: %p: ifname: %s family: %d\n",
+              __FILE__, __LINE__, __func__, ifa,
+              ifa->ifa_name, ifa->ifa_addr->sa_family);
+      else
+        printf ("%s:%d: %s: %p: ifname: %s no addr\n",
+              __FILE__, __LINE__, __func__, ifa,
+              ifa->ifa_name);
+
+      if (ifa->ifa_addr)
+        {
+          if (! strcmp (ifa->ifa_name, "enp1s0") &&
+              ifa->ifa_addr->sa_family == 17)
+            {
+              *sa = *ifa->ifa_addr;
+              printf ("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                      sa->sa_data[0], sa->sa_data[1], sa->sa_data[2],
+                      sa->sa_data[3], sa->sa_data[4], sa->sa_data[5]);
+            }
+        }
+
+      ifa = ifa->ifa_next;
+    }
+  freeifaddrs (ifa_head);
+#endif
+
+  fprintf (shell->terminal, "welcome to sdplane vty_shell.%s", shell->LF);
+  fprintf (shell->terminal, "version: %s%s", SDPLANE_VERSION, shell->LF);
+  fprintf (shell->terminal, "signature: %s%s", signature, shell->LF);
+  fflush (shell->terminal);
+}
 
 DEFINE_COMMAND (vty_exit_cmd,
                 "(exit|quit|logout)",
@@ -268,6 +411,7 @@ vty_shell (void *arg)
   vty_do_window_size (shell);
 
   shell_clear (shell);
+  vty_banner (shell);
   shell_prompt (shell);
 
   while (! force_quit && ! force_stop[lthread_core] &&
@@ -281,46 +425,6 @@ vty_shell (void *arg)
 
       shell_read_nowait (shell);
     }
-
-#if 0
-  while (! force_stop[lthread_core])
-    {
-      lthread_sleep (100); // yield.
-
-      if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                      DEBUG_SDPLANE_LTHREAD))
-        printf ("%s: schedule.\n", __func__);
-
-      char send_buf[1024];
-      char buf[1024];
-      int ret;
-      ret = lthread_recv (client->fd, buf, sizeof (buf), 0, 1000);
-      if (ret == -2)
-        {
-          printf ("%s[%d]: timeout.\n", __func__, client->id);
-          continue;
-        }
-      else if (ret > 0)
-        {
-          snprintf (send_buf, sizeof (send_buf), "your message: %s\n", buf);
-          lthread_send (client->fd, send_buf, strlen (send_buf), 0);
-          printf ("%s[%d]: returned: %s.\n",
-                  __func__, client->id, send_buf);
-        }
-      else if (ret < 0)
-	{
-          printf ("%s[%d]: lthread_recv(): error: %d. exiting.\n",
-                  __func__, client->id, ret);
-	  break;
-        }
-      else
-	{
-          printf ("%s[%d]: lthread_recv(): returns 0. exiting.\n",
-                  __func__, client->id);
-	  break;
-        }
-    }
-#endif
 
   printf ("%s[%d]: %s: terminating for client[%d]: %s.\n",
           __FILE__, __LINE__, __func__,

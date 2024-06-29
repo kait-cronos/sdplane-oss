@@ -9,6 +9,7 @@
 #define DEBUG_SDPLANE_L3FWD      (1ULL << 4)
 #define DEBUG_SDPLANE_VTY_SERVER (1ULL << 5)
 #define DEBUG_SDPLANE_VTY_SHELL  (1ULL << 6)
+#define DEBUG_SDPLANE_TELNET_OPT (1ULL << 7)
 
 extern int debug_module_sdplane;
 
