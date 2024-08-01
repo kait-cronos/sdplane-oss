@@ -1,10 +1,10 @@
 
-(ver. 13: 2024/06/29 13:34)
+(ver. 14: 2024/08/01 23:41)
 zcmdsh_0.3.19-1_amd64.deb
 sdplane_0.0.9e-1_amd64.deb
 
 ***********************
-* Ubuntu 起動 iso の作成。
+* MacBook で Ubuntu 24.04 Server のインストール用USB作成
 ***********************
   - https://qiita.com/kapibarasensei/items/9fb81f0102f9ccc31559
   macbook pro で
@@ -35,57 +35,6 @@ sdplane_0.0.9e-1_amd64.deb
    2:       Microsoft Basic Data UBUNTU                  62.3 GB    disk4s2
   % diskutil unmountDisk /dev/disk4
 
-  % sudo dd if=ubuntu-18.04.6-live-server-amd64.iso of=/dev/disk4 bs=4028 status=progress
-  Password:
-    1011205232 bytes (1011 MB, 964 MiB) transferred 230.003s, 4396 kB/s
-  252251+1 records in
-  252251+1 records out
-  1016070144 bytes transferred in 230.743936 secs (4403453 bytes/sec)
-
-***********************
-* Disk partition の書き換え
-***********************
-// parted するために、まず一回18.04.6 でインストール。
-* Ubuntu 18.04.6 live server iso で USB から起動。
-
-  - English を選ぶ。
-  - Installer update available で Continue without updating
-  - keyboard layout: English / English で Done.
-  # - Ubuntu Server で Done.
-  - DHCP アドレス取れてることを確認して Done.
-  - Proxy 空白で Done.
-  - Mirror: jp.archive で Done.
-  - Sorry, there was a problem examining the storage devices
-    on this system.
-
-  - switch to a shell
-  - parted
-  - print all
-  - select /dev/sda
-  - rm 1
-  - mkpart primary ext4 1049KB 256GB
-  - quit, exit で parted と shell を抜ける
-  - Back とかで、Proxy からやり直し
-
-  - Use an entire disk, LVM group 無しで Done.
-  - Storage Configuration
-    そのまま(part1: 512M /boot/efi, part2: 237GB /)で Done.
-  - Confirm destructive action で continue.
-  - Profile setup:
-    Name: wireuser
-    Host: wiretap1/2/3/4
-    Username: wireuser
-    Password: wirepass
-  - SSH Setup: Install OpenSSH server
-    Import identity: No
-    で Done.
-  - Featured Server snaps:
-    何も無しで Done.
-  - security update でDL遅いので、Cancel update and reboot
-
-***********************
-* Ubuntu 24.04 Server のインストール用USB作成
-***********************
   % sudo dd if=ubuntu-24.04-live-server-amd64.iso of=/dev/rdisk4 bs=16m status=progress
   Password:
     2701131776 bytes (2701 MB, 2576 MiB) transferred 74.112s, 36 MB/s
@@ -93,26 +42,27 @@ sdplane_0.0.9e-1_amd64.deb
   164+1 records out
   2754981888 bytes transferred in 74.833016 secs (36815059 bytes/sec)
 
-  % diskutil eraseDisk MS-DOS UBUNTU /dev/disk4
-  Started erase on disk4
-  Unmounting disk
-  Creating the partition map
-  Waiting for partitions to activate
-  Formatting disk4s2 as MS-DOS (FAT) with name UBUNTU
-  512 bytes per physical sector
-  /dev/rdisk4s2: 120702144 sectors in 1885971 FAT32 clusters (32768 bytes/cluster)
-  bps=512 spc=64 res=32 nft=2 mid=0xf8 spt=32 hds=255 hid=411648 drv=0x80 bsec=120731648 bspf=14735 rdcl=2 infs=1 bkbs=6
-  Mounting disk
-  Finished erase on disk4
+***********************
+* Disk partition の書き換え
+***********************
+// help -> shell から parted する
+* Ubuntu 22.04 live server iso で USB から起動。
 
-  % diskutil unmountDisk /dev/disk4
-  Unmount of all volumes on disk4 was successful
-
-  % sudo dd if=ubuntu-24.04-live-server-amd64.iso of=/dev/rdisk4 bs=16m status=progress
-    2751463424 bytes (2751 MB, 2624 MiB) transferred 222.704s, 12 MB/s
-  164+1 records in
-  164+1 records out
-  2754981888 bytes transferred in 223.318787 secs (12336543 bytes/sec)
+  - American Megatrend の BIOS 画面で ESC or DEL を押す
+  - Boot タブで USB を選ぶ (#3 の [UEFI: I-O DATAUSB F...] を
+    上に移動して #1 に)。F4: Save & Exit.
+  - GNU GRUB version 2.12 の画面で、
+    *Try or Install Ubuntu Server を選ぶ
+  - select your language の画面で、右上にある [ Help ] まで
+    カーソルを移動して選択、3番目の Enter shell を選ぶ。
+    シェルが出てくる。
+  - parted
+  - print all
+  - select /dev/sda
+  - rm 1
+  - mkpart primary ext4 1049KB 256GB
+  - quit, exit で parted と shell を抜ける
+  - 再起動
 
 ***********************
 * Ubuntu 24.04 Server のインストール
@@ -173,15 +123,6 @@ sdplane_0.0.9e-1_amd64.deb
   - screen (入ってる)
   - ripgrep
 
-* tailscale
-  - curl -fsSL https://tailscale.com/install.sh | sh
-  - tailscale up
-  - To authenticate, visit:
-	https://login.tailscale.com/a/14f4cdf3014b2b
-    このURLを小原に通知する。
-    小原が yasuhironet の tailnet に接続する。
-    (テナント問題がTODO)
-
 * lthread を compile & install
   $ git clone https://github.com/yasuhironet/lthread.git
   $ cd lthread
@@ -229,16 +170,35 @@ sdplane_0.0.9e-1_amd64.deb
   # rm -f /etc/netplan/*.yaml
   # cp -f /etc/sdplane/60-netplan-sdplane.yaml /etc/netplan/
 
+* iptables rules files install:
+  # cp -f /etc/sdplane/rules.v{4,6} /etc/iptables/
+
+* sshd config file install:
+  # cp -f /etc/sdplane/sshd_config /etc/sshd/
+  - PasswordAuthentication yes
+  - 192.168.0.0/8 10.0.0.0/8 172.16.0.0/16 からのみ PasswordAuth
+
 * sdplane startup config:
   # cp -f /etc/sdplane/sdplane.conf.sample /etc/sdplane/sdplane.conf
 
 * systemd enable
-  systemctl enable sdplane
-  systemctl start sdplane
+  # systemctl enable sdplane
+  # systemctl start sdplane
+
+* etckeeper commit
+  # etckeeper commit
 
 * screen and .screenrc のインストール
   $ wget http://www.yasuhironet.net/download/dot.screenrc
   $ mv dot.screenrc ~/.screenrc
+
+* tailscale
+  # curl -fsSL https://tailscale.com/install.sh | sh
+
+* セットアップ wireadmin ユーザ
+  # adduser --disabled-password wireadmin
+  - 公開鍵を設定
+  - sudoers に NOPASS で登録
 
 ***********************
 * Ubuntu 再起動と確認。
