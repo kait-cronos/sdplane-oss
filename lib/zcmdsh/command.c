@@ -619,6 +619,12 @@ command_install2 (struct command_set *cmdset,
   struct vector_node *vn;
   struct command_node *parent;
 
+  if (! command_line && ! help_string && ! func)
+    {
+      fprintf (stderr, "%s: null commands. forgot init?\n", __func__);
+      return;
+    }
+
   parents = vector_create ();
   next_parents = vector_create ();
 

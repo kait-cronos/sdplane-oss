@@ -113,6 +113,10 @@ shell_prompt (struct shell *shell)
   if (shell->writefd < 0)
     return;
 
+  /* there may be some left-over in the FILE buf. */
+  if (shell->terminal)
+    fflush (shell->terminal);
+
   /* move cursor to beginning */
   if (shell->interactive)
     writec (shell->writefd, '\r');
@@ -567,6 +571,7 @@ shell_refresh (struct shell *shell)
       FLAG_CHECK (debug_config, DEBUG_SHELL))
     shell_debug (shell);
 
+  /* print prompt */
   shell_prompt (shell);
 
   /* print current command line */
@@ -577,8 +582,6 @@ shell_refresh (struct shell *shell)
   /* move cursor back to its position */
   for (i = shell->end; shell->cursor < i; i--)
     writec (shell->writefd, CONTROL('H'));
-
-  fflush (shell->terminal);
 }
 
 void
