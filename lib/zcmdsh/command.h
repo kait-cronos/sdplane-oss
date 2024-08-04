@@ -52,20 +52,32 @@ struct command_header
   };                                                         \
 
 #define INSTALL_COMMAND(cmdset, cmdname)                     \
+  do {                                                       \
   command_install (cmdset, cmdname ## _cmd.cmdstr,           \
-                   cmdname ## _cmd.helpstr, cmdname ## _cmd.cmdfunc)
+                   cmdname ## _cmd.helpstr, cmdname ## _cmd.cmdfunc); \
+  } while (0)
 
 #define INSTALL_COMMAND2(cmdset, cmdname)                     \
+  do {                                                        \
+    if (! cmdname ## _cmd.cmdstr || ! cmdname ## _cmd.helpstr || \
+        ! cmdname ## _cmd.cmdfunc)                            \
+      fprintf (stderr, "%s:%d: %s: "                          \
+               "null commands. forgot init?\n",               \
+               __FILE__, __LINE__, __func__);                 \
+    else                                                      \
   command_install2 (cmdset, cmdname ## _cmd.cmdstr,           \
-                    cmdname ## _cmd.helpstr, cmdname ## _cmd.cmdfunc)
+                    cmdname ## _cmd.helpstr, cmdname ## _cmd.cmdfunc); \
+  } while (0)
 
 #define EXTERN_COMMAND(cmdname) \
   extern struct command_header cmdname ## _cmd
 
 #define INSTALL_COMMAND3(cmdset, cmdname, index)              \
+  do {                                                        \
   command_install2 (cmdset, cmdname ## _cmd[index].cmdstr,    \
                     cmdname ## _cmd[index].helpstr,           \
-                    cmdname ## _cmd[index].cmdfunc)
+                    cmdname ## _cmd[index].cmdfunc);          \
+  } while (0)
 
 #define EXTERN_COMMAND3(cmdname) \
   extern struct command_header cmdname ## _cmd[]
