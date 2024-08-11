@@ -144,6 +144,3 @@ log_warn (const char *format, ...)
     va_end (args[index]);
 }
 
-
-
-

@@ -253,7 +253,8 @@ double_match (char *spec, char *word)
 int
 file_spec (char *spec)
 {
-  return (! strcmp (spec, "<FILENAME>"));
+  return (! strcmp (spec, "<FILENAME>") ||
+          ! strcmp (spec, "<FILE>"));
 }
 
 int
