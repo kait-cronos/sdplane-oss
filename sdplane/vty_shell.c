@@ -320,12 +320,6 @@ DEFINE_COMMAND (vty_exit_cmd,
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "vty exit !%s", shell->LF);
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
-  /* don't shell_close(): this closes stdout. */
-  //shell_close (shell);
-
-  //int nb_lcores = rte_lcore_count ();
-  //for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
-  //  stop_lcore (shell, lcore_id);
 }
 
 void
@@ -339,8 +333,11 @@ vty_shell (void *arg)
   char client_addr_str[128];
   inet_ntop (AF_INET, &client->peer_addr.sin_addr,
              client_addr_str, sizeof (client_addr_str));
-  printf ("%s[%d]: client[%d]: %s.\n",
-          __func__, client->id, client->id, client_addr_str);
+
+  if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                  DEBUG_SDPLANE_VTY_SHELL))
+    printf ("%s[%d]: client[%d]: %s.\n",
+            __func__, client->id, client->id, client_addr_str);
 
   char prompt[64];
   snprintf (prompt, sizeof (prompt), "vty[%d]> ", client->id);
@@ -388,21 +385,25 @@ vty_shell (void *arg)
     {
       lthread_sleep (100); // yield.
 
+#if 0
       if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                      DEBUG_SDPLANE_LTHREAD))
-        printf ("%s: schedule.\n", prompt);
+                      DEBUG_SDPLANE_VTY_SHELL))
+        printf ("%s[%d]: %s: schedule %s.\n",
+                __FILE__, __LINE__, __func__, prompt);
+#endif
 
       shell_read_nowait (shell);
     }
 
-  printf ("%s[%d]: %s: terminating for client[%d]: %s.\n",
-          __FILE__, __LINE__, __func__,
-          client->id, client_addr_str);
+  if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                  DEBUG_SDPLANE_VTY_SHELL))
+    printf ("%s[%d]: %s: terminating for client[%d]: %s.\n",
+            __FILE__, __LINE__, __func__,
+            client->id, client_addr_str);
 
   lthread_close (client->fd);
   client->fd = -1;
 
   return;
 }
-
 

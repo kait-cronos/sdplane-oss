@@ -198,7 +198,9 @@ sdplane_0.0.9e-1_amd64.deb
 * セットアップ wireadmin ユーザ
   # adduser --disabled-password wireadmin
   - 公開鍵を設定
-  - sudoers に NOPASS で登録
+  - パスワードを設定。これは秘密にしておく
+  (- sudoers に NOPASS で登録)
+  - 企業のユーザ権限昇格の規定を確認したい。
 
 ***********************
 * Ubuntu 再起動と確認。
