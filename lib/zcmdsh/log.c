@@ -10,7 +10,7 @@ struct loginfo log_default =
 {
   LOGINFO_STDOUT,    /* flags */
   LOG_DAEMON,        /* facility */
-  LOG_NOTICE,        /* maskpri */
+  LOG_INFO,        /* maskpri */
   NULL,              /* fp */
 };
 
@@ -143,7 +143,4 @@ log_warn (const char *format, ...)
   for (index = 0; index < LOG_INDEX_MAX; index++)
     va_end (args[index]);
 }
-
-
-
 

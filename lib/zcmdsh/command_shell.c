@@ -357,7 +357,7 @@ print_dirent (struct shell *shell, struct dirent *dirent,
     fprintf (shell->terminal, "%s", printname);
 
   if (num % ncolumn == ncolumn - 1)
-    fprintf (shell->terminal, "\n");
+    fprintf (shell->terminal, "%s", shell->LF);
 }
 
 int
@@ -380,8 +380,8 @@ file_ls_candidate (struct shell *shell, char *file_path)
   path_disassemble (path, &dirname, &filename);
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-      fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
-               file_path, dirname, filename);
+      fprintf (shell->terminal, "  path: %s dir: %s filename: %s%s",
+               file_path, dirname, filename, shell->LF);
     }
 
   dir = opendir (dirname);
@@ -425,11 +425,11 @@ file_ls_candidate (struct shell *shell, char *file_path)
 
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-      fprintf (shell->terminal, "  maxlen: %d ncol: %d\n",
-               maxlen, ncolumn);
+      fprintf (shell->terminal, "  maxlen: %d ncol: %d%s",
+               maxlen, ncolumn, shell->LF);
     }
 
-  fprintf (shell->terminal, "\n");
+  fprintf (shell->terminal, "%s", shell->LF);
 
   num = 0;
   while ((dirent = readdir (dir)) != NULL)
@@ -459,7 +459,7 @@ file_ls_candidate (struct shell *shell, char *file_path)
         print_dirent (shell, sort_vector[i], i, ncolumn, maxlen + 2);
     }
 
-  fprintf (shell->terminal, "\n");
+  fprintf (shell->terminal, "%s", shell->LF);
 
   closedir (dir);
   free (path);

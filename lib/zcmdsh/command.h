@@ -124,5 +124,6 @@ void command_config_write (struct vector *config, FILE *fp);
 #define EXPORT_HELP "export information\n"
 
 #define SHOW_HELP "show information.\n"
+#define NO_HELP "disable information.\n"
 
 #endif /*__COMMAND_H__*/
