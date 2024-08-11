@@ -162,13 +162,13 @@ debug_module_func (void *context, int argc, char **argv)
         {
           if (negate)
             {
-              FLAG_CLEAR (debug_module_config[i], debug_types[i].flag);
+              FLAG_CLEAR (debug_module_config[match], debug_types[i].flag);
               fprintf (shell->terminal, "debug: %s: %s: disabled.\n",
                        slot->module_name, debug_types[i].name);
             }
           else
             {
-              FLAG_SET (debug_module_config[i], debug_types[i].flag);
+              FLAG_SET (debug_module_config[match], debug_types[i].flag);
               fprintf (shell->terminal, "debug: %s: %s: enabled.\n",
                        slot->module_name, debug_types[i].name);
             }
@@ -195,13 +195,21 @@ DEFINE_COMMAND (show_debug_module,
       debug_type_size = slot->debug_type_size;
       debug_types = slot->debug_types;
 
+      fprintf (shell->terminal,
+               "debug: module[%d]: %s: %p%s",
+               j, slot->module_name,
+               (void *)&debug_module_config[j],
+               shell->LF);
+
       for (i = 0; i < debug_type_size; i++)
         {
-          fprintf (shell->terminal, "debug: %s: %s: %s.\n",
-                   slot->module_name,
-                   debug_types[i].name,
+          fprintf (shell->terminal,
+                   "debug: module[%d]: %s: type[%d]: %s: flag: %#lx: %s.%s",
+                   j, slot->module_name,
+                   i, debug_types[i].name,
+                   debug_types[i].flag,
                    (FLAG_CHECK (debug_module_config[i], debug_types[i].flag) ?
-                   "on" : "off"));
+                   "on" : "off"), shell->LF);
         }
     }
 }
