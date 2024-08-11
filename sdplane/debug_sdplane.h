@@ -10,6 +10,7 @@
 #define DEBUG_SDPLANE_VTY_SERVER (1ULL << 5)
 #define DEBUG_SDPLANE_VTY_SHELL  (1ULL << 6)
 #define DEBUG_SDPLANE_TELNET_OPT (1ULL << 7)
+#define DEBUG_SDPLANE_STAT_COLLECTOR (1ULL << 8)
 
 extern int debug_module_sdplane;
 

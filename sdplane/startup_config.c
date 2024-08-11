@@ -53,6 +53,7 @@ startup_config (__rte_unused void *dummy)
 
   INSTALL_COMMAND2 (shell->cmdset, l2fwd_init);
 
+  log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
   l3fwd_cmd_init (shell->cmdset);
   soft_dplane_cmd_init (shell->cmdset);

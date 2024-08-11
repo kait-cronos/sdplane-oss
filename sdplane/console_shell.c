@@ -44,12 +44,14 @@
 #include <sys/ioctl.h>
 #include <lthread.h>
 
+#include <zcmdsh/log.h>
 #include <zcmdsh/debug.h>
 #include <zcmdsh/termio.h>
 #include <zcmdsh/vector.h>
 #include <zcmdsh/shell.h>
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
+#include <zcmdsh/log_cmd.h>
 #include <zcmdsh/debug_cmd.h>
 #include <zcmdsh/debug_module.h>
 #include <zcmdsh/debug_module_cmd.h>
