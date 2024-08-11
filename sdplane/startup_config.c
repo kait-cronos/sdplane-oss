@@ -26,7 +26,7 @@
 #include "debug_sdplane.h"
 
 int
-load_startup_config (__rte_unused void *dummy)
+startup_config (__rte_unused void *dummy)
 {
   struct shell *shell = NULL;
 

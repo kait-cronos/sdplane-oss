@@ -14,6 +14,15 @@ AC_PROG_LN_S
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-llthread':
 AC_CHECK_LIB([lthread], [main])
+
+AC_ARG_WITH([zcmdsh], [AS_HELP_STRING([--with-zcmdsh=DIR], [zcmdsh libdir (/usr/lib)])], [
+        zcmdshdir="$withval"
+        LDLFAGS="$LDFLAGS -L$withval"
+], [
+        zcmdshdir="/usr/lib"
+])
+AC_SUBST([zcmdshdir], [$zcmdshdir])
+
 # FIXME: Replace `main' with a function in `-lzcmdsh':
 AC_CHECK_LIB([zcmdsh], [main])
 

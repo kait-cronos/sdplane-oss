@@ -27,6 +27,8 @@
 #include <zcmdsh/debug_cmd.h>
 #include <zcmdsh/debug_module.h>
 #include <zcmdsh/debug_module_cmd.h>
+#include <zcmdsh/log.h>
+#include <zcmdsh/log_cmd.h>
 
 #include "sdplane.h"
 #include "l2fwd_cmd.h"
@@ -365,6 +367,7 @@ vty_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
   shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
 
+  log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
   l3fwd_cmd_init (shell->cmdset);
   soft_dplane_cmd_init (shell->cmdset);

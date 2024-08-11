@@ -71,105 +71,9 @@
 
 int lthread_core = 0;
 
-DEFINE_COMMAND (exit_cmd,
-                "(exit|quit|logout)",
-                "exit\n"
-                "quite\n"
-                "logout\n")
-{
-  struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "console exit !\n");
-  FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
-  /* don't shell_close(): this closes stdout. */
-  //shell_close (shell);
-
-  int nb_lcores = rte_lcore_count ();
-  for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
-    stop_lcore (shell, lcore_id);
-}
-
-bool reboot = false;
-
-DEFINE_COMMAND (reboot_cmd,
-                "reboot",
-                "reboot\n")
-{
-  struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "reboot !\n");
-  reboot = true;
-  FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
-  /* don't shell_close(): this closes stdout. */
-  //shell_close (shell);
-
-  int nb_lcores = rte_lcore_count ();
-  for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
-    stop_lcore (shell, lcore_id);
-}
-
-void
-get_winsize (struct shell *shell)
-{
-  ioctl (shell->writefd, TIOCGWINSZ, &shell->winsize);
-  fprintf (shell->terminal, "row: %d col: %d\n",
-           shell->winsize.ws_row, shell->winsize.ws_col);
-}
-
-uint64_t loop_console = 0;
-
-void
-console_shell (void *arg)
-{
-  struct shell *shell = NULL;
-
-  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
-
-  shell = command_shell_create ();
-  shell_set_terminal (shell, 0, 1);
-  shell_set_prompt (shell, "console> ");
-  get_winsize (shell);
-
-  INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
-
-  INSTALL_COMMAND2 (shell->cmdset, show_worker);
-  INSTALL_COMMAND2 (shell->cmdset, set_worker);
-  INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
-
-  INSTALL_COMMAND2 (shell->cmdset, debug);
-  INSTALL_COMMAND2 (shell->cmdset, show_debug);
-
-  INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
-  INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
-
-  INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
-  shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
-
-  l2fwd_cmd_init (shell->cmdset);
-  l3fwd_cmd_init (shell->cmdset);
-  soft_dplane_cmd_init (shell->cmdset);
-
-  termio_init ();
-
-  shell_clear (shell);
-  shell_prompt (shell);
-
-  while (! force_quit && ! force_stop[lthread_core] &&
-         shell_running (shell))
-    {
-      loop_console++;
-      lthread_sleep (100); // yield.
-
-      if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                      DEBUG_SDPLANE_LTHREAD))
-        printf ("%s: schedule.\n", __func__);
-
-      shell_read_nowait (shell);
-    }
-
-  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
-
-  termio_finish ();
-}
-
+int startup_config (__rte_unused void *dummy);
+void console_shell (void *arg);
+int stat_collector (__rte_unused void *dummy);
 void vty_server (void *arg);
 
 int
@@ -207,7 +111,7 @@ lthread_main (__rte_unused void *dummy)
   debug_module_cmd_init ();
 
   void *ptr;
-  lthread_create (&lt, (lthread_func) load_startup_config, NULL);
+  lthread_create (&lt, (lthread_func) startup_config, NULL);
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
   //lthread_create (&lt, (lthread_func) tap_handler, NULL);
