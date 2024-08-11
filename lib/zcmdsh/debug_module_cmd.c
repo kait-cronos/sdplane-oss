@@ -208,7 +208,7 @@ DEFINE_COMMAND (show_debug_module,
                    j, slot->module_name,
                    i, debug_types[i].name,
                    debug_types[i].flag,
-                   (FLAG_CHECK (debug_module_config[i], debug_types[i].flag) ?
+                   (FLAG_CHECK (debug_module_config[j], debug_types[i].flag) ?
                    "on" : "off"), shell->LF);
         }
     }

@@ -10,7 +10,7 @@ struct loginfo log_default =
 {
   LOGINFO_STDOUT,    /* flags */
   LOG_DAEMON,        /* facility */
-  LOG_NOTICE,        /* maskpri */
+  LOG_INFO,        /* maskpri */
   NULL,              /* fp */
 };
 
