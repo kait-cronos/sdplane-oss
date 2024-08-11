@@ -1,4 +1,10 @@
 
+set l3fwd argv -c 0xf -- -p 0x3 --config="(0,0,1),(1,0,2)"
+l3fwd init
+
+# debug shell
+# debug sdplane telnet-opt
+
 set worker lcore 1 l2fwd
 set worker lcore 2 l2fwd
 set worker lcore 3 tap-handler

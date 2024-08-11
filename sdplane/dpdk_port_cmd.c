@@ -1,0 +1,586 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <sys/types.h>
+#include <string.h>
+#include <sys/queue.h>
+#include <stdarg.h>
+#include <errno.h>
+#include <getopt.h>
+#include <signal.h>
+#include <stdbool.h>
+
+#include <locale.h>
+
+#include <rte_ethdev.h>
+#include <rte_bus_pci.h>
+
+#include <zcmdsh/debug.h>
+#include <zcmdsh/termio.h>
+#include <zcmdsh/vector.h>
+#include <zcmdsh/shell.h>
+#include <zcmdsh/command.h>
+#include <zcmdsh/command_shell.h>
+#include <zcmdsh/debug_cmd.h>
+
+#include "l3fwd.h"
+#include "l2fwd_export.h"
+
+#include "sdplane.h"
+#include "stat_collector.h"
+#include "tap_handler.h"
+
+#include "snprintf_flags.h"
+
+struct flag_name link_speeds[] =
+{
+  { "Fix",      RTE_ETH_LINK_SPEED_FIXED },
+  { "10M-hd",   RTE_ETH_LINK_SPEED_10M_HD },
+  { "10M",      RTE_ETH_LINK_SPEED_10M },
+  { "100M-hd",  RTE_ETH_LINK_SPEED_10M_HD },
+  { "100M",     RTE_ETH_LINK_SPEED_10M },
+  { "1G",       RTE_ETH_LINK_SPEED_1G },
+  { "2.5G",     RTE_ETH_LINK_SPEED_2_5G },
+  { "5G",       RTE_ETH_LINK_SPEED_5G },
+  { "10G",      RTE_ETH_LINK_SPEED_10G },
+  { "20G",      RTE_ETH_LINK_SPEED_20G },
+  { "25G",      RTE_ETH_LINK_SPEED_25G },
+  { "40G",      RTE_ETH_LINK_SPEED_40G },
+  { "50G",      RTE_ETH_LINK_SPEED_50G },
+  { "56G",      RTE_ETH_LINK_SPEED_56G },
+  { "100G",     RTE_ETH_LINK_SPEED_100G },
+  { "200G",     RTE_ETH_LINK_SPEED_200G },
+  { "400G",     RTE_ETH_LINK_SPEED_400G },
+};
+
+struct flag_name rx_offload_capa[] =
+{
+  { "VLAN_STRIP", RTE_ETH_RX_OFFLOAD_VLAN_STRIP       },
+  { "IPV4_CKSUM", RTE_ETH_RX_OFFLOAD_IPV4_CKSUM       },
+  { "UDP_CKSUM", RTE_ETH_RX_OFFLOAD_UDP_CKSUM         },
+  { "TCP_CKSUM", RTE_ETH_RX_OFFLOAD_TCP_CKSUM         },
+  { "TCP_LRO", RTE_ETH_RX_OFFLOAD_TCP_LRO             },
+  { "QINQ_STRIP", RTE_ETH_RX_OFFLOAD_QINQ_STRIP       },
+  { "OUTER_IPV4_CKSUM", RTE_ETH_RX_OFFLOAD_OUTER_IPV4_CKSUM },
+  { "MACSEC_STRIP", RTE_ETH_RX_OFFLOAD_MACSEC_STRIP   },
+  { "VLAN_FILTER", RTE_ETH_RX_OFFLOAD_VLAN_FILTER     },
+  { "VLAN_EXTEND", RTE_ETH_RX_OFFLOAD_VLAN_EXTEND     },
+  { "SCATTER", RTE_ETH_RX_OFFLOAD_SCATTER             },
+
+  { "TIMESTAMP", RTE_ETH_RX_OFFLOAD_TIMESTAMP         },
+  { "SECURITY", RTE_ETH_RX_OFFLOAD_SECURITY           },
+  { "KEEP_CRC", RTE_ETH_RX_OFFLOAD_KEEP_CRC           },
+  { "SCTP_CKSUM", RTE_ETH_RX_OFFLOAD_SCTP_CKSUM       },
+  { "OUTER_UDP_CKSUM", RTE_ETH_RX_OFFLOAD_OUTER_UDP_CKSUM  },
+  { "RSS_HASH", RTE_ETH_RX_OFFLOAD_RSS_HASH           },
+  { "BUFFER_SPLIT", RTE_ETH_RX_OFFLOAD_BUFFER_SPLIT   },
+};
+
+struct flag_name tx_offload_capa[] =
+{
+  { "VLAN_INSERT", RTE_ETH_TX_OFFLOAD_VLAN_INSERT      },
+  { "IPV4_CKSUM", RTE_ETH_TX_OFFLOAD_IPV4_CKSUM       },
+  { "UDP_CKSUM", RTE_ETH_TX_OFFLOAD_UDP_CKSUM        },
+  { "TCP_CKSUM", RTE_ETH_TX_OFFLOAD_TCP_CKSUM        },
+  { "SCTP_CKSUM", RTE_ETH_TX_OFFLOAD_SCTP_CKSUM       },
+  { "TCP_TSO", RTE_ETH_TX_OFFLOAD_TCP_TSO          },
+  { "UDP_TSO", RTE_ETH_TX_OFFLOAD_UDP_TSO          },
+  { "OUTER_IPV4_CKSUM", RTE_ETH_TX_OFFLOAD_OUTER_IPV4_CKSUM },
+  { "QINQ_INSERT", RTE_ETH_TX_OFFLOAD_QINQ_INSERT      },
+  { "VXLAN_TNL_TSO", RTE_ETH_TX_OFFLOAD_VXLAN_TNL_TSO    },
+  { "GRE_TNL_TSO", RTE_ETH_TX_OFFLOAD_GRE_TNL_TSO      },
+  { "IPIP_TNL_TSO", RTE_ETH_TX_OFFLOAD_IPIP_TNL_TSO     },
+  { "GENEVE_TNL_TSO", RTE_ETH_TX_OFFLOAD_GENEVE_TNL_TSO   },
+  { "MACSEC_INSERT", RTE_ETH_TX_OFFLOAD_MACSEC_INSERT    },
+
+  { "MT_LOCKFREE", RTE_ETH_TX_OFFLOAD_MT_LOCKFREE      },
+  { "MULTI_SEGS", RTE_ETH_TX_OFFLOAD_MULTI_SEGS       },
+  { "MBUF_FAST_FREE", RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE   },
+  { "SECURITY", RTE_ETH_TX_OFFLOAD_SECURITY         },
+  { "UDP_TNL_TSO", RTE_ETH_TX_OFFLOAD_UDP_TNL_TSO      },
+  { "IP_TNL_TSO", RTE_ETH_TX_OFFLOAD_IP_TNL_TSO       },
+  { "OUTER_UDP_CKSUM", RTE_ETH_TX_OFFLOAD_OUTER_UDP_CKSUM  },
+  { "SEND_ON_TIMESTAMP", RTE_ETH_TX_OFFLOAD_SEND_ON_TIMESTAMP},
+};
+
+DEFINE_COMMAND (start_stop_port,
+                "(start|stop|reset) port (|<0-16>|all)",
+                START_HELP
+                STOP_HELP
+                RESET_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                PORT_ALL_HELP
+               )
+{
+  struct shell *shell = (struct shell *) context;
+  int port_id;
+  int port_spec = -1;
+  uint16_t nb_ports;
+  int ret;
+  bool all = false;
+
+  if (argc == 2)
+    all = true;
+  else if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (! all && port_spec != -1 && port_spec != port_id)
+        continue;
+      if (! strcmp (argv[0], "start"))
+        ret = rte_eth_dev_start (port_id);
+      else if (! strcmp (argv[0], "stop"))
+        ret = rte_eth_dev_stop (port_id);
+      else if (! strcmp (argv[0], "reset"))
+        ret = rte_eth_dev_reset (port_id);
+      printf ("rte_eth_dev_%s (): ret: %d port: %u\n",
+              argv[0], ret, port_id);
+    }
+}
+
+DEFINE_COMMAND (show_port,
+                "show port (|<0-16>|all)",
+                SHOW_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                PORT_ALL_HELP
+               )
+{
+  struct shell *shell = (struct shell *) context;
+  int port_id;
+  int port_spec = -1;
+  uint16_t nb_ports;
+  int ret;
+  struct rte_eth_dev_info dev_info;
+  struct rte_eth_dev_info *dev = &dev_info;
+  const struct rte_pci_device *pci_dev = NULL;
+  FILE *t = shell->terminal;
+  char link_capa[32];
+  bool brief = false;
+  const char *devname;
+  const char *businfo;
+  struct rte_eth_link link;
+  char *status;
+
+  if (argc == 2)
+    brief = true;
+  else if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  if (brief)
+    fprintf (t, "%-8s %-12s %6s %7s %-13s <%-24s>%s",
+             "port:", "device", "status", "speed",
+             "driver", "capability", shell->LF);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      ret = rte_eth_dev_info_get (port_id, &dev_info);
+      if (ret != 0)
+        {
+          fprintf (t, "rte_eth_dev_info_get() returned %d.%s",
+                   ret, shell->LF);
+          continue;
+        }
+
+      memset (&link, 0, sizeof (link));
+      ret = rte_eth_link_get_nowait (port_id, &link);
+      if (ret < 0)
+        {
+          fprintf (t, "port[%d]: rte_eth_link_get_nowait() failed: %d.%s",
+                   port_id, ret, shell->LF);
+        }
+      status = (link.link_status ? "up" : "down");
+
+      devname = rte_dev_name (dev->device);
+      businfo = rte_dev_bus_info (dev->device);
+      snprintf_flags (link_capa, sizeof (link_capa),
+                      dev_info.speed_capa, link_speeds, "|",
+                      sizeof (link_speeds) / sizeof (struct flag_name));
+
+      if (brief)
+        {
+          char port_name[16];
+          snprintf (port_name, sizeof (port_name), "port[%d]:", port_id);
+          fprintf (t, "%-8s %-12s %6s %'7d %-13s <%-24s>%s",
+                   port_name, devname, status, link.link_speed,
+                   dev->driver_name, link_capa, shell->LF);
+        }
+      else
+        {
+          fprintf (t, "port[%d]:%s", port_id, shell->LF);
+          fprintf (t, "  link speed: %'d%s", link.link_speed, shell->LF);
+          fprintf (t, "  link duplex: %d%s", link.link_duplex, shell->LF);
+          fprintf (t, "  link autoneg: %d%s", link.link_autoneg, shell->LF);
+          fprintf (t, "  link status: %d%s", link.link_status, shell->LF);
+          fprintf (t, "  device name: %s%s", devname, shell->LF);
+          fprintf (t, "  bus info: %s%s", businfo, shell->LF);
+          fprintf (t, "  driver_name: %s%s", dev->driver_name, shell->LF);
+          fprintf (t, "  if_index: %'u%s", dev->if_index, shell->LF);
+          fprintf (t, "  min_mtu: %'u max_mtu: %'u%s",
+                   dev->min_mtu, dev->max_mtu, shell->LF);
+          fprintf (t, "  min_rx_bufsize: %'u max_rx_bufsize: %'u%s",
+                   dev->min_rx_bufsize, dev->max_rx_bufsize, shell->LF);
+          fprintf (t, "  max_rx_pktlen: %'u max_lro_pkt_size: %'u%s",
+                   dev->max_rx_pktlen, dev->max_lro_pkt_size, shell->LF);
+          fprintf (t, "  max_rx_queues: %'u max_tx_queues: %'u%s",
+                   dev->max_rx_queues, dev->max_tx_queues, shell->LF);
+          fprintf (t, "  speed_capa: <%s>%s", link_capa, shell->LF);
+          fprintf (t, "  nb_rx_queues: %'u nb_tx_queues: %'u%s",
+                   dev->nb_rx_queues, dev->nb_tx_queues, shell->LF);
+
+          char rx_offload_str[128];
+          char tx_offload_str[128];
+          snprintf_flags (rx_offload_str, sizeof (rx_offload_str),
+                      dev_info.rx_offload_capa, rx_offload_capa, "|",
+                      sizeof (rx_offload_capa) / sizeof (struct flag_name));
+          snprintf_flags (tx_offload_str, sizeof (tx_offload_str),
+                      dev_info.tx_offload_capa, tx_offload_capa, "|",
+                      sizeof (tx_offload_capa) / sizeof (struct flag_name));
+          fprintf (t, "  rx_offload_capa: <%s>%s",
+                   rx_offload_str, shell->LF);
+          fprintf (t, "  tx_offload_capa: <%s>%s",
+                   tx_offload_str, shell->LF);
+
+          char rx_conf_str[128];
+          char tx_conf_str[128];
+          memset (rx_conf_str, 0, sizeof (rx_conf_str));
+          memset (tx_conf_str, 0, sizeof (tx_conf_str));
+          snprintf_flags (rx_conf_str, sizeof (rx_conf_str),
+                      dev_info.default_rxconf.offloads, rx_offload_capa, "|",
+                      sizeof (rx_offload_capa) / sizeof (struct flag_name));
+          snprintf_flags (tx_conf_str, sizeof (tx_conf_str),
+                      dev_info.default_txconf.offloads, tx_offload_capa, "|",
+                      sizeof (tx_offload_capa) / sizeof (struct flag_name));
+          fprintf (t, "  default_rxconf.offloads: <%s>%s", rx_conf_str, shell->LF);
+          fprintf (t, "  default_txconf.offloads: <%s>%s", tx_conf_str, shell->LF);
+
+          int i;
+          uint32_t ptypes[32];
+          char ptypes_name[32];
+          ret = rte_eth_dev_get_supported_ptypes (port_id, RTE_PTYPE_ALL_MASK,
+                  ptypes, 32);
+          for (i = 0; i < ret && i < 32; i++)
+            {
+              rte_get_ptype_name (ptypes[i], ptypes_name,
+                                  sizeof (ptypes_name));
+              fprintf (t, "  ptypes[%d]: %s%s", i, ptypes_name, shell->LF);
+            }
+        }
+    }
+}
+
+DEFINE_COMMAND (show_port_statistics,
+                "show port statistics (pps|total|bps|total-bytes)",
+                SHOW_HELP
+                PORT_HELP
+                "statistics\n"
+                "pps\n"
+                "total packets\n"
+                "bps\n"
+                "total bytes\n"
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  int i, port_id;
+  uint16_t nb_ports;
+  char name[16];
+  bool packets = false;
+  bool total = false;
+  struct rte_eth_stats *stats, *stats_array;
+
+  if (! strcmp (argv[3], "pps"))
+    {
+      packets = true; total = false;
+      stats_array = stats_per_sec;
+    }
+  else if (! strcmp (argv[3], "total"))
+    {
+      packets = true; total = true;
+      stats_array = stats_current;
+    }
+  else if (! strcmp (argv[3], "bps"))
+    {
+      packets = false; total = false;
+      stats_array = stats_per_sec;
+    }
+  else if (! strcmp (argv[3], "total-bytes"))
+    {
+      packets = false; total = true;
+      stats_array = stats_current;
+    }
+
+  if (packets)
+    fprintf (t, "%16s %8s %8s %8s %8s%s",
+             "port name:", "rx", "tx", "ierrors", "oerrors", shell->LF);
+  else
+    fprintf (t, "%16s %8s %8s%s",
+             "port name:", "bytes-in", "bytes-out", shell->LF);
+
+  fprintf (t, "stats_array: %p%s", stats_array, shell->LF);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      stats = &stats_array[port_id];
+      snprintf (name, sizeof (name), "port[%d]:", port_id);
+      if (packets)
+      fprintf (t, "%16s %'8lu %'8lu %'8lu %'8lu%s", name,
+               stats->ipackets, stats->opackets,
+               stats->ierrors, stats->oerrors, shell->LF);
+      else
+      fprintf (t, "%16s %'8lu %'8lu%s", name,
+               stats->ibytes, stats->obytes, shell->LF);
+    }
+}
+
+DEFINE_COMMAND (show_port_promiscuous,
+                "show port (<0-16>|all) promiscuous",
+                SHOW_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                ALL_HELP
+                "promiscuous\n"
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+      ret = rte_eth_promiscuous_get (port_id);
+      if (ret < 0)
+        fprintf (shell->terminal, "get promiscuous error: ret: %d%s", ret, shell->LF);
+      else if (ret == 1)
+        fprintf (shell->terminal, "port[%d]: promiscuous: enabled.%s",
+                 port_id, shell->LF);
+      else
+        fprintf (shell->terminal, "port[%d]: promiscuous: disabled.%s",
+                 port_id, shell->LF);
+    }
+}
+
+DEFINE_COMMAND (show_port_flowcontrol,
+                "show port (<0-16>|all) flowcontrol",
+                SHOW_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                ALL_HELP
+                "flowcontrol\n"
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+  struct rte_eth_fc_conf fc_conf;
+  bool rx_enabled = false;
+  bool tx_enabled = false;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      ret = rte_eth_dev_flow_ctrl_get (port_id, &fc_conf);
+      if (ret < 0)
+        {
+          fprintf (shell->terminal, "get flow_ctrl error: ret: %d\n", ret);
+          continue;
+        }
+
+      if (fc_conf.mode == RTE_ETH_FC_FULL)
+        {
+          rx_enabled = tx_enabled = true;
+        }
+      else
+        {
+          if (fc_conf.mode == RTE_ETH_FC_RX_PAUSE)
+            rx_enabled = true;
+          if (fc_conf.mode == RTE_ETH_FC_TX_PAUSE)
+            tx_enabled = true;
+        }
+
+      fprintf (shell->terminal, "port[%d]: flow control:%s", port_id, shell->LF);
+      fprintf (shell->terminal, "rx pause: %s%s", (rx_enabled ? "on" : "off"), shell->LF);
+      fprintf (shell->terminal, "tx pause: %s%s", (tx_enabled ? "on" : "off"), shell->LF);
+      fprintf (shell->terminal, "autoneg: %s%s",
+               (fc_conf.autoneg ? "on" : "off"), shell->LF);
+      fprintf (shell->terminal, "pause time: %'u%s", fc_conf.pause_time, shell->LF);
+      fprintf (shell->terminal, "high waterline: %'u%s", fc_conf.high_water, shell->LF);
+      fprintf (shell->terminal, "low waterline: %'u%s", fc_conf.low_water, shell->LF);
+      fprintf (shell->terminal, "send xon: %s%s",
+               (fc_conf.send_xon ? "on" : "off"), shell->LF);
+      fprintf (shell->terminal, "forward mac control frames: %s%s",
+               (fc_conf.mac_ctrl_frame_fwd ? "on" : "off"), shell->LF);
+    }
+}
+
+DEFINE_COMMAND (set_port_promiscuous,
+                "set port (<0-16>|all) promiscuous (enable|disable)",
+                SET_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                ALL_HELP
+                "promiscuous\n"
+                ENABLE_HELP
+                DISABLE_HELP
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+      if (! strcmp (argv[4], "enable"))
+        ret = rte_eth_promiscuous_enable (port_id);
+      else
+        ret = rte_eth_promiscuous_disable (port_id);
+      if (ret < 0)
+        fprintf (shell->terminal, "set promiscuous error: ret: %d\n", ret);
+    }
+}
+
+DEFINE_COMMAND (set_port_flowcontrol,
+                "set port (<0-16>|all) flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)",
+                SET_HELP
+                PORT_HELP
+                PORT_NUMBER_HELP
+                ALL_HELP
+                "flowcontrol\n"
+                "flowcontrol rx\n"
+                "flowcontrol tx\n"
+                "flowcontrol autoneg\n"
+                "flowcontrol send-xon\n"
+                "flowcontrol forward mac control frames\n"
+                "flowcontrol on\n"
+                "flowcontrol off\n"
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+  struct rte_eth_fc_conf fc_conf;
+
+  bool rx_enabled = false;
+  bool tx_enabled = false;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      ret = rte_eth_dev_flow_ctrl_get (port_id, &fc_conf);
+      if (ret < 0)
+        {
+          fprintf (shell->terminal, "get flow_ctrl error: ret: %d\n", ret);
+          continue;
+        }
+
+      /* read the current flow control config. */
+      if (fc_conf.mode == RTE_ETH_FC_FULL)
+        {
+          rx_enabled = tx_enabled = true;
+        }
+      else
+        {
+          if (fc_conf.mode == RTE_ETH_FC_RX_PAUSE)
+            rx_enabled = true;
+          if (fc_conf.mode == RTE_ETH_FC_TX_PAUSE)
+            tx_enabled = true;
+        }
+
+      /* update the config */
+      bool newval;
+      if (! strcmp (argv[5], "on"))
+        newval = true;
+      else
+        newval = false;
+
+      if (! strcmp (argv[4], "rx"))
+        rx_enabled = newval;
+      else if (! strcmp (argv[4], "tx"))
+        tx_enabled = newval;
+      else if (! strcmp (argv[4], "autoneg"))
+        fc_conf.autoneg = newval;
+      else if (! strcmp (argv[4], "send-xon"))
+        fc_conf.send_xon = newval;
+      else if (! strcmp (argv[4], "fwd-mac-ctrl"))
+        fc_conf.mac_ctrl_frame_fwd = newval;
+      else if (! strcmp (argv[4], "all"))
+        {
+          rx_enabled = newval;
+          tx_enabled = newval;
+          fc_conf.autoneg = newval;
+          fc_conf.send_xon = newval;
+          fc_conf.mac_ctrl_frame_fwd = newval;
+        }
+
+      /* fill in back the mode to the fc_conf */
+      if (rx_enabled && tx_enabled)
+        fc_conf.mode = RTE_ETH_FC_FULL;
+      else if (rx_enabled)
+        fc_conf.mode = RTE_ETH_FC_RX_PAUSE;
+      else if (tx_enabled)
+        fc_conf.mode = RTE_ETH_FC_TX_PAUSE;
+      else
+        fc_conf.mode = RTE_ETH_FC_NONE;
+
+      fprintf (shell->terminal, "port[%d]: flow control:\n", port_id);
+      fprintf (shell->terminal, "rx pause: %s\n", (rx_enabled ? "on" : "off"));
+      fprintf (shell->terminal, "tx pause: %s\n", (tx_enabled ? "on" : "off"));
+      fprintf (shell->terminal, "autoneg: %s\n", (fc_conf.autoneg ? "on" : "off"));
+      fprintf (shell->terminal, "send-xon: %s\n", (fc_conf.send_xon ? "on" : "off"));
+      fprintf (shell->terminal, "fwd-mac-ctrl: %s\n", (fc_conf.send_xon ? "on" : "off"));
+
+      ret = rte_eth_dev_flow_ctrl_set (port_id, &fc_conf);
+      fprintf (shell->terminal, "set flow_ctrl error: ret: %d\n", ret);
+    }
+}
+
+void
+dpdk_port_cmd_init (struct command_set *cmdset)
+{
+  INSTALL_COMMAND2 (cmdset, start_stop_port);
+  INSTALL_COMMAND2 (cmdset, show_port);
+  INSTALL_COMMAND2 (cmdset, show_port_statistics);
+  INSTALL_COMMAND2 (cmdset, show_port_promiscuous);
+  INSTALL_COMMAND2 (cmdset, show_port_flowcontrol);
+  INSTALL_COMMAND2 (cmdset, set_port_promiscuous);
+  INSTALL_COMMAND2 (cmdset, set_port_flowcontrol);
+}
+
+

@@ -1,11 +1,14 @@
 #ifndef __SOFT_DPLANE_H__
 #define __SOFT_DPLANE_H__
 
-extern volatile bool force_stop[RTE_MAX_LCORE];
+#include <zcmdsh/shell.h>
 
-extern struct rte_eth_stats stats_prev[RTE_MAX_ETHPORTS];
-extern struct rte_eth_stats stats_current[RTE_MAX_ETHPORTS];
-extern struct rte_eth_stats stats_per_sec[RTE_MAX_ETHPORTS];
+#define L3FWD_ARGV_MAX 16
+extern char *l3fwd_argv[L3FWD_ARGV_MAX];
+extern int l3fwd_argc;
+
+extern volatile bool force_quit;
+extern volatile bool force_stop[RTE_MAX_LCORE];
 
 struct lcore_worker
 {
@@ -55,8 +58,6 @@ EXTERN_COMMAND (show_port_flowcontrol);
 EXTERN_COMMAND (set_port_flowcontrol);
 
 int lthread_main (__rte_unused void *dummy);
-int stat_collector (__rte_unused void *dummy);
-int load_startup_config (__rte_unused void *dummy);
 
 void soft_dplane_cmd_init (struct command_set *cmdset);
 void soft_dplane_init ();

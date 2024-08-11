@@ -14,6 +14,15 @@ AC_PROG_LN_S
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-llthread':
 AC_CHECK_LIB([lthread], [main])
+
+AC_ARG_WITH([zcmdsh], [AS_HELP_STRING([--with-zcmdsh=DIR], [zcmdsh libdir (/usr/lib)])], [
+        zcmdshdir="$withval"
+        LDLFAGS="$LDFLAGS -L$withval"
+], [
+        zcmdshdir="/usr/lib"
+])
+AC_SUBST([zcmdshdir], [$zcmdshdir])
+
 # FIXME: Replace `main' with a function in `-lzcmdsh':
 AC_CHECK_LIB([zcmdsh], [main])
 
@@ -36,6 +45,8 @@ AC_FUNC_MALLOC
 AC_CHECK_FUNCS([memset setlocale socket strchr strerror strtol strtoul strtoull])
 
 PKG_CHECK_MODULES(DPDK, [libdpdk])
+
+AC_SUBST([systemdsystemunitdir], [$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
 
 AC_CONFIG_FILES([Makefile l2fwd/Makefile l3fwd/Makefile sdplane/Makefile])
 AC_OUTPUT

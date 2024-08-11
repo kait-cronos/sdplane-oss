@@ -15,16 +15,22 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
+#include <zcmdsh/debug_module.h>
+#include <zcmdsh/debug_module_cmd.h>
 //#include <zcmdsh/shell_fselect.h>
 
 #include "l3fwd.h"
+#include "l3fwd_cmd.h"
 #include "l2fwd_cmd.h"
 #include "sdplane.h"
+#include "debug_sdplane.h"
 
 int
-load_startup_config (__rte_unused void *dummy)
+startup_config (__rte_unused void *dummy)
 {
   struct shell *shell = NULL;
+
+  lthread_detach ();
 
   printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
 
@@ -42,9 +48,14 @@ load_startup_config (__rte_unused void *dummy)
   INSTALL_COMMAND2 (shell->cmdset, debug);
   //INSTALL_COMMAND2 (shell->cmdset, show_debug);
 
+  INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
+  INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
+
   INSTALL_COMMAND2 (shell->cmdset, l2fwd_init);
 
+  log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
+  l3fwd_cmd_init (shell->cmdset);
   soft_dplane_cmd_init (shell->cmdset);
 
   //termio_init ();
@@ -62,7 +73,12 @@ load_startup_config (__rte_unused void *dummy)
       shell_set_terminal (shell, fd, 1);
       while (shell_running (shell))
         {
-          lthread_sleep (0); // yield.
+          lthread_sleep (10); // yield.
+
+          if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                          DEBUG_SDPLANE_LTHREAD))
+            printf ("%s: schedule.\n", __func__);
+
           shell_read_nowait (shell);
         }
     }
@@ -71,6 +87,7 @@ load_startup_config (__rte_unused void *dummy)
             __FILE__, __LINE__, __func__, config_file, strerror (errno));
 
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+  fflush (stdout);
 
   //termio_finish ();
   return 0;

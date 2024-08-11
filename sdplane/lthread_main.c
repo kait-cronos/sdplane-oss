@@ -51,11 +51,14 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
+#include <zcmdsh/debug_module.h>
+#include <zcmdsh/debug_module_cmd.h>
 //#include <zcmdsh/shell_fselect.h>
 
 #include "l3fwd.h"
 #include "l3fwd_event.h"
 #include "l3fwd_route.h"
+#include "l3fwd_cmd.h"
 
 #include "l2fwd_export.h"
 #include "l2fwd_cmd.h"
@@ -63,125 +66,15 @@
 #include "sdplane.h"
 #include "tap_handler.h"
 
-DEFINE_COMMAND (exit_cmd,
-                "(exit|quit|logout)",
-                "exit\n"
-                "quite\n"
-                "logout\n")
-{
-  struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "exit !\n");
-  FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
-  /* don't shell_close(): this closes stdout. */
-  //shell_close (shell);
+#include "debug_sdplane.h"
+#include "vty_shell.h"
 
-  int nb_lcores = rte_lcore_count ();
-  for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
-    stop_lcore (shell, lcore_id);
-}
+int lthread_core = 0;
 
-bool reboot = false;
-
-DEFINE_COMMAND (reboot_cmd,
-                "reboot",
-                "reboot\n")
-{
-  struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "reboot !\n");
-  reboot = true;
-  FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
-  /* don't shell_close(): this closes stdout. */
-  //shell_close (shell);
-
-  int nb_lcores = rte_lcore_count ();
-  for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
-    stop_lcore (shell, lcore_id);
-}
-
-void
-get_winsize (struct shell *shell)
-{
-  ioctl (shell->writefd, TIOCGWINSZ, &shell->winsize);
-  fprintf (shell->terminal, "row: %d col: %d\n",
-           shell->winsize.ws_row, shell->winsize.ws_col);
-}
-
-void
-shell_keyfunc_clear_terminal (struct shell *shell)
-{
-  const char clr[] = { 27, '[', '2', 'J', '\0' };
-  const char topLeft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
-  /* Clear screen and move to top left */
-  fprintf (shell->terminal, "%s%s", clr, topLeft);
-  fflush (shell->terminal);
-}
-
-DEFINE_COMMAND (clear_cmd,
-                "clear",
-                CLEAR_HELP)
-{
-  struct shell *shell = (struct shell *) context;
-  shell_keyfunc_clear_terminal (shell);
-}
-
-void
-lthread_shell (void *arg)
-{
-  struct shell *shell = NULL;
-
-  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
-
-  shell = command_shell_create ();
-  //shell_set_prompt_cwd (shell);
-  shell_set_terminal (shell, 0, 1);
-  get_winsize (shell);
-
-  INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
-
-  INSTALL_COMMAND2 (shell->cmdset, show_worker);
-  INSTALL_COMMAND2 (shell->cmdset, set_worker);
-  INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
-
-  //INSTALL_COMMAND2 (shell->cmdset, show_version);
-
-  //INSTALL_COMMAND2 (shell->cmdset, chdir);
-  //INSTALL_COMMAND2 (shell->cmdset, list);
-
-  INSTALL_COMMAND2 (shell->cmdset, debug);
-  INSTALL_COMMAND2 (shell->cmdset, show_debug);
-
-  //INSTALL_COMMAND (shell->cmdset, pwd);
-  //INSTALL_COMMAND (shell->cmdset, open);
-  //INSTALL_COMMAND2 (shell->cmdset, terminal);
-  //INSTALL_COMMAND2 (shell->cmdset, launch_shell);
-  //INSTALL_COMMAND2 (shell->cmdset, edit_vi);
-
-  //shell_install (shell, '>', fselect_keyfunc_start);
-  //shell_install (shell, CONTROL ('D'), opensh_shell_keyfunc_ctrl_d);
-
-  INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
-  shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
-
-  l2fwd_cmd_init (shell->cmdset);
-  soft_dplane_cmd_init (shell->cmdset);
-
-  termio_init ();
-  //shell_fselect_init ();
-
-  shell_clear (shell);
-  shell_prompt (shell);
-
-  while (shell_running (shell))
-    {
-      lthread_sleep (0); // yield.
-      //printf ("%s: schedule.\n", __func__);
-      shell_read_nowait (shell);
-    }
-
-  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
-
-  termio_finish ();
-}
+int startup_config (__rte_unused void *dummy);
+void console_shell (void *arg);
+int stat_collector (__rte_unused void *dummy);
+void vty_server (void *arg);
 
 int
 lthread_main (__rte_unused void *dummy)
@@ -189,7 +82,8 @@ lthread_main (__rte_unused void *dummy)
   lthread_t *lt = NULL;
 
   /* timer set */
-  timer_init (60 * 60, "2024/12/31 23:59:59");
+  //timer_init (60 * 60, "2024/12/31 23:59:59");
+  timer_init (0, NULL);
 
   /* initialize workers */
   int lcore_id;
@@ -201,19 +95,26 @@ lthread_main (__rte_unused void *dummy)
     }
 
   lcore_id = rte_lcore_id ();
+  if (lcore_id < 0)
+    lcore_id = 0;
+  lthread_core = lcore_id;
   lcore_workers[lcore_id].func = lthread_main;
   lcore_workers[lcore_id].func_name = "lthread_main";
 
-  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
+  printf ("%s[%d]: %s: enter at core[%d].\n",
+          __FILE__, __LINE__, __func__, lthread_core);
 
   /* library initialization. */
   debug_cmd_init ();
   command_shell_init ();
 
-  lthread_create (&lt, (lthread_func) load_startup_config, NULL);
-  lthread_create (&lt, (lthread_func) lthread_shell, NULL);
-  //lthread_create (&lt, (lthread_func) tap_handler, NULL);
+  debug_module_cmd_init ();
+
+  void *ptr;
+  lthread_create (&lt, (lthread_func) startup_config, NULL);
+  lthread_create (&lt, (lthread_func) console_shell, NULL);
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
-  lthread_run ();
+  //lthread_create (&lt, (lthread_func) tap_handler, NULL);
+  lthread_create (&lt, (lthread_func) vty_server, NULL);
 }
 

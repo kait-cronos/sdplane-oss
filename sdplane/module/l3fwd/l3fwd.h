@@ -300,4 +300,7 @@ void *fib_get_ipv4_l3fwd_lookup_struct (const int socketid);
 
 void *fib_get_ipv6_l3fwd_lookup_struct (const int socketid);
 
+int l3fwd_init (int argc, char **argv, char **envp);
+int l3fwd_terminate (int argc, char **argv);
+
 #endif /* __L3_FWD_H__ */

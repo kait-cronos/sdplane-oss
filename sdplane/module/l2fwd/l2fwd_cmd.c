@@ -96,11 +96,11 @@ DEFINE_COMMAND (show_l2fwd_vars,
   else if (! strcmp (argv[3], "all"))
     all = true;
   if (brief || all || ! strcmp (argv[3], "l2fwd_enabled_port_mask"))
-    fprintf (shell->terminal, "l2fwd_enabled_port_mask = %#x\n",
-             l2fwd_enabled_port_mask);
+    fprintf (shell->terminal, "l2fwd_enabled_port_mask = %#x%s",
+             l2fwd_enabled_port_mask, shell->LF);
   if (brief || all || ! strcmp (argv[3], "l2fwd_enabled_port_mask"))
-    fprintf (shell->terminal, "l2fwd_rx_queue_per_lcore = %d\n",
-             l2fwd_rx_queue_per_lcore);
+    fprintf (shell->terminal, "l2fwd_rx_queue_per_lcore = %d%s",
+             l2fwd_rx_queue_per_lcore, shell->LF);
 }
 
 DEFINE_COMMAND (show_l2fwd_all,
@@ -118,12 +118,12 @@ DEFINE_COMMAND (show_l2fwd_all,
   else if (! strcmp (argv[2], "all"))
     all = true;
 
-  fprintf (shell->terminal, "enable_tap_copy = %d\n",
-           enable_tap_copy);
-  fprintf (shell->terminal, "l2fwd_enabled_port_mask = %#x\n",
-           l2fwd_enabled_port_mask);
-  fprintf (shell->terminal, "l2fwd_rx_queue_per_lcore = %d\n",
-           l2fwd_rx_queue_per_lcore);
+  fprintf (shell->terminal, "enable_tap_copy = %d%s",
+           enable_tap_copy, shell->LF);
+  fprintf (shell->terminal, "l2fwd_enabled_port_mask = %#x%s",
+           l2fwd_enabled_port_mask, shell->LF);
+  fprintf (shell->terminal, "l2fwd_rx_queue_per_lcore = %d%s",
+           l2fwd_rx_queue_per_lcore, shell->LF);
   show_l2fwd_lcore_by_mask (shell, true, true, 0);
 }
 
@@ -135,16 +135,16 @@ show_l2fwd_lcore_one (struct shell *shell, unsigned int rx_lcore_id)
   int portid;
 
   qconf = &lcore_queue_conf[rx_lcore_id];
-  fprintf (shell->terminal, "l2fwd lcore[%d]: lcore_queue_conf:\n",
-           rx_lcore_id);
+  fprintf (shell->terminal, "l2fwd lcore[%d]: lcore_queue_conf:%s",
+           rx_lcore_id, shell->LF);
 
-  fprintf (shell->terminal, "    n_rx_port: %d:\n", qconf->n_rx_port);
+  fprintf (shell->terminal, "    n_rx_port: %d:%s", qconf->n_rx_port, shell->LF);
   for (i = 0; i < qconf->n_rx_port; i++)
     {
       portid = qconf->rx_port_list[i];
       fprintf (shell->terminal,
-               "    rx_port_list[%d]: rxport %d txport: %d\n",
-               i, portid, l2fwd_dst_ports[portid]);
+               "    rx_port_list[%d]: rxport %d txport: %d%s",
+               i, portid, l2fwd_dst_ports[portid], shell->LF);
     }
 }
 
