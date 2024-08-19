@@ -172,15 +172,6 @@ sdplane_0.0.9e-1_amd64.deb
   - screen (入ってる)
   - ripgrep
 
-* tailscale
-  - curl -fsSL https://tailscale.com/install.sh | sh
-  - tailscale up
-  - To authenticate, visit:
-	https://login.tailscale.com/a/14f4cdf3014b2b
-    このURLを小原に通知する。
-    小原が yasuhironet の tailnet に接続する。
-    (テナント問題がTODO)
-
 * lthread を compile & install
   $ git clone https://github.com/yasuhironet/lthread.git
   $ cd lthread
@@ -234,6 +225,76 @@ sdplane_0.0.9e-1_amd64.deb
 * screen and .screenrc のインストール
   $ wget http://www.yasuhironet.net/download/dot.screenrc
   $ mv dot.screenrc ~/.screenrc
+
+* tailscale
+  - curl -fsSL https://tailscale.com/install.sh | sh
+  - tailscale up
+  - To authenticate, visit:
+	https://login.tailscale.com/a/14f4cdf3014b2b
+    検収作業でこのURLを小原に通知する。
+    小原が yasuhironet の tailnet に接続する。
+
+***********************
+* 遠隔保守セットアップとセキュリティ
+***********************
+
+* wireadmin アカウント設定
+  # adduser wireadmin
+    Full Name []: wiretap admin
+  # gpasswd -a wireadmin sudo
+  wireadminでlogin
+  $ wget http://www.yasuhironet.net/download/dot.screenrc
+  $ mv dot.screenrc ~/.screenrc
+  $ mkdir .ssh
+  $ wget https://github.com/yasuhironet.keys
+  $ mv yasuhironet.keys .ssh/authorized_keys
+  $ sudo -s
+  # git config --global user.email "yasu1976@gmail.com"
+  # git config --global user.name "wiretap root user"
+  # echo "export EDITOR=vi" >> ~/.bashrc
+
+* zcmdsh / sdplane の update
+  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.21-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/sdplane_0.0.9f-1_amd64.deb
+  # apt install ./zcmdsh_0.3.21-1_amd64.deb
+  # apt install ./sdplane_0.0.9f-1_amd64.deb
+
+* iptables の設定
+  $ wget https://www.yasuhironet.net/download/iptables-rules.v4
+  $ wget https://www.yasuhironet.net/download/iptables-rules.v6
+  # mv iptables-rules.v4 /etc/iptables/rules.v4
+  # mv iptables-rules.v6 /etc/iptables/rules.v6
+
+* sshd_config の設定
+  # vi /etc/ssh/sshd_config
+  -#PasswordAuthentication yes
+  +PasswordAuthentication no
+  # ファイル最後
+  +
+  +Match Address 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+  +  PasswordAuthentication yes
+
+* netplan optional: true と enx00e04c680028 削除
+  $ wget https://www.yasuhironet.net/download/50-netplan-sdplane.yaml
+  # mv 50-netplan-sdplane.yaml /etc/netplan/
+  # rm /etc/netplan/50-cloud-init.yaml
+  //+ optional: true
+  //- enx00e04c680028:
+  //-   dhcp4: true
+
+* etckeeper commit
+  # cd /etc/
+  # git add netplan/50-netplan-sdplane.yaml 
+  # git commit -a -m "sdplane setup update."
+
+* 再起動してあらかた確かめる。
+  telnet localhost 9882
+  iptable -nL
+
+* tailscale down
+  コンソールで tailscale down する（これで完了。）
+  tailscale down
+  systemctl disable tailscaled
 
 ***********************
 * Ubuntu 再起動と確認。
