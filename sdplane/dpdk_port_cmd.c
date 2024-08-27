@@ -325,6 +325,8 @@ DEFINE_COMMAND (show_port_statistics,
     fprintf (t, "%16s %8s %8s%s",
              "port name:", "bytes-in", "bytes-out", shell->LF);
 
+  fprintf (t, "stats_array: %p%s", stats_array, shell->LF);
+
   nb_ports = rte_eth_dev_count_avail ();
   for (port_id = 0; port_id < nb_ports; port_id++)
     {

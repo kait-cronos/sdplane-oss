@@ -16,6 +16,7 @@ struct debug_type debug_sdplane_types[] =
   { DEBUG_SDPLANE_VTY_SERVER, "vty-server" },
   { DEBUG_SDPLANE_VTY_SHELL,  "vty-shell" },
   { DEBUG_SDPLANE_TELNET_OPT, "telnet-opt" },
+  { DEBUG_SDPLANE_STAT_COLLECTOR, "stat-collector" },
 };
 
 int debug_module_sdplane = 0;

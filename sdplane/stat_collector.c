@@ -6,6 +6,11 @@
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 
+#include <zcmdsh/log.h>
+#include <zcmdsh/debug.h>
+#include <zcmdsh/debug_module.h>
+#include "debug_sdplane.h"
+
 extern volatile bool force_quit;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
@@ -42,15 +47,18 @@ stat_collector (__rte_unused void *dummy)
   int i, port_id;
   uint16_t nb_ports;
 
+  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
+
   memset (stats_prev, 0, sizeof (stats_prev));
   memset (stats_current, 0, sizeof (stats_current));
   memset (stats_per_sec, 0, sizeof (stats_per_sec));
 
-  nb_ports = rte_eth_dev_count_avail ();
   while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (1000); // yield.
       //printf ("%s: schedule.\n", __func__);
+      nb_ports = rte_eth_dev_count_avail ();
+
       for (port_id = 0; port_id < nb_ports; port_id++)
         stats_prev[port_id] = stats_current[port_id];
       for (port_id = 0; port_id < nb_ports; port_id++)
@@ -60,6 +68,33 @@ stat_collector (__rte_unused void *dummy)
                                &stats_current[port_id],
                                &stats_prev[port_id]);
       //printf ("%s: stats collected.\n", __func__);
+
+      if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+                      DEBUG_SDPLANE_STAT_COLLECTOR))
+        {
+          for (port_id = 0; port_id < nb_ports; port_id++)
+            {
+              struct rte_eth_stats *s;
+              struct rte_eth_link link;
+              bool link_status;
+              rte_eth_link_get_nowait (port_id, &link);
+              link_status = !! link.link_status;
+              if (! link_status)
+                continue;
+
+              s = &stats_per_sec[port_id];
+              log_info ("port[%d]: "
+                      "pps: in: %'lu out: %'lu "
+                      "bps: in %'lu out: %'lu",
+                      port_id, s->ipackets, s->opackets,
+                      s->ibytes * 8, s->obytes * 8);
+#if 0
+              log_info ("port[%d]: "
+                      "imiss: %'lu ierr: %'lu oerr: %'lu nombuf: %'lu",
+                      s->imissed, s->ierrors, s->oerrors, s->rx_nombuf);
+#endif
+            }
+        }
 
       loop_console_prev = loop_console_current;
       loop_console_current = loop_console;

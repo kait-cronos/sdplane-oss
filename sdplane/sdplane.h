@@ -58,8 +58,6 @@ EXTERN_COMMAND (show_port_flowcontrol);
 EXTERN_COMMAND (set_port_flowcontrol);
 
 int lthread_main (__rte_unused void *dummy);
-int stat_collector (__rte_unused void *dummy);
-int load_startup_config (__rte_unused void *dummy);
 
 void soft_dplane_cmd_init (struct command_set *cmdset);
 void soft_dplane_init ();
