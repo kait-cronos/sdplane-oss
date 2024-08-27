@@ -3,13 +3,13 @@ v 起動オプションのstartup config化。(done)
 v 実行制限タイマーの解除(done)
 v ログフレームワーク(半分)
 v RCAさんからの問題/課題の聞き取り(done)
-* 起動時固まる(空エンター)問題
-* vty_server, telnet の実装とテスト
-* systemd bg起動の設定確認とテスト
-* パフォーマンステスト(linux bridgeとの性能比較)
-* tailscale 運用モデルのテスト
-* 発送処理、発送伝票(ヤマト)
-* キッティング受発注(月末締め、請求し、翌月末までに振り込む)
+v 起動時固まる(空エンター)問題
+v vty_server, telnet の実装とテスト
+v systemd bg起動の設定確認とテスト
+v パフォーマンステスト(linux bridgeとの性能比較)
+v tailscale 運用モデルのテスト
+v 発送処理、発送伝票(ヤマト)
+v キッティング受発注(月末締め、請求し、翌月末までに振り込む)
   チェックリストをもらって、検収して、請求書発行してもらい、
   初めての月末締めは7月にする。
   契約書雛形、チェックリスト、請求書、はRCAさんで
@@ -32,20 +32,22 @@ v RCAさんからの問題/課題の聞き取り(done)
 + 箱到着後、翌日着手で、終わったら発送して良いのであれば、２営業日くらい。
 + あとは温度が気になるくらい。
 
+試供品:
 第一世代
 wiretap1: yasu
 wiretap2: RCA 重近さん
-wiretap3: APS 佐藤(友)さん
-wiretap4: APS 鈴木(幸)さん
-wiretap5: APS 関口さん
+wiretap3: APS 佐藤(友)さん(2024/8/19 done)
+wiretap4: APS 鈴木(幸)さん(2024/8/19 done)
 
-とりあえず配るリスト(第二世代)
+第二世代
+wiretap5: APS 関口さん(2024/8/19 done)
 wiretap6: DIT サイバーソリューションズ kskmt さん
 wiretap7: IPA matsumoto/kazu-k さん
 wiretap8: KAIT 丸山先生
 wiretap9: SFC osamuさん(の学生さん)
 wiretap10: FNSC
 
+第三世代?
 wiretap11: 予備1
 wiretap12: 予備2
 
