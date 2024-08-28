@@ -19,13 +19,14 @@ typedef void (*shell_keyfunc_t) (struct shell *shell);
 
 struct shell
 {
-  int flag;
   int readfd;
   int writefd;
   FILE *terminal;
-  int interactive;
 
-  char *LF;
+  uint64_t flag;
+
+  /* new line character */
+  char *NL;
 
   char *prompt;
   int prompt_size;
@@ -37,13 +38,11 @@ struct shell
   char *cut_buffer;
 
   char inputch;
-  shell_keyfunc_t *key_func;
+  shell_keyfunc_t *keymap;
+  shell_keyfunc_t *keymap_normal[256];
 
   void *cmdset;
-  void *module;
-  void *context;
   void *history;
-  void *demand_matrix;
 
   struct winsize winsize;
 
@@ -53,10 +52,11 @@ struct shell
   char subnego_buf[256];
 };
 
-#define SHELL_FLAG_ESCAPE    0x01
-#define SHELL_FLAG_EXIT      0x02
-#define SHELL_FLAG_CLOSE     0x04
-#define SHELL_FLAG_DEBUG     0x08
+#define SHELL_FLAG_ESCAPE      0x01
+#define SHELL_FLAG_EXIT        0x02
+#define SHELL_FLAG_CLOSE       0x04
+#define SHELL_FLAG_DEBUG       0x08
+#define SHELL_FLAG_INTERACTIVE 0x10
 
 void shell_terminate (struct shell *shell);
 void shell_format (struct shell *shell);

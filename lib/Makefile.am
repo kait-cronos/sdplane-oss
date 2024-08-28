@@ -14,7 +14,7 @@ libzcmdsh_la_SOURCES = \
 	zcmdsh/log_cmd.c
 
 nobase_include_HEADERS = \
-	zcmdsh/log.h zcmdsh/vector.h zcmdsh/flag.h \
+	zcmdsh/log.h zcmdsh/vector.h zcmdsh/termio.h zcmdsh/flag.h \
 	zcmdsh/shell.h zcmdsh/command.h zcmdsh/command_shell.h \
 	zcmdsh/debug.h zcmdsh/debug_cmd.h \
 	zcmdsh/debug_module.h zcmdsh/debug_module_cmd.h zcmdsh/termio.h \

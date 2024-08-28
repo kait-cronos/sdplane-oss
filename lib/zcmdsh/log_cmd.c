@@ -23,23 +23,23 @@ DEFINE_COMMAND (show_logging,
 
   fprintf (shell->terminal, "log: syslog: %s%s",
            (log->flags & LOGINFO_SYSLOG ? "enabled" : "disabled"),
-           shell->LF);
+           shell->NL);
 
   fprintf (shell->terminal, "log: file: %s%s",
            (log->flags & LOGINFO_FILE ? "enabled" : "disabled"),
-           shell->LF);
+           shell->NL);
   if (log->flags & LOGINFO_FILE)
     {
       fprintf (shell->terminal, "log: file: filename: %s fp: %p%s",
-               log_filename, log->fp, shell->LF);
+               log_filename, log->fp, shell->NL);
     }
 
   fprintf (shell->terminal, "log: stdout: %s%s",
            (log->flags & LOGINFO_STDOUT ? "enabled" : "disabled"),
-           shell->LF);
+           shell->NL);
   fprintf (shell->terminal, "log: stderr: %s%s",
            (log->flags & LOGINFO_STDERR ? "enabled" : "disabled"),
-           shell->LF);
+           shell->NL);
 }
 
 DEFINE_COMMAND (log_cmd,
@@ -106,7 +106,7 @@ DEFINE_COMMAND (log_file_cmd,
   if (! log->fp)
     {
       fprintf (shell->terminal, "fopen() failed: %s%s",
-               strerror (errno), shell->LF);
+               strerror (errno), shell->NL);
       return;
     }
 

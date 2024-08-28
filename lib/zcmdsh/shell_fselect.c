@@ -25,8 +25,6 @@ char *fselect_path;
 char *fselect_dirname;
 char *fselect_filename;
 
-shell_keyfunc_t *key_func_orig;
-
 static void
 print_dirent_fselect (struct shell *shell, struct dirent *dirent,
                       int num, int ncolumn, int print_width)
@@ -268,8 +266,7 @@ fselect_keyfunc_start (struct shell *shell)
         }
     }
 
-  key_func_orig = shell->key_func;
-  shell->key_func = key_func_fselect;
+  shell->keymap = key_func_fselect;
 
   last_head = shell_word_head (shell, shell->cursor);
   fselect_path = strdup (&shell->command_line[last_head]);
@@ -326,7 +323,7 @@ fselect_keyfunc_quit (struct shell *shell)
 {
   shell_refresh (shell);
   free (fselect_path);
-  shell->key_func = key_func_orig;
+  shell->keymap = shell->keymap_normal;
 }
 
 void
@@ -373,7 +370,7 @@ fselect_keyfunc_left (struct shell *shell)
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
-  shell->key_func = key_func_fselect;
+  shell->keymap = key_func_fselect;
 }
 
 void
@@ -385,7 +382,7 @@ fselect_keyfunc_right (struct shell *shell)
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
-  shell->key_func = key_func_fselect;
+  shell->keymap = key_func_fselect;
 }
 
 void
@@ -396,7 +393,7 @@ fselect_keyfunc_up (struct shell *shell)
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
-  shell->key_func = key_func_fselect;
+  shell->keymap = key_func_fselect;
 }
 
 void
@@ -407,7 +404,7 @@ fselect_keyfunc_down (struct shell *shell)
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
-  shell->key_func = key_func_fselect;
+  shell->keymap = key_func_fselect;
 }
 
 void
@@ -464,13 +461,13 @@ fselect_keyfunc_end (struct shell *shell)
 void
 fselect_keyfunc2_start (struct shell *shell)
 {
-  shell->key_func = key_func_fselect2;
+  shell->keymap = key_func_fselect2;
 }
 
 void
 fselect_keyfunc3_start (struct shell *shell)
 {
-  shell->key_func = key_func_fselect3;
+  shell->keymap = key_func_fselect3;
 }
 
 void

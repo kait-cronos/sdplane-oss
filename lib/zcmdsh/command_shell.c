@@ -12,6 +12,7 @@
 #include "shell.h"
 #include "command.h"
 #include "command_shell.h"
+#include "termio.h"
 
 char *prompt_default = NULL;
 struct command_set *cmdset_default = NULL;
@@ -310,7 +311,7 @@ command_shell_execute (struct shell *shell)
   ret = command_execute (shell->command_line, shell->cmdset, shell);
   if (ret < 0)
     fprintf (shell->terminal, "no such command: %s%s",
-             shell->command_line, shell->LF);
+             shell->command_line, shell->NL);
   command_history_add (shell->command_line, shell->history, shell);
 
   shell_clear (shell);
@@ -357,7 +358,7 @@ print_dirent (struct shell *shell, struct dirent *dirent,
     fprintf (shell->terminal, "%s", printname);
 
   if (num % ncolumn == ncolumn - 1)
-    fprintf (shell->terminal, "%s", shell->LF);
+    fprintf (shell->terminal, "%s", shell->NL);
 }
 
 int
@@ -381,7 +382,7 @@ file_ls_candidate (struct shell *shell, char *file_path)
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
       fprintf (shell->terminal, "  path: %s dir: %s filename: %s%s",
-               file_path, dirname, filename, shell->LF);
+               file_path, dirname, filename, shell->NL);
     }
 
   dir = opendir (dirname);
@@ -426,10 +427,10 @@ file_ls_candidate (struct shell *shell, char *file_path)
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
       fprintf (shell->terminal, "  maxlen: %d ncol: %d%s",
-               maxlen, ncolumn, shell->LF);
+               maxlen, ncolumn, shell->NL);
     }
 
-  fprintf (shell->terminal, "%s", shell->LF);
+  fprintf (shell->terminal, "%s", shell->NL);
 
   num = 0;
   while ((dirent = readdir (dir)) != NULL)
@@ -459,7 +460,7 @@ file_ls_candidate (struct shell *shell, char *file_path)
         print_dirent (shell, sort_vector[i], i, ncolumn, maxlen + 2);
     }
 
-  fprintf (shell->terminal, "%s", shell->LF);
+  fprintf (shell->terminal, "%s", shell->NL);
 
   closedir (dir);
   free (path);
@@ -496,14 +497,14 @@ command_shell_ls_candidate (struct shell *shell)
     {
       if (last_head == shell->cursor && match->func)
         fprintf (shell->terminal, "  %-16s %s%s",
-                 "<cr>", match->helpstr, shell->LF);
+                 "<cr>", match->helpstr, shell->NL);
 
       for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
         {
           node = (struct command_node *) vn->data;
           if (is_command_match (node->cmdstr, last))
             fprintf (shell->terminal, "  %-16s %s%s",
-                     node->cmdstr, node->helpstr, shell->LF);
+                     node->cmdstr, node->helpstr, shell->NL);
 
           if (file_spec (node->cmdstr))
             file_ls_candidate (shell, last);

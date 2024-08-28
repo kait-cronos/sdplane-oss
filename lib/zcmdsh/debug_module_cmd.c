@@ -199,7 +199,7 @@ DEFINE_COMMAND (show_debug_module,
                "debug: module[%d]: %s: %p%s",
                j, slot->module_name,
                (void *)&debug_module_config[j],
-               shell->LF);
+               shell->NL);
 
       for (i = 0; i < debug_type_size; i++)
         {
@@ -209,7 +209,7 @@ DEFINE_COMMAND (show_debug_module,
                    i, debug_types[i].name,
                    debug_types[i].flag,
                    (FLAG_CHECK (debug_module_config[j], debug_types[i].flag) ?
-                   "on" : "off"), shell->LF);
+                   "on" : "off"), shell->NL);
         }
     }
 }
