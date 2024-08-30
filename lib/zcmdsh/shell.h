@@ -62,12 +62,18 @@ void shell_terminate (struct shell *shell);
 void shell_format (struct shell *shell);
 void shell_linefeed (struct shell *shell);
 void shell_clear (struct shell *shell);
+void shell_set_prompt (struct shell *shell, char *prompt);
 void shell_prompt (struct shell *shell);
 void shell_refresh (struct shell *shell);
 
 void shell_insert (struct shell *shell, char *s);
+void shell_insert_char (struct shell *shell, char ch);
 void shell_delete_string (struct shell *shell, int start, int end);
 void shell_cut (struct shell *shell, int start, int end);
+
+void shell_forward (struct shell *shell, int num);
+void shell_backward (struct shell *shell, int num);
+
 void shell_moveto (struct shell *shell, int index);
 int shell_word_head (struct shell *shell, int point);
 int shell_word_end (struct shell *shell, int point);
@@ -78,23 +84,6 @@ void shell_delete_word_backward (struct shell *shell);
 void shell_move_word_backward (struct shell *shell);
 void shell_move_word_forward (struct shell *shell);
 
-void shell_keyfunc_ctrl_a (struct shell *shell);
-void shell_keyfunc_ctrl_b (struct shell *shell);
-void shell_keyfunc_ctrl_d (struct shell *shell);
-void shell_keyfunc_ctrl_e (struct shell *shell);
-void shell_keyfunc_ctrl_f (struct shell *shell);
-void shell_keyfunc_ctrl_h (struct shell *shell);
-void shell_keyfunc_ctrl_i (struct shell *shell);
-void shell_keyfunc_ctrl_j (struct shell *shell);
-void shell_keyfunc_ctrl_k (struct shell *shell);
-void shell_keyfunc_ctrl_m (struct shell *shell);
-void shell_keyfunc_ctrl_r (struct shell *shell);
-void shell_keyfunc_ctrl_u (struct shell *shell);
-void shell_keyfunc_ctrl_w (struct shell *shell);
-void shell_keyfunc_ctrl_y (struct shell *shell);
-void shell_keyfunc_ctrl_lb (struct shell *shell);
-
-
 void shell_close (struct shell *shell);
 int shell_read (struct shell *shell);
 int shell_read_nowait (struct shell *shell);
@@ -103,7 +92,6 @@ struct shell *shell_create ();
 void shell_delete (struct shell *shell);
 
 void shell_set_terminal (struct shell *shell, int readfd, int writefd);
-void shell_set_prompt (struct shell *shell, char *prompt);
 void shell_install (struct shell *shell, unsigned char key,
                     shell_keyfunc_t func);
 
