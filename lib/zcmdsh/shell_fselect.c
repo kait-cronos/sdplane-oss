@@ -65,6 +65,7 @@ fselect_ls_candidate (struct shell *shell)
   int num;
   DIR *dir;
   struct dirent *dirent;
+  int i;
 
   dir = opendir (fselect_dirname);
   if (dir == NULL)
@@ -106,57 +107,30 @@ fselect_ls_candidate (struct shell *shell)
         continue;
 
       if (sort_vector)
-        sort_vector[num] = dirent;
+        sort_vector[num] = dirent_copy (dirent);
       else
         print_dirent_fselect (shell, dirent, num,
                               fselect_ncolumn, fselect_maxlen + 2);
 
-#if 0
-      snprintf (dirent_name, sizeof (dirent_name),
-                "%s%s",
-                dirent->d_name,
-                (dirent->d_type == DT_DIR ? "/" : ""));
-      dirent_len = strlen (dirent_name);
-
-      if (num % fselect_ncolumn == 0)
-        fprintf (shell->terminal, "  ");
-
-      if (num == fselect_index)
-        fprintf (shell->terminal, "%s", "\033[7m");
-
-      fprintf (shell->terminal, "%s", dirent_name);
-
-      if (num == fselect_index)
-        fprintf (shell->terminal, "%s", "\033[0m");
-
-      if (fselect_ncolumn > 1)
-        {
-          if (fselect_maxlen + 2 - dirent_len > 0)
-            fprintf (shell->terminal, "%-*s",
-                     fselect_maxlen + 2 - dirent_len, " ");
-
-          if (num % fselect_ncolumn == fselect_ncolumn - 1)
-            fprintf (shell->terminal, "\n");
-        }
-      else
-        fprintf (shell->terminal, "\n");
-#endif
-
       num++;
     }
+  closedir (dir);
 
   if (sort_vector)
     {
       qsort ((void *) sort_vector, sort_size,
              sizeof (struct dirent *), dirent_cmp);
 
-      for (int i = 0; i < sort_size; i++)
+      for (i = 0; i < sort_size; i++)
         print_dirent_fselect (shell, sort_vector[i], i,
                               fselect_ncolumn, fselect_maxlen + 2);
     }
 
   fprintf (shell->terminal, "\n");
-  closedir (dir);
+
+  for (i = 0; i < sort_size; i++)
+    free (sort_vector[i]);
+  free (sort_vector);
 }
 
 char *
@@ -308,13 +282,6 @@ fselect_keyfunc_start (struct shell *shell)
       fselect_nentry++;
     }
   closedir (dir);
-
-#if 0
-  /* ncolumn is set inside fselect_ls_candidate() */
-  fselect_ncolumn = (shell->winsize.ws_col - 2) / (fselect_maxlen + 2);
-  if (fselect_ncolumn == 0)
-    fselect_ncolumn = 1;
-#endif
 
   fselect_index = 0;
 

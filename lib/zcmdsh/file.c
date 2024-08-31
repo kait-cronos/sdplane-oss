@@ -120,3 +120,39 @@ restore_stdio ()
   return 0;
 }
 
+int
+dirent_cmp (const void *va, const void *vb)
+{
+  struct dirent *da = *(struct dirent **) va;
+  struct dirent *db = *(struct dirent **) vb;
+#if 0
+    {
+      int ret;
+      ret = strcmp (da->d_name, db->d_name);
+      printf ("ret: %d: %s, %s\n", ret, da->d_name, db->d_name);
+    }
+#endif
+  return strcmp (da->d_name, db->d_name);
+}
+
+struct dirent *
+dirent_copy (struct dirent *dirent)
+{
+  int len;
+  len = offsetof (struct dirent, d_name);
+  len += strlen (dirent->d_name) + 1;
+
+  struct dirent *new;
+  new = malloc (len);
+  if (! new)
+    {
+      fprintf (stderr, "malloc() failed: %s\n",
+               strerror (errno));
+      return NULL;
+    }
+
+  memcpy (new, dirent, len);
+  //printf ("%s: len: %d\n", __func__, len);
+  return new;
+}
+
