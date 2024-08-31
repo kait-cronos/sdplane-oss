@@ -32,9 +32,14 @@ print_dirent_fselect (struct shell *shell, struct dirent *dirent,
   char printname[1024];
   char *suffix;
 
+  /* append necessary suffix. */
   suffix = (dirent->d_type == DT_DIR ? "/" : "");
   snprintf (printname, sizeof (printname),
             "%s%s", dirent->d_name, suffix);
+
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    fprintf (shell->terminal, "num: %d ncolumn: %d index: %d %s\n",
+             num, ncolumn, fselect_index, printname);
 
   if (num % ncolumn == 0)
     fprintf (shell->terminal, "  ");
@@ -323,7 +328,7 @@ fselect_keyfunc_quit (struct shell *shell)
 {
   shell_refresh (shell);
   free (fselect_path);
-  shell->keymap = shell->keymap_normal;
+  shell->keymap = (shell_keyfunc_t *)shell->keymap_normal;
 }
 
 void

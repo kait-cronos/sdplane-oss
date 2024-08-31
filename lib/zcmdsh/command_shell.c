@@ -349,6 +349,10 @@ print_dirent (struct shell *shell, struct dirent *dirent,
   snprintf (printname, sizeof (printname),
             "%s%s", dirent->d_name, suffix);
 
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    fprintf (shell->terminal, "num: %d ptr: %p ncolumn: %d %s dirent: %s\n",
+             num, dirent, ncolumn, printname, dirent->d_name);
+
   if (num % ncolumn == 0)
     fprintf (shell->terminal, "  ");
 
@@ -366,7 +370,34 @@ dirent_cmp (const void *va, const void *vb)
 {
   struct dirent *da = *(struct dirent **) va;
   struct dirent *db = *(struct dirent **) vb;
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    {
+      int ret;
+      ret = strcmp (da->d_name, db->d_name);
+      printf ("ret: %d: %s, %s\n", ret, da->d_name, db->d_name);
+    }
   return strcmp (da->d_name, db->d_name);
+}
+
+struct dirent *
+dirent_copy (struct dirent *dirent)
+{
+  int len;
+  len = offsetof (struct dirent, d_name);
+  len += strlen (dirent->d_name) + 1;
+
+  struct dirent *new;
+  new = malloc (len);
+  if (! new)
+    {
+      fprintf (stderr, "malloc() failed: %s\n",
+               strerror (errno));
+      return NULL;
+    }
+
+  memcpy (new, dirent, len);
+  printf ("%s: len: %d\n", __func__, len);
+  return new;
 }
 
 void
@@ -377,6 +408,7 @@ file_ls_candidate (struct shell *shell, char *file_path)
   char *filename;
   DIR *dir;
   struct dirent *dirent;
+  int i;
 
   path_disassemble (path, &dirname, &filename);
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
@@ -388,6 +420,8 @@ file_ls_candidate (struct shell *shell, char *file_path)
   dir = opendir (dirname);
   if (dir == NULL)
     {
+      fprintf (shell->terminal, "opendir() failed: %s dir: %s%s",
+               file_path, dirname, shell->NL);
       free (path);
       return;
     }
@@ -418,6 +452,11 @@ file_ls_candidate (struct shell *shell, char *file_path)
   sort_size = nentry;
   sort_vector = malloc (sizeof (struct dirent *) * sort_size);
 
+#if 0
+  free (sort_vector);
+  sort_vector = NULL;
+#endif
+
   int num;
   int ncolumn;
   ncolumn = (shell->winsize.ws_col - 2) / (maxlen + 2);
@@ -426,8 +465,8 @@ file_ls_candidate (struct shell *shell, char *file_path)
 
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-      fprintf (shell->terminal, "  maxlen: %d ncol: %d%s",
-               maxlen, ncolumn, shell->NL);
+      fprintf (shell->terminal, "  %s: nentry: %d maxlen: %d ncol: %d sort_vector: %p%s",
+               __func__, nentry, maxlen, ncolumn, sort_vector, shell->NL);
     }
 
   fprintf (shell->terminal, "%s", shell->NL);
@@ -444,25 +483,38 @@ file_ls_candidate (struct shell *shell, char *file_path)
         continue;
 
       if (sort_vector)
-        sort_vector[num] = dirent;
+        {
+          sort_vector[num] = dirent_copy (dirent);
+          fprintf (shell->terminal, "sort_vec[%d]: %p: %s%s",
+                   num, dirent, dirent->d_name, shell->NL);
+        }
       else
         print_dirent (shell, dirent, num, ncolumn, maxlen + 2);
 
       num++;
     }
+  closedir (dir);
 
   if (sort_vector)
     {
+      fprintf (shell->terminal, "before:%s", shell->NL);
+      for (i = 0; i < sort_size; i++)
+        print_dirent (shell, sort_vector[i], i, ncolumn, maxlen + 2);
+
       qsort ((void *) sort_vector, sort_size,
              sizeof (struct dirent *), dirent_cmp);
 
-      for (int i = 0; i < sort_size; i++)
+      fprintf (shell->terminal, "after:%s", shell->NL);
+      for (i = 0; i < sort_size; i++)
         print_dirent (shell, sort_vector[i], i, ncolumn, maxlen + 2);
     }
 
   fprintf (shell->terminal, "%s", shell->NL);
 
-  closedir (dir);
+  for (i = 0; i < sort_size; i++)
+    free (sort_vector[i]);
+  free (sort_vector);
+
   free (path);
 }
 
