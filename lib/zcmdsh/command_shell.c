@@ -487,8 +487,8 @@ command_shell_ls_candidate (struct shell *shell)
   if (shell->cursor != shell->end)
     {
       shell->cursor = shell->end;
-      shell_linefeed (shell);
       shell_format (shell);
+      shell_linefeed (shell);
       shell_refresh (shell);
       return;
     }
@@ -523,6 +523,7 @@ command_shell_ls_candidate (struct shell *shell)
   free (cmd_dup);
 
   shell_format (shell);
+  shell_linefeed (shell);
   shell_refresh (shell);
 }
 

@@ -13,6 +13,7 @@ void shell_keyfunc_backspace (struct shell *shell);
 void shell_keyfunc_kill_line (struct shell *shell);
 void shell_keyfunc_kill_all (struct shell *shell);
 void shell_keyfunc_yank (struct shell *shell);
+void shell_keyfunc_clear_screen (struct shell *shell);
 void shell_keyfunc_refresh (struct shell *shell);
 void shell_keyfunc_empty_enter (struct shell *shell);
 void shell_keyfunc_insert_tab (struct shell *shell);

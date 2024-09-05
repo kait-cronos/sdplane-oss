@@ -38,6 +38,7 @@ shell_format (struct shell *shell)
     return;
   memset (command_line, 0, shell->size);
 
+  /* filter out the duplicated consecutive spaces. */
   for (i = 0; i < shell->end; i++)
     {
       if (shell->command_line[i] == ' ')
@@ -61,6 +62,31 @@ shell_format (struct shell *shell)
 
   free (shell->command_line);
   shell->command_line = command_line;
+
+#if 0
+  fprintf (shell->terminal, "back from %d to 0%s",
+           shell->cursor, shell->NL);
+  fprintf (shell->terminal, "write new command_line (%d bytes)%s",
+           strlen (command_line), shell->NL);
+  fprintf (shell->terminal, "write extra space (%d bytes)%s",
+           shell->end - end, shell->NL);
+  fprintf (shell->terminal, "go back from %d to %d%s",
+           shell->end,  cursor, shell->NL);
+#endif
+
+  /* move to the beginning. */
+  for (i = shell->cursor; 0 < i; i--)
+    writec (shell->writefd, CONTROL('H'));
+  /* re-write the new command-line. */
+  write (shell->writefd, command_line,
+         strlen (command_line));
+  /* erase the last part. */
+  for (i = end; i < shell->end; i++)
+    writec (shell->writefd, ' ');
+  /* move back to the cursor. */
+  for (i = shell->end; cursor < i; i--)
+    writec (shell->writefd, CONTROL('H'));
+
   shell->cursor = cursor;
   shell->end = end;
 }
@@ -175,6 +201,7 @@ shell_insert_char (struct shell *shell, char ch)
   shell_insert (shell, str);
 }
 
+/* delete string from start to end */
 void
 shell_delete_string (struct shell *shell, int start, int end)
 {
@@ -186,8 +213,8 @@ shell_delete_string (struct shell *shell, int start, int end)
   assert (start <= end && end <= shell->end);
   size = end - start;
 
-  /* update the string of the deleted part */
-  movesize = shell->end - start - size;
+  /* move the string after the deleted part */
+  movesize = shell->end - end;
   if (movesize)
     memmove (&shell->command_line[start],
              &shell->command_line[end], movesize);
@@ -523,13 +550,15 @@ shell_debug (struct shell *shell)
   fflush (shell->terminal);
 
   snprintf (debug, sizeof (debug),
-            "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d%s",
+            "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d",
             shell_word_prev_head (shell, shell->cursor),
             shell_word_head (shell, shell->cursor),
             shell_word_end (shell, shell->cursor),
             shell->cursor, shell->end,
-            shell->inputch, shell->size, shell->NL);
-  ret = write (shell->writefd, debug, strlen (debug));
+            shell->inputch, shell->size);
+  fprintf (shell->terminal, "%s%s", debug, shell->NL);
+  fflush (shell->terminal);
+  //ret = write (shell->writefd, debug, strlen (debug));
 
 #if 0
   for (i = 0; i < shell->end; i++)

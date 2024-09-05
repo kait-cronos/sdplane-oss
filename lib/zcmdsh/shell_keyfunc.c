@@ -24,7 +24,7 @@ shell_keyfunc_t default_keymap[256] =
   shell_keyfunc_insert_tab,       /* Function for CONTROL('I') */
   shell_keyfunc_empty_enter,      /* Function for CONTROL('J') */
   shell_keyfunc_kill_line,        /* Function for CONTROL('K') */
-  shell_keyfunc_refresh,          /* Function for CONTROL('L') */
+  shell_keyfunc_clear_screen,     /* Function for CONTROL('L') */
   shell_keyfunc_empty_enter,      /* Function for CONTROL('M') */
   NULL,                           /* Function for CONTROL('N') */
   NULL,                           /* Function for CONTROL('O') */
@@ -226,11 +226,23 @@ shell_keyfunc_yank (struct shell *shell)
 }
 
 void
+shell_keyfunc_clear_screen (struct shell *shell)
+{
+  const char clear[] = { 27, '[', '2', 'J', '\0' };
+  const char topleft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
+  fprintf (shell->terminal, "%s%s", clear, topleft);
+  shell_format (shell);
+  shell_linefeed (shell);
+  shell_refresh (shell);
+}
+
+void
 shell_keyfunc_refresh (struct shell *shell)
 {
   /* Refresh and Re-format */
-  shell_linefeed (shell);
+  //shell_linefeed (shell);
   shell_format (shell);
+  shell_linefeed (shell);
   shell_refresh (shell);
 }
 
