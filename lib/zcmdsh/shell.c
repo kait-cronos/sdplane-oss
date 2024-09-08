@@ -60,9 +60,6 @@ shell_format (struct shell *shell)
         count = 0;
     }
 
-  free (shell->command_line);
-  shell->command_line = command_line;
-
 #if 0
   fprintf (shell->terminal, "back from %d to 0%s",
            shell->cursor, shell->NL);
@@ -77,16 +74,21 @@ shell_format (struct shell *shell)
   /* move to the beginning. */
   for (i = shell->cursor; 0 < i; i--)
     writec (shell->writefd, CONTROL('H'));
+
   /* re-write the new command-line. */
   write (shell->writefd, command_line,
          strlen (command_line));
+
   /* erase the last part. */
   for (i = end; i < shell->end; i++)
     writec (shell->writefd, ' ');
+
   /* move back to the cursor. */
   for (i = shell->end; cursor < i; i--)
     writec (shell->writefd, CONTROL('H'));
 
+  free (shell->command_line);
+  shell->command_line = command_line;
   shell->cursor = cursor;
   shell->end = end;
 }

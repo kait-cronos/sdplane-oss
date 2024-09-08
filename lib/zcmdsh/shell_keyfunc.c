@@ -232,7 +232,7 @@ shell_keyfunc_clear_screen (struct shell *shell)
   const char topleft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
   fprintf (shell->terminal, "%s%s", clear, topleft);
   shell_format (shell);
-  shell_linefeed (shell);
+  //shell_linefeed (shell);
   shell_refresh (shell);
 }
 

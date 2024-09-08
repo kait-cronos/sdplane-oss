@@ -810,10 +810,13 @@ command_execute (char *command_line, struct command_set *cmdset,
 
   if (match && match->func)
     {
+      if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+        {
       printf ("%s[%d]: %s: argv[%d]:", __FILE__, __LINE__, __func__, argc);
       for (int i = 0; i < argc; i++)
         printf (" %s", argv[i]);
       printf ("\n");
+        }
       (*match->func) (context, argc, argv);
     }
   else

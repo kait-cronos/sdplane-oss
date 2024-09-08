@@ -284,10 +284,6 @@ command_shell_execute (struct shell *shell)
   int ret = 0;
   char *comment;
 
-  shell_linefeed (shell);
-
-  timer_check ();
-
   /* comment handling */
   comment = strpbrk (shell->command_line, "#!");
   if (comment)
@@ -299,6 +295,9 @@ command_shell_execute (struct shell *shell)
     }
 
   shell_format (shell);
+  shell_linefeed (shell);
+
+  timer_check ();
 
   if (! strlen (shell->command_line))
     {
@@ -313,6 +312,9 @@ command_shell_execute (struct shell *shell)
     fprintf (shell->terminal, "no such command: %s%s",
              shell->command_line, shell->NL);
   command_history_add (shell->command_line, shell->history, shell);
+
+  if (! shell_running (shell))
+    return;
 
   shell_clear (shell);
   shell_prompt (shell);
@@ -350,8 +352,9 @@ print_dirent (struct shell *shell, struct dirent *dirent,
             "%s%s", dirent->d_name, suffix);
 
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    fprintf (shell->terminal, "num: %d ptr: %p ncolumn: %d %s dirent: %s\n",
-             num, dirent, ncolumn, printname, dirent->d_name);
+    fprintf (shell->terminal, "%snum: %d ptr: %p ncolumn: %d %s dirent: %s%s",
+             shell->NL, num, dirent, ncolumn, printname, dirent->d_name,
+             shell->NL);
 
   if (num % ncolumn == 0)
     fprintf (shell->terminal, "  ");
@@ -446,8 +449,10 @@ file_ls_candidate (struct shell *shell, char *file_path)
       if (sort_vector)
         {
           sort_vector[num] = dirent_copy (dirent);
+#if 0
           fprintf (shell->terminal, "sort_vec[%d]: %p: %s%s",
                    num, dirent, dirent->d_name, shell->NL);
+#endif
         }
       else
         print_dirent (shell, dirent, num, ncolumn, maxlen + 2);
@@ -487,10 +492,11 @@ command_shell_ls_candidate (struct shell *shell)
   if (shell->cursor != shell->end)
     {
       shell->cursor = shell->end;
+      shell_refresh (shell);
       shell_format (shell);
       shell_linefeed (shell);
       shell_refresh (shell);
-      return;
+      //return;
     }
 
   last_head = shell_word_head (shell, shell->cursor);
@@ -522,7 +528,7 @@ command_shell_ls_candidate (struct shell *shell)
   free (last);
   free (cmd_dup);
 
-  shell_format (shell);
+  //shell_format (shell);
   shell_linefeed (shell);
   shell_refresh (shell);
 }
