@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "vector.h"
 #include "shell.h"
+#include "shell_keyfunc.h"
 
 //static unsigned char inputch = 0;
 
@@ -37,6 +38,7 @@ shell_format (struct shell *shell)
     return;
   memset (command_line, 0, shell->size);
 
+  /* filter out the duplicated consecutive spaces. */
   for (i = 0; i < shell->end; i++)
     {
       if (shell->command_line[i] == ' ')
@@ -58,6 +60,33 @@ shell_format (struct shell *shell)
         count = 0;
     }
 
+#if 0
+  fprintf (shell->terminal, "back from %d to 0%s",
+           shell->cursor, shell->NL);
+  fprintf (shell->terminal, "write new command_line (%d bytes)%s",
+           strlen (command_line), shell->NL);
+  fprintf (shell->terminal, "write extra space (%d bytes)%s",
+           shell->end - end, shell->NL);
+  fprintf (shell->terminal, "go back from %d to %d%s",
+           shell->end,  cursor, shell->NL);
+#endif
+
+  /* move to the beginning. */
+  for (i = shell->cursor; 0 < i; i--)
+    writec (shell->writefd, CONTROL('H'));
+
+  /* re-write the new command-line. */
+  write (shell->writefd, command_line,
+         strlen (command_line));
+
+  /* erase the last part. */
+  for (i = end; i < shell->end; i++)
+    writec (shell->writefd, ' ');
+
+  /* move back to the cursor. */
+  for (i = shell->end; cursor < i; i--)
+    writec (shell->writefd, CONTROL('H'));
+
   free (shell->command_line);
   shell->command_line = command_line;
   shell->cursor = cursor;
@@ -67,20 +96,12 @@ shell_format (struct shell *shell)
 void
 shell_linefeed (struct shell *shell)
 {
-#if 0
-  writec (shell->writefd, '\n');
-#else
-  fprintf (shell->terminal, "%s", shell->LF);
-#endif
+  fprintf (shell->terminal, "%s", shell->NL);
 }
 
 void
 shell_clear (struct shell *shell)
 {
-#if 0
-  if (shell->interactive)
-    writec (shell->writefd, '\r');
-#endif
   shell->cursor = 0;
   shell->end = 0;
   shell_terminate (shell);
@@ -118,7 +139,7 @@ shell_prompt (struct shell *shell)
     fflush (shell->terminal);
 
   /* move cursor to beginning */
-  if (shell->interactive)
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
     writec (shell->writefd, '\r');
 
   /* print prompt */
@@ -182,6 +203,7 @@ shell_insert_char (struct shell *shell, char ch)
   shell_insert (shell, str);
 }
 
+/* delete string from start to end */
 void
 shell_delete_string (struct shell *shell, int start, int end)
 {
@@ -193,8 +215,8 @@ shell_delete_string (struct shell *shell, int start, int end)
   assert (start <= end && end <= shell->end);
   size = end - start;
 
-  /* update the string of the deleted part */
-  movesize = shell->end - start - size;
+  /* move the string after the deleted part */
+  movesize = shell->end - end;
   if (movesize)
     memmove (&shell->command_line[start],
              &shell->command_line[end], movesize);
@@ -524,19 +546,21 @@ shell_debug (struct shell *shell)
   fprintf (shell->terminal, "cmd: [");
   for (i = 0; i < shell->end; i++)
     fprintf (shell->terminal, " %#02x", shell->command_line[i]);
-  fprintf (shell->terminal, " ]%s", shell->LF);
+  fprintf (shell->terminal, " ]%s", shell->NL);
   fprintf (shell->terminal, "size: %d cursor: %d end: %d%s",
-           shell->size, shell->cursor, shell->end, shell->LF);
+           shell->size, shell->cursor, shell->end, shell->NL);
   fflush (shell->terminal);
 
   snprintf (debug, sizeof (debug),
-            "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d%s",
+            "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d",
             shell_word_prev_head (shell, shell->cursor),
             shell_word_head (shell, shell->cursor),
             shell_word_end (shell, shell->cursor),
             shell->cursor, shell->end,
-            shell->inputch, shell->size, shell->LF);
-  ret = write (shell->writefd, debug, strlen (debug));
+            shell->inputch, shell->size);
+  fprintf (shell->terminal, "%s%s", debug, shell->NL);
+  fflush (shell->terminal);
+  //ret = write (shell->writefd, debug, strlen (debug));
 
 #if 0
   for (i = 0; i < shell->end; i++)
@@ -551,7 +575,7 @@ shell_debug (struct shell *shell)
           write (shell->writefd, debug, strlen (debug));
         }
     }
-  snprintf (debug, sizeof (debug), "%s", shell->LF);
+  snprintf (debug, sizeof (debug), "%s", shell->NL);
   write (shell->writefd, debug, strlen (debug));
 #endif
 
@@ -585,266 +609,6 @@ shell_refresh (struct shell *shell)
 }
 
 void
-shell_keyfunc_ctrl_f (struct shell *shell)
-{
-  /* Move forward */
-  shell_forward (shell, 1);
-}
-
-void
-shell_keyfunc_ctrl_b (struct shell *shell)
-{
-  /* Move backward */
-  shell_backward (shell, 1);
-}
-
-void
-shell_keyfunc_ctrl_a (struct shell *shell)
-{
-  /* Move to beggining-of-line */
-  shell_backward (shell, shell->cursor);
-}
-
-void
-shell_keyfunc_ctrl_e (struct shell *shell)
-{
-  /* Move to end-of-line */
-  shell_forward (shell, shell->end - shell->cursor);
-}
-
-void
-shell_keyfunc_ctrl_d (struct shell *shell)
-{
-  /* Delete one character */
-  if (shell->cursor < shell->end)
-    shell_delete_string (shell, shell->cursor, shell->cursor + 1);
-}
-
-void
-shell_keyfunc_ctrl_h (struct shell *shell)
-{
-  /* Backspace */
-  if (shell->cursor <= 0)
-    return;
-
-  if (FLAG_CHECK (shell->flag, SHELL_FLAG_ESCAPE))
-    {
-      shell_delete_word_backward (shell);
-      return;
-    }
-
-  shell_backward (shell, 1);
-  shell_delete_string (shell, shell->cursor, shell->cursor + 1);
-}
-
-void
-shell_keyfunc_ctrl_k (struct shell *shell)
-{
-  /* Kill after the cursor */
-  shell_cut (shell, shell->cursor, shell->end);
-}
-
-void
-shell_keyfunc_ctrl_u (struct shell *shell)
-{
-  /* Kill all the line */
-  shell_backward (shell, shell->cursor);
-  shell_cut (shell, 0, shell->end);
-}
-
-void
-shell_keyfunc_ctrl_y (struct shell *shell)
-{
-  /* Paste (Yank) */
-  if (shell->cut_buffer)
-    shell_insert (shell, shell->cut_buffer);
-}
-
-void
-shell_keyfunc_refresh (struct shell *shell)
-{
-  /* Refresh and Re-format */
-  shell_linefeed (shell);
-  shell_format (shell);
-  shell_refresh (shell);
-}
-
-void
-shell_keyfunc_ctrl_j (struct shell *shell)
-{
-  shell_linefeed (shell);
-  shell_clear (shell);
-  shell_prompt (shell);
-  fflush (shell->terminal);
-}
-
-void
-shell_keyfunc_ctrl_m (struct shell *shell)
-{
-  shell_linefeed (shell);
-  shell_clear (shell);
-  shell_prompt (shell);
-  fflush (shell->terminal);
-}
-
-void
-shell_keyfunc_ctrl_i (struct shell *shell)
-{
-  shell_insert (shell, "<tab>");
-}
-
-void
-shell_keyfunc_ctrl_lb (struct shell *shell)
-{
-  FLAG_SET (shell->flag, SHELL_FLAG_ESCAPE);
-}
-
-void
-shell_keyfunc_ctrl_w (struct shell *shell)
-{
-  shell_delete_word_backward (shell);
-}
-
-shell_keyfunc_t default_key_func[256] =
-{
-  NULL,                    /* Function for CONTROL('@') */
-  shell_keyfunc_ctrl_a,    /* Function for CONTROL('A') */
-  shell_keyfunc_ctrl_b,    /* Function for CONTROL('B') */
-  NULL,                    /* Function for CONTROL('C') */
-  shell_keyfunc_ctrl_d,    /* Function for CONTROL('D') */
-  shell_keyfunc_ctrl_e,    /* Function for CONTROL('E') */
-  shell_keyfunc_ctrl_f,    /* Function for CONTROL('F') */
-  NULL,                    /* Function for CONTROL('G') */
-  shell_keyfunc_ctrl_h,    /* Function for CONTROL('H') */
-  shell_keyfunc_ctrl_i,    /* Function for CONTROL('I') */
-  shell_keyfunc_ctrl_j,    /* Function for CONTROL('J') */
-  shell_keyfunc_ctrl_k,    /* Function for CONTROL('K') */
-  shell_keyfunc_refresh,   /* Function for CONTROL('L') */
-  shell_keyfunc_ctrl_m,    /* Function for CONTROL('M') */
-  NULL,                    /* Function for CONTROL('N') */
-  NULL,                    /* Function for CONTROL('O') */
-
-  NULL,                    /* Function for CONTROL('P') */
-  NULL,                    /* Function for CONTROL('Q') */
-  shell_keyfunc_refresh,   /* Function for CONTROL('R') */
-  NULL,                    /* Function for CONTROL('S') */
-  NULL,                    /* Function for CONTROL('T') */
-  shell_keyfunc_ctrl_u,    /* Function for CONTROL('U') */
-  NULL,                    /* Function for CONTROL('V') */
-  shell_keyfunc_ctrl_w,    /* Function for CONTROL('W') */
-  NULL,                    /* Function for CONTROL('X') */
-  shell_keyfunc_ctrl_y,    /* Function for CONTROL('Y') */
-  NULL,                    /* Function for CONTROL('Z') */
-  shell_keyfunc_ctrl_lb,   /* Function for CONTROL('[') */
-  NULL,                    /* Function for CONTROL('\') */
-  NULL,                    /* Function for CONTROL(']') */
-  NULL,                    /* Function for CONTROL('^') */
-  NULL,                    /* Function for CONTROL('_') */
-
-  NULL,                    /* Function for Key(' ') */
-  NULL,                    /* Function for Key('!') */
-  NULL,                    /* Function for Key('"') */
-  NULL,                    /* Function for Key('#') */
-  NULL,                    /* Function for Key('$') */
-  NULL,                    /* Function for Key('%') */
-  NULL,                    /* Function for Key('&') */
-  NULL,                    /* Function for Key(''') */
-  NULL,                    /* Function for Key('(') */
-  NULL,                    /* Function for Key(')') */
-  NULL,                    /* Function for Key('*') */
-  NULL,                    /* Function for Key('+') */
-  NULL,                    /* Function for Key(',') */
-  NULL,                    /* Function for Key('-') */
-  NULL,                    /* Function for Key('.') */
-  NULL,                    /* Function for Key('/') */
-
-  NULL,                    /* Function for Key('0') */
-  NULL,                    /* Function for Key('1') */
-  NULL,                    /* Function for Key('2') */
-  NULL,                    /* Function for Key('3') */
-  NULL,                    /* Function for Key('4') */
-  NULL,                    /* Function for Key('5') */
-  NULL,                    /* Function for Key('6') */
-  NULL,                    /* Function for Key('7') */
-  NULL,                    /* Function for Key('8') */
-  NULL,                    /* Function for Key('9') */
-  NULL,                    /* Function for Key(':') */
-  NULL,                    /* Function for Key(';') */
-  NULL,                    /* Function for Key('<') */
-  NULL,                    /* Function for Key('=') */
-  NULL,                    /* Function for Key('>') */
-  NULL,                    /* Function for Key('?') */
-
-  NULL,                    /* Function for Key('@') */
-  NULL,                    /* Function for Key('A') */
-  NULL,                    /* Function for Key('B') */
-  NULL,                    /* Function for Key('C') */
-  NULL,                    /* Function for Key('D') */
-  NULL,                    /* Function for Key('E') */
-  NULL,                    /* Function for Key('F') */
-  NULL,                    /* Function for Key('G') */
-  NULL,                    /* Function for Key('H') */
-  NULL,                    /* Function for Key('I') */
-  NULL,                    /* Function for Key('J') */
-  NULL,                    /* Function for Key('K') */
-  NULL,                    /* Function for Key('L') */
-  NULL,                    /* Function for Key('M') */
-  NULL,                    /* Function for Key('N') */
-  NULL,                    /* Function for Key('O') */
-
-  NULL,                    /* Function for Key('P') */
-  NULL,                    /* Function for Key('Q') */
-  NULL,                    /* Function for Key('R') */
-  NULL,                    /* Function for Key('S') */
-  NULL,                    /* Function for Key('T') */
-  NULL,                    /* Function for Key('U') */
-  NULL,                    /* Function for Key('V') */
-  NULL,                    /* Function for Key('W') */
-  NULL,                    /* Function for Key('X') */
-  NULL,                    /* Function for Key('Y') */
-  NULL,                    /* Function for Key('Z') */
-  NULL,                    /* Function for Key('[') */
-  NULL,                    /* Function for Key('\') */
-  NULL,                    /* Function for Key(']') */
-  NULL,                    /* Function for Key('^') */
-  NULL,                    /* Function for Key('_') */
-
-  NULL,                    /* Function for Key(',') */
-  NULL,                    /* Function for Key('a') */
-  NULL,                    /* Function for Key('b') */
-  NULL,                    /* Function for Key('c') */
-  NULL,                    /* Function for Key('d') */
-  NULL,                    /* Function for Key('e') */
-  NULL,                    /* Function for Key('f') */
-  NULL,                    /* Function for Key('g') */
-  NULL,                    /* Function for Key('h') */
-  NULL,                    /* Function for Key('i') */
-  NULL,                    /* Function for Key('j') */
-  NULL,                    /* Function for Key('k') */
-  NULL,                    /* Function for Key('l') */
-  NULL,                    /* Function for Key('m') */
-  NULL,                    /* Function for Key('n') */
-  NULL,                    /* Function for Key('o') */
-
-  NULL,                    /* Function for Key('p') */
-  NULL,                    /* Function for Key('q') */
-  NULL,                    /* Function for Key('r') */
-  NULL,                    /* Function for Key('s') */
-  NULL,                    /* Function for Key('t') */
-  NULL,                    /* Function for Key('u') */
-  NULL,                    /* Function for Key('v') */
-  NULL,                    /* Function for Key('w') */
-  NULL,                    /* Function for Key('x') */
-  NULL,                    /* Function for Key('y') */
-  NULL,                    /* Function for Key('z') */
-  NULL,                    /* Function for Key('{') */
-  NULL,                    /* Function for Key('|') */
-  NULL,                    /* Function for Key('}') */
-  NULL,                    /* Function for Key('~') */
-  shell_keyfunc_ctrl_d,    /* Function for DEL */
-};
-
-void
 shell_input (struct shell *shell, unsigned char ch)
 {
   int escaped = 0;
@@ -858,33 +622,33 @@ shell_input (struct shell *shell, unsigned char ch)
 #if 1
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-  fprintf (shell->terminal, "%s", shell->LF);
+  fprintf (shell->terminal, "%s", shell->NL);
   fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x",
            __func__, ch, ch, ch);
   if (CONTROL ('@') <= ch && ch <= CONTROL ('_'))
-    fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->LF);
+    fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->NL);
   else if (ch == 127)
-    fprintf (shell->terminal, " DEL%s", shell->LF);
+    fprintf (shell->terminal, " DEL%s", shell->NL);
   else if (isascii (ch))
-    fprintf (shell->terminal, " '%c'%s", ch, shell->LF);
+    fprintf (shell->terminal, " '%c'%s", ch, shell->NL);
   else
-    fprintf (shell->terminal, "%s", shell->LF);
-  fprintf (shell->terminal, "key_func: %p, key_func[%d]: %p%s",
-           (void *)shell->key_func, ch, (void *)shell->key_func[ch],
-           shell->LF);
+    fprintf (shell->terminal, "%s", shell->NL);
+  fprintf (shell->terminal, "keymap: %p, keymap[%d]: %p%s",
+           (void *)shell->keymap, ch, (void *)shell->keymap[ch],
+           shell->NL);
   shell_refresh (shell);
     }
 #endif
 
-  if (shell->key_func[ch])
-    (*shell->key_func[ch]) (shell);
+  if (shell->keymap[ch])
+    (*shell->keymap[ch]) (shell);
 #if 0
   else if (' ' <= ch && ch <= '~')
     shell_insert_char (shell, ch);
   else
     shell_insert_char (shell, ch);
 #else
-  else if (shell->key_func == default_key_func)
+  else if (shell->keymap == shell->keymap_normal)
     shell_insert_char (shell, ch);
 #endif
 
@@ -997,22 +761,14 @@ shell_create ()
   shell->size = INITIAL_COMMAND_LINE_SIZE;
   memset (shell->command_line, 0, shell->size);
 
-  //memcpy (shell->key_func, default_key_func,
-  //        sizeof (shell->key_func));
-#if 0
-  int i;
-  for (i = 0; i < 256; i++)
-    {
-      if (default_key_func[i] == NULL)
-        default_key_func[i] = (shell_keyfunc_t) shell_insert_char;
-    }
-#endif
+  memcpy (shell->keymap_normal, default_keymap,
+          sizeof (shell->keymap_normal));
+  shell->keymap = shell->keymap_normal;
 
-  shell->key_func = default_key_func;
-  //shell->prompt = strdup ("prompt> ");
   shell_set_prompt (shell, "prompt> ");
-  shell->interactive = 1;
-  shell->LF = "\n";
+  FLAG_SET (shell->flag, SHELL_FLAG_INTERACTIVE);
+
+  shell->NL = "\n";
 
   shell->readfd = -1;
   shell->writefd = -1;
@@ -1048,7 +804,7 @@ void
 shell_install (struct shell *shell, unsigned char key,
                shell_keyfunc_t func)
 {
-  shell->key_func[key] = func;
+  shell->keymap[key] = func;
 }
 
 int

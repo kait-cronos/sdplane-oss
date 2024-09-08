@@ -12,6 +12,7 @@
 #include "shell.h"
 #include "command.h"
 #include "command_shell.h"
+#include "termio.h"
 
 char *prompt_default = NULL;
 struct command_set *cmdset_default = NULL;
@@ -283,10 +284,6 @@ command_shell_execute (struct shell *shell)
   int ret = 0;
   char *comment;
 
-  shell_linefeed (shell);
-
-  timer_check ();
-
   /* comment handling */
   comment = strpbrk (shell->command_line, "#!");
   if (comment)
@@ -298,6 +295,9 @@ command_shell_execute (struct shell *shell)
     }
 
   shell_format (shell);
+  shell_linefeed (shell);
+
+  timer_check ();
 
   if (! strlen (shell->command_line))
     {
@@ -310,8 +310,11 @@ command_shell_execute (struct shell *shell)
   ret = command_execute (shell->command_line, shell->cmdset, shell);
   if (ret < 0)
     fprintf (shell->terminal, "no such command: %s%s",
-             shell->command_line, shell->LF);
+             shell->command_line, shell->NL);
   command_history_add (shell->command_line, shell->history, shell);
+
+  if (! shell_running (shell))
+    return;
 
   shell_clear (shell);
   shell_prompt (shell);
@@ -348,6 +351,11 @@ print_dirent (struct shell *shell, struct dirent *dirent,
   snprintf (printname, sizeof (printname),
             "%s%s", dirent->d_name, suffix);
 
+  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+    fprintf (shell->terminal, "%snum: %d ptr: %p ncolumn: %d %s dirent: %s%s",
+             shell->NL, num, dirent, ncolumn, printname, dirent->d_name,
+             shell->NL);
+
   if (num % ncolumn == 0)
     fprintf (shell->terminal, "  ");
 
@@ -357,15 +365,7 @@ print_dirent (struct shell *shell, struct dirent *dirent,
     fprintf (shell->terminal, "%s", printname);
 
   if (num % ncolumn == ncolumn - 1)
-    fprintf (shell->terminal, "%s", shell->LF);
-}
-
-int
-dirent_cmp (const void *va, const void *vb)
-{
-  struct dirent *da = *(struct dirent **) va;
-  struct dirent *db = *(struct dirent **) vb;
-  return strcmp (da->d_name, db->d_name);
+    fprintf (shell->terminal, "%s", shell->NL);
 }
 
 void
@@ -376,17 +376,20 @@ file_ls_candidate (struct shell *shell, char *file_path)
   char *filename;
   DIR *dir;
   struct dirent *dirent;
+  int i;
 
   path_disassemble (path, &dirname, &filename);
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
       fprintf (shell->terminal, "  path: %s dir: %s filename: %s%s",
-               file_path, dirname, filename, shell->LF);
+               file_path, dirname, filename, shell->NL);
     }
 
   dir = opendir (dirname);
   if (dir == NULL)
     {
+      fprintf (shell->terminal, "opendir() failed: %s dir: %s%s",
+               file_path, dirname, shell->NL);
       free (path);
       return;
     }
@@ -425,11 +428,12 @@ file_ls_candidate (struct shell *shell, char *file_path)
 
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
-      fprintf (shell->terminal, "  maxlen: %d ncol: %d%s",
-               maxlen, ncolumn, shell->LF);
+      fprintf (shell->terminal, "  %s: nentry: %d maxlen: %d ncol: %d "
+               "sort_vector: %p%s",
+               __func__, nentry, maxlen, ncolumn, sort_vector, shell->NL);
     }
 
-  fprintf (shell->terminal, "%s", shell->LF);
+  fprintf (shell->terminal, "%s", shell->NL);
 
   num = 0;
   while ((dirent = readdir (dir)) != NULL)
@@ -443,25 +447,35 @@ file_ls_candidate (struct shell *shell, char *file_path)
         continue;
 
       if (sort_vector)
-        sort_vector[num] = dirent;
+        {
+          sort_vector[num] = dirent_copy (dirent);
+#if 0
+          fprintf (shell->terminal, "sort_vec[%d]: %p: %s%s",
+                   num, dirent, dirent->d_name, shell->NL);
+#endif
+        }
       else
         print_dirent (shell, dirent, num, ncolumn, maxlen + 2);
 
       num++;
     }
+  closedir (dir);
 
   if (sort_vector)
     {
       qsort ((void *) sort_vector, sort_size,
              sizeof (struct dirent *), dirent_cmp);
 
-      for (int i = 0; i < sort_size; i++)
+      for (i = 0; i < sort_size; i++)
         print_dirent (shell, sort_vector[i], i, ncolumn, maxlen + 2);
     }
 
-  fprintf (shell->terminal, "%s", shell->LF);
+  fprintf (shell->terminal, "%s", shell->NL);
 
-  closedir (dir);
+  for (i = 0; i < sort_size; i++)
+    free (sort_vector[i]);
+  free (sort_vector);
+
   free (path);
 }
 
@@ -478,10 +492,11 @@ command_shell_ls_candidate (struct shell *shell)
   if (shell->cursor != shell->end)
     {
       shell->cursor = shell->end;
-      shell_linefeed (shell);
-      shell_format (shell);
       shell_refresh (shell);
-      return;
+      shell_format (shell);
+      shell_linefeed (shell);
+      shell_refresh (shell);
+      //return;
     }
 
   last_head = shell_word_head (shell, shell->cursor);
@@ -496,14 +511,14 @@ command_shell_ls_candidate (struct shell *shell)
     {
       if (last_head == shell->cursor && match->func)
         fprintf (shell->terminal, "  %-16s %s%s",
-                 "<cr>", match->helpstr, shell->LF);
+                 "<cr>", match->helpstr, shell->NL);
 
       for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
         {
           node = (struct command_node *) vn->data;
           if (is_command_match (node->cmdstr, last))
             fprintf (shell->terminal, "  %-16s %s%s",
-                     node->cmdstr, node->helpstr, shell->LF);
+                     node->cmdstr, node->helpstr, shell->NL);
 
           if (file_spec (node->cmdstr))
             file_ls_candidate (shell, last);
@@ -513,7 +528,8 @@ command_shell_ls_candidate (struct shell *shell)
   free (last);
   free (cmd_dup);
 
-  shell_format (shell);
+  //shell_format (shell);
+  shell_linefeed (shell);
   shell_refresh (shell);
 }
 
