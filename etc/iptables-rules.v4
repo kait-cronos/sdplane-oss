@@ -8,6 +8,7 @@
 -A INPUT -p ospf -j ACCEPT
 -A INPUT -p isis -j ACCEPT
 -A INPUT -p pim -j ACCEPT
+-A INPUT -p udp --sport bootps --dport bootpc -j ACCEPT
 -A INPUT -p udp --sport 53 -j ACCEPT
 -A INPUT -p tcp --sport 53 -j ACCEPT
 -A INPUT -p udp --sport 5353 -j ACCEPT
