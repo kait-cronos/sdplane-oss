@@ -6,6 +6,7 @@
 #define __SHELL_H__
 
 #include <sys/ioctl.h>
+#include <stdbool.h>
 
 #include <zcmdsh/flag.h>
 
@@ -50,6 +51,10 @@ struct shell
   unsigned char telnet_opt;
   int subnego_size;
   char subnego_buf[256];
+
+  bool pager;
+  char *pager_command;
+  FILE *pager_saved_terminal;
 };
 
 #define SHELL_FLAG_ESCAPE      0x01

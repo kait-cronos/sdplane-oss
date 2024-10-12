@@ -280,6 +280,117 @@ timer_check ()
     printf ("limit diff: not set\n");
 }
 
+FILE *saved_terminal = NULL;
+pid_t process_id = 0;
+int pipefd[2];
+
+#define PAGER_USE_POPEN 1
+void
+pager_start (struct shell *shell)
+{
+#if PAGER_USE_POPEN
+  FILE *pager_fp = NULL;
+  if (shell->pager_command)
+    pager_fp = popen (shell->pager_command, "w");
+  if (! pager_fp)
+    pager_fp = popen ("/usr/bin/less -FX", "w");
+  if (pager_fp)
+    {
+      shell->pager_saved_terminal = shell->terminal;
+      shell->terminal = pager_fp;
+    }
+#else
+  //ret = pipe2 (pipefd, 0);
+  ret = pipe (pipefd);
+  if (ret < 0)
+    {
+      fprintf (shell->terminal, "pipe failed.%s", shell->NL);
+      return;
+    }
+  else
+    fprintf (shell->terminal, "pipe ok.%s", shell->NL);
+
+  process_id = fork ();
+  if (process_id < 0)
+    {
+      fprintf (shell->terminal, "pager failed.%s", shell->NL);
+      close (pipefd[0]);
+      close (pipefd[1]);
+    }
+  else if (process_id == 0)
+    {
+      fprintf (stderr, "child ok: %d.%s", getpid(), shell->NL);
+
+      /* child */
+      close (pipefd[1]);
+      fclose (stdin);
+      dup2 (pipefd[0], 0);
+      stdin = fdopen (0, "w+");
+
+      fprintf (stderr, "dup2 ok.%s", shell->NL);
+
+      char *path = "/usr/bin/less";
+      char *lessargs[8];
+      lessargs[0] = "less";
+      //lessargs[1] = "-F";
+      lessargs[1] = "-";
+      lessargs[2] = NULL;
+      lessargs[3] = NULL;
+
+      fprintf (stderr, "execvp ...%s", shell->NL);
+      ret = execvp (path, lessargs);
+      if (ret < 0)
+        {
+          fprintf (stderr, "pager failed: %d: %s.%s",
+                   ret, strerror (errno), shell->NL);
+          exit (-1);
+        }
+    }
+  else
+    {
+      /* parent */
+      close (pipefd[0]);
+      fprintf (shell->terminal, "parent ok.%s", shell->NL);
+
+      //dup2 (pipefd[1], 1);
+      shell->terminal = fdopen (pipefd[1], "a");
+
+      fprintf (shell->terminal, "writing to a pipe.%s", shell->NL);
+      //fflush (shell->terminal);
+    }
+#endif
+}
+
+void
+pager_end (struct shell *shell)
+{
+#if PAGER_USE_POPEN
+  if (shell->pager_saved_terminal)
+    {
+      pclose (shell->terminal);
+      shell->terminal = shell->pager_saved_terminal;
+      shell->pager_saved_terminal = NULL;
+    }
+#else
+      int wstatus;
+
+      if (process_id == 0)
+        return;
+
+      close (pipefd[1]);
+
+      fprintf (stdout, "waiting process %d...%s",
+               process_id, shell->NL);
+      waitpid (process_id, &wstatus, 0);
+      if (WIFEXITED (wstatus))
+        fprintf (shell->terminal, "process %d exited normaly.%s",
+                 process_id, shell->NL);
+      else
+        fprintf (shell->terminal, "process %d failed.%s",
+                 process_id, shell->NL);
+#endif
+}
+
 void
 command_shell_execute (struct shell *shell)
 {
@@ -309,7 +420,14 @@ command_shell_execute (struct shell *shell)
       return;
     }
 
+  if (shell->pager)
+    pager_start (shell);
+
   ret = command_execute (shell->command_line, shell->cmdset, shell);
+
+  if (shell->pager)
+    pager_end (shell);
+
   if (ret < 0)
     fprintf (shell->terminal, "no such command: %s%s",
              shell->command_line, shell->NL);
@@ -599,6 +717,7 @@ struct funcp_str_map func2str[FUNC_TABLE_SIZE] =
   FUNC_STR_MAP (command_history_prev),
   FUNC_STR_MAP (command_history_next),
 };
+
 DEFINE_COMMAND (list_keymaps,
                 "list keymaps",
                 "list.\n"
@@ -691,15 +810,83 @@ DEFINE_COMMAND (list_keymaps,
     }
 }
 
+DEFINE_COMMAND (set_pager,
+                "(set|no|) pager",
+                "set.\n"
+                "no.\n"
+                "pager.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  bool value = false;
+
+  if (! strcmp (argv[0], "set"))
+    value = true;
+  else if (! strcmp (argv[0], "no"))
+    {
+      value = false;
+    }
+  else if (argc == 1)
+    value = true;
+  shell->pager = value;
+}
+
+DEFINE_COMMAND (set_pager_command,
+                "set pager <FILE> (|<LINE>)",
+                "set.\n"
+                "pager.\n"
+                "pager command.\n"
+                "pager command option.\n")
+{
+  struct shell *shell = (struct shell *) context;
+
+  int i;
+  int ret;
+  char line[64];
+  char *p = line;
+
+  if (shell->pager_command)
+    {
+      free (shell->pager_command);
+      shell->pager_command = NULL;
+    }
+
+  for (i = 2; i < argc; i++)
+    {
+      ret = snprintf (p, sizeof (line) - (p - line),
+                      (i == 2 ? "%s" : " %s"), argv[i]);
+      p += ret;
+    }
+
+  shell->pager_command = strdup (line);
+  shell->pager = true;
+}
+
+DEFINE_COMMAND (set_pager_default,
+                "set pager default",
+                "set.\n"
+                "pager.\n"
+                "pager default.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  if (shell->pager_command)
+    {
+      free (shell->pager_command);
+      shell->pager_command = NULL;
+    }
+}
+
 void
 default_install_command (struct command_set *cmdset)
 {
-  INSTALL_COMMAND (cmdset, exit);
-  INSTALL_COMMAND (cmdset, quit);
-  INSTALL_COMMAND (cmdset, logout);
-  INSTALL_COMMAND (cmdset, list_func_table);
-  INSTALL_COMMAND (cmdset, list_keymaps);
-  INSTALL_COMMAND (cmdset, show_history);
+  INSTALL_COMMAND2 (cmdset, exit);
+  INSTALL_COMMAND2 (cmdset, quit);
+  INSTALL_COMMAND2 (cmdset, logout);
+  INSTALL_COMMAND2 (cmdset, list_func_table);
+  INSTALL_COMMAND2 (cmdset, list_keymaps);
+  INSTALL_COMMAND2 (cmdset, show_history);
+  INSTALL_COMMAND2 (cmdset, set_pager);
+  INSTALL_COMMAND2 (cmdset, set_pager_command);
+  INSTALL_COMMAND2 (cmdset, set_pager_default);
 
 #if 0
   INSTALL_COMMAND (cmdset, enable_shell_debugging);
@@ -722,6 +909,8 @@ command_shell_create ()
   shell_install (shell, '?', command_shell_ls_candidate);
   shell_install (shell, CONTROL('P'), command_history_prev);
   shell_install (shell, CONTROL('N'), command_history_next);
+
+  shell->pager = true;
 
   return shell;
 }
