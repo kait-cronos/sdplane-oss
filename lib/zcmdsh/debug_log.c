@@ -11,7 +11,7 @@
 #include "debug_log.h"
 #include "debug_category.h"
 
-uint64_t debug_config[DEBUG_CATEGORY_MAX];
+uint64_t debug_config_g[DEBUG_CATEGORY_MAX];
 uint64_t debug_output;
 
 pid_t pid = 0;

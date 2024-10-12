@@ -9,13 +9,19 @@
 #include "shell.h"
 #include "command.h"
 
+#include "debug_log.h"
+#include "debug_category.h"
+#include "debug_category.h"
+#include "debug_zcmdsh.h"
+#include "debug_backtrace.h"
+
 struct debug_type debug_types[] =
 {
-  { DEBUG_SHELL,   "shell" },
-  { DEBUG_COMMAND, "command" },
-  { DEBUG_TERMIO,  "termio" },
-  { DEBUG_TIMER,   "timer" },
-  { DEBUG_SDPLANE_WIRETAP,   "sdplane-wiretap" },
+  { DEBUG_ZCMDSH_SHELL,   "shell" },
+  { DEBUG_ZCMDSH_COMMAND, "command" },
+  { DEBUG_ZCMDSH_PAGER,   "pager" },
+  { DEBUG_ZCMDSH_TIMER,   "timer" },
+  { DEBUG_ZCMDSH_UNICODE, "unicode" },
 };
 
 struct command_header debug_cmd;
@@ -44,6 +50,10 @@ debug_cmdstr_init ()
   len -= ret;
 
   ret = snprintf (p, len, "debug ");
+  p += ret;
+  len -= ret;
+
+  ret = snprintf (p, len, "zcmdsh ");
   p += ret;
   len -= ret;
 
@@ -91,6 +101,10 @@ debug_helpstr_init ()
   p += ret;
   len -= ret;
 
+  ret = snprintf (p, len, "debug zcmdsh.\n");
+  p += ret;
+  len -= ret;
+
   for (i = 0; i < debug_type_size; i++)
     {
       ret = snprintf (p, len, "debug %s item.\n", debug_types[i].name);
@@ -107,11 +121,11 @@ debug_func (void *context, int argc, char **argv)
   int i;
   int debug_type_size;
 
-  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH, COMMAND)))
     {
-  printf ("%s: argc: %d\n", __func__, argc);
-  for (i = 0; i < argc; i++)
-    printf ("%s: argv[%d]: %s\n", __func__, i, argv[i]);
+      DEBUG_LOG_MSG ("%s: argc: %d\n", __func__, argc);
+      for (i = 0; i < argc; i++)
+        DEBUG_LOG_MSG ("%s: argv[%d]: %s\n", __func__, i, argv[i]);
     }
 
   debug_type_size = sizeof (debug_types) / sizeof (struct debug_type);
@@ -129,13 +143,13 @@ debug_func (void *context, int argc, char **argv)
         {
           if (negate)
             {
-              FLAG_CLEAR (debug_config, debug_types[i].flag);
+              FLAG_CLEAR (DEBUG_CONFIG(ZCMDSH), debug_types[i].flag);
               fprintf (shell->terminal, "debug: %s: disabled.%s",
                        debug_types[i].name, shell->NL);
             }
           else
             {
-              FLAG_SET (debug_config, debug_types[i].flag);
+              FLAG_SET (DEBUG_CONFIG(ZCMDSH), debug_types[i].flag);
               fprintf (shell->terminal, "debug: %s: enabled.%s",
                        debug_types[i].name, shell->NL);
             }
@@ -157,7 +171,7 @@ DEFINE_COMMAND (show_debug,
     {
       fprintf (shell->terminal, "debug: %s: %s.%s",
                debug_types[i].name,
-               (FLAG_CHECK (debug_config, debug_types[i].flag) ?
+               (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), debug_types[i].flag) ?
                "on" : "off"), shell->NL);
     }
 }
@@ -168,10 +182,10 @@ debug_cmd_init ()
   debug_cmdstr_init ();
   debug_helpstr_init ();
 
-  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,COMMAND)))
     {
-  printf ("debug_cmdstr: %s\n", debug_cmdstr);
-  printf ("debug_helpstr: %s\n", debug_helpstr);
+      DEBUG_LOG_MSG ("debug_cmdstr: %s\n", debug_cmdstr);
+      DEBUG_LOG_MSG ("debug_helpstr: %s\n", debug_helpstr);
     }
 
   debug_cmd.cmdstr = debug_cmdstr;

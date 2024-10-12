@@ -11,6 +11,10 @@
 #include "vector.h"
 #include "command.h"
 
+#include "debug_log.h"
+#include "debug_category.h"
+#include "debug_zcmdsh.h"
+
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif /*MIN*/
@@ -629,10 +633,10 @@ command_install2 (struct command_set *cmdset,
   parents = vector_create ();
   next_parents = vector_create ();
 
-  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
+  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,COMMAND)))
     {
-      printf ("%s: vector_create: %p\n", __func__, parents);
-      printf ("%s: vector_create: %p\n", __func__, next_parents);
+      DEBUG_LOG_MSG ("%s: vector_create: %p\n", __func__, parents);
+      DEBUG_LOG_MSG ("%s: vector_create: %p\n", __func__, next_parents);
     }
 
   vector_add (cmdset->root, parents);
@@ -646,8 +650,7 @@ command_install2 (struct command_set *cmdset,
     {
       char *p;
 
-      if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-        printf ("%s: word: %s\n", __func__, word);
+      DEBUG_ZCMDSH_LOG (COMMAND, "%s: word: %s\n", __func__, word);
 
       /* everything before '(' is ignored. */
       p = index (word, '(');

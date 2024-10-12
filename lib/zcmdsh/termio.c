@@ -9,6 +9,10 @@
 #include "flag.h"
 #include "debug.h"
 
+#include "debug_log.h"
+#include "debug_category.h"
+#include "debug_zcmdsh.h"
+
 struct termios termios_old;
 struct termios termios_new;
 
@@ -44,22 +48,22 @@ termio_print_lflags (int c_lflag)
 {
   int i;
   int size = sizeof (c_lflag_name) / sizeof (struct flag_name);
-  printf ("[");
+  DEBUG_LOG_MSG ("[");
   for (i = 0; i < size; i++)
     {
       if (c_lflag & c_lflag_name[i].val)
-        printf ("%s", c_lflag_name[i].name);
-      printf ("|");
+        DEBUG_LOG_MSG ("%s", c_lflag_name[i].name);
+      DEBUG_LOG_MSG ("|");
     }
-  printf ("]\n");
+  DEBUG_LOG_MSG ("]\n");
 }
 
 void
 termio_start ()
 {
-  if (FLAG_CHECK (debug_config, DEBUG_TERMIO))
+  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,TERMIO)))
     {
-      printf ("termios_new: c_lflag: ");
+      DEBUG_LOG_MSG ("termios_new: c_lflag: ");
       termio_print_lflags (termios_new.c_lflag);
     }
 
@@ -70,9 +74,9 @@ termio_start ()
 void
 termio_reset ()
 {
-  if (FLAG_CHECK (debug_config, DEBUG_TERMIO))
+  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,TERMIO)))
     {
-      printf ("termios_old: c_lflag: ");
+      DEBUG_LOG_MSG ("termios_old: c_lflag: ");
       termio_print_lflags (termios_old.c_lflag);
     }
 
@@ -86,9 +90,9 @@ termio_init ()
   /* save original terminal settings */
   tcgetattr (0, &termios_old);
 
-  if (FLAG_CHECK (debug_config, DEBUG_TERMIO))
+  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,TERMIO)))
     {
-      printf ("termios_old: c_lflag: ");
+      DEBUG_LOG_MSG ("termios_old: c_lflag: ");
       termio_print_lflags (termios_old.c_lflag);
     }
 

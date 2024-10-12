@@ -38,7 +38,7 @@ extern char *debug_log_filename;
 extern FILE *debug_log_file;
 
 /* config, output */
-extern uint64_t debug_config[];
+extern uint64_t debug_config_g[];
 extern uint64_t debug_output;
 
 int debug_vlog (const char *format, va_list *args);
@@ -72,7 +72,7 @@ void debug_log_init (char *progname);
     debug_log_close_file (); \
   } while (0)
 
-#define DEBUG_CONFIG(cate)      (debug_config[DEBUG_ ## cate])
+#define DEBUG_CONFIG(cate)      (debug_config_g[DEBUG_ ## cate])
 #define DEBUG_TYPE(cate, type)  (DEBUG_ ## cate ## _ ## type)
 
 #define DEBUG_SET(cate, type) \
@@ -85,12 +85,17 @@ void debug_log_init (char *progname);
     FLAG_UNSET (DEBUG_CONFIG(cate), DEBUG_TYPE(cate, type)); \
   } while (0)
 
+#define DEBUG_LOG_MSG(format, ...) \
+  do { \
+    debug_log ("%s[%d] %s(): " format, \
+               __FILE__, __LINE__, __func__, ##__VA_ARGS__); \
+  } while (0)
+
 #define DEBUG_LOG(cate, type, format, ...) \
   do { \
     if (FLAG_CHECK (DEBUG_CONFIG(cate), \
                     DEBUG_TYPE(cate, type))) \
-      debug_log ("%s[%d] %s(): " format, \
-                 __FILE__, __LINE__, __func__, ##__VA_ARGS__); \
+      DEBUG_LOG_MSG (format, ##__VA_ARGS__); \
   } while (0)
 
 /* default types */

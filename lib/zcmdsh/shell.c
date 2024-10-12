@@ -10,6 +10,10 @@
 #include "shell.h"
 #include "shell_keyfunc.h"
 
+#include "debug_log.h"
+#include "debug_category.h"
+#include "debug_zcmdsh.h"
+
 //static unsigned char inputch = 0;
 
 int
@@ -603,7 +607,7 @@ shell_refresh (struct shell *shell)
   int ret;
 
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG) ||
-      FLAG_CHECK (debug_config, DEBUG_SHELL))
+      FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,SHELL)))
     shell_debug (shell);
 
   /* print prompt */
@@ -630,7 +634,7 @@ shell_input (struct shell *shell, unsigned char ch)
   shell->inputch = ch;
 
 #if 1
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,SHELL)))
     {
   fprintf (shell->terminal, "%s", shell->NL);
   fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x",
