@@ -3,6 +3,7 @@
  */
 
 #include <includes.h>
+#include <stdbool.h>
 
 #include "log.h"
 #include "debug.h"
@@ -10,6 +11,7 @@
 #include "file.h"
 #include "vector.h"
 #include "shell.h"
+#include "shell_keyfunc.h"
 #include "command.h"
 #include "command_shell.h"
 #include "termio.h"
@@ -533,46 +535,160 @@ command_shell_ls_candidate (struct shell *shell)
   shell_refresh (shell);
 }
 
-DEFINE_COMMAND (redirect_stderr_file,
-                "redirect stderr <FILENAME>",
-                "redirect (FILE *)s\n"
-                "redirect stderr\n"
-                "File name\n")
-{
-  FILE *fp;
-  fp = fopen_create (argv[2], "w+");
-  redirect_stdio (stderr, fp);
-}
-
-DEFINE_COMMAND (restore_stderr,
-                "restore stderr",
-                "restore (FILE *)s\n"
-                "restore stderr\n")
-{
-  restore_stdio ();
-}
-
-FILE *save_terminal;
-
-DEFINE_COMMAND (redirect_terminal_file,
-                "redirect terminal <FILENAME>",
-                "redirect (FILE *)s\n"
-                "redirect shell terminal\n"
-                "File name\n")
+DEFINE_COMMAND (list_func_table,
+                "list func-table",
+                "list.\n"
+                "list func-table.\n")
 {
   struct shell *shell = (struct shell *) context;
-  FILE *fp = fopen_create (argv[2], "w+");
-  save_terminal = shell->terminal;
-  shell->terminal = fp;
+  int i;
+  for (i = 0; i < FUNC_TABLE_SIZE; i++)
+    {
+      if (func2str[i].ptr)
+        fprintf (shell->terminal, "  func2str[%d]: %p: %s%s",
+                 i, func2str[i].ptr, func2str[i].str, shell->NL);
+    }
 }
 
-DEFINE_COMMAND (restore_terminal,
-                "restore terminal",
-                "restore (FILE *)s\n"
-                "restore shell terminal\n")
+int
+func_table_lookup (void *ptr)
+{
+  int i;
+  for (i = 0; i < FUNC_TABLE_SIZE; i++)
+    {
+      if (func2str[i].ptr == ptr)
+        return i;
+    }
+  return -1;
+}
+
+#define FUNC_STR_MAP(x) { x, #x }
+struct funcp_str_map func2str[FUNC_TABLE_SIZE] =
+{
+  FUNC_STR_MAP (shell_terminate),
+  FUNC_STR_MAP (shell_format),
+  FUNC_STR_MAP (shell_linefeed),
+  FUNC_STR_MAP (shell_clear),
+  FUNC_STR_MAP (shell_delete_word_backward),
+  FUNC_STR_MAP (shell_move_word_backward),
+  FUNC_STR_MAP (shell_move_word_forward),
+  FUNC_STR_MAP (shell_refresh),
+  FUNC_STR_MAP (shell_read),
+  FUNC_STR_MAP (shell_read_nowait),
+  FUNC_STR_MAP (shell_keyfunc_forward_char),
+  FUNC_STR_MAP (shell_keyfunc_backward_char),
+  FUNC_STR_MAP (shell_keyfunc_move_to_begin),
+  FUNC_STR_MAP (shell_keyfunc_move_to_end),
+  FUNC_STR_MAP (shell_keyfunc_delete_char),
+  FUNC_STR_MAP (shell_keyfunc_backspace),
+  FUNC_STR_MAP (shell_keyfunc_kill_line),
+  FUNC_STR_MAP (shell_keyfunc_kill_all),
+  FUNC_STR_MAP (shell_keyfunc_yank),
+  FUNC_STR_MAP (shell_keyfunc_clear_screen),
+  FUNC_STR_MAP (shell_keyfunc_refresh),
+  FUNC_STR_MAP (shell_keyfunc_empty_enter),
+  FUNC_STR_MAP (shell_keyfunc_insert_tab),
+  FUNC_STR_MAP (shell_keyfunc_escape),
+  FUNC_STR_MAP (shell_keyfunc_delete_word_backward),
+  FUNC_STR_MAP (shell_input_char),
+
+  FUNC_STR_MAP (command_shell_execute),
+  FUNC_STR_MAP (command_shell_execute),
+  FUNC_STR_MAP (command_shell_completion),
+  FUNC_STR_MAP (command_shell_ls_candidate),
+  FUNC_STR_MAP (command_history_prev),
+  FUNC_STR_MAP (command_history_next),
+};
+DEFINE_COMMAND (list_keymaps,
+                "list keymaps",
+                "list.\n"
+                "list keymaps.\n")
 {
   struct shell *shell = (struct shell *) context;
-  shell->terminal = save_terminal;
+  int i;
+  void *ptr;
+  char *name;
+  int index = -1;
+  int start = -1;
+  void *next_ptr = NULL;
+  char strname[32];
+
+  bool summary = true;
+
+  for (i = 0; i <= 0xff; i++)
+    {
+      ptr = shell->keymap[i];
+      if (! ptr)
+        continue;
+
+      name = "(name unknown)";
+      index = func_table_lookup (ptr);
+      if (index >= 0)
+        name = func2str[index].str;
+
+      if (summary)
+        {
+          if (i + 1 <= 0xff)
+            {
+              next_ptr = shell->keymap[i + 1];
+              if (next_ptr && next_ptr == ptr)
+                {
+                  if (start < 0)
+                    start = i;
+                  continue;
+                }
+            }
+
+          if (start >= 0)
+            {
+              void *prev_ptr;
+              int prev_index;
+              char *prev_name;
+              prev_ptr = shell->keymap[start];
+              assert (prev_ptr);
+              prev_name = "(name unknown)";
+              prev_index = func_table_lookup (prev_ptr);
+              if (prev_index >= 0)
+                prev_name = func2str[prev_index].str;
+
+              if (isalnum (start + '@'))
+                snprintf (strname, sizeof (strname),
+                          " CONTROL('%c')", start + '@');
+              else if (isascii (start) && ! iscntrl (start))
+                snprintf (strname, sizeof (strname),
+                          " ('%c')", start);
+              else
+                snprintf (strname, sizeof (strname), "");
+
+              fprintf (shell->terminal,
+                       "  key: 0x%02x (%3d)%-14s%s",
+                       start, start, strname, shell->NL);
+
+              fprintf (shell->terminal,
+                       "%-31s %p: %s%s",
+                       "          :", prev_ptr, prev_name, shell->NL);
+
+            }
+        }
+
+      if (isalnum (i + '@'))
+        snprintf (strname, sizeof (strname), " CONTROL('%c')", i + '@');
+      else if (isascii (i) && ! iscntrl (i))
+        snprintf (strname, sizeof (strname), " ('%c')", i);
+      else
+        snprintf (strname, sizeof (strname), "");
+
+      if (start >= 0)
+        fprintf (shell->terminal,
+                 "  key: 0x%02x (%3d)%-14s%s",
+                 i, i, strname, shell->NL);
+      else
+        fprintf (shell->terminal,
+                 "  key: 0x%02x (%3d)%-14s %p: %s%s",
+                 i, i, strname, ptr, name, shell->NL);
+
+      start = -1;
+    }
 }
 
 void
@@ -581,16 +697,13 @@ default_install_command (struct command_set *cmdset)
   INSTALL_COMMAND (cmdset, exit);
   INSTALL_COMMAND (cmdset, quit);
   INSTALL_COMMAND (cmdset, logout);
+  INSTALL_COMMAND (cmdset, list_func_table);
+  INSTALL_COMMAND (cmdset, list_keymaps);
+  INSTALL_COMMAND (cmdset, show_history);
 
 #if 0
   INSTALL_COMMAND (cmdset, enable_shell_debugging);
   INSTALL_COMMAND (cmdset, disable_shell_debugging);
-  INSTALL_COMMAND (cmdset, show_history);
-
-  INSTALL_COMMAND (cmdset, redirect_stderr_file);
-  INSTALL_COMMAND (cmdset, restore_stderr);
-  INSTALL_COMMAND (cmdset, redirect_terminal_file);
-  INSTALL_COMMAND (cmdset, restore_terminal);
 #endif
 }
 

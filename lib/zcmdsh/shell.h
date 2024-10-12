@@ -67,6 +67,7 @@ void shell_prompt (struct shell *shell);
 void shell_refresh (struct shell *shell);
 
 void shell_insert (struct shell *shell, char *s);
+void shell_input_char (struct shell *shell);
 void shell_insert_char (struct shell *shell, char ch);
 void shell_delete_string (struct shell *shell, int start, int end);
 void shell_cut (struct shell *shell, int start, int end);

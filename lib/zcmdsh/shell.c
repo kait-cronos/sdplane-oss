@@ -21,6 +21,8 @@ writec (int fd, char c)
 void
 shell_terminate (struct shell *shell)
 {
+  if (shell->end < 0 || shell->size <= shell->end)
+    return;
   shell->command_line[shell->end] = '\0';
 }
 
@@ -191,6 +193,15 @@ shell_insert (struct shell *shell, char *s)
       for (i = shell->end; shell->cursor < i; i--)
         writec (shell->writefd, CONTROL('H'));
     }
+}
+
+void
+shell_input_char (struct shell *shell)
+{
+  char str[2];
+  str[0] = shell->inputch;
+  str[1] = '\0';
+  shell_insert (shell, str);
 }
 
 void
@@ -615,8 +626,7 @@ shell_input (struct shell *shell, unsigned char ch)
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_ESCAPE))
     escaped++;
 
-  /* for debug */
-  //inputch = ch;
+  /* save input char */
   shell->inputch = ch;
 
 #if 1
@@ -642,15 +652,6 @@ shell_input (struct shell *shell, unsigned char ch)
 
   if (shell->keymap[ch])
     (*shell->keymap[ch]) (shell);
-#if 0
-  else if (' ' <= ch && ch <= '~')
-    shell_insert_char (shell, ch);
-  else
-    shell_insert_char (shell, ch);
-#else
-  else if (shell->keymap == shell->keymap_normal)
-    shell_insert_char (shell, ch);
-#endif
 
   if (escaped)
     FLAG_CLEAR (shell->flag, SHELL_FLAG_ESCAPE);

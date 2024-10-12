@@ -48,4 +48,25 @@ dirent_cmp (const void *va, const void *vb);
 void
 file_ls_candidate (struct shell *shell, char *file_path);
 
+#define FUNC_TABLE_SIZE 512
+struct funcp_str_map
+{
+  void *ptr;
+  char *str;
+};
+extern struct funcp_str_map func2str[];
+#define FUNC_STR_REGISTER(x) \
+  do { \
+    int i; \
+    for (i = 0; i < FUNC_TABLE_SIZE; i++) \
+      { \
+        if (! func2str[i].ptr) \
+          { \
+            func2str[i].ptr = x; \
+            func2str[i].str = #x; \
+            break; \
+          } \
+      } \
+  } while (0)
+
 #endif /*__COMMAND_SHELL_H__*/
