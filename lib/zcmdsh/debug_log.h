@@ -100,8 +100,4 @@ void debug_log_init (char *progname);
 #define DEBUG_DEFAULT_LOG(type, format, ...) \
   DEBUG_LOG(DEFAULT, type, format, ##__VA_ARGS__)
 
-/* ISIS category */
-#define DEBUG_ISIS_LOG(type, format, ...) \
-  DEBUG_LOG(ISIS, type, format, ##__VA_ARGS__)
-
 #endif /*__DEBUG_LOG_H__*/

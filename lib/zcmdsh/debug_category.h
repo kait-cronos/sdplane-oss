@@ -3,8 +3,7 @@
 
 /* category */
 #define DEBUG_DEFAULT      0
-#define DEBUG_ISIS         1
-#define DEBUG_MTCP         2
-#define DEBUG_CATEGORY_MAX 3
+#define DEBUG_ZCMDSH       1
+#define DEBUG_CATEGORY_MAX 2
 
 #endif /*__DEBUG_CATEGORY_H__*/
