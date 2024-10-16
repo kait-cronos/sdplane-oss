@@ -1,3 +1,13 @@
+sdplane (0.0.9g-1) UNRELEASED; urgency=low
+
+  * fix iptables for DHCP, mDNS.
+  * update install-memo.txt. (wireadmin account and others.)
+
+sdplane (0.0.9f-1) UNRELEASED; urgency=low
+
+  * stat_collector(pps display) is fixed.
+  * add netplan.
+
 sdplane (0.0.9e-1) UNRELEASED; urgency=low
 
   * fix broken telnet option support.
