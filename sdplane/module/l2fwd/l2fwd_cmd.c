@@ -97,10 +97,10 @@ DEFINE_COMMAND (show_l2fwd_vars,
     all = true;
   if (brief || all || ! strcmp (argv[3], "l2fwd_enabled_port_mask"))
     fprintf (shell->terminal, "l2fwd_enabled_port_mask = %#x%s",
-             l2fwd_enabled_port_mask, shell->LF);
+             l2fwd_enabled_port_mask, shell->NL);
   if (brief || all || ! strcmp (argv[3], "l2fwd_enabled_port_mask"))
     fprintf (shell->terminal, "l2fwd_rx_queue_per_lcore = %d%s",
-             l2fwd_rx_queue_per_lcore, shell->LF);
+             l2fwd_rx_queue_per_lcore, shell->NL);
 }
 
 DEFINE_COMMAND (show_l2fwd_all,
@@ -119,11 +119,11 @@ DEFINE_COMMAND (show_l2fwd_all,
     all = true;
 
   fprintf (shell->terminal, "enable_tap_copy = %d%s",
-           enable_tap_copy, shell->LF);
+           enable_tap_copy, shell->NL);
   fprintf (shell->terminal, "l2fwd_enabled_port_mask = %#x%s",
-           l2fwd_enabled_port_mask, shell->LF);
+           l2fwd_enabled_port_mask, shell->NL);
   fprintf (shell->terminal, "l2fwd_rx_queue_per_lcore = %d%s",
-           l2fwd_rx_queue_per_lcore, shell->LF);
+           l2fwd_rx_queue_per_lcore, shell->NL);
   show_l2fwd_lcore_by_mask (shell, true, true, 0);
 }
 
@@ -136,15 +136,15 @@ show_l2fwd_lcore_one (struct shell *shell, unsigned int rx_lcore_id)
 
   qconf = &lcore_queue_conf[rx_lcore_id];
   fprintf (shell->terminal, "l2fwd lcore[%d]: lcore_queue_conf:%s",
-           rx_lcore_id, shell->LF);
+           rx_lcore_id, shell->NL);
 
-  fprintf (shell->terminal, "    n_rx_port: %d:%s", qconf->n_rx_port, shell->LF);
+  fprintf (shell->terminal, "    n_rx_port: %d:%s", qconf->n_rx_port, shell->NL);
   for (i = 0; i < qconf->n_rx_port; i++)
     {
       portid = qconf->rx_port_list[i];
       fprintf (shell->terminal,
                "    rx_port_list[%d]: rxport %d txport: %d%s",
-               i, portid, l2fwd_dst_ports[portid], shell->LF);
+               i, portid, l2fwd_dst_ports[portid], shell->NL);
     }
 }
 

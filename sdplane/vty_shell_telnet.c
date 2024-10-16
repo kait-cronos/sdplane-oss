@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 
 #include <arpa/telnet.h>
 
@@ -20,7 +21,7 @@ vty_will_echo (struct shell *shell)
   fprintf (shell->terminal, "%s", cmd);
   if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
                   DEBUG_SDPLANE_TELNET_OPT))
-    fprintf (shell->terminal, "IAC WILL TELOPT_ECHO%s", shell->LF);
+    fprintf (shell->terminal, "IAC WILL TELOPT_ECHO%s", shell->NL);
   fflush (shell->terminal);
 }
 
@@ -32,7 +33,7 @@ vty_will_suppress_go_ahead (struct shell *shell)
   fprintf (shell->terminal, "%s", cmd);
   if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
                   DEBUG_SDPLANE_TELNET_OPT))
-    fprintf (shell->terminal, "IAC WILL TELOPT_SGA%s", shell->LF);
+    fprintf (shell->terminal, "IAC WILL TELOPT_SGA%s", shell->NL);
   fflush (shell->terminal);
 }
 
@@ -44,7 +45,7 @@ vty_dont_linemode (struct shell *shell)
   fprintf (shell->terminal, "%s", cmd);
   if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
                   DEBUG_SDPLANE_TELNET_OPT))
-    fprintf (shell->terminal, "IAC DONT TELOPT_LINEMODE%s", shell->LF);
+    fprintf (shell->terminal, "IAC DONT TELOPT_LINEMODE%s", shell->NL);
   fflush (shell->terminal);
 }
 
@@ -56,7 +57,7 @@ vty_do_window_size (struct shell *shell)
   fprintf (shell->terminal, "%s", cmd);
   if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
                   DEBUG_SDPLANE_TELNET_OPT))
-    fprintf (shell->terminal, "IAC DO TELOPT_NAWS%s", shell->LF);
+    fprintf (shell->terminal, "IAC DO TELOPT_NAWS%s", shell->NL);
   fflush (shell->terminal);
 }
 
