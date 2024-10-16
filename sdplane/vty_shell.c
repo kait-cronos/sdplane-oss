@@ -348,6 +348,7 @@ vty_shell (void *arg)
   shell_set_terminal (shell, client->fd, client->fd);
   shell_set_prompt (shell, prompt);
   //get_winsize (shell);
+
   shell->LF = "\r\n";
 
   vty_shell_keyfunc_init (shell);
