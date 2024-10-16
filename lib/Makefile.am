@@ -17,6 +17,6 @@ nobase_include_HEADERS = \
 	zcmdsh/log.h zcmdsh/vector.h zcmdsh/termio.h zcmdsh/flag.h \
 	zcmdsh/shell.h zcmdsh/command.h zcmdsh/command_shell.h \
 	zcmdsh/debug.h zcmdsh/debug_cmd.h \
-	zcmdsh/debug_module.h zcmdsh/debug_module_cmd.h zcmdsh/termio.h \
+	zcmdsh/debug_module.h zcmdsh/debug_module_cmd.h \
 	zcmdsh/log_cmd.h zcmdsh/shell_keyfunc.h \
         zcmdsh/debug_log.h zcmdsh/debug_category.h zcmdsh/debug_zcmdsh.h
