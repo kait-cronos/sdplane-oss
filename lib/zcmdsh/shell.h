@@ -53,7 +53,10 @@ struct shell
   char subnego_buf[256];
 
   bool pager;
+  bool is_paging;
   char *pager_command;
+  int pager_saved_readfd;
+  int pager_saved_writefd;
   FILE *pager_saved_terminal;
 };
 

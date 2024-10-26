@@ -123,9 +123,9 @@ debug_func (void *context, int argc, char **argv)
 
   if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH, COMMAND)))
     {
-      DEBUG_LOG_MSG ("%s: argc: %d\n", __func__, argc);
+      DEBUG_LOG_MSG ("%s: argc: %d", __func__, argc);
       for (i = 0; i < argc; i++)
-        DEBUG_LOG_MSG ("%s: argv[%d]: %s\n", __func__, i, argv[i]);
+        DEBUG_LOG_MSG ("%s: argv[%d]: %s", __func__, i, argv[i]);
     }
 
   debug_type_size = sizeof (debug_types) / sizeof (struct debug_type);
@@ -139,7 +139,7 @@ debug_func (void *context, int argc, char **argv)
 
   for (i = 0; i < debug_type_size; i++)
     {
-      if (! strcmp (argv[1], debug_types[i].name))
+      if (! strcmp (argv[2], debug_types[i].name))
         {
           if (negate)
             {

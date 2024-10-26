@@ -786,7 +786,8 @@ shell_delete (struct shell *shell)
 {
   if (! FLAG_CHECK (shell->flag, SHELL_FLAG_CLOSE))
     shell_close (shell);
-  free (shell->prompt);
+  if (shell->prompt)
+    free (shell->prompt);
   free (shell->command_line);
   if (shell->cut_buffer)
     free (shell->cut_buffer);

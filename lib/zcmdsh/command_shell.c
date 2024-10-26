@@ -16,6 +16,10 @@
 #include "command_shell.h"
 #include "termio.h"
 
+#include "debug_log.h"
+#include "debug_category.h"
+#include "debug_zcmdsh.h"
+
 char *prompt_default = NULL;
 struct command_set *cmdset_default = NULL;
 
@@ -284,21 +288,42 @@ FILE *saved_terminal = NULL;
 pid_t process_id = 0;
 int pipefd[2];
 
+#define DEFAULT_PAGER "/usr/bin/less -FX"
+
 #define PAGER_USE_POPEN 1
 void
 pager_start (struct shell *shell)
 {
+  shell->is_paging = false;
 #if PAGER_USE_POPEN
   FILE *pager_fp = NULL;
+
   if (shell->pager_command)
-    pager_fp = popen (shell->pager_command, "w");
-  if (! pager_fp)
-    pager_fp = popen ("/usr/bin/less -FX", "w");
-  if (pager_fp)
     {
-      shell->pager_saved_terminal = shell->terminal;
-      shell->terminal = pager_fp;
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: %s", shell->pager_command);
+      pager_fp = popen (shell->pager_command, "w");
     }
+
+  if (! pager_fp)
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "default pager: %s", DEFAULT_PAGER);
+      pager_fp = popen (DEFAULT_PAGER, "w");
+    }
+
+  if (! pager_fp)
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "can't open pager: give up paging.");
+      return;
+    }
+
+  DEBUG_ZCMDSH_LOG (PAGER, "pager start: terminal: %p <- %p.",
+                pager_fp, shell->terminal);
+  shell->pager_saved_terminal = shell->terminal;
+  shell->pager_saved_readfd = shell->readfd;
+  shell->pager_saved_writefd = shell->writefd;
+  shell->terminal = pager_fp;
+  shell->readfd = fileno (pager_fp);
+  shell->writefd = fileno (pager_fp);
 #else
   //ret = pipe2 (pipefd, 0);
   ret = pipe (pipefd);
@@ -359,6 +384,7 @@ pager_start (struct shell *shell)
       //fflush (shell->terminal);
     }
 #endif
+  shell->is_paging = true;
 }
 
 void
@@ -367,9 +393,15 @@ pager_end (struct shell *shell)
 #if PAGER_USE_POPEN
   if (shell->pager_saved_terminal)
     {
+      DEBUG_ZCMDSH_LOG (PAGER, "pager start: terminal: %p -> %p.",
+                        shell->terminal, shell->pager_saved_terminal);
       pclose (shell->terminal);
       shell->terminal = shell->pager_saved_terminal;
+      shell->readfd = shell->pager_saved_readfd;
+      shell->writefd = shell->pager_saved_writefd;
       shell->pager_saved_terminal = NULL;
+      shell->pager_saved_readfd = -1;
+      shell->pager_saved_writefd = -1;
     }
 #else
       int wstatus;
@@ -389,6 +421,7 @@ pager_end (struct shell *shell)
         fprintf (shell->terminal, "process %d failed.%s",
                  process_id, shell->NL);
 #endif
+  shell->is_paging = false;
 }
 
 void
@@ -420,13 +453,17 @@ command_shell_execute (struct shell *shell)
       return;
     }
 
+#if 1
   if (shell->pager)
     pager_start (shell);
+#endif
 
   ret = command_execute (shell->command_line, shell->cmdset, shell);
 
-  if (shell->pager)
+#if 1
+  if (shell->is_paging)
     pager_end (shell);
+#endif
 
   if (ret < 0)
     fprintf (shell->terminal, "no such command: %s%s",
@@ -827,6 +864,7 @@ DEFINE_COMMAND (set_pager,
     }
   else if (argc == 1)
     value = true;
+  DEBUG_ZCMDSH_LOG (PAGER, "pager: %d", (int)value);
   shell->pager = value;
 }
 

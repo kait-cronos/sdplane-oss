@@ -4,11 +4,14 @@
 
 #include "includes.h"
 
-#include "log.h"
+//#include "log.h"
 
 #include "flag.h"
 #include "shell.h"
 #include "command.h"
+
+#include "debug_log.h"
+//#include "debug_category.h"
 
 char *log_filename = NULL;
 
@@ -18,27 +21,29 @@ DEFINE_COMMAND (show_logging,
                 "show logging information.\n")
 {
   struct shell *shell = (struct shell *) context;
-  struct loginfo *log;
-  log = &log_default;
 
   fprintf (shell->terminal, "log: syslog: %s%s",
-           (log->flags & LOGINFO_SYSLOG ? "enabled" : "disabled"),
+           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_SYSLOG) ?
+            "enabled" : "disabled"),
            shell->NL);
 
   fprintf (shell->terminal, "log: file: %s%s",
-           (log->flags & LOGINFO_FILE ? "enabled" : "disabled"),
+           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_FILE) ?
+            "enabled" : "disabled"),
            shell->NL);
-  if (log->flags & LOGINFO_FILE)
+  if (debug_log_filename)
     {
       fprintf (shell->terminal, "log: file: filename: %s fp: %p%s",
-               log_filename, log->fp, shell->NL);
+               debug_log_filename, debug_log_file, shell->NL);
     }
 
   fprintf (shell->terminal, "log: stdout: %s%s",
-           (log->flags & LOGINFO_STDOUT ? "enabled" : "disabled"),
+           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_STDOUT) ?
+            "enabled" : "disabled"),
            shell->NL);
   fprintf (shell->terminal, "log: stderr: %s%s",
-           (log->flags & LOGINFO_STDERR ? "enabled" : "disabled"),
+           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_STDERR) ?
+            "enabled" : "disabled"),
            shell->NL);
 }
 
@@ -51,9 +56,7 @@ DEFINE_COMMAND (log_cmd,
                 "log to stderr.\n")
 {
   struct shell *shell = (struct shell *) context;
-  struct loginfo *log;
   int negate = 0;
-  log = &log_default;
 
   if (! strcmp (argv[0], "no"))
     {
@@ -65,23 +68,23 @@ DEFINE_COMMAND (log_cmd,
   if (! strcmp (argv[1], "syslog"))
     {
       if (negate)
-        log->flags &= ~LOGINFO_SYSLOG;
+        FLAG_UNSET (debug_output, DEBUG_OUTPUT_SYSLOG);
       else
-        log->flags |= LOGINFO_SYSLOG;
+        FLAG_SET (debug_output, DEBUG_OUTPUT_SYSLOG);
     }
   else if (! strcmp (argv[1], "stdout"))
     {
       if (negate)
-        log->flags &= ~LOGINFO_STDOUT;
+        FLAG_UNSET (debug_output, DEBUG_OUTPUT_STDOUT);
       else
-        log->flags |= LOGINFO_STDOUT;
+        FLAG_SET (debug_output, DEBUG_OUTPUT_STDOUT);
     }
   else if (! strcmp (argv[1], "stderr"))
     {
       if (negate)
-        log->flags &= ~LOGINFO_STDERR;
+        FLAG_UNSET (debug_output, DEBUG_OUTPUT_STDERR);
       else
-        log->flags |= LOGINFO_STDERR;
+        FLAG_SET (debug_output, DEBUG_OUTPUT_STDERR);
     }
 }
 
@@ -92,26 +95,7 @@ DEFINE_COMMAND (log_file_cmd,
                 "log filename.\n")
 {
   struct shell *shell = (struct shell *) context;
-  struct loginfo *log;
-  int negate = 0;
-  log = &log_default;
-
-  if (log->fp)
-    fclose (log->fp);
-  if (log_filename)
-    free (log_filename);
-  log_filename = strdup (argv[2]);
-
-  log->fp = fopen (log_filename, "a+");
-  if (! log->fp)
-    {
-      fprintf (shell->terminal, "fopen() failed: %s%s",
-               strerror (errno), shell->NL);
-      return;
-    }
-
-  /* enable log file. */
-  log->flags |= LOGINFO_FILE;
+  DEBUG_OUTPUT_FILE_SET (argv[2]);
 }
 
 DEFINE_COMMAND (no_log_file_cmd,
@@ -121,20 +105,7 @@ DEFINE_COMMAND (no_log_file_cmd,
                 "log to file.\n")
 {
   struct shell *shell = (struct shell *) context;
-  struct loginfo *log;
-  int negate = 0;
-  log = &log_default;
-
-  /* disable log file. */
-  log->flags &= ~LOGINFO_FILE;
-
-  if (log->fp)
-    fclose (log->fp);
-  log->fp = NULL;
-
-  if (log_filename)
-    free (log_filename);
-  log_filename = NULL;
+  DEBUG_OUTPUT_FILE_UNSET ();
 }
 
 void
