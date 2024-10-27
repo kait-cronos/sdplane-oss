@@ -30,7 +30,8 @@ DEFINE_COMMAND (exit,
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "exit !\n");
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
-  /* don't shell_close(): this closes stdout. */
+  /* don't do shell_close() here: it closes stdout,
+     and breaks safe termination. */
   //shell_close (shell);
 }
 
@@ -288,15 +289,19 @@ FILE *saved_terminal = NULL;
 pid_t process_id = 0;
 int pipefd[2];
 
-#define DEFAULT_PAGER "/usr/bin/less -FX"
+#define DEFAULT_PAGER_ARG0 "/usr/bin/less"
+#define DEFAULT_PAGER_ARG1 "-FX"
+#define DEFAULT_PAGER (DEFAULT_PAGER_ARG0 " " DEFAULT_PAGER_ARG1)
 
-#define PAGER_USE_POPEN 1
+#define PAGER_USE_POPEN 0
 void
 pager_start (struct shell *shell)
 {
   shell->is_paging = false;
 #if PAGER_USE_POPEN
   FILE *pager_fp = NULL;
+
+  DEBUG_ZCMDSH_LOG (PAGER, "pager: use popen.");
 
   if (shell->pager_command)
     {
@@ -319,69 +324,79 @@ pager_start (struct shell *shell)
   DEBUG_ZCMDSH_LOG (PAGER, "pager start: terminal: %p <- %p.",
                 pager_fp, shell->terminal);
   shell->pager_saved_terminal = shell->terminal;
-  shell->pager_saved_readfd = shell->readfd;
   shell->pager_saved_writefd = shell->writefd;
   shell->terminal = pager_fp;
-  shell->readfd = fileno (pager_fp);
   shell->writefd = fileno (pager_fp);
 #else
-  //ret = pipe2 (pipefd, 0);
+  int ret;
+  pid_t process_id;
+
+  DEBUG_ZCMDSH_LOG (PAGER, "pager: use fork/execvp.");
   ret = pipe (pipefd);
   if (ret < 0)
     {
-      fprintf (shell->terminal, "pipe failed.%s", shell->NL);
+      DEBUG_ZCMDSH_LOG (PAGER, "pipe() failed: %s.", strerror (errno));
       return;
     }
   else
-    fprintf (shell->terminal, "pipe ok.%s", shell->NL);
+    DEBUG_ZCMDSH_LOG (PAGER, "pipe() success: pipefd[] = {%d, %d}",
+                      pipefd[0], pipefd[1]);
 
   process_id = fork ();
   if (process_id < 0)
     {
-      fprintf (shell->terminal, "pager failed.%s", shell->NL);
+      DEBUG_ZCMDSH_LOG (PAGER, "fork() failed: close pipefd[]");
       close (pipefd[0]);
       close (pipefd[1]);
     }
   else if (process_id == 0)
     {
-      fprintf (stderr, "child ok: %d.%s", getpid(), shell->NL);
+      DEBUG_ZCMDSH_LOG (PAGER, "child ok: pid: %d.", getpid());
 
       /* child */
       close (pipefd[1]);
-      fclose (stdin);
+
       dup2 (pipefd[0], 0);
-      stdin = fdopen (0, "w+");
+      dup2 (shell->writefd, 1);
+      dup2 (shell->writefd, 2);
+      stdin = fdopen (0, "r");
+      stdout = shell->terminal;
+      stderr = shell->terminal;
 
-      fprintf (stderr, "dup2 ok.%s", shell->NL);
+      DEBUG_ZCMDSH_LOG (PAGER, "dup2 ok, stdin reconnected: stdin: %p.",
+                        stdin);
 
-      char *path = "/usr/bin/less";
-      char *lessargs[8];
-      lessargs[0] = "less";
-      //lessargs[1] = "-F";
-      lessargs[1] = "-";
+      char *lessargs[3];
+      lessargs[0] = DEFAULT_PAGER_ARG0;
+      lessargs[1] = DEFAULT_PAGER_ARG1;
       lessargs[2] = NULL;
-      lessargs[3] = NULL;
+      char *path = lessargs[0];
 
-      fprintf (stderr, "execvp ...%s", shell->NL);
+      DEBUG_ZCMDSH_LOG (PAGER, "execvp: %s %s", lessargs[0], lessargs[1]);
       ret = execvp (path, lessargs);
       if (ret < 0)
         {
-          fprintf (stderr, "pager failed: %d: %s.%s",
-                   ret, strerror (errno), shell->NL);
+          DEBUG_ZCMDSH_LOG (PAGER, "execvp() failed: ret: %d: %s.",
+                            ret, strerror (errno));
           exit (-1);
         }
     }
-  else
+  else if (process_id > 0)
     {
+      DEBUG_ZCMDSH_LOG (PAGER, "parent ok: pid: %d.", getpid());
+      shell->pager_pid = process_id;
+
       /* parent */
       close (pipefd[0]);
-      fprintf (shell->terminal, "parent ok.%s", shell->NL);
 
-      //dup2 (pipefd[1], 1);
+      shell->pager_saved_terminal = shell->terminal;
+      shell->pager_saved_writefd = shell->writefd;
+
       shell->terminal = fdopen (pipefd[1], "a");
+      shell->writefd = pipefd[1];
 
-      fprintf (shell->terminal, "writing to a pipe.%s", shell->NL);
-      //fflush (shell->terminal);
+      DEBUG_ZCMDSH_LOG (PAGER, "pager start: terminal: %p <- %p.",
+                        shell->terminal, shell->pager_saved_terminal);
     }
 #endif
   shell->is_paging = true;
@@ -390,37 +405,47 @@ pager_start (struct shell *shell)
 void
 pager_end (struct shell *shell)
 {
-#if PAGER_USE_POPEN
+#if ! PAGER_USE_POPEN
+  int wstatus;
+
+  DEBUG_ZCMDSH_LOG (PAGER, "pager: close forked child.");
+
+  if (shell->pager_pid == 0)
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "should not be reached.");
+      exit (-1);
+    }
+
+  close (pipefd[1]);
+#endif
+
   if (shell->pager_saved_terminal)
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager start: terminal: %p -> %p.",
+      DEBUG_ZCMDSH_LOG (PAGER, "pager end: terminal: %p -> %p.",
                         shell->terminal, shell->pager_saved_terminal);
       pclose (shell->terminal);
       shell->terminal = shell->pager_saved_terminal;
-      shell->readfd = shell->pager_saved_readfd;
       shell->writefd = shell->pager_saved_writefd;
       shell->pager_saved_terminal = NULL;
-      shell->pager_saved_readfd = -1;
       shell->pager_saved_writefd = -1;
     }
-#else
-      int wstatus;
 
-      if (process_id == 0)
-        return;
-
-      close (pipefd[1]);
-
-      fprintf (stdout, "waiting process %d...%s",
-               process_id, shell->NL);
-      waitpid (process_id, &wstatus, 0);
-      if (WIFEXITED (wstatus))
-        fprintf (shell->terminal, "process %d exited normaly.%s",
-                 process_id, shell->NL);
-      else
-        fprintf (shell->terminal, "process %d failed.%s",
-                 process_id, shell->NL);
+#if ! PAGER_USE_POPEN
+  DEBUG_ZCMDSH_LOG (PAGER, "pager: waiting child: process %d...",
+                    shell->pager_pid);
+  waitpid (shell->pager_pid, &wstatus, 0);
+  if (WIFEXITED (wstatus))
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d exited normally.",
+                        shell->pager_pid);
+    }
+  else
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d failed.",
+                        shell->pager_pid);
+    }
 #endif
+
   shell->is_paging = false;
 }
 
@@ -453,17 +478,16 @@ command_shell_execute (struct shell *shell)
       return;
     }
 
-#if 1
   if (shell->pager)
     pager_start (shell);
-#endif
 
   ret = command_execute (shell->command_line, shell->cmdset, shell);
 
-#if 1
   if (shell->is_paging)
-    pager_end (shell);
-#endif
+    {
+      fflush (shell->terminal);
+      pager_end (shell);
+    }
 
   if (ret < 0)
     fprintf (shell->terminal, "no such command: %s%s",
@@ -476,9 +500,6 @@ command_shell_execute (struct shell *shell)
   shell_clear (shell);
   shell_prompt (shell);
   shell_refresh (shell);
-
-  /* FILE buffer must be flushed before raw-writing the same file */
-  //fflush (shell->terminal);
 }
 
 void

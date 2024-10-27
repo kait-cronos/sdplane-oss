@@ -5,6 +5,9 @@
 #ifndef __SHELL_H__
 #define __SHELL_H__
 
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <sys/ioctl.h>
 #include <stdbool.h>
 
@@ -58,6 +61,7 @@ struct shell
   int pager_saved_readfd;
   int pager_saved_writefd;
   FILE *pager_saved_terminal;
+  pid_t pager_pid;
 };
 
 #define SHELL_FLAG_ESCAPE      0x01

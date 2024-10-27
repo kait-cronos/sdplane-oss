@@ -14,8 +14,6 @@
 uint64_t debug_config_g[DEBUG_CATEGORY_MAX];
 uint64_t debug_output;
 
-pid_t pid = 0;
-
 /* syslog */
 char *ident = "debug_log";
 int option = LOG_CONS|LOG_NDELAY|LOG_PID;
@@ -45,6 +43,9 @@ debug_vlog (const char *format, va_list *args)
   char timebuf[32];
   snprintf_time (timebuf, sizeof (timebuf));
   int priority;
+  pid_t pid;
+
+  pid = getpid ();
 
   if (FLAG_CHECK (debug_output, DEBUG_OUTPUT_STDOUT))
     {
@@ -171,7 +172,6 @@ debug_log_init (char *progname)
       else
         ident = progname;
     }
-  pid = getpid ();
 
   DEBUG_SET (DEFAULT, LOGGING);
   DEBUG_SET (DEFAULT, BACKTRACE);
