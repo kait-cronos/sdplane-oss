@@ -334,12 +334,15 @@ pager_start (struct shell *shell)
   int pty_master, pty_slave;
 
   openpty (&shell->pty_master, &shell->pty_slave, NULL, NULL, NULL);
+  DEBUG_ZCMDSH_LOG (PAGER, "pty(master): fd %d, %s.",
+                    shell->pty_master, ttyname (shell->pty_master));
 
-  shell->winsize.ws_row = 10;
-  shell->winsize.ws_col = 10;
-  ioctl (shell->pty_master, TIOCSWINSZ, &shell->winsize);
-  DEBUG_ZCMDSH_LOG (PAGER, "pager: TIOCSWINSZ: row: %d col: %d.",
-                    shell->winsize.ws_row, shell->winsize.ws_col);
+  if (shell->winsize.ws_col && shell->winsize.ws_row)
+    {
+      ioctl (shell->pty_master, TIOCSWINSZ, &shell->winsize);
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: TIOCSWINSZ: row: %d col: %d.",
+                        shell->winsize.ws_row, shell->winsize.ws_col);
+    }
 
   DEBUG_ZCMDSH_LOG (PAGER, "pager: use fork/execvp.");
   ret = pipe (shell->pipefd);
@@ -348,16 +351,21 @@ pager_start (struct shell *shell)
       DEBUG_ZCMDSH_LOG (PAGER, "pipe() failed: %s.", strerror (errno));
       return;
     }
+#if 0
   else
     DEBUG_ZCMDSH_LOG (PAGER, "pipe() success: pipefd[] = {%d, %d}",
                       shell->pipefd[0], shell->pipefd[1]);
+#endif
 
   process_id = fork ();
   if (process_id < 0)
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "fork() failed: close pipefd[]");
+      DEBUG_ZCMDSH_LOG (PAGER, "fork() failed: close pipefd and pty");
       close (shell->pipefd[0]);
       close (shell->pipefd[1]);
+      close (shell->pty_master);
+      close (shell->pty_slave);
+      return;
     }
   else if (process_id == 0)
     {
@@ -370,6 +378,15 @@ pager_start (struct shell *shell)
       DEBUG_ZCMDSH_LOG (PAGER, "pty(slave): fd %d, %s.",
                         shell->pty_slave, ttyname (shell->pty_slave));
 
+      char *lessargs[3];
+      lessargs[0] = DEFAULT_PAGER_ARG0;
+      lessargs[1] = DEFAULT_PAGER_ARG1;
+      lessargs[2] = NULL;
+      char *path = lessargs[0];
+
+      DEBUG_ZCMDSH_LOG (PAGER, "execvp: %s %s",
+                        lessargs[0], lessargs[1]);
+
       dup2 (shell->pipefd[0], 0);
       dup2 (shell->pty_slave, 1);
       dup2 (shell->pty_slave, 2);
@@ -377,16 +394,6 @@ pager_start (struct shell *shell)
       stdout = fdopen (1, "w");
       stderr = fdopen (2, "r+");
 
-      DEBUG_ZCMDSH_LOG (PAGER, "dup2 ok, stdin reconnected: stdin: %p.",
-                        stdin);
-
-      char *lessargs[3];
-      lessargs[0] = DEFAULT_PAGER_ARG0;
-      lessargs[1] = DEFAULT_PAGER_ARG1;
-      lessargs[2] = NULL;
-      char *path = lessargs[0];
-
-      DEBUG_ZCMDSH_LOG (PAGER, "execvp: %s %s", lessargs[0], lessargs[1]);
       ret = execvp (path, lessargs);
       if (ret < 0)
         {
@@ -424,7 +431,7 @@ pager_end (struct shell *shell)
 #if ! PAGER_USE_POPEN
   int wstatus;
 
-  DEBUG_ZCMDSH_LOG (PAGER, "pager: close forked child.");
+  //DEBUG_ZCMDSH_LOG (PAGER, "pager: close forked child.");
 
   if (shell->pager_pid == 0)
     {
@@ -451,18 +458,18 @@ pager_end (struct shell *shell)
   int ret;
   struct pollfd fds[2];
   nfds_t nfds = 2;
-  char buf[32];
+  char buf[1024];
   int closed = 0;
-  int i;
+  int i, j;
   while (1)
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager: reset pollfds");
+      //DEBUG_ZCMDSH_LOG (PAGER, "pager: reset pollfds");
       memset (fds, 0, sizeof (fds));
       fds[0].fd = shell->readfd;
       fds[0].events |= POLLIN;
       fds[1].fd = shell->pty_master;
       fds[1].events |= POLLIN;
-      DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll()");
+      //DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll()");
       ret = ppoll (fds, nfds, NULL, NULL);
       if (ret < 0)
         {
@@ -470,8 +477,10 @@ pager_end (struct shell *shell)
                             ret, strerror (errno));
           break;
         }
+#if 0
       else
           DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d", ret);
+#endif
 
       for (i = 0; i < nfds; i++)
         {
@@ -483,29 +492,42 @@ pager_end (struct shell *shell)
                             (fds[i].revents & POLLERR ? " POLLERR" : ""),
                             fds[i].revents);
 
+#if 0
           if (fds[i].revents & POLLHUP)
             closed++;
+#endif
 
-          if (! (fds[i].revents & POLLIN))
+          if (! (fds[i].revents & (POLLIN | POLLHUP)))
             continue;
 
           readfd = fds[i].fd;
-          if (i == 0)
-            writefd = fds[1].fd;
-          else
-            writefd = fds[0].fd;
+          j = (i & 0x01) ^ 0x01;
+          writefd = fds[j].fd;
+          //DEBUG_ZCMDSH_LOG (PAGER, "pager: i: %d j: %d", i, j);
+
           ret = read (readfd, buf, sizeof (buf));
           if (ret < 0)
-            continue;
-          if (ret == 0)
             {
-              DEBUG_ZCMDSH_LOG (PAGER, "pager: fds[%d]: fd: %d: closed, break",
-                                i, fds[i].fd);
+              DEBUG_ZCMDSH_LOG (PAGER,
+                  "pager: read() from fd: %d returned %d: %s",
+                  readfd, ret, strerror (errno));
+              closed++;
+              continue;
+            }
+          else if (ret == 0)
+            {
+              DEBUG_ZCMDSH_LOG (PAGER,
+                  "pager: fds[%d]: fd: %d: closed, break",
+                  i, fds[i].fd);
               closed++;
             }
-          write (writefd, buf, ret);
-          DEBUG_ZCMDSH_LOG (PAGER, "pager: fd: %d -> fd: %d, %d bytes",
-                            readfd, writefd, ret);
+          else
+            {
+              write (writefd, buf, ret);
+              DEBUG_ZCMDSH_LOG (PAGER,
+                  "pager: fd: %d -> fd: %d, %d bytes",
+                  readfd, writefd, ret);
+            }
         }
 
       if (closed)

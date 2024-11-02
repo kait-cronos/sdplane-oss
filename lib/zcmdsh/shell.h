@@ -48,6 +48,8 @@ struct shell
   void *cmdset;
   void *history;
 
+  uint64_t debug_zcmdsh;
+
   struct winsize winsize;
 
   unsigned char telnet_cmd;
