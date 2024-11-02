@@ -273,3 +273,13 @@ shell_keyfunc_delete_word_backward (struct shell *shell)
   shell_delete_word_backward (shell);
 }
 
+void
+shell_keyfunc_delete_char_advanced (struct shell *shell)
+{
+  /* Delete one character */
+  if (shell->cursor < shell->end)
+    shell_delete_string (shell, shell->cursor, shell->cursor + 1);
+  else if (shell->end > 0)
+    shell_delete_string (shell, shell->end - 1, shell->end);
+}
+

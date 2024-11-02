@@ -285,9 +285,9 @@ timer_check ()
     printf ("limit diff: not set\n");
 }
 
-FILE *saved_terminal = NULL;
-pid_t process_id = 0;
-int pipefd[2];
+#include <pty.h>
+#include <signal.h>
+#include <poll.h>
 
 #define DEFAULT_PAGER_ARG0 "/usr/bin/less"
 #define DEFAULT_PAGER_ARG1 "-FX"
@@ -331,8 +331,18 @@ pager_start (struct shell *shell)
   int ret;
   pid_t process_id;
 
+  int pty_master, pty_slave;
+
+  openpty (&shell->pty_master, &shell->pty_slave, NULL, NULL, NULL);
+
+  shell->winsize.ws_row = 10;
+  shell->winsize.ws_col = 10;
+  ioctl (shell->pty_master, TIOCSWINSZ, &shell->winsize);
+  DEBUG_ZCMDSH_LOG (PAGER, "pager: TIOCSWINSZ: row: %d col: %d.",
+                    shell->winsize.ws_row, shell->winsize.ws_col);
+
   DEBUG_ZCMDSH_LOG (PAGER, "pager: use fork/execvp.");
-  ret = pipe (pipefd);
+  ret = pipe (shell->pipefd);
   if (ret < 0)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "pipe() failed: %s.", strerror (errno));
@@ -340,28 +350,32 @@ pager_start (struct shell *shell)
     }
   else
     DEBUG_ZCMDSH_LOG (PAGER, "pipe() success: pipefd[] = {%d, %d}",
-                      pipefd[0], pipefd[1]);
+                      shell->pipefd[0], shell->pipefd[1]);
 
   process_id = fork ();
   if (process_id < 0)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "fork() failed: close pipefd[]");
-      close (pipefd[0]);
-      close (pipefd[1]);
+      close (shell->pipefd[0]);
+      close (shell->pipefd[1]);
     }
   else if (process_id == 0)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "child ok: pid: %d.", getpid());
 
       /* child */
-      close (pipefd[1]);
+      close (shell->pipefd[1]);
+      close (shell->pty_master);
 
-      dup2 (pipefd[0], 0);
-      dup2 (shell->writefd, 1);
-      dup2 (shell->writefd, 2);
+      DEBUG_ZCMDSH_LOG (PAGER, "pty(slave): fd %d, %s.",
+                        shell->pty_slave, ttyname (shell->pty_slave));
+
+      dup2 (shell->pipefd[0], 0);
+      dup2 (shell->pty_slave, 1);
+      dup2 (shell->pty_slave, 2);
       stdin = fdopen (0, "r");
-      stdout = shell->terminal;
-      stderr = shell->terminal;
+      stdout = fdopen (1, "w");
+      stderr = fdopen (2, "r+");
 
       DEBUG_ZCMDSH_LOG (PAGER, "dup2 ok, stdin reconnected: stdin: %p.",
                         stdin);
@@ -387,16 +401,18 @@ pager_start (struct shell *shell)
       shell->pager_pid = process_id;
 
       /* parent */
-      close (pipefd[0]);
+      close (shell->pipefd[0]);
+      close (shell->pty_slave);
 
       shell->pager_saved_terminal = shell->terminal;
       shell->pager_saved_writefd = shell->writefd;
 
-      shell->terminal = fdopen (pipefd[1], "a");
-      shell->writefd = pipefd[1];
+      shell->terminal = fdopen (shell->pipefd[1], "a");
+      shell->writefd = shell->pipefd[1];
 
       DEBUG_ZCMDSH_LOG (PAGER, "pager start: terminal: %p <- %p.",
                         shell->terminal, shell->pager_saved_terminal);
+
     }
 #endif
   shell->is_paging = true;
@@ -416,7 +432,7 @@ pager_end (struct shell *shell)
       exit (-1);
     }
 
-  close (pipefd[1]);
+  close (shell->pipefd[1]);
 #endif
 
   if (shell->pager_saved_terminal)
@@ -431,6 +447,71 @@ pager_end (struct shell *shell)
     }
 
 #if ! PAGER_USE_POPEN
+  DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
+  int ret;
+  struct pollfd fds[2];
+  nfds_t nfds = 2;
+  char buf[32];
+  int closed = 0;
+  int i;
+  while (1)
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: reset pollfds");
+      memset (fds, 0, sizeof (fds));
+      fds[0].fd = shell->readfd;
+      fds[0].events |= POLLIN;
+      fds[1].fd = shell->pty_master;
+      fds[1].events |= POLLIN;
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll()");
+      ret = ppoll (fds, nfds, NULL, NULL);
+      if (ret < 0)
+        {
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d: %s",
+                            ret, strerror (errno));
+          break;
+        }
+      else
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d", ret);
+
+      for (i = 0; i < nfds; i++)
+        {
+          int readfd, writefd;
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x",
+                            i, fds[i].fd,
+                            (fds[i].revents & POLLIN ? " POLLIN" : ""),
+                            (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
+                            (fds[i].revents & POLLERR ? " POLLERR" : ""),
+                            fds[i].revents);
+
+          if (fds[i].revents & POLLHUP)
+            closed++;
+
+          if (! (fds[i].revents & POLLIN))
+            continue;
+
+          readfd = fds[i].fd;
+          if (i == 0)
+            writefd = fds[1].fd;
+          else
+            writefd = fds[0].fd;
+          ret = read (readfd, buf, sizeof (buf));
+          if (ret < 0)
+            continue;
+          if (ret == 0)
+            {
+              DEBUG_ZCMDSH_LOG (PAGER, "pager: fds[%d]: fd: %d: closed, break",
+                                i, fds[i].fd);
+              closed++;
+            }
+          write (writefd, buf, ret);
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: fd: %d -> fd: %d, %d bytes",
+                            readfd, writefd, ret);
+        }
+
+      if (closed)
+        break;
+    }
+
   DEBUG_ZCMDSH_LOG (PAGER, "pager: waiting child: process %d...",
                     shell->pager_pid);
   waitpid (shell->pager_pid, &wstatus, 0);

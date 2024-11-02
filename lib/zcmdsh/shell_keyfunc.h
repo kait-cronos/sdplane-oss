@@ -19,5 +19,6 @@ void shell_keyfunc_empty_enter (struct shell *shell);
 void shell_keyfunc_insert_tab (struct shell *shell);
 void shell_keyfunc_escape (struct shell *shell);
 void shell_keyfunc_delete_word_backward (struct shell *shell);
+void shell_keyfunc_delete_char_advanced (struct shell *shell);
 
 

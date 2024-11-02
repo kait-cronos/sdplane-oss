@@ -62,6 +62,9 @@ struct shell
   int pager_saved_writefd;
   FILE *pager_saved_terminal;
   pid_t pager_pid;
+  int pipefd[2];
+  int pty_master;
+  int pty_slave;
 };
 
 #define SHELL_FLAG_ESCAPE      0x01
