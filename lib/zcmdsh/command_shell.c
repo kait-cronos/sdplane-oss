@@ -2,8 +2,10 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
+#define _GNU_SOURCE  // for ppoll()
 #include <includes.h>
 #include <stdbool.h>
+#include <poll.h>
 
 #include "log.h"
 #include "debug.h"
@@ -455,7 +457,7 @@ pager_end (struct shell *shell)
 
 #if ! PAGER_USE_POPEN
   DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
-  int ret;
+  int ret, nwrite;
   struct pollfd fds[2];
   nfds_t nfds = 2;
   char buf[1024];
@@ -523,7 +525,10 @@ pager_end (struct shell *shell)
             }
           else
             {
-              write (writefd, buf, ret);
+              nwrite = write (writefd, buf, ret);
+              if (nwrite < 0)
+                DEBUG_ZCMDSH_LOG (PAGER, "write() failed: %s",
+                                  strerror (errno));
               DEBUG_ZCMDSH_LOG (PAGER,
                   "pager: fd: %d -> fd: %d, %d bytes",
                   readfd, writefd, ret);
@@ -938,7 +943,7 @@ DEFINE_COMMAND (list_keymaps,
                 snprintf (strname, sizeof (strname),
                           " ('%c')", start);
               else
-                snprintf (strname, sizeof (strname), "");
+                memset (strname, 0, sizeof (strname));
 
               fprintf (shell->terminal,
                        "  key: 0x%02x (%3d)%-14s%s",
@@ -956,7 +961,7 @@ DEFINE_COMMAND (list_keymaps,
       else if (isascii (i) && ! iscntrl (i))
         snprintf (strname, sizeof (strname), " ('%c')", i);
       else
-        snprintf (strname, sizeof (strname), "");
+        memset (strname, 0, sizeof (strname));
 
       if (start >= 0)
         fprintf (shell->terminal,

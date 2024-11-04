@@ -36,6 +36,7 @@ shell_format (struct shell *shell)
   char *command_line;
   int i, cursor, end;
   int count = 0;
+  int ret;
 
   end = 0;
   cursor = 0;
@@ -82,8 +83,11 @@ shell_format (struct shell *shell)
     writec (shell->writefd, CONTROL('H'));
 
   /* re-write the new command-line. */
-  write (shell->writefd, command_line,
-         strlen (command_line));
+  ret = write (shell->writefd, command_line,
+               strlen (command_line));
+  if (ret < 0)
+    DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s",
+                      strerror (errno));
 
   /* erase the last part. */
   for (i = end; i < shell->end; i++)

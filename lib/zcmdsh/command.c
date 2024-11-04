@@ -339,21 +339,26 @@ file_complete (char *word)
     {
       int ret;
       struct stat statbuf;
-      char filepath[64];
+      char filepath[FILENAME_MAX * 2 + 1];
 
       if (! strcmp (dirname, "/"))
-        snprintf (filepath, sizeof (filepath), "/%s", matched);
+        snprintf (filepath, sizeof (filepath),
+                  "/%s", matched);
       else
-        snprintf (filepath, sizeof (filepath), "%s/%s", dirname, matched);
+        snprintf (filepath, sizeof (filepath),
+                  "%s/%s", dirname, matched);
 
       ret = stat (filepath, &statbuf);
       if (ret == 0 && S_ISDIR (statbuf.st_mode))
-        snprintf (retbuf, sizeof (retbuf), "%s/", &matched[strlen (filename)]);
+        snprintf (retbuf, sizeof (retbuf),
+                  "%s/", &matched[strlen (filename)]);
       else
-        snprintf (retbuf, sizeof (retbuf), "%s", &matched[strlen (filename)]);
+        snprintf (retbuf, sizeof (retbuf),
+                  "%s", &matched[strlen (filename)]);
     }
   else if (nmatch > 1)
-    snprintf (retbuf, sizeof (retbuf), "%s", &common[strlen (filename)]);
+    snprintf (retbuf, sizeof (retbuf),
+              "%s", &common[strlen (filename)]);
 
   return retbuf;
 }

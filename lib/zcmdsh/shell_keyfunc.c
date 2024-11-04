@@ -146,7 +146,7 @@ shell_keyfunc_t default_keymap[256] =
   shell_input_char,               /* Function for Key('|') */
   shell_input_char,               /* Function for Key('}') */
   shell_input_char,               /* Function for Key('~') */
-  shell_keyfunc_delete_char,      /* Function for DEL */
+  shell_keyfunc_delete_char_advanced, /* Function for DEL */
 };
 
 void

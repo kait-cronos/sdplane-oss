@@ -43,7 +43,7 @@ struct shell
 
   char inputch;
   shell_keyfunc_t *keymap;
-  shell_keyfunc_t *keymap_normal[256];
+  shell_keyfunc_t keymap_normal[256];
 
   void *cmdset;
   void *history;
