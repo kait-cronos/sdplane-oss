@@ -1,3 +1,9 @@
+sdplane (0.0.9i-1) UNRELEASED; urgency=low
+
+  * fix dist_sysconf_DATA: iptables rules and sshd_config.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 05 Nov 2024 4:13:56 +0900
+
 sdplane (0.0.9h-1) UNRELEASED; urgency=low
 
   * adapt to zcmdsh_0.3.28. pager enabled.
