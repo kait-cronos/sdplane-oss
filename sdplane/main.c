@@ -7,6 +7,7 @@
 
 #include <zcmdsh/shell.h>
 #include <zcmdsh/command.h>
+#include <zcmdsh/debug_log.h>
 
 #include "module/l3fwd/l3fwd.h"
 
@@ -38,6 +39,11 @@ main (int argc, char **argv)
   signal (SIGINT, signal_handler);
   signal (SIGTERM, signal_handler);
   signal (SIGHUP, signal_handler);
+
+  /* Preserve name of myself. */
+  char *progname, *p;
+  progname = ((p = strrchr (argv[0], '/')) ? ++p : argv[0]);
+  debug_log_init (progname);
 
   soft_dplane_init ();
 

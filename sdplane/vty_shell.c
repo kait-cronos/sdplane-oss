@@ -22,6 +22,7 @@
 #include <lthread.h>
 
 #include <zcmdsh/shell.h>
+#include <zcmdsh/shell_keyfunc.h>
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
@@ -29,6 +30,11 @@
 #include <zcmdsh/debug_module_cmd.h>
 #include <zcmdsh/log.h>
 #include <zcmdsh/log_cmd.h>
+
+#include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
+//#include <zcmdsh/debug_zcmdsh.h>
+#include "debug_sdplane.h"
 
 #include "sdplane.h"
 #include "l2fwd_cmd.h"
@@ -336,10 +342,16 @@ vty_shell (void *arg)
   inet_ntop (AF_INET, &client->peer_addr.sin_addr,
              client_addr_str, sizeof (client_addr_str));
 
+#if 0
   if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
                   DEBUG_SDPLANE_VTY_SHELL))
     printf ("%s[%d]: client[%d]: %s.\n",
             __func__, client->id, client->id, client_addr_str);
+#else
+  FLAG_SET (DEBUG_CONFIG(SDPLANE), DEBUG_SDPLANE_VTY);
+  DEBUG_SDPLANE_LOG (VTY, "%s[%d]: client[%d]: %s.",
+                     "vty", client->id, client->id, client_addr_str);
+#endif
 
   char prompt[64];
   snprintf (prompt, sizeof (prompt), "vty[%d]> ", client->id);
@@ -349,10 +361,14 @@ vty_shell (void *arg)
   shell_set_prompt (shell, prompt);
   //get_winsize (shell);
 
+  DEBUG_SDPLANE_LOG (VTY, "%s[%d]: fd: %d terminal: %p.",
+                     "vty", client->id, client->fd, shell->terminal);
+
   shell->NL = "\r\n";
 
   vty_shell_keyfunc_init (shell);
 
+  log_cmd_init (shell->cmdset);
   INSTALL_COMMAND2 (shell->cmdset, vty_exit_cmd);
 
   INSTALL_COMMAND2 (shell->cmdset, show_worker);
@@ -367,6 +383,9 @@ vty_shell (void *arg)
 
   INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
   shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
+
+  shell_install (shell, 0x7f, shell_keyfunc_delete_char_advanced);
+  FUNC_STR_REGISTER (shell_keyfunc_delete_char_advanced);
 
   log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
