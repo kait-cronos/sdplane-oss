@@ -219,7 +219,7 @@ DEFINE_COMMAND (show_worker,
   nb_lcores = rte_lcore_count ();
   main_lcore_id = rte_get_main_lcore ();
   fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s",
-           "lcore", "flags", "state", "func_name", shell->LF);
+           "lcore", "flags", "state", "func_name", shell->NL);
   for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
     {
       snprintf (flags, sizeof (flags), "%s%s",
@@ -231,7 +231,7 @@ DEFINE_COMMAND (show_worker,
                 "lcore[%d]", lcore_id);
       fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s",
                lcore_name, flags, state, lcore_workers[lcore_id].func_name,
-               shell->LF);
+               shell->NL);
     }
 }
 
