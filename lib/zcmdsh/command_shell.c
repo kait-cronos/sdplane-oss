@@ -575,6 +575,7 @@ command_shell_execute (struct shell *shell)
 
   shell_format (shell);
   shell_linefeed (shell);
+  fflush (shell->terminal);
 
   timer_check ();
 

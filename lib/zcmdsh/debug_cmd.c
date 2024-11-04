@@ -11,7 +11,6 @@
 
 #include "debug_log.h"
 #include "debug_category.h"
-#include "debug_category.h"
 #include "debug_zcmdsh.h"
 #include "debug_backtrace.h"
 
@@ -22,6 +21,8 @@ struct debug_type debug_types[] =
   { DEBUG_ZCMDSH_PAGER,   "pager" },
   { DEBUG_ZCMDSH_TIMER,   "timer" },
   { DEBUG_ZCMDSH_UNICODE, "unicode" },
+  { DEBUG_ZCMDSH_TERMIO,  "termio" },
+  { DEBUG_ZCMDSH_TELNET,  "telnet" },
 };
 
 struct command_header debug_cmd;
@@ -169,7 +170,7 @@ DEFINE_COMMAND (show_debug,
 
   for (i = 0; i < debug_type_size; i++)
     {
-      fprintf (shell->terminal, "debug: %s: %s.%s",
+      fprintf (shell->terminal, "debug: zcmdsh: %s: %s.%s",
                debug_types[i].name,
                (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), debug_types[i].flag) ?
                "on" : "off"), shell->NL);

@@ -11,7 +11,7 @@
 #include "command.h"
 
 #include "debug_log.h"
-//#include "debug_category.h"
+#include "debug_category.h"
 
 char *log_filename = NULL;
 
