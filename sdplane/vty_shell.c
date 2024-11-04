@@ -23,6 +23,7 @@
 
 #include <zcmdsh/shell.h>
 #include <zcmdsh/shell_keyfunc.h>
+#include <zcmdsh/shell_telnet.h>
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
@@ -33,7 +34,7 @@
 
 #include <zcmdsh/debug_log.h>
 #include <zcmdsh/debug_category.h>
-//#include <zcmdsh/debug_zcmdsh.h>
+#include <zcmdsh/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "sdplane.h"
@@ -42,204 +43,8 @@
 
 #include "vty_server.h"
 #include "vty_shell.h"
-#include "vty_shell_telnet.h"
-
-#include "debug_sdplane.h"
 
 #include "sdplane_version.h"
-
-shell_keyfunc_t key_func_escape_1[256];
-shell_keyfunc_t key_func_escape_2[256];
-shell_keyfunc_t key_func_iac_1[256];
-shell_keyfunc_t key_func_iac_2[256];
-shell_keyfunc_t key_func_subnego[256];
-
-shell_keyfunc_t *key_func_orig;
-
-void
-vty_shell_keyfunc_escape_1 (struct shell *shell)
-{
-  shell->keymap = key_func_escape_1;
-}
-
-void
-vty_shell_keyfunc_escape_2 (struct shell *shell)
-{
-  shell->keymap = key_func_escape_2;
-}
-
-void
-vty_shell_keyfunc_normal (struct shell *shell)
-{
-  shell->keymap = key_func_orig;
-}
-
-void
-vty_shell_keyfunc_none (struct shell *shell)
-{
-}
-
-void
-vty_shell_move_word_backward (struct shell *shell)
-{
-  shell_move_word_backward (shell);
-  vty_shell_keyfunc_normal (shell);
-}
-
-void
-vty_shell_move_word_forward (struct shell *shell)
-{
-  shell_move_word_forward (shell);
-  vty_shell_keyfunc_normal (shell);
-}
-
-void
-vty_shell_delete_word_backward (struct shell *shell)
-{
-  shell_delete_word_backward (shell);
-  vty_shell_keyfunc_normal (shell);
-}
-
-void
-vty_shell_keyfunc_iac_start (struct shell *shell)
-{
-  shell->keymap = key_func_iac_1;
-  shell->telnet_cmd = 0;
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL) ||
-      FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                  DEBUG_SDPLANE_TELNET_OPT))
-    fprintf (shell->terminal, "%s: IAC received.%s", __func__, shell->NL);
-  fflush (shell->terminal);
-}
-
-void
-vty_shell_keyfunc_telnet_opt (struct shell *shell)
-{
-  shell->keymap = key_func_orig;
-  shell->telnet_opt = (u_char) shell->inputch;
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL) ||
-      FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                  DEBUG_SDPLANE_TELNET_OPT))
-    fprintf (shell->terminal, "%s: IAC %#02x %#02x.%s",
-             __func__, shell->telnet_cmd, (u_char)shell->telnet_opt, shell->NL);
-  fflush (shell->terminal);
-}
-
-void
-vty_shell_keyfunc_telnet_cmd (struct shell *shell)
-{
-  char *telnet_cmd_str;
-  shell->keymap = key_func_iac_2;
-  shell->telnet_cmd = (u_char) shell->inputch;
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL) ||
-      FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                  DEBUG_SDPLANE_TELNET_OPT))
-    {
-      switch (shell->telnet_cmd)
-        {
-          case DO: telnet_cmd_str = "DO"; break;
-          case WILL: telnet_cmd_str = "WILL"; break;
-          case DONT: telnet_cmd_str = "DONT"; break;
-          case WONT: telnet_cmd_str = "WONT"; break;
-          default: telnet_cmd_str = NULL; break;
-        }
-      if (telnet_cmd_str)
-        fprintf (shell->terminal, "%s: IAC %s.%s",
-                 __func__, telnet_cmd_str, shell->NL);
-      else
-        fprintf (shell->terminal, "%s: IAC %d(%#02x).%s",
-                 __func__, (u_char)shell->inputch,
-                 (u_char)shell->inputch, shell->NL);
-    }
-  fflush (shell->terminal);
-}
-
-void
-vty_shell_keyfunc_subnego (struct shell *shell)
-{
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    fprintf (shell->terminal, "%s: subnego[%d] %#hhx.%s",
-             __func__, shell->subnego_size, shell->inputch, shell->NL);
-  if (shell->subnego_size < sizeof (shell->subnego_buf))
-    {
-      shell->subnego_buf[shell->subnego_size] = shell->inputch;
-      shell->subnego_size++;
-    }
-  fflush (shell->terminal);
-}
-
-void
-vty_shell_keyfunc_sb_start (struct shell *shell)
-{
-  shell->keymap = key_func_subnego;
-  shell->subnego_size = 0;
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    fprintf (shell->terminal, "%s: IAC SB: %#hhx.%s",
-             __func__, shell->inputch, shell->NL);
-  fflush (shell->terminal);
-}
-
-void
-vty_shell_keyfunc_sb_end (struct shell *shell)
-{
-  shell->keymap = key_func_orig;
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    fprintf (shell->terminal, "%s: IAC SE: %#hhx.%s",
-             __func__, shell->inputch, shell->NL);
-  fflush (shell->terminal);
-
-  int i;
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    {
-      fprintf (shell->terminal, "telnet_sb: len: %d [", shell->subnego_size);
-      for (i = 0; i < shell->subnego_size; i++)
-        {
-          fprintf (shell->terminal, " %#hhx", shell->subnego_buf[i]);
-        }
-      fprintf (shell->terminal, "]%s", shell->NL);
-      fflush (shell->terminal);
-    }
-}
-
-void
-vty_shell_keyfunc_init (struct shell *shell)
-{
-  int i;
-  key_func_orig = shell->keymap;
-  memset (key_func_escape_1, 0, sizeof (key_func_escape_1));
-  memset (key_func_escape_2, 0, sizeof (key_func_escape_2));
-  memset (key_func_iac_1, 0, sizeof (key_func_iac_1));
-  memset (key_func_iac_2, 0, sizeof (key_func_iac_2));
-  memset (key_func_subnego, 0, sizeof (key_func_subnego));
-  for (i = 0; i < 256; i++)
-    {
-      key_func_escape_1[i] = vty_shell_keyfunc_normal;
-      key_func_escape_2[i] = vty_shell_keyfunc_normal;
-      key_func_iac_1[i] = vty_shell_keyfunc_telnet_opt;
-      key_func_iac_2[i] = vty_shell_keyfunc_telnet_opt;
-      key_func_subnego[i] = vty_shell_keyfunc_subnego;
-    }
-
-  key_func_escape_1['b'] = vty_shell_move_word_backward;
-  key_func_escape_1['f'] = vty_shell_move_word_forward;
-  key_func_escape_1[CONTROL('H')] = vty_shell_delete_word_backward;
-  key_func_escape_1[0x7f] = vty_shell_delete_word_backward;
-
-  key_func_escape_1['['] = vty_shell_keyfunc_escape_2;
-
-  key_func_iac_1[SB] = vty_shell_keyfunc_sb_start;
-  key_func_iac_1[SE] = vty_shell_keyfunc_sb_end;
-
-  key_func_iac_1[DO] = vty_shell_keyfunc_telnet_cmd;
-  key_func_iac_1[WILL] = vty_shell_keyfunc_telnet_cmd;
-  key_func_iac_1[DONT] = vty_shell_keyfunc_telnet_cmd;
-  key_func_iac_1[WONT] = vty_shell_keyfunc_telnet_cmd;
-
-  key_func_subnego[IAC] = vty_shell_keyfunc_iac_start;
-
-  shell->keymap[IAC] = vty_shell_keyfunc_iac_start;
-  shell->keymap[CONTROL('[')] = vty_shell_keyfunc_escape_1;
-}
 
 void
 shell_keyfunc_clear_terminal (struct shell *shell)
@@ -249,6 +54,7 @@ shell_keyfunc_clear_terminal (struct shell *shell)
   /* Clear screen and move to top left */
   fprintf (shell->terminal, "%s%s", clr, topLeft);
   fflush (shell->terminal);
+  shell_refresh (shell);
 }
 
 DEFINE_COMMAND (clear_cmd,
@@ -330,6 +136,16 @@ DEFINE_COMMAND (vty_exit_cmd,
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
 }
 
+DEFINE_COMMAND (shutdown_cmd,
+                "shutdown",
+                "shutdown\n")
+{
+  struct shell *shell = (struct shell *) context;
+  fprintf (shell->terminal, "shutdown !%s", shell->NL);
+  FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
+  force_quit = true;
+}
+
 void
 vty_shell (void *arg)
 {
@@ -366,7 +182,10 @@ vty_shell (void *arg)
 
   shell->NL = "\r\n";
 
-  vty_shell_keyfunc_init (shell);
+  FLAG_SET (shell->debug_zcmdsh, DEBUG_TYPE (ZCMDSH, TELNET));
+
+  shell_escape_keyfunc_init (shell);
+  shell_telnet_keyfunc_init (shell);
 
   log_cmd_init (shell->cmdset);
   INSTALL_COMMAND2 (shell->cmdset, vty_exit_cmd);
@@ -381,11 +200,13 @@ vty_shell (void *arg)
   INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
   INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
 
-  INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
+  //INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
   shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
 
   shell_install (shell, 0x7f, shell_keyfunc_delete_char_advanced);
   FUNC_STR_REGISTER (shell_keyfunc_delete_char_advanced);
+
+  INSTALL_COMMAND2 (shell->cmdset, shutdown_cmd);
 
   log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);

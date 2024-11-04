@@ -18,6 +18,7 @@
 #include <zcmdsh/debug_module.h>
 #include <zcmdsh/debug_module_cmd.h>
 //#include <zcmdsh/shell_fselect.h>
+#include <zcmdsh/log_cmd.h>
 
 #include "l3fwd.h"
 #include "l3fwd_cmd.h"
@@ -37,6 +38,7 @@ startup_config (__rte_unused void *dummy)
   shell = command_shell_create ();
   //shell_set_terminal (shell, 0, 1);
   //get_winsize (shell);
+  shell->pager = false;
 
   //INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
   //INSTALL_COMMAND2 (shell->cmdset, reboot_cmd);

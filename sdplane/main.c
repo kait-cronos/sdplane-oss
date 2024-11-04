@@ -8,6 +8,8 @@
 #include <zcmdsh/shell.h>
 #include <zcmdsh/command.h>
 #include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
+#include <zcmdsh/debug_zcmdsh.h>
 
 #include "module/l3fwd/l3fwd.h"
 
@@ -44,6 +46,12 @@ main (int argc, char **argv)
   char *progname, *p;
   progname = ((p = strrchr (argv[0], '/')) ? ++p : argv[0]);
   debug_log_init (progname);
+
+#if 0
+  debug_output |= DEBUG_OUTPUT_STDOUT;
+  DEBUG_SET (ZCMDSH, PAGER);
+  DEBUG_SET (ZCMDSH, TELNET);
+#endif
 
   soft_dplane_init ();
 

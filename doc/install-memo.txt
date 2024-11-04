@@ -1,7 +1,7 @@
 
-(ver. 15: 2024/10/17 01:41)
-zcmdsh_0.3.24-1_amd64.deb
-sdplane_0.0.9g-1_amd64.deb
+(ver. 16: 2024/11/05 03:59)
+zcmdsh_0.3.28-1_amd64.deb
+sdplane_0.0.9h-1_amd64.deb
 
 - passwd 生成方法:
 $ pwgen -cnB 12 1
