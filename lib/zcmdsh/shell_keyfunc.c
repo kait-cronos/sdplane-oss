@@ -283,3 +283,67 @@ shell_keyfunc_delete_char_advanced (struct shell *shell)
     shell_delete_string (shell, shell->end - 1, shell->end);
 }
 
+shell_keyfunc_t key_func_escape_1[256];
+shell_keyfunc_t key_func_escape_2[256];
+
+void
+vty_shell_keyfunc_normal (struct shell *shell)
+{
+  shell->keymap = shell->keymap_normal;
+}
+
+void
+vty_shell_move_word_backward (struct shell *shell)
+{
+  shell_move_word_backward (shell);
+  vty_shell_keyfunc_normal (shell);
+}
+
+void
+vty_shell_move_word_forward (struct shell *shell)
+{
+  shell_move_word_forward (shell);
+  vty_shell_keyfunc_normal (shell);
+}
+
+void
+vty_shell_delete_word_backward (struct shell *shell)
+{
+  shell_delete_word_backward (shell);
+  vty_shell_keyfunc_normal (shell);
+}
+
+void
+vty_shell_keyfunc_escape_1 (struct shell *shell)
+{
+  shell->keymap = key_func_escape_1;
+}
+
+void
+vty_shell_keyfunc_escape_2 (struct shell *shell)
+{
+  shell->keymap = key_func_escape_2;
+}
+
+void
+shell_escape_keyfunc_init (struct shell *shell)
+{
+  int i;
+  memset (key_func_escape_1, 0, sizeof (key_func_escape_1));
+  memset (key_func_escape_2, 0, sizeof (key_func_escape_2));
+
+  for (i = 0; i < 256; i++)
+    {
+      key_func_escape_1[i] = vty_shell_keyfunc_normal;
+      key_func_escape_2[i] = vty_shell_keyfunc_normal;
+    }
+
+  key_func_escape_1['b'] = vty_shell_move_word_backward;
+  key_func_escape_1['f'] = vty_shell_move_word_forward;
+  key_func_escape_1[CONTROL('H')] = vty_shell_delete_word_backward;
+  key_func_escape_1[0x7f] = vty_shell_delete_word_backward;
+  key_func_escape_1['['] = vty_shell_keyfunc_escape_2;
+
+  shell->keymap[CONTROL('[')] = vty_shell_keyfunc_escape_1;
+}
+
