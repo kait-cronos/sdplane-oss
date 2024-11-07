@@ -1,3 +1,9 @@
+sdplane (0.0.9j-1) UNRELEASED; urgency=low
+
+  * fix systemd sdplane.service.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 07 Nov 2024 15:46:56 +0900
+
 sdplane (0.0.9i-1) UNRELEASED; urgency=low
 
   * fix dist_sysconf_DATA: iptables rules and sshd_config.
