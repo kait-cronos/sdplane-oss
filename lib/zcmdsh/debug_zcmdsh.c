@@ -51,7 +51,7 @@ debug_zcmdsh_func (void *context, int argc, char **argv)
     }
 
   struct debug_type *debug_types = debug_zcmdsh_types;
-  debug_type_size = sizeof (debug_types) / sizeof (struct debug_type);
+  debug_type_size = sizeof (debug_zcmdsh_types) / sizeof (struct debug_type);
 
   if (! strcmp (argv[0], "no"))
     {

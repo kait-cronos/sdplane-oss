@@ -20,4 +20,5 @@ nobase_include_HEADERS = \
 	zcmdsh/debug.h zcmdsh/debug_cmd.h \
 	zcmdsh/log_cmd.h zcmdsh/shell_keyfunc.h \
         zcmdsh/debug_log.h zcmdsh/debug_category.h zcmdsh/debug_zcmdsh.h \
+	zcmdsh/debug_backtrace.h \
         zcmdsh/shell_telnet.h
