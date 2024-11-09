@@ -11,44 +11,10 @@
 #include <signal.h>
 #include <stdbool.h>
 
-#if 0
-#include <rte_common.h>
-#include <rte_vect.h>
-#include <rte_byteorder.h>
-#include <rte_log.h>
-#include <rte_malloc.h>
-#include <rte_memory.h>
-#include <rte_memcpy.h>
-#include <rte_eal.h>
-#include <rte_launch.h>
-#include <rte_cycles.h>
-#include <rte_prefetch.h>
-#include <rte_lcore.h>
-#include <rte_per_lcore.h>
-#include <rte_branch_prediction.h>
-#include <rte_interrupts.h>
-#include <rte_random.h>
-#include <rte_debug.h>
-#include <rte_ether.h>
-#include <rte_mempool.h>
-#include <rte_mbuf.h>
-#include <rte_ip.h>
-#include <rte_tcp.h>
-#include <rte_udp.h>
-#include <rte_string_fns.h>
-#include <rte_cpuflags.h>
-
-#include <cmdline_parse.h>
-#include <cmdline_parse_etheraddr.h>
-
-#else
-
 #include <rte_common.h>
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
-
-#endif
 
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -61,6 +27,11 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
+
+#include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
+#include <zcmdsh/debug_zcmdsh.h>
+#include "debug_sdplane.h"
 
 #include "l3fwd.h"
 #include "l3fwd_event.h"
@@ -77,6 +48,13 @@
 struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
 __thread struct rte_ring *thread_ring_to_tap;
 
+__thread struct rte_ring *thread_ring_from_tap;
+
+#define TAPDIR_UP   0
+#define TAPDIR_DOWN 1
+#define TAPDIR_SIZE 2
+struct rte_ring *tap_ring_lcore_dir[RTE_MAX_LCORE][TAPDIR_SIZE];
+
 bool enable_tap_copy = true;
 
 void
@@ -85,11 +63,19 @@ per_thread_tap_ring_init ()
 #define RING_TO_TAP_SIZE 64
   char ring_name[32];
   int lcore_id = rte_lcore_id ();
-  snprintf (ring_name, sizeof (ring_name), "ring_to_tap_%d", lcore_id);
+  snprintf (ring_name, sizeof (ring_name), "tap_ring_lcore%d_up", lcore_id);
   thread_ring_to_tap =
     rte_ring_create (ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
                      (RING_F_SP_ENQ | RING_F_SC_DEQ));
   tap_ring_by_lcore[lcore_id] = thread_ring_to_tap;
+
+  snprintf (ring_name, sizeof (ring_name), "tap_ring_lcore%d_down", lcore_id);
+  thread_ring_from_tap =
+    rte_ring_create (ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
+                     (RING_F_SP_ENQ | RING_F_SC_DEQ));
+
+  tap_ring_lcore_dir[lcore_id][TAPDIR_UP] = thread_ring_to_tap;
+  tap_ring_lcore_dir[lcore_id][TAPDIR_DOWN] = thread_ring_from_tap;
 }
 
 int
@@ -161,6 +147,8 @@ tap_handler (__rte_unused void *dummy)
 
   printf ("%s on lcore[%d]: started.\n",
           __func__, rte_lcore_id ());
+  DEBUG_SDPLANE_LOG (TAPHANDLER, "%s on lcore[%d]: started.",
+          __func__, rte_lcore_id ());
 
   unsigned tap_handler_id = rte_lcore_id ();
   while (! force_quit && ! force_stop[tap_handler_id])
@@ -206,6 +194,9 @@ tap_handler (__rte_unused void *dummy)
                       printf ("%s: capture pkt: len: %d(%d) from lcore[%d]\n",
                               __func__, pkt_len, data_len, lcore_id);
                   }
+                DEBUG_SDPLANE_LOG (TAPHANDLER,
+                                   "packet [%d/%d] written to tap.",
+                                   data_len, pkt_len);
                 rte_pktmbuf_free (m);
               }
           } while (avail);

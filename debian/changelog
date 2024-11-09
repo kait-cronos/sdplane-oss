@@ -1,3 +1,9 @@
+sdplane (0.0.9k-1) UNRELEASED; urgency=low
+
+  * tap_handler change.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 10 Nov 2024 02:21:56 +0900
+
 sdplane (0.0.9j-1) UNRELEASED; urgency=low
 
   * fix systemd sdplane.service.
