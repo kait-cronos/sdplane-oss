@@ -1,8 +1,20 @@
+/*
+ * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
+ */
+#include <stdio.h>
+#include <string.h>
 
+#include <zcmdsh/flag.h>
 #include <zcmdsh/debug.h>
+#include <zcmdsh/shell.h>
+#include <zcmdsh/command.h>
+
+#include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
+#include <zcmdsh/debug_zcmdsh.h>
+#include <zcmdsh/debug_backtrace.h>
+
 #include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
 
 #include "debug_sdplane.h"
 
@@ -19,18 +31,100 @@ struct debug_type debug_sdplane_types[] =
   { DEBUG_SDPLANE_STAT_COLLECTOR, "stat-collector" },
 };
 
-int debug_module_sdplane = 0;
+struct command_header debug_sdplane_cmd;
+
+/* assume 128 debug items of max-name-len: 16 */
+char debug_sdplane_cmdstr[128 * 16];
+
+/* assume 128 debug items of max-helpstr-len: 64 */
+char debug_sdplane_helpstr[128 * 64];
 
 void
-debug_sdplane_init ()
+debug_sdplane_func (void *context, int argc, char **argv)
 {
-#if 0
+  struct shell *shell = (struct shell *) context;
+  int negate = 0;
+  int i;
   int debug_type_size;
-  debug_module_sdplane = debug_module_get_size ();
-  debug_type_size =
-    sizeof (debug_sdplane_types) / sizeof (debug_sdplane_types[0]);
-  debug_module_register (debug_module_sdplane, "sdplane",
-                         debug_type_size, debug_sdplane_types);
-#endif
+
+  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH, COMMAND)))
+    {
+      DEBUG_LOG_MSG ("%s: argc: %d", __func__, argc);
+      for (i = 0; i < argc; i++)
+        DEBUG_LOG_MSG ("%s: argv[%d]: %s", __func__, i, argv[i]);
+    }
+
+  struct debug_type *debug_types = debug_sdplane_types;
+  debug_type_size = sizeof (debug_sdplane_types) / sizeof (struct debug_type);
+
+  if (! strcmp (argv[0], "no"))
+    {
+      negate++;
+      argv++;
+      argc--;
+    }
+
+  for (i = 0; i < debug_type_size; i++)
+    {
+      if (! strcmp (argv[2], debug_types[i].name))
+        {
+          if (negate)
+            {
+              FLAG_CLEAR (DEBUG_CONFIG(SDPLANE), debug_types[i].flag);
+              fprintf (shell->terminal, "debug: sdplane %s: disabled.%s",
+                       debug_types[i].name, shell->NL);
+            }
+          else
+            {
+              FLAG_SET (DEBUG_CONFIG(SDPLANE), debug_types[i].flag);
+              fprintf (shell->terminal, "debug: sdplane %s: enabled.%s",
+                       debug_types[i].name, shell->NL);
+            }
+        }
+    }
+}
+
+DEFINE_COMMAND (show_debug_sdplane,
+                "show debugging sdplane",
+                SHOW_HELP
+                "show debugging information.\n"
+		"sdplane\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i;
+  int debug_type_size;
+  debug_type_size = sizeof (debug_sdplane_types) / sizeof (struct debug_type);
+
+  for (i = 0; i < debug_type_size; i++)
+    {
+      fprintf (shell->terminal, "debug: sdplane: %s: %s.%s",
+               debug_sdplane_types[i].name,
+               (FLAG_CHECK (DEBUG_CONFIG(SDPLANE), debug_sdplane_types[i].flag) ?
+               "on" : "off"), shell->NL);
+    }
+}
+
+void
+debug_sdplane_cmd_init ()
+{
+  int debug_type_size;
+  debug_type_size = sizeof (debug_sdplane_types) / sizeof (struct debug_type);
+
+  debug_cmdstr_init ("sdplane", debug_sdplane_cmdstr,
+		            sizeof (debug_sdplane_cmdstr),
+		            debug_sdplane_types, debug_type_size);
+  debug_helpstr_init ("sdplane", debug_sdplane_helpstr,
+		             sizeof (debug_sdplane_helpstr),
+		             debug_sdplane_types, debug_type_size);
+
+  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,COMMAND)))
+    {
+      DEBUG_LOG_MSG ("debug_sdplane_cmdstr: %s\n", debug_sdplane_cmdstr);
+      DEBUG_LOG_MSG ("debug_sdplane_helpstr: %s\n", debug_sdplane_helpstr);
+    }
+
+  debug_sdplane_cmd.cmdstr = debug_sdplane_cmdstr;
+  debug_sdplane_cmd.helpstr = debug_sdplane_helpstr;
+  debug_sdplane_cmd.cmdfunc = debug_sdplane_func;
 }
 

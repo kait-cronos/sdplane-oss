@@ -49,6 +49,9 @@ startup_config (__rte_unused void *dummy)
   INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);
   //INSTALL_COMMAND2 (shell->cmdset, show_debug_zcmdsh);
 
+  INSTALL_COMMAND2 (shell->cmdset, debug_sdplane);
+  //INSTALL_COMMAND2 (shell->cmdset, show_debug_sdplane);
+
 #if 0
   INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
   INSTALL_COMMAND2 (shell->cmdset, show_debug_module);

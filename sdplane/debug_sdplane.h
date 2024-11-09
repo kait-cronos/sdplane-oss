@@ -11,17 +11,14 @@
 #define DEBUG_SDPLANE_VTY_SHELL  (1ULL << 6)
 #define DEBUG_SDPLANE_TELNET_OPT (1ULL << 7)
 #define DEBUG_SDPLANE_STAT_COLLECTOR (1ULL << 8)
-
-extern int debug_module_sdplane;
-
-void debug_sdplane_init ();
-
-/* types in zcmdsh category */
-#define DEBUG_SDPLANE_DEFAULT   (1ULL << 0)
-#define DEBUG_SDPLANE_SCHED     (1ULL << 1)
-#define DEBUG_SDPLANE_VTY       (1ULL << 2)
+#define DEBUG_SDPLANE_SCHED      (1ULL << 9)
+#define DEBUG_SDPLANE_VTY        (1ULL << 10)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...) \
   DEBUG_LOG(SDPLANE, type, format, ##__VA_ARGS__)
+
+EXTERN_COMMAND (debug_sdplane);
+EXTERN_COMMAND (show_debug_sdplane);
+void debug_sdplane_cmd_init ();
 
 #endif /*__DEBUG_SDPLANE_H__*/

@@ -140,6 +140,9 @@ console_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);
   INSTALL_COMMAND2 (shell->cmdset, show_debug_zcmdsh);
 
+  INSTALL_COMMAND2 (shell->cmdset, debug_sdplane);
+  INSTALL_COMMAND2 (shell->cmdset, show_debug_sdplane);
+
   INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
   shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
 

@@ -196,10 +196,8 @@ vty_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);
   INSTALL_COMMAND2 (shell->cmdset, show_debug_zcmdsh);
 
-#if 0
-  INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
-  INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
-#endif
+  INSTALL_COMMAND2 (shell->cmdset, debug_sdplane);
+  INSTALL_COMMAND2 (shell->cmdset, show_debug_sdplane);
 
   //INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
   shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);

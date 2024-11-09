@@ -23,8 +23,6 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
 
 #include "l3fwd.h"
 #include "l2fwd_export.h"
@@ -168,6 +166,6 @@ soft_dplane_init ()
   int lcore_id;
   for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
     tap_ring_by_lcore[lcore_id] = NULL;
-  debug_sdplane_init ();
+  debug_sdplane_cmd_init ();
 }
 
