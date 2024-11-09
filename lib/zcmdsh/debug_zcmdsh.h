@@ -16,4 +16,10 @@
 //#define DEBUG_ZCMDSH(type, format, ...) \
 //  DEBUG_LOG(ZCMDSH, type, format, ##__VA_ARGS__)
 
+#include <zcmdsh/command.h>
+
+EXTERN_COMMAND (debug_zcmdsh);
+EXTERN_COMMAND (show_debug_zcmdsh);
+void debug_zcmdsh_cmd_init ();
+
 #endif /*__DEBUG_ZCMDSH_H__*/
