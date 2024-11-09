@@ -15,8 +15,7 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
+#include <zcmdsh/debug_zcmdsh.h>
 //#include <zcmdsh/shell_fselect.h>
 #include <zcmdsh/log_cmd.h>
 
@@ -47,11 +46,13 @@ startup_config (__rte_unused void *dummy)
   INSTALL_COMMAND2 (shell->cmdset, set_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
 
-  INSTALL_COMMAND2 (shell->cmdset, debug);
-  //INSTALL_COMMAND2 (shell->cmdset, show_debug);
+  INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);
+  //INSTALL_COMMAND2 (shell->cmdset, show_debug_zcmdsh);
 
+#if 0
   INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
   INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
+#endif
 
   INSTALL_COMMAND2 (shell->cmdset, l2fwd_init);
 
@@ -76,10 +77,6 @@ startup_config (__rte_unused void *dummy)
       while (shell_running (shell))
         {
           lthread_sleep (10); // yield.
-
-          if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                          DEBUG_SDPLANE_LTHREAD))
-            printf ("%s: schedule.\n", __func__);
 
           shell_read_nowait (shell);
         }

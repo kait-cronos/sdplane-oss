@@ -52,10 +52,11 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/log_cmd.h>
+#include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
 #include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
 //#include <zcmdsh/shell_fselect.h>
+#include <zcmdsh/debug_zcmdsh.h>
 
 #include "l3fwd.h"
 #include "l3fwd_event.h"
@@ -136,11 +137,8 @@ console_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, set_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
 
-  INSTALL_COMMAND2 (shell->cmdset, debug);
-  INSTALL_COMMAND2 (shell->cmdset, show_debug);
-
-  INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
-  INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
+  INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);
+  INSTALL_COMMAND2 (shell->cmdset, show_debug_zcmdsh);
 
   INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
   shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
@@ -161,7 +159,7 @@ console_shell (void *arg)
       loop_console++;
       lthread_sleep (100); // yield.
 
-      if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+      if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
                       DEBUG_SDPLANE_LTHREAD))
         printf ("%s: schedule.\n", __func__);
 

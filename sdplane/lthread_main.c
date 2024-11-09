@@ -51,9 +51,8 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
 //#include <zcmdsh/shell_fselect.h>
+#include <zcmdsh/debug_zcmdsh.h>
 
 #include "l3fwd.h"
 #include "l3fwd_event.h"
@@ -105,10 +104,8 @@ lthread_main (__rte_unused void *dummy)
           __FILE__, __LINE__, __func__, lthread_core);
 
   /* library initialization. */
-  debug_cmd_init ();
+  debug_zcmdsh_cmd_init ();
   command_shell_init ();
-
-  debug_module_cmd_init ();
 
   void *ptr;
   lthread_create (&lt, (lthread_func) startup_config, NULL);

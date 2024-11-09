@@ -42,8 +42,10 @@
 #include "rte_override.h"
 
 #include <zcmdsh/debug.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
+#include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
+#include <zcmdsh/debug_zcmdsh.h>
+#include <zcmdsh/debug_cmd.h>
 #include "debug_sdplane.h"
 #include "stat_collector.h"
 
@@ -251,7 +253,7 @@ l2fwd_main_loop(void)
 
 	while (! force_quit && ! force_stop[lcore_id]) {
                loop_l2fwd++;
-               if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+               if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
                                DEBUG_SDPLANE_L2FWD))
                  printf ("%s[%d]: %s: l2fwd scheduled.\n",
                          __FILE__, __LINE__, __func__);

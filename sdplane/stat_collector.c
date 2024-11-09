@@ -8,7 +8,9 @@
 
 #include <zcmdsh/log.h>
 #include <zcmdsh/debug.h>
-#include <zcmdsh/debug_module.h>
+#include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
+#include <zcmdsh/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 extern volatile bool force_quit;
@@ -69,7 +71,7 @@ stat_collector (__rte_unused void *dummy)
                                &stats_prev[port_id]);
       //printf ("%s: stats collected.\n", __func__);
 
-      if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+      if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
                       DEBUG_SDPLANE_STAT_COLLECTOR))
         {
           for (port_id = 0; port_id < nb_ports; port_id++)

@@ -18,8 +18,9 @@
 
 #include <zcmdsh/debug.h>
 #include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
+#include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
+#include <zcmdsh/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "sdplane.h"
@@ -97,7 +98,7 @@ vty_server (void *arg)
     {
       lthread_sleep (1000); // yield.
 
-      if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+      if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
                       DEBUG_SDPLANE_LTHREAD))
         printf ("%s: schedule.\n", __func__);
 

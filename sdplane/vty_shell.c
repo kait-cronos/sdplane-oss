@@ -26,9 +26,8 @@
 #include <zcmdsh/shell_telnet.h>
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
+#include <zcmdsh/debug.h>
 #include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
 #include <zcmdsh/log.h>
 #include <zcmdsh/log_cmd.h>
 
@@ -194,11 +193,13 @@ vty_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, set_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
 
-  INSTALL_COMMAND2 (shell->cmdset, debug);
-  INSTALL_COMMAND2 (shell->cmdset, show_debug);
+  INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);
+  INSTALL_COMMAND2 (shell->cmdset, show_debug_zcmdsh);
 
+#if 0
   INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
   INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
+#endif
 
   //INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
   shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
@@ -239,7 +240,7 @@ vty_shell (void *arg)
       shell_read_nowait (shell);
     }
 
-  if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
+  if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
                   DEBUG_SDPLANE_VTY_SHELL))
     printf ("%s[%d]: %s: terminating for client[%d]: %s.\n",
             __FILE__, __LINE__, __func__,

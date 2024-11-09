@@ -24,11 +24,13 @@ int debug_module_sdplane = 0;
 void
 debug_sdplane_init ()
 {
+#if 0
   int debug_type_size;
   debug_module_sdplane = debug_module_get_size ();
   debug_type_size =
     sizeof (debug_sdplane_types) / sizeof (debug_sdplane_types[0]);
   debug_module_register (debug_module_sdplane, "sdplane",
                          debug_type_size, debug_sdplane_types);
+#endif
 }
 
