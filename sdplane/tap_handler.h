@@ -6,7 +6,7 @@
 
 #include "sdplane.h"
 
-extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
+//extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
 extern __thread struct rte_ring *thread_ring_to_tap;
 
 extern bool enable_tap_copy;
