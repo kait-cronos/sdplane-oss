@@ -1,11 +1,12 @@
 
 AM_CFLAGS = -g -O0
 
-COMMON_DIR = ../common
-L2FWD_DIR = ../l2fwd
-L3FWD_DIR = ../l3fwd
-L3FWD_MODULE_DIR = module/l3fwd
-L2FWD_MODULE_DIR = module/l2fwd
+COMMON_DIR = $(top_srcdir)/common
+L2FWD_DIR = $(top_srcdir)/l2fwd
+L3FWD_DIR = $(top_srcdir)/l3fwd
+SDPLANE_DIR = $(top_srcdir)/sdplane
+L3FWD_MODULE_DIR = $(SDPLANE_DIR)/module/l3fwd
+L2FWD_MODULE_DIR = $(SDPLANE_DIR)/module/l2fwd
 
 sbin_PROGRAMS = sdplane
 sdplane_SOURCES = \
