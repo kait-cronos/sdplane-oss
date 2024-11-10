@@ -195,8 +195,8 @@ tap_handler (__rte_unused void *dummy)
                               __func__, pkt_len, data_len, lcore_id);
                   }
                 DEBUG_SDPLANE_LOG (TAPHANDLER,
-                                   "packet [%d/%d] written to tap.",
-                                   data_len, pkt_len);
+                                   "packet [%d/%d] (in_port: %d) written to tap.",
+                                   data_len, pkt_len, m->port);
                 rte_pktmbuf_free (m);
               }
           } while (avail);
