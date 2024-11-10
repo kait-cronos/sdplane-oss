@@ -85,7 +85,7 @@ stat_collector (__rte_unused void *dummy)
                 continue;
 
               s = &stats_per_sec[port_id];
-              log_info ("port[%d]: "
+              DEBUG_SDPLANE_LOG (STAT_COLLECTOR, "port[%d]: "
                       "pps: in: %'lu out: %'lu "
                       "bps: in %'lu out: %'lu",
                       port_id, s->ipackets, s->opackets,
