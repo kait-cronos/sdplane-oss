@@ -32,15 +32,11 @@ startup_config (__rte_unused void *dummy)
 
   lthread_detach ();
 
-  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
+  //printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
 
   shell = command_shell_create ();
-  //shell_set_terminal (shell, 0, 1);
-  //get_winsize (shell);
+  shell_set_prompt (shell, "startup-config> ");
   shell->pager = false;
-
-  //INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
-  //INSTALL_COMMAND2 (shell->cmdset, reboot_cmd);
 
   //INSTALL_COMMAND2 (shell->cmdset, show_worker);
   INSTALL_COMMAND2 (shell->cmdset, set_worker);
@@ -51,11 +47,6 @@ startup_config (__rte_unused void *dummy)
 
   INSTALL_COMMAND2 (shell->cmdset, debug_sdplane);
   //INSTALL_COMMAND2 (shell->cmdset, show_debug_sdplane);
-
-#if 0
-  INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
-  INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
-#endif
 
   INSTALL_COMMAND2 (shell->cmdset, l2fwd_init);
 
@@ -88,7 +79,7 @@ startup_config (__rte_unused void *dummy)
     printf ("%s[%d]: %s: opening %s: failed: %s.\n",
             __FILE__, __LINE__, __func__, config_file, strerror (errno));
 
-  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+  //printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
   fflush (stdout);
 
   //termio_finish ();
