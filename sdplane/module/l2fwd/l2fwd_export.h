@@ -35,13 +35,13 @@ struct l2fwd_port_statistics
   uint64_t rx;
   uint64_t dropped;
 } __rte_cache_aligned;
-
 extern struct l2fwd_port_statistics port_statistics[RTE_MAX_ETHPORTS];
+
 
 extern int mac_updating;
 extern int promiscuous_on;
-extern uint16_t nb_rxd;
-extern uint16_t nb_txd;
+//extern uint16_t nb_rxd;
+//extern uint16_t nb_txd;
 extern struct rte_ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
 extern uint32_t l2fwd_enabled_port_mask;
 extern struct port_pair_params port_pair_params_array[RTE_MAX_ETHPORTS / 2];

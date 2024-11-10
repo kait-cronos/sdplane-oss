@@ -29,6 +29,7 @@
 
 #include "sdplane.h"
 #include "tap_handler.h"
+#include "l2_repeater.h"
 
 volatile bool force_stop[RTE_MAX_LCORE];
 
@@ -77,11 +78,7 @@ stop_lcore (struct shell *shell, int lcore_id)
 
 DEFINE_COMMAND (set_worker,
                 "(set|reset|start|restart) worker lcore <0-16> "
-#if 1
-                "(|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler)",
-#else
-                "(|none|l2fwd|l3fwd|l3fwd-lpm)",
-#endif
+                "(|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater)",
                 SET_HELP
                 RESET_HELP
                 START_HELP
@@ -94,6 +91,7 @@ DEFINE_COMMAND (set_worker,
                 "set lcore to launch l3fwd (default: lpm)\n"
                 "set lcore to launch l3fwd-lpm\n"
                 "set lcore to launch tap-handler\n"
+                "set lcore to launch l2-repeater\n"
                )
 {
   struct shell *shell = (struct shell *) context;
@@ -108,10 +106,10 @@ DEFINE_COMMAND (set_worker,
     func = NULL;
   else if (! strcmp (argv[4], "l2fwd"))
     func = l2fwd_launch_one_lcore;
-#if 1
   else if (! strcmp (argv[4], "tap-handler"))
     func = tap_handler;
-#endif
+  else if (! strcmp (argv[4], "l2-repeater"))
+    func = l2_repeater;
   else /* if (! strcmp (argv[4], "l3fwd")) */
     func = lpm_main_loop;
 
