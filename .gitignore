@@ -5,6 +5,7 @@
 /l3fwd/build
 /l3fwd/l3fwd
 /sdplane/sdplane
+/build
 
 /sdplane_*.debian.tar.xz
 /sdplane_*.dsc
