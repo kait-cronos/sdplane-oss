@@ -1,6 +1,7 @@
 sdplane () UNRELEASED; urgency=low
 
   * release. update changelog.
+  * update changelog for .
   * update build-debian.sh
   * l2_repeater.[ch].
   * tap-handler: incoming packet written to port-dpdk0 I/F.
@@ -64,7 +65,7 @@ sdplane () UNRELEASED; urgency=low
   * Merge branch 'devel'
   * Merge branch 'devel'
 
- -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 06:57:58 +0900
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 06:58:03 +0900
 
 sdplane (0.0.9l-1) UNRELEASED; urgency=low
 
