@@ -1,3 +1,10 @@
+sdplane (0.1.0-10) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sync
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 07:14:23 +0900
+
 sdplane (0.1.0-8) UNRELEASED; urgency=low
 
   * release. update changelog.
