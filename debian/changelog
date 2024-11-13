@@ -1,3 +1,71 @@
+sdplane () UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update build-debian.sh
+  * l2_repeater.[ch].
+  * tap-handler: incoming packet written to port-dpdk0 I/F.
+  * test of input port in tap_handler.
+  * debug stat-collector started to work again.
+  * adjust startup-config.
+  * compile in build/ dir.
+  * fix Makefile.am's top_srcdir.
+  * fix 0.0.9l's debug sdplane.
+  * sync.
+  * 0.0.9l: remove debug_module framework.
+  * tap_handler change.
+  * 0.0.9j: fix systemd sdplane.service.
+  * update systemd sdplane.service.
+  * systemd sdplane.service.
+  * fix versions in install-memo.txt.
+  * fix install-memo.txt.
+  * 0.0.9i: fix dist_sysconf_DATA.
+  * version: 0.0.9h. adapt to zcmdsh_0.3.28, pager enabled. delete_char -> advanced, ^[-b (move-word-backword) and others were supported.
+  * sync.
+  * support topton-pc.
+  * Merge branch 'devel' of github.com:yasuhironet/soft-dplane into devel
+  * sync.
+  * fix compile error.
+  * version: 0.0.9g.
+  * update install-memo.txt.
+  * add allow rules for DHCP.
+  * add allow rules for mDNS.
+  * update TODO.
+  * Merge branch 'devel' of github.com:yasuhironet/soft-dplane into devel
+  * sdplane setup update.
+  * Merge branch 'devel'
+  * version: 0.0.9f.
+  * debug stat_collector (pps). enable log file in startup_config.
+  * changed to accept the location of libzcmdsh.so. console_shell.c is added.
+  * sdplane vty-shell debug message.
+  * add netplan file. update install-memo.txt.
+  * install netplan config.
+  * install-memo.txt: ver. 13
+  * ver: 0.0.9e.
+  * fix telnet cmd/opt, add vty_banner, add sdplane_version.
+  * shutdown operation from the signal, for systemctl stop.
+  * port setting for wiretap in the systemd service.
+  * install-memo.txt: ver. 12
+  * 0.0.9d: vty_server, vty_shell, telnet support.
+  * first incorporation of vty_server.
+  * change name to console_shell.
+  * TODO.
+  * thread_local loop counter and its per-lcore statistics.
+  * cancel timer. add loop_count. adapt to debug module.
+  * set_l3fwd_argv_cmd and l3fwd_init_cmd.
+  * adapt to debug module.
+  * l3fwd_argv backward-compat test.
+  * l3fwd_argv framework.
+  * snprintf_flags.[ch].
+  * newly created module framework compiled okay.
+  * split in dpdk_flag.[ch], dpdk_lcore_cmd.c, dpdk_port_cmd.c.
+  * module framework.
+  * Merge branch 'devel'
+  * Merge branch 'devel'
+  * Merge branch 'devel'
+  * Merge branch 'devel'
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 06:57:58 +0900
+
 sdplane (0.0.9l-1) UNRELEASED; urgency=low
 
   * remove debug_module framework.
