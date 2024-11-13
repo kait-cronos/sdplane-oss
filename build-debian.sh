@@ -83,6 +83,6 @@ echo "tagging ${newversion}."
 git tag ${newversion}
 
 # vi debian/changelog
-tar zcvf ../zcmdsh_${origdebversion}.orig.tar.gz .
+tar zcvf ../${packagename}_${origdebversion}.orig.tar.gz .
 debuild
 
