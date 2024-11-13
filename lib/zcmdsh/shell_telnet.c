@@ -10,8 +10,6 @@
 
 #include "zcmdsh/debug.h"
 #include "zcmdsh/debug_cmd.h"
-#include "zcmdsh/debug_module.h"
-#include "zcmdsh/debug_module_cmd.h"
 
 #include "zcmdsh/debug_log.h"
 #include "zcmdsh/debug_category.h"
