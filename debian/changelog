@@ -1,4 +1,4 @@
-sdplane () UNRELEASED; urgency=low
+sdplane (0.1.0) UNRELEASED; urgency=low
 
   * release. update changelog.
   * update changelog for .
