@@ -127,10 +127,10 @@ DEFINE_COMMAND (set_worker,
     func_name = "l2fwd";
   else if (func == lthread_main)
     func_name = "lthread_main";
-#if 1
   else if (func == tap_handler)
     func_name = "tap-handler";
-#endif
+  else if (func == l2_repeater)
+    func_name = "l2-repeater";
   else
     func_name = "none";
 
