@@ -47,6 +47,9 @@ l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
         continue;
 
       buffer = tx_buffer[tx_portid];
+      if (! buffer)
+        continue;
+
       sent = rte_eth_tx_buffer (tx_portid, 0, buffer, m);
       if (sent)
         port_statistics[tx_portid].tx += sent;
