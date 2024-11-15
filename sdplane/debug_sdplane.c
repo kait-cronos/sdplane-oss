@@ -29,6 +29,11 @@ struct debug_type debug_sdplane_types[] =
   { DEBUG_SDPLANE_VTY_SHELL,  "vty-shell" },
   { DEBUG_SDPLANE_TELNET_OPT, "telnet-opt" },
   { DEBUG_SDPLANE_STAT_COLLECTOR, "stat-collector" },
+  { DEBUG_SDPLANE_SCHED,      "sched" },
+  { DEBUG_SDPLANE_VTY,        "vty" },
+  { DEBUG_SDPLANE_PACKET,     "packet" },
+  { DEBUG_SDPLANE_FDB,        "fdb" },
+  { DEBUG_SDPLANE_FDB_CHANGE, "fdb-change" },
 };
 
 struct command_header debug_sdplane_cmd;

@@ -13,6 +13,9 @@
 #define DEBUG_SDPLANE_STAT_COLLECTOR (1ULL << 8)
 #define DEBUG_SDPLANE_SCHED      (1ULL << 9)
 #define DEBUG_SDPLANE_VTY        (1ULL << 10)
+#define DEBUG_SDPLANE_PACKET     (1ULL << 11)
+#define DEBUG_SDPLANE_FDB        (1ULL << 12)
+#define DEBUG_SDPLANE_FDB_CHANGE (1ULL << 13)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...) \
   DEBUG_LOG(SDPLANE, type, format, ##__VA_ARGS__)
