@@ -24,7 +24,14 @@ sdplane_SOURCES = \
         dpdk_lcore_cmd.c dpdk_port_cmd.c \
         vty_server.c vty_shell.c \
         main.c lthread_main.c sdplane.h sdplane.c debug_sdplane.c \
-        console_shell.c l2_repeater.c
+        console_shell.c l2_repeater.c \
+        sdplane_version.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_DIR) -I$(L3FWD_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR)
 sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lzcmdsh
+
+FORCE:
+.PHONY: FORCE
+
+sdplane_version.h: FORCE
+	top_srcdir=$(top_srcdir) bash $(top_srcdir)/sdplane/sdplane-version-c.sh > sdplane_version.c
 

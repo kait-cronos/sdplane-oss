@@ -28,9 +28,21 @@
 #include "l2fwd_export.h"
 
 #include "sdplane.h"
+#include "sdplane_version.h"
 #include "stat_collector.h"
 #include "tap_handler.h"
 #include "debug_sdplane.h"
+
+DEFINE_COMMAND (show_version,
+                "show version",
+                SHOW_HELP
+                "version\n"
+                )
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  fprintf (t, "sdplane version: %s%s", sdplane_version, shell->NL);
+}
 
 DEFINE_COMMAND (set_locale,
                 //"set locale (LC_ALL|LC_NUMERIC) (C|C.utf8|en_US.utf8|POSIX)",
@@ -156,6 +168,7 @@ soft_dplane_cmd_init (struct command_set *cmdset)
   dpdk_port_cmd_init (cmdset);
   INSTALL_COMMAND2 (cmdset, set_l3fwd_argv);
   INSTALL_COMMAND2 (cmdset, show_loop_count);
+  INSTALL_COMMAND2 (cmdset, show_version);
 }
 
 extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
