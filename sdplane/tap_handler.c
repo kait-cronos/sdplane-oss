@@ -176,7 +176,7 @@ struct vswitch
 int
 tap_handler (__rte_unused void *dummy)
 {
-  int fd;
+  int peek_fd;
   int ret;
   uint64_t loop_counter = 0;
 
@@ -197,7 +197,7 @@ tap_handler (__rte_unused void *dummy)
                      rte_lcore_id ());
 
   snprintf (port_name, sizeof (port_name), "peek0");
-  fd = tap_open (port_name);
+  peek_fd = tap_open (port_name);
   tap_admin_up (port_name);
   DEBUG_SDPLANE_LOG (TAPHANDLER, "create %s and make it up.",
                      port_name);
@@ -262,6 +262,16 @@ tap_handler (__rte_unused void *dummy)
         }
     }
 
+#define FDB_SIZE 16
+  int i, j;
+  struct fdb_entry
+  {
+    struct rte_ether_addr l2addr;
+    int port;
+  };
+  struct fdb_entry fdb[FDB_SIZE];
+  memset (fdb, 0, sizeof (fdb));
+
   DEBUG_SDPLANE_LOG (TAPHANDLER, "start main loop on lcore[%d].",
                      rte_lcore_id ());
 
@@ -270,68 +280,11 @@ tap_handler (__rte_unused void *dummy)
     {
       //lthread_sleep (0); // yield.
       //printf ("%s: schedule: %lu.\n", __func__, loop_counter);
-#if 0
-      for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
-        {
-          struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
-          unsigned int dequeued = 0, avail = 0;
-          int i;
 
-          tap_ring = tap_ring_by_lcore[lcore_id];
-          do {
-            if (tap_ring)
-              dequeued = rte_ring_dequeue_burst (tap_ring, (void **) pkts_burst,
-                                                 MAX_PKT_BURST, &avail);
-            for (i = 0; i < dequeued; i++)
-              {
-                struct rte_mbuf *m;
-                uint32_t pkt_len;
-                uint16_t data_len;
-                char *pkt;
-
-                m = pkts_burst[i];
-                if (! m)
-                  continue;
-                pkt_len = rte_pktmbuf_pkt_len (m);
-                data_len = rte_pktmbuf_data_len (m);
-                pkt = rte_pktmbuf_mtod (m, char *);
-                if (data_len < pkt_len)
-                  printf ("%s: warning: multi-seg mbuf: %u < %u\n",
-                          __func__, data_len, pkt_len);
-                ret = write (fd, pkt, data_len);
-                if (ret < 0)
-                  printf ("%s: warning: write () failed: %s\n",
-                          __func__, strerror (errno));
-                else
-                  {
-                    DEBUG_SDPLANE_LOG (TAPHANDLER,
-                        "packet [%d/%d] (in_port: %d) written to peek0.",
-                        data_len, pkt_len, m->port);
-                  }
-
-                if (port_fd[m->port] >= 0)
-                  {
-                    ret = write (port_fd[m->port], pkt, data_len);
-                    if (ret < 0)
-                      DEBUG_SDPLANE_LOG (TAPHANDLER,
-                                         "write() failed: port_fd[%d]: %d error: %s.",
-                                         m->port, port_fd[m->port], strerror (errno));
-                    else
-                      DEBUG_SDPLANE_LOG (TAPHANDLER,
-                        "packet [%d/%d] (in_port: %d) to port-dpdk%d.",
-                        data_len, pkt_len, m->port, m->port);
-                  }
-
-                rte_pktmbuf_free (m);
-              }
-          } while (avail);
-        }
-#else
       for (port_id = 0; port_id < vswitch->size; port_id++)
         {
           struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
           unsigned int dequeued = 0, avail = 0;
-          int i;
 
           vswport = &vswitch->port[port_id];
           if (vswport->type != VSWITCH_PORT_TYPE_DPDK_LCORE)
@@ -358,16 +311,75 @@ tap_handler (__rte_unused void *dummy)
                         "warning: multi-seg mbuf: %u < %u",
                         data_len, pkt_len);
 
-              ret = write (fd, pkt, data_len);
+              /* analyze packet */
+              struct rte_ether_hdr *eth;
+              struct rte_ipv4_hdr *ipv4;
+              struct rte_ipv6_hdr *ipv6;
+              char eth_dst[32];
+              char eth_src[32];
+              eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+              rte_ether_format_addr (eth_dst, sizeof (eth_dst),
+                                     &eth->dst_addr);
+              rte_ether_format_addr (eth_src, sizeof (eth_src),
+                                     &eth->src_addr);
+              DEBUG_SDPLANE_LOG (PACKET,
+                  "m: %p ether: dst: %s src: %s type: %#hx",
+                  m, eth_dst, eth_src,
+                  rte_be_to_cpu_16 (eth->ether_type));
 
-              if (ret < 0)
-                DEBUG_SDPLANE_LOG (TAPHANDLER,
-                        "warning: write () failed: %s",
-                        strerror (errno));
-              else
-                DEBUG_SDPLANE_LOG (TAPHANDLER,
-                        "packet [%d/%d] (in_port: %d) written to peek0.",
-                        data_len, pkt_len, m->port);
+              if (RTE_ETH_IS_IPV4_HDR (m->packet_type))
+                {
+                  ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
+                  DEBUG_SDPLANE_LOG (PACKET,
+                      "m: %p ipv4: len: %d",
+                      m, rte_be_to_cpu_16 (ipv4->total_length));
+                }
+              else if (RTE_ETH_IS_IPV6_HDR (m->packet_type))
+                {
+                  ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
+                  DEBUG_SDPLANE_LOG (PACKET,
+                      "m: %p ipv6: len: %d",
+                      m, rte_be_to_cpu_16 (ipv6->payload_len));
+                }
+
+              for (j = 0; j < FDB_SIZE; j++)
+                {
+                  if (rte_is_zero_ether_addr (&fdb[j].l2addr))
+                    {
+                      fdb[j].l2addr = eth->src_addr;
+                      fdb[j].port = m->port;
+                      DEBUG_SDPLANE_LOG (FDB_CHANGE,
+                          "m: %p new: in fdb[%d]: addr: %s port: %d",
+                          m, j, eth_src, m->port);
+                      break;
+                    }
+                  if (rte_is_same_ether_addr (&fdb[j].l2addr, &eth->src_addr))
+                    {
+                      fdb[j].port = m->port;
+                      DEBUG_SDPLANE_LOG (FDB,
+                          "m: %p found: in fdb[%d]: addr: %s port: %d",
+                          m, j, eth_src, m->port);
+                      break;
+                    }
+                  char buf[32];
+                  rte_ether_format_addr (buf, sizeof (buf), &fdb[j].l2addr);
+                  DEBUG_SDPLANE_LOG (FDB,
+                      "m: %p fdb[%d]: addr: %s port: %d",
+                      m, j, buf, fdb[i].port);
+                }
+
+              if (peek_fd >= 0)
+                {
+                  ret = write (peek_fd, pkt, data_len);
+                  if (ret < 0)
+                    DEBUG_SDPLANE_LOG (TAPHANDLER,
+                            "warning: write () failed: %s",
+                            strerror (errno));
+                  else
+                    DEBUG_SDPLANE_LOG (TAPHANDLER,
+                            "packet [%d/%d] (in_port: %d) written to peek0.",
+                            data_len, pkt_len, m->port);
+                }
 
               if (port_fd[m->port] >= 0)
                 {
@@ -385,12 +397,11 @@ tap_handler (__rte_unused void *dummy)
               rte_pktmbuf_free (m);
             }
         }
-#endif
 
       loop_counter++;
     }
 
-  close (fd);
+  close (peek_fd);
   printf ("%s on lcore[%d]: finished.\n",
           __func__, rte_lcore_id ());
   return 0;
