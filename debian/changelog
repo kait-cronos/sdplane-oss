@@ -1,3 +1,13 @@
+sdplane (0.1.0-17) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * support for packet analysis and fdb in tap_handler.
+  * debug sdplane (packet|fdb|fdb-change).
+  * l2_repeater started to work.
+  * sync
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 16 Nov 2024 04:26:48 +0900
+
 sdplane (0.1.0-12) UNRELEASED; urgency=low
 
   * release. update changelog.
