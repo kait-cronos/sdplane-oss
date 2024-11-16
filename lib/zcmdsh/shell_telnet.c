@@ -194,6 +194,7 @@ vty_shell_keyfunc_telnet_cmd (struct shell *shell)
   shell->keymap = key_func_iac_2;
   shell->telnet_cmd = (u_char) shell->inputch;
 
+#if 0 //omit debug logging on telnet_cmd (done in telnet_opt instead).
   char *telnet_cmd_str;
   char telnet_cmd_strbuf[32];
 
@@ -209,6 +210,7 @@ vty_shell_keyfunc_telnet_cmd (struct shell *shell)
              telnet_cmd_strbuf, shell->NL);
 
   fflush (shell->terminal);
+#endif
 }
 
 void
