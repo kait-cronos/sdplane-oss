@@ -32,6 +32,6 @@ sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lzcmdsh
 FORCE:
 .PHONY: FORCE
 
-sdplane_version.h: FORCE
+sdplane_version.c: FORCE
 	top_srcdir=$(top_srcdir) bash $(top_srcdir)/sdplane/sdplane-version-c.sh > sdplane_version.c
 

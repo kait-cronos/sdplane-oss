@@ -1,8 +1,5 @@
-#include <stdio.h>
-#include <stdbool.h>
+#include "include.h"
 
-#include <unistd.h>
-#include <sys/ioctl.h>
 #include <lthread.h>
 
 #include <rte_ether.h>

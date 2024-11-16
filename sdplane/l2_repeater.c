@@ -1,9 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <inttypes.h>
+#include "include.h"
 
 #include <rte_common.h>
 #include <rte_malloc.h>

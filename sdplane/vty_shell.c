@@ -1,25 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <sys/types.h>
-#include <string.h>
-#include <stdarg.h>
-#include <errno.h>
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include "include.h"
 
 #include <arpa/telnet.h>
-
 #include <ifaddrs.h>
+
+#include <lthread.h>
 
 #include <rte_common.h>
 #include <rte_launch.h>
-
-#include <lthread.h>
 
 #include <zcmdsh/shell.h>
 #include <zcmdsh/shell_keyfunc.h>

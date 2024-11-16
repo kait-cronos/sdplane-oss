@@ -1,24 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <sys/types.h>
-#include <string.h>
-#include <sys/queue.h>
-#include <stdarg.h>
-#include <errno.h>
-#include <getopt.h>
-#include <signal.h>
-#include <stdbool.h>
+#include "include.h"
+
+#include <lthread.h>
 
 #include <rte_common.h>
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
-
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <lthread.h>
 
 #include <zcmdsh/debug.h>
 #include <zcmdsh/termio.h>

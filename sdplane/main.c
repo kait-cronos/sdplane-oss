@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <lthread.h>
 #include <signal.h>
+
+#include <lthread.h>
 
 #include <rte_common.h>
 
