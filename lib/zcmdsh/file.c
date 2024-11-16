@@ -146,13 +146,11 @@ dirent_copy (struct dirent *dirent)
   new = malloc (len);
   if (! new)
     {
-      fprintf (stderr, "malloc() failed: %s\n",
-               strerror (errno));
+      fprintf (stderr, "malloc() failed: %s\n", strerror (errno));
       return NULL;
     }
 
   memcpy (new, dirent, len);
-  //printf ("%s: len: %d\n", __func__, len);
+  // printf ("%s: len: %d\n", __func__, len);
   return new;
 }
-

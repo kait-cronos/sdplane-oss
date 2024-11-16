@@ -4,15 +4,15 @@
 
 #include <includes.h>
 
-#include "flag.h"
 #include "debug.h"
+#include "flag.h"
 
+#include "command.h"
 #include "file.h"
 #include "vector.h"
-#include "command.h"
 
-#include "debug_log.h"
 #include "debug_category.h"
+#include "debug_log.h"
 #include "debug_zcmdsh.h"
 
 #ifndef MIN
@@ -125,7 +125,7 @@ ipv4_prefix_match (char *spec, char *word)
   return ret;
 }
 
-#define MAX_RANGE_SPEC_STR  10
+#define MAX_RANGE_SPEC_STR 10
 int
 range_spec (char *spec)
 {
@@ -257,8 +257,7 @@ double_match (char *spec, char *word)
 int
 file_spec (char *spec)
 {
-  return (! strcmp (spec, "<FILENAME>") ||
-          ! strcmp (spec, "<FILE>"));
+  return (! strcmp (spec, "<FILENAME>") || ! strcmp (spec, "<FILE>"));
 }
 
 int
@@ -274,7 +273,8 @@ file_match (char *spec, char *word)
 
   /* assert directory part */
   ret = stat (dirname, &statbuf);
-  if ((ret != 0 && errno != ENOENT) || (ret == 0 && ! S_ISDIR (statbuf.st_mode)))
+  if ((ret != 0 && errno != ENOENT) ||
+      (ret == 0 && ! S_ISDIR (statbuf.st_mode)))
     {
       fprintf (stderr, "stat(): %s\n", strerror (errno));
       return 0;
@@ -342,23 +342,18 @@ file_complete (char *word)
       char filepath[FILENAME_MAX * 2 + 1];
 
       if (! strcmp (dirname, "/"))
-        snprintf (filepath, sizeof (filepath),
-                  "/%s", matched);
+        snprintf (filepath, sizeof (filepath), "/%s", matched);
       else
-        snprintf (filepath, sizeof (filepath),
-                  "%s/%s", dirname, matched);
+        snprintf (filepath, sizeof (filepath), "%s/%s", dirname, matched);
 
       ret = stat (filepath, &statbuf);
       if (ret == 0 && S_ISDIR (statbuf.st_mode))
-        snprintf (retbuf, sizeof (retbuf),
-                  "%s/", &matched[strlen (filename)]);
+        snprintf (retbuf, sizeof (retbuf), "%s/", &matched[strlen (filename)]);
       else
-        snprintf (retbuf, sizeof (retbuf),
-                  "%s", &matched[strlen (filename)]);
+        snprintf (retbuf, sizeof (retbuf), "%s", &matched[strlen (filename)]);
     }
   else if (nmatch > 1)
-    snprintf (retbuf, sizeof (retbuf),
-              "%s", &common[strlen (filename)]);
+    snprintf (retbuf, sizeof (retbuf), "%s", &common[strlen (filename)]);
 
   return retbuf;
 }
@@ -366,7 +361,7 @@ file_complete (char *word)
 char *
 file_replace (char *word)
 {
-  static char filename[FILENAME_MAX+1];
+  static char filename[FILENAME_MAX + 1];
   time_t clock;
   struct tm *tm;
   int ret;
@@ -517,12 +512,9 @@ varmatch_pri (char *spec)
 int
 is_command_node_variable (struct command_node *node)
 {
-  if (ipv4_spec (node->cmdstr) ||
-      range_spec (node->cmdstr) ||
-      double_spec (node->cmdstr) ||
-      file_spec (node->cmdstr) ||
-      line_spec (node->cmdstr) ||
-      var_spec (node->cmdstr))
+  if (ipv4_spec (node->cmdstr) || range_spec (node->cmdstr) ||
+      double_spec (node->cmdstr) || file_spec (node->cmdstr) ||
+      line_spec (node->cmdstr) || var_spec (node->cmdstr))
     return 1;
   return 0;
 }
@@ -581,10 +573,8 @@ command_match_unique_exact (struct command_node *parent, char *word)
 }
 
 void
-command_install (struct command_set *cmdset,
-                 char *command_line,
-                 char *help_string,
-                 command_func_t func)
+command_install (struct command_set *cmdset, char *command_line,
+                 char *help_string, command_func_t func)
 {
   struct command_node *parent = cmdset->root;
   struct command_node *node;
@@ -616,10 +606,8 @@ command_install (struct command_set *cmdset,
 }
 
 void
-command_install2 (struct command_set *cmdset,
-                  char *command_line,
-                  char *help_string,
-                  command_func_t func)
+command_install2 (struct command_set *cmdset, char *command_line,
+                  char *help_string, command_func_t func)
 {
   struct command_node *node;
   char *cmd_dup, *help_dup, *stringp, *hstringp;
@@ -638,7 +626,7 @@ command_install2 (struct command_set *cmdset,
   parents = vector_create ();
   next_parents = vector_create ();
 
-  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,COMMAND)))
+  if (FLAG_CHECK (DEBUG_CONFIG (ZCMDSH), DEBUG_TYPE (ZCMDSH, COMMAND)))
     {
       DEBUG_LOG_MSG ("%s: vector_create: %p\n", __func__, parents);
       DEBUG_LOG_MSG ("%s: vector_create: %p\n", __func__, next_parents);
@@ -673,13 +661,13 @@ command_install2 (struct command_set *cmdset,
       /* for each subword: the word is separated by the '|' delimeter. */
       while ((subword = strsep (&word, "|")) != NULL)
         {
-          //printf ("subword: %s\n", subword);
+          // printf ("subword: %s\n", subword);
           if (strlen (subword))
             {
               word_help = strsep (&hstringp, COMMAND_HELP_DELIMITERS);
               if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-                printf ("%s: subword: %s help: %s\n",
-                        __func__, subword, word_help);
+                printf ("%s: subword: %s help: %s\n", __func__, subword,
+                        word_help);
             }
 
           /* for each parent, add the subword node below it,
@@ -710,12 +698,12 @@ command_install2 (struct command_set *cmdset,
                 }
 
               if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-                printf ("%s: parent: %p (%s) -> child: %p (%s)\n",
-                        __func__, parent, parent->cmdstr, node, node->cmdstr);
+                printf ("%s: parent: %p (%s) -> child: %p (%s)\n", __func__,
+                        parent, parent->cmdstr, node, node->cmdstr);
               vector_add (node, next_parents);
               if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-                printf ("%s: vector_add: node: %p to vector: %p\n",
-                        __func__, node, next_parents);
+                printf ("%s: vector_add: node: %p to vector: %p\n", __func__,
+                        node, next_parents);
             }
         }
 
@@ -733,8 +721,8 @@ command_install2 (struct command_set *cmdset,
       node = (struct command_node *) vn->data;
       node->func = func;
       if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-        printf ("%s: node: %p (%s) add func %p\n",
-                __func__, node, node->cmdstr, func);
+        printf ("%s: node: %p (%s) add func %p\n", __func__, node,
+                node->cmdstr, func);
     }
 
   /* attache the string memory to free in the last processed node. */
@@ -764,8 +752,7 @@ command_replace (struct command_node *cmd, char *word)
 }
 
 int
-command_execute (char *command_line, struct command_set *cmdset,
-                 void *context)
+command_execute (char *command_line, struct command_set *cmdset, void *context)
 {
   char *cmd_dup;
   char *stringp;
@@ -804,8 +791,7 @@ command_execute (char *command_line, struct command_set *cmdset,
           argsize *= 2;
         }
 
-      if (line_spec (match->cmdstr) ||
-          file_spec (match->cmdstr))
+      if (line_spec (match->cmdstr) || file_spec (match->cmdstr))
         {
           argv[argc++] = strstr (command_line, word);
           break;
@@ -897,7 +883,8 @@ command_complete (char *command_line, int point, struct command_set *cmdset)
     }
 
   if (match && ! is_command_node_variable (match))
-    snprintf (retbuf, sizeof (retbuf), "%s ", &match->cmdstr[strlen (matched)]);
+    snprintf (retbuf, sizeof (retbuf), "%s ",
+              &match->cmdstr[strlen (matched)]);
 
   if (match == NULL && parent)
     snprintf (retbuf, sizeof (retbuf), "%s",
@@ -930,8 +917,7 @@ command_match_node (char *command_line, struct command_set *cmdset)
       if (match == NULL)
         break;
 
-      if (line_spec (match->cmdstr) ||
-          file_spec (match->cmdstr))
+      if (line_spec (match->cmdstr) || file_spec (match->cmdstr))
         break;
 
       parent = match;
@@ -983,5 +969,3 @@ command_config_write (struct vector *config, FILE *fp)
     if (vn->data)
       fprintf (fp, "%s\n", (char *) vn->data);
 }
-
-

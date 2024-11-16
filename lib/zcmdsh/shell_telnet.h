@@ -9,8 +9,8 @@ extern shell_keyfunc_t key_func_subnego[256];
 
 extern shell_keyfunc_t *key_func_orig;
 
-//char *telcmds2str (u_char telnet_cmd);
-//char *telopts2str (u_char telnet_opt);
+// char *telcmds2str (u_char telnet_cmd);
+// char *telopts2str (u_char telnet_opt);
 
 void vty_will_echo (struct shell *shell);
 void vty_will_suppress_go_ahead (struct shell *shell);

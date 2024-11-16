@@ -8,7 +8,7 @@
 extern char *prompt_default;
 extern struct command_set *cmdset_default;
 
-#define HISTORY_SIZE 128
+#define HISTORY_SIZE    128
 #define HISTORY_PREV(x) ((x) == 0 ? HISTORY_SIZE - 1 : (x) - 1)
 #define HISTORY_NEXT(x) ((x) + 1 == HISTORY_SIZE ? 0 : (x) + 1)
 struct command_history
@@ -37,16 +37,13 @@ void command_shell_install_default (struct shell *shell);
 void command_shell_init ();
 void command_shell_finish ();
 
-void command_history_add (char *command_line,
-       struct command_history *history, struct shell *shell);
+void command_history_add (char *command_line, struct command_history *history,
+                          struct shell *shell);
 
-void
-timer_init (int duration_limit, char *date_limit);
+void timer_init (int duration_limit, char *date_limit);
 
-int
-dirent_cmp (const void *va, const void *vb);
-void
-file_ls_candidate (struct shell *shell, char *file_path);
+int dirent_cmp (const void *va, const void *vb);
+void file_ls_candidate (struct shell *shell, char *file_path);
 
 #define FUNC_TABLE_SIZE 512
 struct funcp_str_map
@@ -55,18 +52,20 @@ struct funcp_str_map
   char *str;
 };
 extern struct funcp_str_map func2str[];
-#define FUNC_STR_REGISTER(x) \
-  do { \
-    int i; \
-    for (i = 0; i < FUNC_TABLE_SIZE; i++) \
-      { \
-        if (! func2str[i].ptr) \
-          { \
-            func2str[i].ptr = x; \
-            func2str[i].str = #x; \
-            break; \
-          } \
-      } \
-  } while (0)
+#define FUNC_STR_REGISTER(x)                                                  \
+  do                                                                          \
+    {                                                                         \
+      int i;                                                                  \
+      for (i = 0; i < FUNC_TABLE_SIZE; i++)                                   \
+        {                                                                     \
+          if (! func2str[i].ptr)                                              \
+            {                                                                 \
+              func2str[i].ptr = x;                                            \
+              func2str[i].str = #x;                                           \
+              break;                                                          \
+            }                                                                 \
+        }                                                                     \
+    }                                                                         \
+  while (0)
 
 #endif /*__COMMAND_SHELL_H__*/

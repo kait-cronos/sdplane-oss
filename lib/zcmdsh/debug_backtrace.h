@@ -2,7 +2,7 @@
 #define __DEBUG_BACKTRACE_H__
 
 #define BACKTRACE_FRAME_SIZE 128
-static inline __attribute__((always_inline)) void
+static inline __attribute__ ((always_inline)) void
 debug_backtrace ()
 {
   int nptrs;

@@ -10,8 +10,8 @@
 #define DEBUG_ZCMDSH_TERMIO  (1ULL << 5)
 #define DEBUG_ZCMDSH_TELNET  (1ULL << 6)
 
-#define DEBUG_ZCMDSH_LOG(type, format, ...) \
-  DEBUG_LOG(ZCMDSH, type, format, ##__VA_ARGS__)
+#define DEBUG_ZCMDSH_LOG(type, format, ...)                                   \
+  DEBUG_LOG (ZCMDSH, type, format, ##__VA_ARGS__)
 
 //#define DEBUG_ZCMDSH(type, format, ...) \
 //  DEBUG_LOG(ZCMDSH, type, format, ##__VA_ARGS__)

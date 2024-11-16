@@ -4,17 +4,17 @@
 
 #include <includes.h>
 
-#include "flag.h"
 #include "debug.h"
-#include "vector.h"
+#include "flag.h"
 #include "shell.h"
 #include "shell_keyfunc.h"
+#include "vector.h"
 
-#include "debug_log.h"
 #include "debug_category.h"
+#include "debug_log.h"
 #include "debug_zcmdsh.h"
 
-//static unsigned char inputch = 0;
+// static unsigned char inputch = 0;
 
 int
 writec (int fd, char c)
@@ -80,14 +80,12 @@ shell_format (struct shell *shell)
 
   /* move to the beginning. */
   for (i = shell->cursor; 0 < i; i--)
-    writec (shell->writefd, CONTROL('H'));
+    writec (shell->writefd, CONTROL ('H'));
 
   /* re-write the new command-line. */
-  ret = write (shell->writefd, command_line,
-               strlen (command_line));
+  ret = write (shell->writefd, command_line, strlen (command_line));
   if (ret < 0)
-    DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s",
-                      strerror (errno));
+    DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
 
   /* erase the last part. */
   for (i = end; i < shell->end; i++)
@@ -95,7 +93,7 @@ shell_format (struct shell *shell)
 
   /* move back to the cursor. */
   for (i = shell->end; cursor < i; i--)
-    writec (shell->writefd, CONTROL('H'));
+    writec (shell->writefd, CONTROL ('H'));
 
   free (shell->command_line);
   shell->command_line = command_line;
@@ -122,7 +120,7 @@ shell_set_prompt (struct shell *shell, char *prompt)
 {
   int newsize;
   char *newprompt;
-  newsize = (strlen (prompt) / 128) + 128 ;
+  newsize = (strlen (prompt) / 128) + 128;
   if (shell->prompt_size < newsize)
     {
       newprompt = realloc (shell->prompt, newsize);
@@ -187,8 +185,7 @@ shell_insert (struct shell *shell, char *s)
     shell_expand (shell);
 
   memmove (&shell->command_line[shell->cursor + strlen (s)],
-           &shell->command_line[shell->cursor],
-           shell->end - shell->cursor);
+           &shell->command_line[shell->cursor], shell->end - shell->cursor);
   memcpy (&shell->command_line[shell->cursor], s, strlen (s));
   shell->end += strlen (s);
   shell_terminate (shell);
@@ -199,7 +196,7 @@ shell_insert (struct shell *shell, char *s)
                    strlen (&shell->command_line[shell->cursor]));
       shell->cursor += strlen (s);
       for (i = shell->end; shell->cursor < i; i--)
-        writec (shell->writefd, CONTROL('H'));
+        writec (shell->writefd, CONTROL ('H'));
     }
 }
 
@@ -218,7 +215,7 @@ shell_insert_char (struct shell *shell, char ch)
   char str[2];
   str[0] = ch;
   str[1] = '\0';
-  //fprintf (shell->terminal, "%s: ch: %#x\n", __func__, (u_char)ch);
+  // fprintf (shell->terminal, "%s: ch: %#x\n", __func__, (u_char)ch);
   shell_insert (shell, str);
 }
 
@@ -237,8 +234,7 @@ shell_delete_string (struct shell *shell, int start, int end)
   /* move the string after the deleted part */
   movesize = shell->end - end;
   if (movesize)
-    memmove (&shell->command_line[start],
-             &shell->command_line[end], movesize);
+    memmove (&shell->command_line[start], &shell->command_line[end], movesize);
 
   /* erase the not-needed-anymore part */
   for (i = start + movesize; i < shell->end; i++)
@@ -249,7 +245,7 @@ shell_delete_string (struct shell *shell, int start, int end)
 
   /* go back to the place the deletion starts */
   for (i = shell->cursor; start < i; i--)
-    writec (shell->writefd, CONTROL('H'));
+    writec (shell->writefd, CONTROL ('H'));
 
   /* redraw the part related to this deletion */
   ret = write (shell->writefd, &shell->command_line[start],
@@ -258,7 +254,7 @@ shell_delete_string (struct shell *shell, int start, int end)
   /* adjust the cursor pointer and go back to it */
   shell->cursor = start;
   for (i = shell->end; shell->cursor < i; i--)
-    writec (shell->writefd, CONTROL('H'));
+    writec (shell->writefd, CONTROL ('H'));
 
   /* adjust the ending */
   shell->end -= size;
@@ -316,7 +312,7 @@ shell_backward (struct shell *shell, int num)
 
   shell->cursor -= num;
   for (i = num; i > 0; i--)
-    writec (shell->writefd, CONTROL('H'));
+    writec (shell->writefd, CONTROL ('H'));
 }
 
 void
@@ -566,20 +562,20 @@ shell_debug (struct shell *shell)
   for (i = 0; i < shell->end; i++)
     fprintf (shell->terminal, " %#02x", shell->command_line[i]);
   fprintf (shell->terminal, " ]%s", shell->NL);
-  fprintf (shell->terminal, "size: %d cursor: %d end: %d%s",
-           shell->size, shell->cursor, shell->end, shell->NL);
+  fprintf (shell->terminal, "size: %d cursor: %d end: %d%s", shell->size,
+           shell->cursor, shell->end, shell->NL);
   fflush (shell->terminal);
 
-  snprintf (debug, sizeof (debug),
-            "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d",
-            shell_word_prev_head (shell, shell->cursor),
-            shell_word_head (shell, shell->cursor),
-            shell_word_end (shell, shell->cursor),
-            shell->cursor, shell->end,
-            shell->inputch, shell->size);
+  snprintf (
+      debug, sizeof (debug),
+      "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d",
+      shell_word_prev_head (shell, shell->cursor),
+      shell_word_head (shell, shell->cursor),
+      shell_word_end (shell, shell->cursor), shell->cursor, shell->end,
+      shell->inputch, shell->size);
   fprintf (shell->terminal, "%s%s", debug, shell->NL);
   fflush (shell->terminal);
-  //ret = write (shell->writefd, debug, strlen (debug));
+  // ret = write (shell->writefd, debug, strlen (debug));
 
 #if 0
   for (i = 0; i < shell->end; i++)
@@ -611,7 +607,7 @@ shell_refresh (struct shell *shell)
   int ret;
 
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG) ||
-      FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,SHELL)))
+      FLAG_CHECK (DEBUG_CONFIG (ZCMDSH), DEBUG_TYPE (ZCMDSH, SHELL)))
     shell_debug (shell);
 
   /* print prompt */
@@ -624,7 +620,7 @@ shell_refresh (struct shell *shell)
 
   /* move cursor back to its position */
   for (i = shell->end; shell->cursor < i; i--)
-    writec (shell->writefd, CONTROL('H'));
+    writec (shell->writefd, CONTROL ('H'));
 }
 
 void
@@ -638,23 +634,23 @@ shell_input (struct shell *shell, unsigned char ch)
   shell->inputch = ch;
 
 #if 1
-  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,SHELL)))
+  if (FLAG_CHECK (DEBUG_CONFIG (ZCMDSH), DEBUG_TYPE (ZCMDSH, SHELL)))
     {
-  fprintf (shell->terminal, "%s", shell->NL);
-  fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x",
-           __func__, ch, ch, ch);
-  if (CONTROL ('@') <= ch && ch <= CONTROL ('_'))
-    fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->NL);
-  else if (ch == 127)
-    fprintf (shell->terminal, " DEL%s", shell->NL);
-  else if (isascii (ch))
-    fprintf (shell->terminal, " '%c'%s", ch, shell->NL);
-  else
-    fprintf (shell->terminal, "%s", shell->NL);
-  fprintf (shell->terminal, "keymap: %p, keymap[%d]: %p%s",
-           (void *)shell->keymap, ch, (void *)shell->keymap[ch],
-           shell->NL);
-  shell_refresh (shell);
+      fprintf (shell->terminal, "%s", shell->NL);
+      fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x", __func__, ch, ch,
+               ch);
+      if (CONTROL ('@') <= ch && ch <= CONTROL ('_'))
+        fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->NL);
+      else if (ch == 127)
+        fprintf (shell->terminal, " DEL%s", shell->NL);
+      else if (isascii (ch))
+        fprintf (shell->terminal, " '%c'%s", ch, shell->NL);
+      else
+        fprintf (shell->terminal, "%s", shell->NL);
+      fprintf (shell->terminal, "keymap: %p, keymap[%d]: %p%s",
+               (void *) shell->keymap, ch, (void *) shell->keymap[ch],
+               shell->NL);
+      shell_refresh (shell);
     }
 #endif
 
@@ -770,8 +766,7 @@ shell_create ()
   shell->size = INITIAL_COMMAND_LINE_SIZE;
   memset (shell->command_line, 0, shell->size);
 
-  memcpy (shell->keymap_normal, default_keymap,
-          sizeof (shell->keymap_normal));
+  memcpy (shell->keymap_normal, default_keymap, sizeof (shell->keymap_normal));
   shell->keymap = shell->keymap_normal;
 
   shell_set_prompt (shell, "prompt> ");
@@ -811,8 +806,7 @@ shell_set_terminal (struct shell *shell, int readfd, int writefd)
 }
 
 void
-shell_install (struct shell *shell, unsigned char key,
-               shell_keyfunc_t func)
+shell_install (struct shell *shell, unsigned char key, shell_keyfunc_t func)
 {
   shell->keymap[key] = func;
 }
@@ -825,4 +819,3 @@ shell_running (struct shell *shell)
     return 0;
   return 1;
 }
-

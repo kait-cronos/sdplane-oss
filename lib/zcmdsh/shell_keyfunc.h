@@ -22,4 +22,3 @@ void shell_keyfunc_delete_word_backward (struct shell *shell);
 void shell_keyfunc_delete_char_advanced (struct shell *shell);
 
 void shell_escape_keyfunc_init (struct shell *shell);
-

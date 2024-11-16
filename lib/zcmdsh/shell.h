@@ -8,12 +8,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <sys/ioctl.h>
 #include <stdbool.h>
+#include <sys/ioctl.h>
 
 #include <zcmdsh/flag.h>
 
-#define SHELL_WORD_DELIMITERS " "
+#define SHELL_WORD_DELIMITERS     " "
 #define SHELL_WORD_DELIMITERS_SUB " /"
 
 #define CONTROL(X) ((X) - '@')
@@ -36,9 +36,9 @@ struct shell
   int prompt_size;
 
   char *command_line;
-  int cursor;  /* cursor index, offset in command_line[] */
-  int end;     /* end-of-string index, offset in command_line[] */
-  int size;    /* buffer size of command_line[] */
+  int cursor; /* cursor index, offset in command_line[] */
+  int end;    /* end-of-string index, offset in command_line[] */
+  int size;   /* buffer size of command_line[] */
   char *cut_buffer;
 
   char inputch;

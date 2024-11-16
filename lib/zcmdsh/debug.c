@@ -5,4 +5,3 @@
 #include "debug.h"
 
 uint64_t debug_config = 0;
-

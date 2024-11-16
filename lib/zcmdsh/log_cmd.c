@@ -4,33 +4,31 @@
 
 #include "includes.h"
 
-//#include "log.h"
+// #include "log.h"
 
+#include "command.h"
 #include "flag.h"
 #include "shell.h"
-#include "command.h"
 
-#include "debug_log.h"
 #include "debug_category.h"
+#include "debug_log.h"
 
 char *log_filename = NULL;
 
-DEFINE_COMMAND (show_logging,
-                "show logging",
-                SHOW_HELP
-                "show logging information.\n")
+DEFINE_COMMAND (show_logging, "show logging",
+                SHOW_HELP "show logging information.\n")
 {
   struct shell *shell = (struct shell *) context;
 
   fprintf (shell->terminal, "log: syslog: %s%s",
-           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_SYSLOG) ?
-            "enabled" : "disabled"),
+           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_SYSLOG) ? "enabled"
+                                                           : "disabled"),
            shell->NL);
 
-  fprintf (shell->terminal, "log: file: %s%s",
-           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_FILE) ?
-            "enabled" : "disabled"),
-           shell->NL);
+  fprintf (
+      shell->terminal, "log: file: %s%s",
+      (FLAG_CHECK (debug_output, DEBUG_OUTPUT_FILE) ? "enabled" : "disabled"),
+      shell->NL);
   if (debug_log_filename)
     {
       fprintf (shell->terminal, "log: file: filename: %s fp: %p%s",
@@ -38,22 +36,20 @@ DEFINE_COMMAND (show_logging,
     }
 
   fprintf (shell->terminal, "log: stdout: %s%s",
-           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_STDOUT) ?
-            "enabled" : "disabled"),
+           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_STDOUT) ? "enabled"
+                                                           : "disabled"),
            shell->NL);
   fprintf (shell->terminal, "log: stderr: %s%s",
-           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_STDERR) ?
-            "enabled" : "disabled"),
+           (FLAG_CHECK (debug_output, DEBUG_OUTPUT_STDERR) ? "enabled"
+                                                           : "disabled"),
            shell->NL);
 }
 
-DEFINE_COMMAND (log_cmd,
-                "(|no) log (syslog|stdout|stderr)",
-                NO_HELP
-                "logging information.\n"
-                "log to syslog.\n"
-                "log to stdout.\n"
-                "log to stderr.\n")
+DEFINE_COMMAND (log_cmd, "(|no) log (syslog|stdout|stderr)",
+                NO_HELP "logging information.\n"
+                        "log to syslog.\n"
+                        "log to stdout.\n"
+                        "log to stderr.\n")
 {
   struct shell *shell = (struct shell *) context;
   int negate = 0;
@@ -88,8 +84,7 @@ DEFINE_COMMAND (log_cmd,
     }
 }
 
-DEFINE_COMMAND (log_file_cmd,
-                "log file <FILE>",
+DEFINE_COMMAND (log_file_cmd, "log file <FILE>",
                 "logging information.\n"
                 "log to file.\n"
                 "log filename.\n")
@@ -98,11 +93,9 @@ DEFINE_COMMAND (log_file_cmd,
   DEBUG_OUTPUT_FILE_SET (argv[2]);
 }
 
-DEFINE_COMMAND (no_log_file_cmd,
-                "no log file",
-                NO_HELP
-                "logging information.\n"
-                "log to file.\n")
+DEFINE_COMMAND (no_log_file_cmd, "no log file",
+                NO_HELP "logging information.\n"
+                        "log to file.\n")
 {
   struct shell *shell = (struct shell *) context;
   DEBUG_OUTPUT_FILE_UNSET ();
@@ -116,4 +109,3 @@ log_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, log_file_cmd);
   INSTALL_COMMAND2 (cmdset, no_log_file_cmd);
 }
-

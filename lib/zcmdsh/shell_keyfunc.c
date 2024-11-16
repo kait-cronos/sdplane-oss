@@ -4,148 +4,147 @@
 
 #include <includes.h>
 
-#include "flag.h"
 #include "debug.h"
-#include "vector.h"
+#include "flag.h"
 #include "shell.h"
 #include "shell_keyfunc.h"
+#include "vector.h"
 
-shell_keyfunc_t default_keymap[256] =
-{
-  NULL,                           /* Function for CONTROL('@') */
-  shell_keyfunc_move_to_begin,    /* Function for CONTROL('A') */
-  shell_keyfunc_backward_char,    /* Function for CONTROL('B') */
-  NULL,                           /* Function for CONTROL('C') */
-  shell_keyfunc_delete_char,      /* Function for CONTROL('D') */
-  shell_keyfunc_move_to_end,      /* Function for CONTROL('E') */
-  shell_keyfunc_forward_char,     /* Function for CONTROL('F') */
-  NULL,                           /* Function for CONTROL('G') */
-  shell_keyfunc_backspace,        /* Function for CONTROL('H') */
-  shell_keyfunc_insert_tab,       /* Function for CONTROL('I') */
-  shell_keyfunc_empty_enter,      /* Function for CONTROL('J') */
-  shell_keyfunc_kill_line,        /* Function for CONTROL('K') */
-  shell_keyfunc_clear_screen,     /* Function for CONTROL('L') */
-  shell_keyfunc_empty_enter,      /* Function for CONTROL('M') */
-  NULL,                           /* Function for CONTROL('N') */
-  NULL,                           /* Function for CONTROL('O') */
+shell_keyfunc_t default_keymap[256] = {
+  NULL,                        /* Function for CONTROL('@') */
+  shell_keyfunc_move_to_begin, /* Function for CONTROL('A') */
+  shell_keyfunc_backward_char, /* Function for CONTROL('B') */
+  NULL,                        /* Function for CONTROL('C') */
+  shell_keyfunc_delete_char,   /* Function for CONTROL('D') */
+  shell_keyfunc_move_to_end,   /* Function for CONTROL('E') */
+  shell_keyfunc_forward_char,  /* Function for CONTROL('F') */
+  NULL,                        /* Function for CONTROL('G') */
+  shell_keyfunc_backspace,     /* Function for CONTROL('H') */
+  shell_keyfunc_insert_tab,    /* Function for CONTROL('I') */
+  shell_keyfunc_empty_enter,   /* Function for CONTROL('J') */
+  shell_keyfunc_kill_line,     /* Function for CONTROL('K') */
+  shell_keyfunc_clear_screen,  /* Function for CONTROL('L') */
+  shell_keyfunc_empty_enter,   /* Function for CONTROL('M') */
+  NULL,                        /* Function for CONTROL('N') */
+  NULL,                        /* Function for CONTROL('O') */
 
-  NULL,                           /* Function for CONTROL('P') */
-  NULL,                           /* Function for CONTROL('Q') */
-  shell_keyfunc_refresh,          /* Function for CONTROL('R') */
-  NULL,                           /* Function for CONTROL('S') */
-  NULL,                           /* Function for CONTROL('T') */
-  shell_keyfunc_kill_all,         /* Function for CONTROL('U') */
-  NULL,                           /* Function for CONTROL('V') */
+  NULL,                               /* Function for CONTROL('P') */
+  NULL,                               /* Function for CONTROL('Q') */
+  shell_keyfunc_refresh,              /* Function for CONTROL('R') */
+  NULL,                               /* Function for CONTROL('S') */
+  NULL,                               /* Function for CONTROL('T') */
+  shell_keyfunc_kill_all,             /* Function for CONTROL('U') */
+  NULL,                               /* Function for CONTROL('V') */
   shell_keyfunc_delete_word_backward, /* Function for CONTROL('W') */
-  NULL,                           /* Function for CONTROL('X') */
-  shell_keyfunc_yank,             /* Function for CONTROL('Y') */
-  NULL,                           /* Function for CONTROL('Z') */
-  shell_keyfunc_escape,           /* Function for CONTROL('[') */
-  NULL,                           /* Function for CONTROL('\') */
-  NULL,                           /* Function for CONTROL(']') */
-  NULL,                           /* Function for CONTROL('^') */
-  NULL,                           /* Function for CONTROL('_') */
+  NULL,                               /* Function for CONTROL('X') */
+  shell_keyfunc_yank,                 /* Function for CONTROL('Y') */
+  NULL,                               /* Function for CONTROL('Z') */
+  shell_keyfunc_escape,               /* Function for CONTROL('[') */
+  NULL,                               /* Function for CONTROL('\') */
+  NULL,                               /* Function for CONTROL(']') */
+  NULL,                               /* Function for CONTROL('^') */
+  NULL,                               /* Function for CONTROL('_') */
 
-  shell_input_char,               /* Function for Key(' ') */
-  shell_input_char,               /* Function for Key('!') */
-  shell_input_char,               /* Function for Key('"') */
-  shell_input_char,               /* Function for Key('#') */
-  shell_input_char,               /* Function for Key('$') */
-  shell_input_char,               /* Function for Key('%') */
-  shell_input_char,               /* Function for Key('&') */
-  shell_input_char,               /* Function for Key(''') */
-  shell_input_char,               /* Function for Key('(') */
-  shell_input_char,               /* Function for Key(')') */
-  shell_input_char,               /* Function for Key('*') */
-  shell_input_char,               /* Function for Key('+') */
-  shell_input_char,               /* Function for Key(',') */
-  shell_input_char,               /* Function for Key('-') */
-  shell_input_char,               /* Function for Key('.') */
-  shell_input_char,               /* Function for Key('/') */
+  shell_input_char, /* Function for Key(' ') */
+  shell_input_char, /* Function for Key('!') */
+  shell_input_char, /* Function for Key('"') */
+  shell_input_char, /* Function for Key('#') */
+  shell_input_char, /* Function for Key('$') */
+  shell_input_char, /* Function for Key('%') */
+  shell_input_char, /* Function for Key('&') */
+  shell_input_char, /* Function for Key(''') */
+  shell_input_char, /* Function for Key('(') */
+  shell_input_char, /* Function for Key(')') */
+  shell_input_char, /* Function for Key('*') */
+  shell_input_char, /* Function for Key('+') */
+  shell_input_char, /* Function for Key(',') */
+  shell_input_char, /* Function for Key('-') */
+  shell_input_char, /* Function for Key('.') */
+  shell_input_char, /* Function for Key('/') */
 
-  shell_input_char,               /* Function for Key('0') */
-  shell_input_char,               /* Function for Key('1') */
-  shell_input_char,               /* Function for Key('2') */
-  shell_input_char,               /* Function for Key('3') */
-  shell_input_char,               /* Function for Key('4') */
-  shell_input_char,               /* Function for Key('5') */
-  shell_input_char,               /* Function for Key('6') */
-  shell_input_char,               /* Function for Key('7') */
-  shell_input_char,               /* Function for Key('8') */
-  shell_input_char,               /* Function for Key('9') */
-  shell_input_char,               /* Function for Key(':') */
-  shell_input_char,               /* Function for Key(';') */
-  shell_input_char,               /* Function for Key('<') */
-  shell_input_char,               /* Function for Key('=') */
-  shell_input_char,               /* Function for Key('>') */
-  shell_input_char,               /* Function for Key('?') */
+  shell_input_char, /* Function for Key('0') */
+  shell_input_char, /* Function for Key('1') */
+  shell_input_char, /* Function for Key('2') */
+  shell_input_char, /* Function for Key('3') */
+  shell_input_char, /* Function for Key('4') */
+  shell_input_char, /* Function for Key('5') */
+  shell_input_char, /* Function for Key('6') */
+  shell_input_char, /* Function for Key('7') */
+  shell_input_char, /* Function for Key('8') */
+  shell_input_char, /* Function for Key('9') */
+  shell_input_char, /* Function for Key(':') */
+  shell_input_char, /* Function for Key(';') */
+  shell_input_char, /* Function for Key('<') */
+  shell_input_char, /* Function for Key('=') */
+  shell_input_char, /* Function for Key('>') */
+  shell_input_char, /* Function for Key('?') */
 
-  shell_input_char,               /* Function for Key('@') */
-  shell_input_char,               /* Function for Key('A') */
-  shell_input_char,               /* Function for Key('B') */
-  shell_input_char,               /* Function for Key('C') */
-  shell_input_char,               /* Function for Key('D') */
-  shell_input_char,               /* Function for Key('E') */
-  shell_input_char,               /* Function for Key('F') */
-  shell_input_char,               /* Function for Key('G') */
-  shell_input_char,               /* Function for Key('H') */
-  shell_input_char,               /* Function for Key('I') */
-  shell_input_char,               /* Function for Key('J') */
-  shell_input_char,               /* Function for Key('K') */
-  shell_input_char,               /* Function for Key('L') */
-  shell_input_char,               /* Function for Key('M') */
-  shell_input_char,               /* Function for Key('N') */
-  shell_input_char,               /* Function for Key('O') */
+  shell_input_char, /* Function for Key('@') */
+  shell_input_char, /* Function for Key('A') */
+  shell_input_char, /* Function for Key('B') */
+  shell_input_char, /* Function for Key('C') */
+  shell_input_char, /* Function for Key('D') */
+  shell_input_char, /* Function for Key('E') */
+  shell_input_char, /* Function for Key('F') */
+  shell_input_char, /* Function for Key('G') */
+  shell_input_char, /* Function for Key('H') */
+  shell_input_char, /* Function for Key('I') */
+  shell_input_char, /* Function for Key('J') */
+  shell_input_char, /* Function for Key('K') */
+  shell_input_char, /* Function for Key('L') */
+  shell_input_char, /* Function for Key('M') */
+  shell_input_char, /* Function for Key('N') */
+  shell_input_char, /* Function for Key('O') */
 
-  shell_input_char,               /* Function for Key('P') */
-  shell_input_char,               /* Function for Key('Q') */
-  shell_input_char,               /* Function for Key('R') */
-  shell_input_char,               /* Function for Key('S') */
-  shell_input_char,               /* Function for Key('T') */
-  shell_input_char,               /* Function for Key('U') */
-  shell_input_char,               /* Function for Key('V') */
-  shell_input_char,               /* Function for Key('W') */
-  shell_input_char,               /* Function for Key('X') */
-  shell_input_char,               /* Function for Key('Y') */
-  shell_input_char,               /* Function for Key('Z') */
-  shell_input_char,               /* Function for Key('[') */
-  shell_input_char,               /* Function for Key('\') */
-  shell_input_char,               /* Function for Key(']') */
-  shell_input_char,               /* Function for Key('^') */
-  shell_input_char,               /* Function for Key('_') */
+  shell_input_char, /* Function for Key('P') */
+  shell_input_char, /* Function for Key('Q') */
+  shell_input_char, /* Function for Key('R') */
+  shell_input_char, /* Function for Key('S') */
+  shell_input_char, /* Function for Key('T') */
+  shell_input_char, /* Function for Key('U') */
+  shell_input_char, /* Function for Key('V') */
+  shell_input_char, /* Function for Key('W') */
+  shell_input_char, /* Function for Key('X') */
+  shell_input_char, /* Function for Key('Y') */
+  shell_input_char, /* Function for Key('Z') */
+  shell_input_char, /* Function for Key('[') */
+  shell_input_char, /* Function for Key('\') */
+  shell_input_char, /* Function for Key(']') */
+  shell_input_char, /* Function for Key('^') */
+  shell_input_char, /* Function for Key('_') */
 
-  shell_input_char,               /* Function for Key(',') */
-  shell_input_char,               /* Function for Key('a') */
-  shell_input_char,               /* Function for Key('b') */
-  shell_input_char,               /* Function for Key('c') */
-  shell_input_char,               /* Function for Key('d') */
-  shell_input_char,               /* Function for Key('e') */
-  shell_input_char,               /* Function for Key('f') */
-  shell_input_char,               /* Function for Key('g') */
-  shell_input_char,               /* Function for Key('h') */
-  shell_input_char,               /* Function for Key('i') */
-  shell_input_char,               /* Function for Key('j') */
-  shell_input_char,               /* Function for Key('k') */
-  shell_input_char,               /* Function for Key('l') */
-  shell_input_char,               /* Function for Key('m') */
-  shell_input_char,               /* Function for Key('n') */
-  shell_input_char,               /* Function for Key('o') */
+  shell_input_char, /* Function for Key(',') */
+  shell_input_char, /* Function for Key('a') */
+  shell_input_char, /* Function for Key('b') */
+  shell_input_char, /* Function for Key('c') */
+  shell_input_char, /* Function for Key('d') */
+  shell_input_char, /* Function for Key('e') */
+  shell_input_char, /* Function for Key('f') */
+  shell_input_char, /* Function for Key('g') */
+  shell_input_char, /* Function for Key('h') */
+  shell_input_char, /* Function for Key('i') */
+  shell_input_char, /* Function for Key('j') */
+  shell_input_char, /* Function for Key('k') */
+  shell_input_char, /* Function for Key('l') */
+  shell_input_char, /* Function for Key('m') */
+  shell_input_char, /* Function for Key('n') */
+  shell_input_char, /* Function for Key('o') */
 
-  shell_input_char,               /* Function for Key('p') */
-  shell_input_char,               /* Function for Key('q') */
-  shell_input_char,               /* Function for Key('r') */
-  shell_input_char,               /* Function for Key('s') */
-  shell_input_char,               /* Function for Key('t') */
-  shell_input_char,               /* Function for Key('u') */
-  shell_input_char,               /* Function for Key('v') */
-  shell_input_char,               /* Function for Key('w') */
-  shell_input_char,               /* Function for Key('x') */
-  shell_input_char,               /* Function for Key('y') */
-  shell_input_char,               /* Function for Key('z') */
-  shell_input_char,               /* Function for Key('{') */
-  shell_input_char,               /* Function for Key('|') */
-  shell_input_char,               /* Function for Key('}') */
-  shell_input_char,               /* Function for Key('~') */
+  shell_input_char,                   /* Function for Key('p') */
+  shell_input_char,                   /* Function for Key('q') */
+  shell_input_char,                   /* Function for Key('r') */
+  shell_input_char,                   /* Function for Key('s') */
+  shell_input_char,                   /* Function for Key('t') */
+  shell_input_char,                   /* Function for Key('u') */
+  shell_input_char,                   /* Function for Key('v') */
+  shell_input_char,                   /* Function for Key('w') */
+  shell_input_char,                   /* Function for Key('x') */
+  shell_input_char,                   /* Function for Key('y') */
+  shell_input_char,                   /* Function for Key('z') */
+  shell_input_char,                   /* Function for Key('{') */
+  shell_input_char,                   /* Function for Key('|') */
+  shell_input_char,                   /* Function for Key('}') */
+  shell_input_char,                   /* Function for Key('~') */
   shell_keyfunc_delete_char_advanced, /* Function for DEL */
 };
 
@@ -232,7 +231,7 @@ shell_keyfunc_clear_screen (struct shell *shell)
   const char topleft[] = { 27, '[', '1', ';', '1', 'H', '\0' };
   fprintf (shell->terminal, "%s%s", clear, topleft);
   shell_format (shell);
-  //shell_linefeed (shell);
+  // shell_linefeed (shell);
   shell_refresh (shell);
 }
 
@@ -240,7 +239,7 @@ void
 shell_keyfunc_refresh (struct shell *shell)
 {
   /* Refresh and Re-format */
-  //shell_linefeed (shell);
+  // shell_linefeed (shell);
   shell_format (shell);
   shell_linefeed (shell);
   shell_refresh (shell);
@@ -340,10 +339,9 @@ shell_escape_keyfunc_init (struct shell *shell)
 
   key_func_escape_1['b'] = vty_shell_move_word_backward;
   key_func_escape_1['f'] = vty_shell_move_word_forward;
-  key_func_escape_1[CONTROL('H')] = vty_shell_delete_word_backward;
+  key_func_escape_1[CONTROL ('H')] = vty_shell_delete_word_backward;
   key_func_escape_1[0x7f] = vty_shell_delete_word_backward;
   key_func_escape_1['['] = vty_shell_keyfunc_escape_2;
 
-  shell->keymap[CONTROL('[')] = vty_shell_keyfunc_escape_1;
+  shell->keymap[CONTROL ('[')] = vty_shell_keyfunc_escape_1;
 }
-

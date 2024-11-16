@@ -41,15 +41,15 @@ vector_sort (vector_cmp_t cmp, struct vector *v)
   retval = heapsort (v->array, v->size, sizeof (void *), cmp);
   if (retval != 0)
     fprintf (stderr, "heapsort failed: %s\n", strerror (errno));
-#else /*HAVE_HEAPSORT*/
+#else  /*HAVE_HEAPSORT*/
   qsort (v->array, v->size, sizeof (void *), cmp);
 #endif /*HAVE_HEAPSORT*/
 }
 
 /* returns index for data using binary search (recursive function) */
 static int
-vector_binsearch (void *data, int index, int size,
-                  vector_cmp_t cmp, struct vector *v)
+vector_binsearch (void *data, int index, int size, vector_cmp_t cmp,
+                  struct vector *v)
 {
   int middle = index + size / 2;
   int shift = (size % 2 == 1 ? 1 : 0);
@@ -73,8 +73,7 @@ vector_binsearch (void *data, int index, int size,
 }
 
 int
-vector_lookup_index_bsearch (void *data, vector_cmp_t cmp,
-                             struct vector *v)
+vector_lookup_index_bsearch (void *data, vector_cmp_t cmp, struct vector *v)
 {
   int index;
   if (v->size == 0)
@@ -103,8 +102,7 @@ vector_lookup_index (void *data, struct vector *v)
 }
 
 void *
-vector_lookup_bsearch (void *data, vector_cmp_t cmp,
-                       struct vector *v)
+vector_lookup_bsearch (void *data, vector_cmp_t cmp, struct vector *v)
 {
   int index;
   index = vector_lookup_index_bsearch (data, cmp, v);
@@ -128,11 +126,10 @@ vector_expand (struct vector *v)
 {
   void *newarray;
 
-  newarray = (void **)
-    realloc (v->array, v->limit * 2 * sizeof (void *));
+  newarray = (void **) realloc (v->array, v->limit * 2 * sizeof (void *));
   if (newarray == NULL)
     return;
-  memset ((caddr_t)newarray + v->limit * sizeof (void *), 0,
+  memset ((caddr_t) newarray + v->limit * sizeof (void *), 0,
           v->limit * sizeof (void *));
 
   v->array = newarray;
@@ -253,7 +250,8 @@ vector_set (struct vector *v, int index, void *data)
       if (v->limit <= index)
         {
           fprintf (stderr, "Cannot double vector size from %d\n", v->limit);
-          fprintf (stderr, "Give up to set data %p at index %d\n", data, index);
+          fprintf (stderr, "Give up to set data %p at index %d\n", data,
+                   index);
           return;
         }
     }
@@ -450,5 +448,3 @@ vector_merge (struct vector *dst, struct vector *src)
       vector_add (vn->data, dst);
   return dst;
 }
-
-

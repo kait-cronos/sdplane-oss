@@ -1,22 +1,22 @@
-#include <stdio.h>
-#include <stdint.h>
 #include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <syslog.h>
 #include <string.h>
 #include <sys/types.h>
-#include <unistd.h>
+#include <syslog.h>
 #include <time.h>
+#include <unistd.h>
 
-#include "debug_log.h"
 #include "debug_category.h"
+#include "debug_log.h"
 
 uint64_t debug_config_g[DEBUG_CATEGORY_MAX];
 uint64_t debug_output;
 
 /* syslog */
 char *ident = "debug_log";
-int option = LOG_CONS|LOG_NDELAY|LOG_PID;
+int option = LOG_CONS | LOG_NDELAY | LOG_PID;
 int level = LOG_INFO;
 int facility = LOG_USER;
 

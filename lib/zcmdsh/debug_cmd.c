@@ -4,19 +4,19 @@
 
 #include "includes.h"
 
-#include "flag.h"
-#include "debug.h"
-#include "shell.h"
 #include "command.h"
+#include "debug.h"
+#include "flag.h"
+#include "shell.h"
 
-#include "debug_log.h"
-#include "debug_category.h"
-#include "debug_zcmdsh.h"
 #include "debug_backtrace.h"
+#include "debug_category.h"
+#include "debug_log.h"
+#include "debug_zcmdsh.h"
 
 void
 debug_cmdstr_init (char *cate, char *cmdstr, int size,
-		   struct debug_type *debug_types, int types_size)
+                   struct debug_type *debug_types, int types_size)
 {
   int i;
   char *p;
@@ -72,7 +72,7 @@ debug_cmdstr_init (char *cate, char *cmdstr, int size,
 
 void
 debug_helpstr_init (char *cate, char *helpstr, int size,
-		   struct debug_type *debug_types, int types_size)
+                    struct debug_type *debug_types, int types_size)
 {
   int i;
   char *p;
@@ -105,9 +105,9 @@ debug_helpstr_init (char *cate, char *helpstr, int size,
 
   for (i = 0; i < debug_type_size; i++)
     {
-      ret = snprintf (p, len, "debug %s %s item.\n", cate, debug_types[i].name);
+      ret =
+          snprintf (p, len, "debug %s %s item.\n", cate, debug_types[i].name);
       p += ret;
       len -= ret;
     }
 }
-
