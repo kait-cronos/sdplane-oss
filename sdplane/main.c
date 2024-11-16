@@ -47,13 +47,7 @@ main (int argc, char **argv)
   progname = ((p = strrchr (argv[0], '/')) ? ++p : argv[0]);
   debug_log_init (progname);
 
-#if 0
-  debug_output |= DEBUG_OUTPUT_STDOUT;
-  DEBUG_SET (ZCMDSH, PAGER);
-  DEBUG_SET (ZCMDSH, TELNET);
-#endif
-
-  soft_dplane_init ();
+  sdplane_init ();
 
   lthread_create (&lt, (lthread_func) lthread_main, NULL);
   lthread_run ();

@@ -76,11 +76,6 @@ DEFINE_COMMAND (set_l3fwd_argv,
   struct shell *shell = (struct shell *) context;
   int i;
 
-#if 0
-  for (i = 0; i < argc; i++)
-    fprintf (shell->terminal, "argv[%d]: %s\n", i, argv[i]);
-#endif
-
   if (argc - 2 >= L3FWD_ARGV_MAX - 2)
     {
       fprintf (shell->terminal, "too many arguments: %d.\n", argc);
@@ -96,24 +91,16 @@ DEFINE_COMMAND (set_l3fwd_argv,
       l3fwd_argv[l3fwd_argc++] = strdup (argv[i]);
     }
 
-#if 0
-  fprintf (shell->terminal, "l3fwd_argv[%d]:", l3fwd_argc);
-  for (i = 0; i < l3fwd_argc; i++)
-    {
-      fprintf (shell->terminal, " %s", l3fwd_argv[i]);
-    }
-  fprintf (shell->terminal, "\n");
-#endif
-
   for (i = 0; i < l3fwd_argc; i++)
     fprintf (shell->terminal, "l3fwd_argv[%d]: %s\n", i, l3fwd_argv[i]);
 }
 
 DEFINE_COMMAND (show_loop_count,
-                "show loop-count (console|l2fwd) (pps|total)",
+                "show loop-count (console|vty-shell|l2fwd) (pps|total)",
                 SHOW_HELP
                 "loop count\n"
                 "console shell\n"
+                "vty shell\n"
                 "l2fwd loop\n"
                 "pps\n"
                 "total count\n"
@@ -134,6 +121,18 @@ DEFINE_COMMAND (show_loop_count,
       else if (! strcmp (argv[3], "total"))
         {
           fprintf (t, "%16s %'8lu\n", name, loop_console_current);
+        }
+    }
+  else if (! strcmp (argv[2], "vty-shell"))
+    {
+      snprintf (name, sizeof (name), "vty-shell:");
+      if (! strcmp (argv[3], "pps"))
+        {
+          fprintf (t, "%16s %'8lu\n", name, loop_vty_shell_pps);
+        }
+      else if (! strcmp (argv[3], "total"))
+        {
+          fprintf (t, "%16s %'8lu\n", name, loop_vty_shell_current);
         }
     }
   else if (! strcmp (argv[2], "l2fwd"))
@@ -161,7 +160,7 @@ void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
 
 void
-soft_dplane_cmd_init (struct command_set *cmdset)
+sdplane_cmd_init (struct command_set *cmdset)
 {
   setlocale (LC_ALL, "en_US.utf8");
   dpdk_lcore_cmd_init (cmdset);
@@ -174,7 +173,7 @@ soft_dplane_cmd_init (struct command_set *cmdset)
 extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
 
 void
-soft_dplane_init ()
+sdplane_init ()
 {
   int lcore_id;
   for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)

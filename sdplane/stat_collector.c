@@ -21,6 +21,9 @@ extern int lthread_core;
 extern uint64_t loop_console;
 uint64_t loop_console_prev, loop_console_current, loop_console_pps;
 
+extern uint64_t loop_vty_shell;
+uint64_t loop_vty_shell_prev, loop_vty_shell_current, loop_vty_shell_pps;
+
 uint64_t *loop_l2fwd_ptr[RTE_MAX_LCORE] = { NULL };
 uint64_t loop_l2fwd_prev[RTE_MAX_LCORE];
 uint64_t loop_l2fwd_current[RTE_MAX_LCORE];
@@ -101,6 +104,10 @@ stat_collector (__rte_unused void *dummy)
       loop_console_prev = loop_console_current;
       loop_console_current = loop_console;
       loop_console_pps = loop_console_current - loop_console_prev;
+
+      loop_vty_shell_prev = loop_vty_shell_current;
+      loop_vty_shell_current = loop_vty_shell;
+      loop_vty_shell_pps = loop_vty_shell_current - loop_vty_shell_prev;
 
       for (i = 0; i < RTE_MAX_LCORE; i++)
         {

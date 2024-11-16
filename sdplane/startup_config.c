@@ -53,7 +53,7 @@ startup_config (__rte_unused void *dummy)
   log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
   l3fwd_cmd_init (shell->cmdset);
-  soft_dplane_cmd_init (shell->cmdset);
+  sdplane_cmd_init (shell->cmdset);
 
   //termio_init ();
 

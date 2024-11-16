@@ -115,12 +115,13 @@ vty_banner (struct shell *shell)
 {
   int ret;
   char signature[1024];
-
   snprintf_signature (signature, sizeof (signature), "enp1s0");
-
-  fprintf (shell->terminal, "welcome to sdplane vty_shell.%s", shell->NL);
-  fprintf (shell->terminal, "sdplane version: %s%s", sdplane_version, shell->NL);
-  fprintf (shell->terminal, "signature: %s%s", signature, shell->NL);
+  fprintf (shell->terminal, "welcome to sdplane vty_shell.%s",
+           shell->NL);
+  fprintf (shell->terminal, "sdplane version: %s%s",
+           sdplane_version, shell->NL);
+  fprintf (shell->terminal, "signature: %s%s",
+           signature, shell->NL);
   fflush (shell->terminal);
 }
 
@@ -145,6 +146,8 @@ DEFINE_COMMAND (shutdown_cmd,
   force_quit = true;
 }
 
+uint64_t loop_vty_shell = 0;
+
 void
 vty_shell (void *arg)
 {
@@ -157,16 +160,9 @@ vty_shell (void *arg)
   inet_ntop (AF_INET, &client->peer_addr.sin_addr,
              client_addr_str, sizeof (client_addr_str));
 
-#if 0
-  if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                  DEBUG_SDPLANE_VTY_SHELL))
-    printf ("%s[%d]: client[%d]: %s.\n",
-            __func__, client->id, client->id, client_addr_str);
-#else
   FLAG_SET (DEBUG_CONFIG(SDPLANE), DEBUG_SDPLANE_VTY);
   DEBUG_SDPLANE_LOG (VTY, "%s[%d]: client[%d]: %s.",
                      "vty", client->id, client->id, client_addr_str);
-#endif
 
   char prompt[64];
   snprintf (prompt, sizeof (prompt), "vty[%d]> ", client->id);
@@ -186,8 +182,18 @@ vty_shell (void *arg)
   shell_escape_keyfunc_init (shell);
   shell_telnet_keyfunc_init (shell);
 
+  shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
+  FUNC_STR_REGISTER (shell_keyfunc_clear_terminal);
+
+  shell_install (shell, 0x7f, shell_keyfunc_delete_char_advanced);
+  FUNC_STR_REGISTER (shell_keyfunc_delete_char_advanced);
+
+  /* clear_cmd doesn't work fine with pager. */
+  //INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
+
   log_cmd_init (shell->cmdset);
   INSTALL_COMMAND2 (shell->cmdset, vty_exit_cmd);
+  INSTALL_COMMAND2 (shell->cmdset, shutdown_cmd);
 
   INSTALL_COMMAND2 (shell->cmdset, show_worker);
   INSTALL_COMMAND2 (shell->cmdset, set_worker);
@@ -199,18 +205,9 @@ vty_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, debug_sdplane);
   INSTALL_COMMAND2 (shell->cmdset, show_debug_sdplane);
 
-  //INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
-  shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
-
-  shell_install (shell, 0x7f, shell_keyfunc_delete_char_advanced);
-  FUNC_STR_REGISTER (shell_keyfunc_delete_char_advanced);
-
-  INSTALL_COMMAND2 (shell->cmdset, shutdown_cmd);
-
-  log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
   l3fwd_cmd_init (shell->cmdset);
-  soft_dplane_cmd_init (shell->cmdset);
+  sdplane_cmd_init (shell->cmdset);
 
   //termio_init ();
 
@@ -226,15 +223,8 @@ vty_shell (void *arg)
   while (! force_quit && ! force_stop[lthread_core] &&
          shell_running (shell))
     {
+      loop_vty_shell++;
       lthread_sleep (100); // yield.
-
-#if 0
-      if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                      DEBUG_SDPLANE_VTY_SHELL))
-        printf ("%s[%d]: %s: schedule %s.\n",
-                __FILE__, __LINE__, __func__, prompt);
-#endif
-
       shell_read_nowait (shell);
     }
 

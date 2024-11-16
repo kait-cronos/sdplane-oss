@@ -59,7 +59,7 @@ EXTERN_COMMAND (set_port_flowcontrol);
 
 int lthread_main (__rte_unused void *dummy);
 
-void soft_dplane_cmd_init (struct command_set *cmdset);
-void soft_dplane_init ();
+void sdplane_cmd_init (struct command_set *cmdset);
+void sdplane_init ();
 
 #endif /*__SOFT_DPLANE_H__*/

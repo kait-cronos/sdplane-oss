@@ -149,7 +149,7 @@ console_shell (void *arg)
   log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
   l3fwd_cmd_init (shell->cmdset);
-  soft_dplane_cmd_init (shell->cmdset);
+  sdplane_cmd_init (shell->cmdset);
 
   termio_init ();
 
@@ -161,11 +161,6 @@ console_shell (void *arg)
     {
       loop_console++;
       lthread_sleep (100); // yield.
-
-      if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
-                      DEBUG_SDPLANE_LTHREAD))
-        printf ("%s: schedule.\n", __func__);
-
       shell_read_nowait (shell);
     }
 
