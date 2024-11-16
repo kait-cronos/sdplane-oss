@@ -1,9 +1,5 @@
 .DS_Store
 
-/l2fwd/build
-/l2fwd/l2fwd
-/l3fwd/build
-/l3fwd/l3fwd
 /sdplane/sdplane
 /sdplane/sdplane_version.c
 /build
