@@ -48,5 +48,5 @@ PKG_CHECK_MODULES(DPDK, [libdpdk])
 
 AC_SUBST([systemdsystemunitdir], [$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
 
-AC_CONFIG_FILES([Makefile l2fwd/Makefile l3fwd/Makefile sdplane/Makefile])
+AC_CONFIG_FILES([Makefile sdplane/Makefile])
 AC_OUTPUT

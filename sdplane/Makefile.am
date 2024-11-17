@@ -1,20 +1,18 @@
 
 AM_CFLAGS = -g -O0
 
-COMMON_DIR = $(top_srcdir)/common
-L2FWD_DIR = $(top_srcdir)/l2fwd
-L3FWD_DIR = $(top_srcdir)/l3fwd
+COMMON_DIR = $(top_srcdir)/module/common
 SDPLANE_DIR = $(top_srcdir)/sdplane
-L3FWD_MODULE_DIR = $(SDPLANE_DIR)/module/l3fwd
-L2FWD_MODULE_DIR = $(SDPLANE_DIR)/module/l2fwd
+L3FWD_MODULE_DIR = $(top_srcdir)/module/l3fwd
+L2FWD_MODULE_DIR = $(top_srcdir)/module/l2fwd
 
 sbin_PROGRAMS = sdplane
 sdplane_SOURCES = \
-        $(L3FWD_DIR)/l3fwd_acl.c $(L3FWD_DIR)/l3fwd_lpm.c \
-        $(L3FWD_DIR)/l3fwd_fib.c $(L3FWD_DIR)/l3fwd_em.c \
-        $(L3FWD_DIR)/l3fwd_event.c \
-        $(L3FWD_DIR)/l3fwd_event_generic.c \
-        $(L3FWD_DIR)/l3fwd_event_internal_port.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_acl.c $(L3FWD_MODULE_DIR)/l3fwd_lpm.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_fib.c $(L3FWD_MODULE_DIR)/l3fwd_em.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_event.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_event_generic.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_event_internal_port.c \
         $(L3FWD_MODULE_DIR)/l3fwd.c \
         $(L3FWD_MODULE_DIR)/l3fwd_cmd.c $(L3FWD_MODULE_DIR)/l3fwd_cmd.h \
         $(L2FWD_MODULE_DIR)/l2fwd.c \
@@ -26,7 +24,7 @@ sdplane_SOURCES = \
         main.c lthread_main.c sdplane.h sdplane.c debug_sdplane.c \
         console_shell.c l2_repeater.c \
         sdplane_version.c
-sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_DIR) -I$(L3FWD_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR)
+sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR)
 sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lzcmdsh
 
 FORCE:
