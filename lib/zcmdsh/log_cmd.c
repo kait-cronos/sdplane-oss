@@ -2,9 +2,7 @@
  * Copyright (C) 2024 Yasuhiro Ohara. All rights reserved.
  */
 
-#include "includes.h"
-
-// #include "log.h"
+#include <includes.h>
 
 #include "command.h"
 #include "flag.h"

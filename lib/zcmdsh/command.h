@@ -144,6 +144,21 @@ void command_config_write (struct vector *config, FILE *fp);
 #define DEFINE_COMMAND12(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
                          h10, h11, h12)                                       \
   DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12)
+#define DEFINE_COMMAND13(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
+                         h10, h11, h12, h13)                                  \
+  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13)
+#define DEFINE_COMMAND14(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
+                         h10, h11, h12, h13, h14)                             \
+  DEFINE_COMMAND (cmdname, cmdstr,                                            \
+                  h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14)
+#define DEFINE_COMMAND15(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
+                         h10, h11, h12, h13, h14, h15)                        \
+  DEFINE_COMMAND (cmdname, cmdstr,                                            \
+                  h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15)
+#define DEFINE_COMMAND16(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
+                         h10, h11, h12, h13, h14, h15, h16)                   \
+  DEFINE_COMMAND (cmdname, cmdstr,                                            \
+                  h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16)
 
 #define DEFCOM_NARG(...)  DEFCOM_NARG2 (0, ##__VA_ARGS__, DEFCOM_RSEQ_N)
 #define DEFCOM_NARG2(...) DEFCOM_ARG_N (__VA_ARGS__)
