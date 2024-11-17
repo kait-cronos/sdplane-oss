@@ -113,8 +113,6 @@ void command_config_write (struct vector *config, FILE *fp);
 #define SHOW_HELP "show information.\n"
 #define NO_HELP   "disable information.\n"
 
-#define CONCAT_2(a, b)    (a##b)
-#define CONCAT_3(a, b, c) (CONCAT_2 (a##b, c))
 
 #define DEFINE_COMMAND1(cmdname, cmdstr, h1)                                  \
   DEFINE_COMMAND (cmdname, cmdstr, h1)
@@ -160,6 +158,8 @@ void command_config_write (struct vector *config, FILE *fp);
   DEFINE_COMMAND (cmdname, cmdstr,                                            \
                   h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16)
 
+
+
 #define DEFCOM_NARG(...)  DEFCOM_NARG2 (0, ##__VA_ARGS__, DEFCOM_RSEQ_N)
 #define DEFCOM_NARG2(...) DEFCOM_ARG_N (__VA_ARGS__)
 #define DEFCOM_ARG_N(__0, __1, __2, __3, __4, __5, __6, __7, __8, __9, _10,   \
@@ -177,5 +177,69 @@ void command_config_write (struct vector *config, FILE *fp);
 #define CLI_COMMAND(cmdname, cmdstr, ...)                                     \
   DEFCOM_NARG (__VA_ARGS__)                                                   \
   (cmdname, cmdstr, __VA_ARGS__)
+
+#define ZCMDSH_MKSTR_AUX(x) #x
+#define ZCMDSH_MKSTR(x) ZCMDSH_MKSTR_AUX(x)
+
+#define ZCMDSH_CONCAT_AUX(x,y) x##y
+#define ZCMDSH_CONCAT(x,y) ZCMDSH_CONCAT_AUX(x,y)
+
+#define ZCMDSH_LIST_AUX(x,y) x y
+#define ZCMDSH_LIST(x,y) ZCMDSH_LIST_AUX(x,y)
+
+#define ZCMDSH_INDEX_REVERSE \
+  63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, \
+      44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, \
+      26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9,  \
+      8, 7, 6, 5, 4, 3, 2, 1, 0
+#define ZCMDSH_INDEX_VARNAME() \
+  __0, __1, __2, __3, __4, __5, __6, __7, __8, __9, _10,   \
+  _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21,   \
+  _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32,   \
+  _33, _34, _35, _36, _37, _38, _39, _40, _41, _42, _43,   \
+  _44, _45, _46, _47, _48, _49, _50, _51, _52, _53, _54,   \
+  _55, _56, _57, _58, _59, _60, _61, _62, _63
+
+#define ZCMDSH_NARG(...)  ZCMDSH_NARG_AUX (0, ##__VA_ARGS__, ZCMDSH_INDEX_REVERSE())
+#define ZCMDSH_NARG_AUX(...) ZCMDSH_ARG_N (__VA_ARGS__)
+#define ZCMDSH_ARG_N(\
+  __0, __1, __2, __3, __4, __5, __6, __7, __8, __9, _10,   \
+  _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21,   \
+  _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32,   \
+  _33, _34, _35, _36, _37, _38, _39, _40, _41, _42, _43,   \
+  _44, _45, _46, _47, _48, _49, _50, _51, _52, _53, _54,   \
+  _55, _56, _57, _58, _59, _60, _61, _62, _63, \
+  NUM, ...) NUM
+
+#define NEW_COMMAND1(cmdname, cmdstr, h1)  \
+  DEFINE_COMMAND (cmdname, cmdstr, h1)
+#define NEW_COMMAND2(cmdname, cmdstr, h1, h2) \
+  NEW_COMMAND1 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2))
+#define NEW_COMMAND3(cmdname, cmdstr, h1, h2, ...) \
+  NEW_COMMAND2 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+#define NEW_COMMAND4(cmdname, cmdstr, h1, h2, ...) \
+  NEW_COMMAND3 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+#define NEW_COMMAND5(cmdname, cmdstr, h1, h2, ...) \
+  NEW_COMMAND4 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+#define NEW_COMMAND6(cmdname, cmdstr, h1, h2, ...) \
+  NEW_COMMAND5 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+#define NEW_COMMAND7(cmdname, cmdstr, h1, h2, ...) \
+  NEW_COMMAND6 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+#define NEW_COMMAND8(cmdname, cmdstr, h1, h2, ...) \
+  NEW_COMMAND7 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+#define NEW_COMMAND9(cmdname, cmdstr, h1, h2, ...) \
+  NEW_COMMAND8 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+#define NEW_COMMAND10(cmdname, cmdstr, h1, h2, ...) \
+  NEW_COMMAND9 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+#define NEW_COMMAND11(cmdname, cmdstr, h1, h2, ...) \
+  NEW_COMMAND10 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+#define NEW_COMMAND12(cmdname, cmdstr, h1, h2, ...) \
+  NEW_COMMAND11 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+
+#define ZCMDSH_VARARG_COMMAND(...)  \
+  ZCMDSH_CONCAT(NEW_COMMAND, ZCMDSH_NARG(__VA_ARGS__))
+#define CLI_COMMAND2(cmdname, cmdstr, ...)                                     \
+  ZCMDSH_VARARG_COMMAND (__VA_ARGS__) (cmdname, cmdstr, __VA_ARGS__)
+
 
 #endif /*__COMMAND_H__*/
