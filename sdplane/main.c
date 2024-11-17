@@ -19,8 +19,8 @@
 void
 signal_handler (int signum)
 {
-  printf ("%s:%d: %s: Signal %d received.\n",
-          __FILE__, __LINE__, __func__, signum);
+  printf ("%s:%d: %s: Signal %d received.\n", __FILE__, __LINE__, __func__,
+          signum);
 
   if (signum == SIGINT)
     {

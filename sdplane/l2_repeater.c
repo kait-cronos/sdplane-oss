@@ -62,7 +62,7 @@ l2_repeater (__rte_unused void *dummy)
   unsigned i, j, portid, nb_rx;
   struct lcore_queue_conf *qconf;
   const uint64_t drain_tsc =
-    (rte_get_tsc_hz() + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
+      (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
   struct rte_eth_dev_tx_buffer *buffer;
 
   uint64_t loop_counter = 0;
@@ -75,13 +75,11 @@ l2_repeater (__rte_unused void *dummy)
 
   if (qconf->n_rx_port == 0)
     {
-      DEBUG_SDPLANE_LOG (TAPHANDLER, "lcore %u has nothing to do.",
-                         lcore_id);
+      DEBUG_SDPLANE_LOG (TAPHANDLER, "lcore %u has nothing to do.", lcore_id);
       return 0;
     }
 
-  DEBUG_SDPLANE_LOG (TAPHANDLER, "entering main loop on lcore %u",
-                     lcore_id);
+  DEBUG_SDPLANE_LOG (TAPHANDLER, "entering main loop on lcore %u", lcore_id);
 
   while (! force_quit && ! force_stop[lcore_id])
     {
@@ -106,8 +104,7 @@ l2_repeater (__rte_unused void *dummy)
       for (i = 0; i < qconf->n_rx_port; i++)
         {
           portid = qconf->rx_port_list[i];
-          nb_rx = rte_eth_rx_burst (portid, 0, pkts_burst,
-                                    MAX_PKT_BURST);
+          nb_rx = rte_eth_rx_burst (portid, 0, pkts_burst, MAX_PKT_BURST);
           if (unlikely (nb_rx == 0))
             continue;
 
@@ -127,4 +124,3 @@ l2_repeater (__rte_unused void *dummy)
       loop_counter++;
     }
 }
-

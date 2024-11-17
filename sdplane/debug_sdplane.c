@@ -18,21 +18,20 @@
 
 #include "debug_sdplane.h"
 
-struct debug_type debug_sdplane_types[] =
-{
-  { DEBUG_SDPLANE_LTHREAD,    "lthread" },
-  { DEBUG_SDPLANE_CONSOLE,    "console" },
+struct debug_type debug_sdplane_types[] = {
+  { DEBUG_SDPLANE_LTHREAD, "lthread" },
+  { DEBUG_SDPLANE_CONSOLE, "console" },
   { DEBUG_SDPLANE_TAPHANDLER, "tap-handler" },
-  { DEBUG_SDPLANE_L2FWD,      "l2fwd" },
-  { DEBUG_SDPLANE_L3FWD,      "l3fwd" },
+  { DEBUG_SDPLANE_L2FWD, "l2fwd" },
+  { DEBUG_SDPLANE_L3FWD, "l3fwd" },
   { DEBUG_SDPLANE_VTY_SERVER, "vty-server" },
-  { DEBUG_SDPLANE_VTY_SHELL,  "vty-shell" },
+  { DEBUG_SDPLANE_VTY_SHELL, "vty-shell" },
   { DEBUG_SDPLANE_TELNET_OPT, "telnet-opt" },
   { DEBUG_SDPLANE_STAT_COLLECTOR, "stat-collector" },
-  { DEBUG_SDPLANE_SCHED,      "sched" },
-  { DEBUG_SDPLANE_VTY,        "vty" },
-  { DEBUG_SDPLANE_PACKET,     "packet" },
-  { DEBUG_SDPLANE_FDB,        "fdb" },
+  { DEBUG_SDPLANE_SCHED, "sched" },
+  { DEBUG_SDPLANE_VTY, "vty" },
+  { DEBUG_SDPLANE_PACKET, "packet" },
+  { DEBUG_SDPLANE_FDB, "fdb" },
   { DEBUG_SDPLANE_FDB_CHANGE, "fdb-change" },
 };
 
@@ -52,7 +51,7 @@ debug_sdplane_func (void *context, int argc, char **argv)
   int i;
   int debug_type_size;
 
-  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH, COMMAND)))
+  if (FLAG_CHECK (DEBUG_CONFIG (ZCMDSH), DEBUG_TYPE (ZCMDSH, COMMAND)))
     {
       DEBUG_LOG_MSG ("%s: argc: %d", __func__, argc);
       for (i = 0; i < argc; i++)
@@ -75,13 +74,13 @@ debug_sdplane_func (void *context, int argc, char **argv)
         {
           if (negate)
             {
-              FLAG_CLEAR (DEBUG_CONFIG(SDPLANE), debug_types[i].flag);
+              FLAG_CLEAR (DEBUG_CONFIG (SDPLANE), debug_types[i].flag);
               fprintf (shell->terminal, "debug: sdplane %s: disabled.%s",
                        debug_types[i].name, shell->NL);
             }
           else
             {
-              FLAG_SET (DEBUG_CONFIG(SDPLANE), debug_types[i].flag);
+              FLAG_SET (DEBUG_CONFIG (SDPLANE), debug_types[i].flag);
               fprintf (shell->terminal, "debug: sdplane %s: enabled.%s",
                        debug_types[i].name, shell->NL);
             }
@@ -89,11 +88,8 @@ debug_sdplane_func (void *context, int argc, char **argv)
     }
 }
 
-DEFINE_COMMAND (show_debug_sdplane,
-                "show debugging sdplane",
-                SHOW_HELP
-                "show debugging information.\n"
-		"sdplane\n")
+CLI_COMMAND2 (show_debug_sdplane, "show debugging sdplane", SHOW_HELP,
+              "show debugging information.\n", "sdplane\n")
 {
   struct shell *shell = (struct shell *) context;
   int i;
@@ -102,10 +98,13 @@ DEFINE_COMMAND (show_debug_sdplane,
 
   for (i = 0; i < debug_type_size; i++)
     {
-      fprintf (shell->terminal, "debug: sdplane: %s: %s.%s",
-               debug_sdplane_types[i].name,
-               (FLAG_CHECK (DEBUG_CONFIG(SDPLANE), debug_sdplane_types[i].flag) ?
-               "on" : "off"), shell->NL);
+      fprintf (
+          shell->terminal, "debug: sdplane: %s: %s.%s",
+          debug_sdplane_types[i].name,
+          (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), debug_sdplane_types[i].flag)
+               ? "on"
+               : "off"),
+          shell->NL);
     }
 }
 
@@ -116,13 +115,13 @@ debug_sdplane_cmd_init ()
   debug_type_size = sizeof (debug_sdplane_types) / sizeof (struct debug_type);
 
   debug_cmdstr_init ("sdplane", debug_sdplane_cmdstr,
-		            sizeof (debug_sdplane_cmdstr),
-		            debug_sdplane_types, debug_type_size);
+                     sizeof (debug_sdplane_cmdstr), debug_sdplane_types,
+                     debug_type_size);
   debug_helpstr_init ("sdplane", debug_sdplane_helpstr,
-		             sizeof (debug_sdplane_helpstr),
-		             debug_sdplane_types, debug_type_size);
+                      sizeof (debug_sdplane_helpstr), debug_sdplane_types,
+                      debug_type_size);
 
-  if (FLAG_CHECK (DEBUG_CONFIG(ZCMDSH), DEBUG_TYPE(ZCMDSH,COMMAND)))
+  if (FLAG_CHECK (DEBUG_CONFIG (ZCMDSH), DEBUG_TYPE (ZCMDSH, COMMAND)))
     {
       DEBUG_LOG_MSG ("debug_sdplane_cmdstr: %s\n", debug_sdplane_cmdstr);
       DEBUG_LOG_MSG ("debug_sdplane_helpstr: %s\n", debug_sdplane_helpstr);
@@ -132,4 +131,3 @@ debug_sdplane_cmd_init ()
   debug_sdplane_cmd.helpstr = debug_sdplane_helpstr;
   debug_sdplane_cmd.cmdfunc = debug_sdplane_func;
 }
-

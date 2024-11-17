@@ -2,7 +2,7 @@
 
 #include <lthread.h>
 
-//#include <rte_common.h>
+// #include <rte_common.h>
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 
@@ -61,7 +61,7 @@ stat_collector (__rte_unused void *dummy)
   while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (1000); // yield.
-      //printf ("%s: schedule.\n", __func__);
+      // printf ("%s: schedule.\n", __func__);
       nb_ports = rte_eth_dev_count_avail ();
 
       for (port_id = 0; port_id < nb_ports; port_id++)
@@ -70,12 +70,10 @@ stat_collector (__rte_unused void *dummy)
         rte_eth_stats_get (port_id, &stats_current[port_id]);
       for (port_id = 0; port_id < nb_ports; port_id++)
         rte_eth_stats_per_sec (&stats_per_sec[port_id],
-                               &stats_current[port_id],
-                               &stats_prev[port_id]);
-      //printf ("%s: stats collected.\n", __func__);
+                               &stats_current[port_id], &stats_prev[port_id]);
+      // printf ("%s: stats collected.\n", __func__);
 
-      if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
-                      DEBUG_SDPLANE_STAT_COLLECTOR))
+      if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), DEBUG_SDPLANE_STAT_COLLECTOR))
         {
           for (port_id = 0; port_id < nb_ports; port_id++)
             {
@@ -83,16 +81,17 @@ stat_collector (__rte_unused void *dummy)
               struct rte_eth_link link;
               bool link_status;
               rte_eth_link_get_nowait (port_id, &link);
-              link_status = !! link.link_status;
+              link_status = ! ! link.link_status;
               if (! link_status)
                 continue;
 
               s = &stats_per_sec[port_id];
-              DEBUG_SDPLANE_LOG (STAT_COLLECTOR, "port[%d]: "
-                      "pps: in: %'lu out: %'lu "
-                      "bps: in %'lu out: %'lu",
-                      port_id, s->ipackets, s->opackets,
-                      s->ibytes * 8, s->obytes * 8);
+              DEBUG_SDPLANE_LOG (STAT_COLLECTOR,
+                                 "port[%d]: "
+                                 "pps: in: %'lu out: %'lu "
+                                 "bps: in %'lu out: %'lu",
+                                 port_id, s->ipackets, s->opackets,
+                                 s->ibytes * 8, s->obytes * 8);
 #if 0
               log_info ("port[%d]: "
                       "imiss: %'lu ierr: %'lu oerr: %'lu nombuf: %'lu",
@@ -123,4 +122,3 @@ stat_collector (__rte_unused void *dummy)
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
   return 0;
 }
-

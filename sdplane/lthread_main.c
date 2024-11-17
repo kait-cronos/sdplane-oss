@@ -40,7 +40,7 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
-//#include <zcmdsh/shell_fselect.h>
+// #include <zcmdsh/shell_fselect.h>
 #include <zcmdsh/debug_zcmdsh.h>
 
 #include "l3fwd.h"
@@ -70,7 +70,7 @@ lthread_main (__rte_unused void *dummy)
   lthread_t *lt = NULL;
 
   /* timer set */
-  //timer_init (60 * 60, "2024/12/31 23:59:59");
+  // timer_init (60 * 60, "2024/12/31 23:59:59");
   timer_init (0, NULL);
 
   /* initialize workers */
@@ -89,8 +89,8 @@ lthread_main (__rte_unused void *dummy)
   lcore_workers[lcore_id].func = lthread_main;
   lcore_workers[lcore_id].func_name = "lthread_main";
 
-  printf ("%s[%d]: %s: enter at core[%d].\n",
-          __FILE__, __LINE__, __func__, lthread_core);
+  printf ("%s[%d]: %s: enter at core[%d].\n", __FILE__, __LINE__, __func__,
+          lthread_core);
 
   /* library initialization. */
   debug_zcmdsh_cmd_init ();
@@ -100,7 +100,6 @@ lthread_main (__rte_unused void *dummy)
   lthread_create (&lt, (lthread_func) startup_config, NULL);
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
-  //lthread_create (&lt, (lthread_func) tap_handler, NULL);
+  // lthread_create (&lt, (lthread_func) tap_handler, NULL);
   lthread_create (&lt, (lthread_func) vty_server, NULL);
 }
-

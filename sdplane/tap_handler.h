@@ -6,13 +6,13 @@
 
 #include "sdplane.h"
 
-//extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
+// extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
 extern __thread struct rte_ring *thread_ring_to_tap;
 extern __thread struct rte_ring *thread_ring_from_tap;
 
 extern bool enable_tap_copy;
 
-static inline __attribute__((always_inline)) void
+static inline __attribute__ ((always_inline)) void
 l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
 {
   struct rte_mbuf *c;
@@ -22,8 +22,8 @@ l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
   pkt_len = rte_pktmbuf_pkt_len (m);
   data_len = rte_pktmbuf_data_len (m);
   if (FLAG_CHECK (debug_config, DEBUG_SDPLANE_WIRETAP))
-    printf ("%s: m: %p: len: %d/%d from port %d to ring %p\n",
-            __func__, m, data_len, pkt_len, portid, thread_ring_to_tap);
+    printf ("%s: m: %p: len: %d/%d from port %d to ring %p\n", __func__, m,
+            data_len, pkt_len, portid, thread_ring_to_tap);
   if (! thread_ring_to_tap)
     return;
   c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
@@ -31,8 +31,8 @@ l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
   if (ret)
     {
       if (FLAG_CHECK (debug_config, DEBUG_SDPLANE_WIRETAP))
-        printf ("%s: m: %p: rte_ring_enqueue() returned: %d\n",
-                __func__, m, ret);
+        printf ("%s: m: %p: rte_ring_enqueue() returned: %d\n", __func__, m,
+                ret);
       rte_pktmbuf_free (c);
     }
 }

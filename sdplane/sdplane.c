@@ -20,26 +20,18 @@
 #include "tap_handler.h"
 #include "debug_sdplane.h"
 
-DEFINE_COMMAND (show_version,
-                "show version",
-                SHOW_HELP
-                "version\n"
-                )
+CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
   fprintf (t, "sdplane version: %s%s", sdplane_version, shell->NL);
 }
 
-DEFINE_COMMAND (set_locale,
-                //"set locale (LC_ALL|LC_NUMERIC) (C|C.utf8|en_US.utf8|POSIX)",
-                "set locale (C|C.utf8|en_US.utf8|POSIX)",
-                SET_HELP
-                "locale information\n"
-                "C\n"
-                "C.utf8\n"
-                "en_US.utf8\n"
-                "POSIX")
+CLI_COMMAND2 (set_locale,
+              //"set locale (LC_ALL|LC_NUMERIC) (C|C.utf8|en_US.utf8|POSIX)",
+              "set locale (C|C.utf8|en_US.utf8|POSIX)", SET_HELP,
+              "locale information\n", "C\n", "C.utf8\n", "en_US.utf8\n",
+              "POSIX")
 {
   struct shell *shell = (struct shell *) context;
   char *ret;
@@ -53,12 +45,10 @@ DEFINE_COMMAND (set_locale,
 char *l3fwd_argv[L3FWD_ARGV_MAX];
 int l3fwd_argc = 0;
 
-DEFINE_COMMAND (set_l3fwd_argv,
-                "set l3fwd argv <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
-                SET_HELP
-                "set l3fwd-related information.\n"
-                "set command-line arguments.\n"
-                "arbitrary word\n")
+CLI_COMMAND2 (set_l3fwd_argv,
+              "set l3fwd argv <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+              SET_HELP, "set l3fwd-related information.\n",
+              "set command-line arguments.\n", "arbitrary word\n")
 {
   struct shell *shell = (struct shell *) context;
   int i;
@@ -82,16 +72,10 @@ DEFINE_COMMAND (set_l3fwd_argv,
     fprintf (shell->terminal, "l3fwd_argv[%d]: %s\n", i, l3fwd_argv[i]);
 }
 
-DEFINE_COMMAND (show_loop_count,
-                "show loop-count (console|vty-shell|l2fwd) (pps|total)",
-                SHOW_HELP
-                "loop count\n"
-                "console shell\n"
-                "vty shell\n"
-                "l2fwd loop\n"
-                "pps\n"
-                "total count\n"
-                )
+CLI_COMMAND2 (show_loop_count,
+              "show loop-count (console|vty-shell|l2fwd) (pps|total)",
+              SHOW_HELP, "loop count\n", "console shell\n", "vty shell\n",
+              "l2fwd loop\n", "pps\n", "total count\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
@@ -167,4 +151,3 @@ sdplane_init ()
     tap_ring_by_lcore[lcore_id] = NULL;
   debug_sdplane_cmd_init ();
 }
-

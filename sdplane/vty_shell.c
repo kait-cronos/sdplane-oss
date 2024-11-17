@@ -43,9 +43,7 @@ shell_keyfunc_clear_terminal (struct shell *shell)
   shell_refresh (shell);
 }
 
-DEFINE_COMMAND (clear_cmd,
-                "clear",
-                CLEAR_HELP)
+CLI_COMMAND2 (clear_cmd, "clear", CLEAR_HELP)
 {
   struct shell *shell = (struct shell *) context;
   shell_keyfunc_clear_terminal (shell);
@@ -84,15 +82,14 @@ snprintf_signature (char *buf, int size, char *ifname)
       return ret;
     }
 
-  ret = snprintf (buf, size,
-                  "%s %s %s: %02x:%02x:%02x:%02x:%02x:%02x",
+  ret = snprintf (buf, size, "%s %s %s: %02x:%02x:%02x:%02x:%02x:%02x",
                   utsname.nodename, utsname.machine, ifname,
-                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[0],
-                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[1],
-                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[2],
-                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[3],
-                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[4],
-                  ((uint8_t *)(&ifr.ifr_hwaddr.sa_data))[5]);
+                  ((uint8_t *) (&ifr.ifr_hwaddr.sa_data))[0],
+                  ((uint8_t *) (&ifr.ifr_hwaddr.sa_data))[1],
+                  ((uint8_t *) (&ifr.ifr_hwaddr.sa_data))[2],
+                  ((uint8_t *) (&ifr.ifr_hwaddr.sa_data))[3],
+                  ((uint8_t *) (&ifr.ifr_hwaddr.sa_data))[4],
+                  ((uint8_t *) (&ifr.ifr_hwaddr.sa_data))[5]);
 
   return ret;
 }
@@ -103,29 +100,22 @@ vty_banner (struct shell *shell)
   int ret;
   char signature[1024];
   snprintf_signature (signature, sizeof (signature), "enp1s0");
-  fprintf (shell->terminal, "welcome to sdplane vty_shell.%s",
+  fprintf (shell->terminal, "welcome to sdplane vty_shell.%s", shell->NL);
+  fprintf (shell->terminal, "sdplane version: %s%s", sdplane_version,
            shell->NL);
-  fprintf (shell->terminal, "sdplane version: %s%s",
-           sdplane_version, shell->NL);
-  fprintf (shell->terminal, "signature: %s%s",
-           signature, shell->NL);
+  fprintf (shell->terminal, "signature: %s%s", signature, shell->NL);
   fflush (shell->terminal);
 }
 
-DEFINE_COMMAND (vty_exit_cmd,
-                "(exit|quit|logout)",
-                "exit\n"
-                "quite\n"
-                "logout\n")
+CLI_COMMAND2 (vty_exit_cmd, "(exit|quit|logout)", "exit\n", "quite\n",
+              "logout\n")
 {
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "vty exit !%s", shell->NL);
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
 }
 
-DEFINE_COMMAND (shutdown_cmd,
-                "shutdown",
-                "shutdown\n")
+CLI_COMMAND2 (shutdown_cmd, "shutdown", "shutdown\n")
 {
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "shutdown !%s", shell->NL);
@@ -144,12 +134,12 @@ vty_shell (void *arg)
   lthread_detach ();
 
   char client_addr_str[128];
-  inet_ntop (AF_INET, &client->peer_addr.sin_addr,
-             client_addr_str, sizeof (client_addr_str));
+  inet_ntop (AF_INET, &client->peer_addr.sin_addr, client_addr_str,
+             sizeof (client_addr_str));
 
-  FLAG_SET (DEBUG_CONFIG(SDPLANE), DEBUG_SDPLANE_VTY);
-  DEBUG_SDPLANE_LOG (VTY, "%s[%d]: client[%d]: %s.",
-                     "vty", client->id, client->id, client_addr_str);
+  FLAG_SET (DEBUG_CONFIG (SDPLANE), DEBUG_SDPLANE_VTY);
+  DEBUG_SDPLANE_LOG (VTY, "%s[%d]: client[%d]: %s.", "vty", client->id,
+                     client->id, client_addr_str);
 
   char prompt[64];
   snprintf (prompt, sizeof (prompt), "vty[%d]> ", client->id);
@@ -157,10 +147,10 @@ vty_shell (void *arg)
   shell = command_shell_create ();
   shell_set_terminal (shell, client->fd, client->fd);
   shell_set_prompt (shell, prompt);
-  //get_winsize (shell);
+  // get_winsize (shell);
 
-  DEBUG_SDPLANE_LOG (VTY, "%s[%d]: fd: %d terminal: %p.",
-                     "vty", client->id, client->fd, shell->terminal);
+  DEBUG_SDPLANE_LOG (VTY, "%s[%d]: fd: %d terminal: %p.", "vty", client->id,
+                     client->fd, shell->terminal);
 
   shell->NL = "\r\n";
 
@@ -176,7 +166,7 @@ vty_shell (void *arg)
   FUNC_STR_REGISTER (shell_keyfunc_delete_char_advanced);
 
   /* clear_cmd doesn't work fine with pager. */
-  //INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
+  // INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
 
   log_cmd_init (shell->cmdset);
   INSTALL_COMMAND2 (shell->cmdset, vty_exit_cmd);
@@ -196,7 +186,7 @@ vty_shell (void *arg)
   l3fwd_cmd_init (shell->cmdset);
   sdplane_cmd_init (shell->cmdset);
 
-  //termio_init ();
+  // termio_init ();
 
   vty_will_echo (shell);
   vty_will_suppress_go_ahead (shell);
@@ -207,23 +197,19 @@ vty_shell (void *arg)
   vty_banner (shell);
   shell_prompt (shell);
 
-  while (! force_quit && ! force_stop[lthread_core] &&
-         shell_running (shell))
+  while (! force_quit && ! force_stop[lthread_core] && shell_running (shell))
     {
       loop_vty_shell++;
       lthread_sleep (100); // yield.
       shell_read_nowait (shell);
     }
 
-  if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
-                  DEBUG_SDPLANE_VTY_SHELL))
-    printf ("%s[%d]: %s: terminating for client[%d]: %s.\n",
-            __FILE__, __LINE__, __func__,
-            client->id, client_addr_str);
+  if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), DEBUG_SDPLANE_VTY_SHELL))
+    printf ("%s[%d]: %s: terminating for client[%d]: %s.\n", __FILE__,
+            __LINE__, __func__, client->id, client_addr_str);
 
   lthread_close (client->fd);
   client->fd = -1;
 
   return;
 }
-

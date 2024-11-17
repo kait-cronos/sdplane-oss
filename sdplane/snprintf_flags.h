@@ -7,9 +7,8 @@ struct flag_name
   uint64_t val;
 };
 
-int
-snprintf_flags (char *buf, int size, uint64_t flags,
-                struct flag_name *flag_names,
-                char *delim, int flag_names_size);
+int snprintf_flags (char *buf, int size, uint64_t flags,
+                    struct flag_name *flag_names, char *delim,
+                    int flag_names_size);
 
 #endif /*__SNPRINTF_FLAGS__*/

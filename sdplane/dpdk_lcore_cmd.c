@@ -30,8 +30,8 @@ start_lcore (struct shell *shell, int lcore_id)
   fprintf (shell->terminal, "starting worker on lcore: %d\n", lcore_id);
   if (lcore_workers[lcore_id].func == NULL)
     {
-      fprintf (shell->terminal,
-               "can't start a null worker on lcore: %d\n", lcore_id);
+      fprintf (shell->terminal, "can't start a null worker on lcore: %d\n",
+               lcore_id);
       return;
     }
   force_stop[lcore_id] = false;
@@ -63,23 +63,17 @@ stop_lcore (struct shell *shell, int lcore_id)
     }
 }
 
-DEFINE_COMMAND (set_worker,
-                "(set|reset|start|restart) worker lcore <0-16> "
-                "(|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater)",
-                SET_HELP
-                RESET_HELP
-                START_HELP
-                RESTART_HELP
-                WORKER_HELP
-                LCORE_HELP
-                LCORE_NUMBER_HELP
-                "set lcore not to launch anything\n"
-                "set lcore to launch l2fwd\n"
-                "set lcore to launch l3fwd (default: lpm)\n"
-                "set lcore to launch l3fwd-lpm\n"
-                "set lcore to launch tap-handler\n"
-                "set lcore to launch l2-repeater\n"
-               )
+CLI_COMMAND2 (set_worker,
+              "(set|reset|start|restart) worker lcore <0-16> "
+              "(|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater)",
+              SET_HELP, RESET_HELP, START_HELP, RESTART_HELP, WORKER_HELP,
+              LCORE_HELP, LCORE_NUMBER_HELP,
+              "set lcore not to launch anything\n",
+              "set lcore to launch l2fwd\n",
+              "set lcore to launch l3fwd (default: lpm)\n",
+              "set lcore to launch l3fwd-lpm\n",
+              "set lcore to launch tap-handler\n",
+              "set lcore to launch l2-repeater\n")
 {
   struct shell *shell = (struct shell *) context;
   int lcore_id;
@@ -125,11 +119,10 @@ DEFINE_COMMAND (set_worker,
   lcore_workers[lcore_id].arg = arg;
   lcore_workers[lcore_id].func_name = func_name;
 
-  fprintf (shell->terminal, "worker set to lcore[%d]: func: %s\n",
-           lcore_id, func_name);
+  fprintf (shell->terminal, "worker set to lcore[%d]: func: %s\n", lcore_id,
+           func_name);
 
-  if (! strcmp (argv[0], "reset") ||
-      ! strcmp (argv[0], "start") ||
+  if (! strcmp (argv[0], "reset") || ! strcmp (argv[0], "start") ||
       ! strcmp (argv[0], "restart"))
     {
       stop_lcore (shell, lcore_id);
@@ -143,17 +136,10 @@ DEFINE_COMMAND (set_worker,
              "workers need to be restarted for changes to take effect.\n");
 }
 
-DEFINE_COMMAND (start_stop_worker,
-                "(start|stop|reset|restart) worker lcore (<0-16>|all)",
-                START_HELP
-                STOP_HELP
-                RESET_HELP
-                RESTART_HELP
-                WORKER_HELP
-                LCORE_HELP
-                LCORE_NUMBER_HELP
-                LCORE_ALL_HELP
-               )
+CLI_COMMAND2 (start_stop_worker,
+              "(start|stop|reset|restart) worker lcore (<0-16>|all)",
+              START_HELP, STOP_HELP, RESET_HELP, RESTART_HELP, WORKER_HELP,
+              LCORE_HELP, LCORE_NUMBER_HELP, LCORE_ALL_HELP)
 {
   struct shell *shell = (struct shell *) context;
   uint32_t nb_lcores;
@@ -179,8 +165,7 @@ DEFINE_COMMAND (start_stop_worker,
         start_lcore (shell, lcore_id);
       else if (! strcmp (argv[0], "stop"))
         stop_lcore (shell, lcore_id);
-      else if (! strcmp (argv[0], "reset") ||
-               ! strcmp (argv[0], "restart"))
+      else if (! strcmp (argv[0], "reset") || ! strcmp (argv[0], "restart"))
         {
           stop_lcore (shell, lcore_id);
           start_lcore (shell, lcore_id);
@@ -188,11 +173,7 @@ DEFINE_COMMAND (start_stop_worker,
     }
 }
 
-DEFINE_COMMAND (show_worker,
-                "show worker",
-                SHOW_HELP
-                WORKER_HELP
-               )
+CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
 {
   struct shell *shell = (struct shell *) context;
   unsigned int lcore_id;
@@ -203,20 +184,18 @@ DEFINE_COMMAND (show_worker,
   char lcore_name[16];
   nb_lcores = rte_lcore_count ();
   main_lcore_id = rte_get_main_lcore ();
-  fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s",
-           "lcore", "flags", "state", "func_name", shell->NL);
+  fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s", "lcore", "flags", "state",
+           "func_name", shell->NL);
   for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
     {
       snprintf (flags, sizeof (flags), "%s%s",
                 (rte_lcore_is_enabled (lcore_id) ? "enabled" : "disabled"),
                 (lcore_id == main_lcore_id ? ",main" : ""));
-      state = (rte_eal_get_lcore_state (lcore_id) == RUNNING ?
-               "running" : "wait");
-      snprintf (lcore_name, sizeof (lcore_name),
-                "lcore[%d]", lcore_id);
-      fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s",
-               lcore_name, flags, state, lcore_workers[lcore_id].func_name,
-               shell->NL);
+      state =
+          (rte_eal_get_lcore_state (lcore_id) == RUNNING ? "running" : "wait");
+      snprintf (lcore_name, sizeof (lcore_name), "lcore[%d]", lcore_id);
+      fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s", lcore_name, flags,
+               state, lcore_workers[lcore_id].func_name, shell->NL);
     }
 }
 
@@ -227,4 +206,3 @@ dpdk_lcore_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, start_stop_worker);
   INSTALL_COMMAND2 (cmdset, show_worker);
 }
-

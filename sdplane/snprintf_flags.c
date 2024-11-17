@@ -5,8 +5,7 @@
 
 int
 snprintf_flags (char *buf, int size, uint64_t flags,
-                struct flag_name *flag_names,
-                char *delim, int flag_names_size)
+                struct flag_name *flag_names, char *delim, int flag_names_size)
 {
   char *p = buf;
   int bufsize = size;
@@ -35,4 +34,3 @@ snprintf_flags (char *buf, int size, uint64_t flags,
     }
   return num;
 }
-

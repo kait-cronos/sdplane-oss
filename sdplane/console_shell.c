@@ -44,7 +44,7 @@
 #include <zcmdsh/debug_log.h>
 #include <zcmdsh/debug_category.h>
 #include <zcmdsh/debug_cmd.h>
-//#include <zcmdsh/shell_fselect.h>
+// #include <zcmdsh/shell_fselect.h>
 #include <zcmdsh/debug_zcmdsh.h>
 
 #include "l3fwd.h"
@@ -63,17 +63,13 @@
 
 extern int lthread_core;
 
-DEFINE_COMMAND (exit_cmd,
-                "(exit|quit|logout)",
-                "exit\n"
-                "quite\n"
-                "logout\n")
+CLI_COMMAND2 (exit_cmd, "(exit|quit|logout)", "exit\n", "quite\n", "logout\n")
 {
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "console exit !\n");
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
   /* don't shell_close(): this closes stdout. */
-  //shell_close (shell);
+  // shell_close (shell);
 
   int nb_lcores = rte_lcore_count ();
   for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
@@ -82,16 +78,14 @@ DEFINE_COMMAND (exit_cmd,
 
 bool reboot = false;
 
-DEFINE_COMMAND (reboot_cmd,
-                "reboot",
-                "reboot\n")
+CLI_COMMAND2 (reboot_cmd, "reboot", "reboot\n")
 {
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "reboot !\n");
   reboot = true;
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
   /* don't shell_close(): this closes stdout. */
-  //shell_close (shell);
+  // shell_close (shell);
 
   int nb_lcores = rte_lcore_count ();
   for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
@@ -102,8 +96,8 @@ void
 get_winsize (struct shell *shell)
 {
   ioctl (shell->writefd, TIOCGWINSZ, &shell->winsize);
-  fprintf (shell->terminal, "row: %d col: %d\n",
-           shell->winsize.ws_row, shell->winsize.ws_col);
+  fprintf (shell->terminal, "row: %d col: %d\n", shell->winsize.ws_row,
+           shell->winsize.ws_col);
 }
 
 uint64_t loop_console = 0;
@@ -145,8 +139,7 @@ console_shell (void *arg)
   shell_clear (shell);
   shell_prompt (shell);
 
-  while (! force_quit && ! force_stop[lthread_core] &&
-         shell_running (shell))
+  while (! force_quit && ! force_stop[lthread_core] && shell_running (shell))
     {
       loop_console++;
       lthread_sleep (100); // yield.
@@ -157,4 +150,3 @@ console_shell (void *arg)
 
   termio_finish ();
 }
-

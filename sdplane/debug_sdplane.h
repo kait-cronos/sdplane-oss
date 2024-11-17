@@ -2,23 +2,23 @@
 #define __DEBUG_SDPLANE_H__
 
 #include <stdint.h>
-#define DEBUG_SDPLANE_LTHREAD    (1ULL << 0)
-#define DEBUG_SDPLANE_CONSOLE    (1ULL << 1)
-#define DEBUG_SDPLANE_TAPHANDLER (1ULL << 2)
-#define DEBUG_SDPLANE_L2FWD      (1ULL << 3)
-#define DEBUG_SDPLANE_L3FWD      (1ULL << 4)
-#define DEBUG_SDPLANE_VTY_SERVER (1ULL << 5)
-#define DEBUG_SDPLANE_VTY_SHELL  (1ULL << 6)
-#define DEBUG_SDPLANE_TELNET_OPT (1ULL << 7)
+#define DEBUG_SDPLANE_LTHREAD        (1ULL << 0)
+#define DEBUG_SDPLANE_CONSOLE        (1ULL << 1)
+#define DEBUG_SDPLANE_TAPHANDLER     (1ULL << 2)
+#define DEBUG_SDPLANE_L2FWD          (1ULL << 3)
+#define DEBUG_SDPLANE_L3FWD          (1ULL << 4)
+#define DEBUG_SDPLANE_VTY_SERVER     (1ULL << 5)
+#define DEBUG_SDPLANE_VTY_SHELL      (1ULL << 6)
+#define DEBUG_SDPLANE_TELNET_OPT     (1ULL << 7)
 #define DEBUG_SDPLANE_STAT_COLLECTOR (1ULL << 8)
-#define DEBUG_SDPLANE_SCHED      (1ULL << 9)
-#define DEBUG_SDPLANE_VTY        (1ULL << 10)
-#define DEBUG_SDPLANE_PACKET     (1ULL << 11)
-#define DEBUG_SDPLANE_FDB        (1ULL << 12)
-#define DEBUG_SDPLANE_FDB_CHANGE (1ULL << 13)
+#define DEBUG_SDPLANE_SCHED          (1ULL << 9)
+#define DEBUG_SDPLANE_VTY            (1ULL << 10)
+#define DEBUG_SDPLANE_PACKET         (1ULL << 11)
+#define DEBUG_SDPLANE_FDB            (1ULL << 12)
+#define DEBUG_SDPLANE_FDB_CHANGE     (1ULL << 13)
 
-#define DEBUG_SDPLANE_LOG(type, format, ...) \
-  DEBUG_LOG(SDPLANE, type, format, ##__VA_ARGS__)
+#define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
+  DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)
 
 EXTERN_COMMAND (debug_sdplane);
 EXTERN_COMMAND (show_debug_sdplane);

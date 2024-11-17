@@ -9,7 +9,7 @@ struct vty_client
 };
 typedef struct vty_client vty_client_t;
 
-#define VTY_CLIENT_MAX  5
+#define VTY_CLIENT_MAX 5
 
 void vty_server (void *arg);
 

@@ -46,8 +46,8 @@ vty_server (void *arg)
     }
 
   int optval = 1;
-  ret = setsockopt (sockfd, SOL_SOCKET, SO_REUSEADDR,
-                    &optval, sizeof (optval));
+  ret =
+      setsockopt (sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
   if (ret < 0)
     {
       fprintf (stderr, "setsockopt(REUSEADDR) failed: %s.\n",
@@ -91,8 +91,7 @@ vty_server (void *arg)
     {
       lthread_sleep (1000); // yield.
 
-      if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
-                      DEBUG_SDPLANE_LTHREAD))
+      if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), DEBUG_SDPLANE_LTHREAD))
         printf ("%s: schedule.\n", __func__);
 
       fds[0].fd = sockfd;
@@ -101,8 +100,8 @@ vty_server (void *arg)
       if ((fds[0].revents & (POLLIN | POLLERR)) == 0)
         continue;
 
-      client_fd = lthread_accept (sockfd, (struct sockaddr *) &peer_addr,
-                                  &addrlen);
+      client_fd =
+          lthread_accept (sockfd, (struct sockaddr *) &peer_addr, &addrlen);
       if (client_fd < 0)
         {
           fprintf (stderr, "lthread_accept() failed.\n");
@@ -136,4 +135,3 @@ vty_server (void *arg)
 
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
 }
-
