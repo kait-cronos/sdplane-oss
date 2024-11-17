@@ -141,6 +141,12 @@ vty_shell (void *arg)
   DEBUG_SDPLANE_LOG (VTY, "%s[%d]: client[%d]: %s.", "vty", client->id,
                      client->id, client_addr_str);
 
+  int thread_id;
+  char buf[128];
+  snprintf (buf, sizeof (buf), "vty[%d]: %s", client->id, client_addr_str);
+  thread_id = thread_register (lthread_core, client->lt, vty_shell, buf, NULL);
+  thread_register_loop_counter (thread_id, &loop_vty_shell);
+
   char prompt[64];
   snprintf (prompt, sizeof (prompt), "vty[%d]> ", client->id);
 
@@ -210,6 +216,9 @@ vty_shell (void *arg)
 
   lthread_close (client->fd);
   client->fd = -1;
+
+  thread_unregister_loop_counter (thread_id);
+  thread_unregister (thread_id);
 
   return;
 }

@@ -6,6 +6,7 @@ struct vty_client
   int id;
   struct sockaddr_in peer_addr;
   int fd;
+  lthread_t *lt;
 };
 typedef struct vty_client vty_client_t;
 

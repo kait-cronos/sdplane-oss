@@ -61,6 +61,8 @@
 #include "debug_sdplane.h"
 #include "vty_shell.h"
 
+#include "thread_info.h"
+
 extern int lthread_core;
 
 CLI_COMMAND2 (exit_cmd, "(exit|quit|logout)", "exit\n", "quite\n", "logout\n")
@@ -138,6 +140,10 @@ console_shell (void *arg)
 
   shell_clear (shell);
   shell_prompt (shell);
+
+  int thread_id;
+  thread_id = thread_lookup (console_shell);
+  thread_register_loop_counter (thread_id, &loop_console);
 
   while (! force_quit && ! force_stop[lthread_core] && shell_running (shell))
     {

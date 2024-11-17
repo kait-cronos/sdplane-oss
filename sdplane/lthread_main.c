@@ -56,6 +56,7 @@
 
 #include "debug_sdplane.h"
 #include "vty_shell.h"
+#include "thread_info.h"
 
 int lthread_core = 0;
 
@@ -98,8 +99,15 @@ lthread_main (__rte_unused void *dummy)
 
   void *ptr;
   lthread_create (&lt, (lthread_func) startup_config, NULL);
+  thread_register (lthread_core, lt, startup_config, "startup_config", NULL);
+
   lthread_create (&lt, (lthread_func) console_shell, NULL);
+  thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
+
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
+  thread_register (lthread_core, lt, stat_collector, "stat_collector", NULL);
+
   // lthread_create (&lt, (lthread_func) tap_handler, NULL);
   lthread_create (&lt, (lthread_func) vty_server, NULL);
+  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
 }

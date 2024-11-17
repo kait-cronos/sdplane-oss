@@ -13,6 +13,8 @@
 #include <zcmdsh/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
+#include "thread_info.h"
+
 extern volatile bool force_quit;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
@@ -100,9 +102,16 @@ stat_collector (__rte_unused void *dummy)
             }
         }
 
-      loop_console_prev = loop_console_current;
-      loop_console_current = loop_console;
-      loop_console_pps = loop_console_current - loop_console_prev;
+      for (i = 0; i < THREAD_INFO_LIMIT; i++)
+        {
+          struct thread_counter *tc;
+          tc = &thread_counters[i];
+          if (! tc->loop_counter_ptr)
+            continue;
+          tc->prev = tc->current;
+          tc->current = *tc->loop_counter_ptr;
+          tc->persec = tc->current - tc->prev;
+        }
 
       loop_vty_shell_prev = loop_vty_shell_current;
       loop_vty_shell_current = loop_vty_shell;
