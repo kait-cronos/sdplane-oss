@@ -211,35 +211,37 @@ void command_config_write (struct vector *config, FILE *fp);
   _55, _56, _57, _58, _59, _60, _61, _62, _63, \
   NUM, ...) NUM
 
-#define NEW_COMMAND1(cmdname, cmdstr, h1)  \
-  DEFINE_COMMAND (cmdname, cmdstr, h1)
-#define NEW_COMMAND2(cmdname, cmdstr, h1, h2) \
-  NEW_COMMAND1 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2))
-#define NEW_COMMAND3(cmdname, cmdstr, h1, h2, ...) \
-  NEW_COMMAND2 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
-#define NEW_COMMAND4(cmdname, cmdstr, h1, h2, ...) \
-  NEW_COMMAND3 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
-#define NEW_COMMAND5(cmdname, cmdstr, h1, h2, ...) \
-  NEW_COMMAND4 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
-#define NEW_COMMAND6(cmdname, cmdstr, h1, h2, ...) \
-  NEW_COMMAND5 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
-#define NEW_COMMAND7(cmdname, cmdstr, h1, h2, ...) \
-  NEW_COMMAND6 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
-#define NEW_COMMAND8(cmdname, cmdstr, h1, h2, ...) \
-  NEW_COMMAND7 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
-#define NEW_COMMAND9(cmdname, cmdstr, h1, h2, ...) \
-  NEW_COMMAND8 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
-#define NEW_COMMAND10(cmdname, cmdstr, h1, h2, ...) \
-  NEW_COMMAND9 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
-#define NEW_COMMAND11(cmdname, cmdstr, h1, h2, ...) \
-  NEW_COMMAND10 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
-#define NEW_COMMAND12(cmdname, cmdstr, h1, h2, ...) \
-  NEW_COMMAND11 (cmdname, cmdstr, ZCMDSH_LIST (h1, h2), __VA_ARGS__)
+#define LIST ZCMDSH_LIST
+#define NCLI1(n, s, h1, ...) DEFINE_COMMAND (n, s, h1)
+#define NCLI2(n, s, h1, h2, ...) NCLI1 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI3(n, s, h1, h2, ...) NCLI2 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI4(n, s, h1, h2, ...) NCLI3 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI5(n, s, h1, h2, ...) NCLI4 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI6(n, s, h1, h2, ...) NCLI5 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI7(n, s, h1, h2, ...) NCLI6 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI8(n, s, h1, h2, ...) NCLI7 (n, s, LIST (h1, h2), __VA_ARGS__)
+
+#define NCLI9(n, s, h1, h2, ...) NCLI8 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI10(n, s, h1, h2, ...) NCLI9 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI11(n, s, h1, h2, ...) NCLI10 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI12(n, s, h1, h2, ...) NCLI11 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI13(n, s, h1, h2, ...) NCLI12 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI14(n, s, h1, h2, ...) NCLI13 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI15(n, s, h1, h2, ...) NCLI14 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI16(n, s, h1, h2, ...) NCLI15 (n, s, LIST (h1, h2), __VA_ARGS__)
+
+#define NCLI17(n, s, h1, h2, ...) NCLI16 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI18(n, s, h1, h2, ...) NCLI17 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI19(n, s, h1, h2, ...) NCLI18 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI20(n, s, h1, h2, ...) NCLI19 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI21(n, s, h1, h2, ...) NCLI20 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI22(n, s, h1, h2, ...) NCLI21 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI23(n, s, h1, h2, ...) NCLI22 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI24(n, s, h1, h2, ...) NCLI23 (n, s, LIST (h1, h2), __VA_ARGS__)
 
 #define ZCMDSH_VARARG_COMMAND(...)  \
-  ZCMDSH_CONCAT(NEW_COMMAND, ZCMDSH_NARG(__VA_ARGS__))
+  ZCMDSH_CONCAT(NCLI, ZCMDSH_NARG(__VA_ARGS__))
 #define CLI_COMMAND2(cmdname, cmdstr, ...)                                     \
   ZCMDSH_VARARG_COMMAND (__VA_ARGS__) (cmdname, cmdstr, __VA_ARGS__)
-
 
 #endif /*__COMMAND_H__*/
