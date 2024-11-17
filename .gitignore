@@ -2,7 +2,6 @@
 
 /sdplane/sdplane
 /sdplane/sdplane_version.c
-/build
 
 /sdplane_*.debian.tar.xz
 /sdplane_*.dsc
