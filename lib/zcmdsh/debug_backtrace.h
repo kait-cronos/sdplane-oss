@@ -1,6 +1,10 @@
 #ifndef __DEBUG_BACKTRACE_H__
 #define __DEBUG_BACKTRACE_H__
 
+#ifdef HAVE_EXECINFO_H
+#include <execinfo.h>
+#endif
+
 #define BACKTRACE_FRAME_SIZE 128
 static inline __attribute__ ((always_inline)) void
 debug_backtrace ()

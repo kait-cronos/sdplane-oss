@@ -9,9 +9,9 @@
 #include "flag.h"
 #include "shell.h"
 
-#include "debug_backtrace.h"
 #include "debug_category.h"
 #include "debug_log.h"
+#include "debug_backtrace.h"
 #include "debug_zcmdsh.h"
 
 void
