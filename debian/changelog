@@ -1,3 +1,17 @@
+sdplane (0.1.0-26) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update required zcmdsh version.
+  * clang-format and CLI_COMMAND2().
+  * directory structure changed.
+  * update .gitignore
+  * remove l2fwd/ and l3fwd/
+  * unite includes in include.h
+  * clean up and vty-shell loop count.
+  * version changed and "show version" command.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 17 Nov 2024 17:10:10 +0900
+
 sdplane (0.1.0-17) UNRELEASED; urgency=low
 
   * release. update changelog.
