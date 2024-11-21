@@ -1,7 +1,7 @@
 
-(ver. 17: 2024/11/05 04:23)
-zcmdsh_0.3.28-1_amd64.deb
-sdplane_0.0.9i-1_amd64.deb
+(ver. 15: 2024/10/17 01:41)
+zcmdsh_0.3.24-1_amd64.deb
+sdplane_0.0.9g-1_amd64.deb
 
 - passwd 生成方法:
 $ pwgen -cnB 12 1
@@ -164,12 +164,12 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   # update-grub
 
 * zcmdsh の install
-  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.28-1_amd64.deb
-  # apt install ./zcmdsh_0.3.28-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.24-1_amd64.deb
+  # apt install ./zcmdsh_0.3.24-1_amd64.deb
 
 * sdplane の install
-  $ wget https://www.yasuhironet.net/download/sdplane_0.0.9i-1_amd64.deb
-  # apt install ./sdplane_0.0.9i-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/sdplane_0.0.9g-1_amd64.deb
+  # apt install ./sdplane_0.0.9g-1_amd64.deb
 
 * netplan config install:
   # rm -f /etc/netplan/*.yaml
@@ -210,7 +210,6 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   - 公開鍵を設定
   $ mkdir .ssh
   $ wget http://www.yasuhironet.net/download/wireadmin.pub
-  $ wget https://github.com/yasuhironet.keys
   $ mv wireadmin.pub .ssh/authorized_keys
   $ sudo -s
   # git config --global user.email "yasu1976@gmail.com"
