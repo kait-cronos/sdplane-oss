@@ -92,7 +92,7 @@ echo "tagging ${newversion}."
 # git tag ${newversion}
 
 # vi debian/changelog
-tar zcvf ../${packagename}_${origdebversion}.orig.tar.gz -X upstream-tgz-exclude.txt .
+tar zcvf ../${packagename}_${origdebversion}.orig.tar.gz -X upstream-exclude.txt .
 
 exit
 
