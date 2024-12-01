@@ -34,10 +34,13 @@ ncommit=`echo $version | sed -e 's/^.*-//'`
 newcommit=$ncommit
 if [[ $newcommit =~ ^[0-9]+$ ]]; then
   ((newcommit++))
+  echo version: $version
+  echo ncommit: $ncommit
+  echo $ncommit + 1 = $newcommit
 else
   echo $newcommit is not a commit distance. major changed?
 fi
-newversion=`echo $version | sed -e "s/$ncommit/$newcommit/"`
+newversion=`echo $version | sed -e "s/-$ncommit/-$newcommit/"`
 previous=`git describe --abbrev=0 --tags`
 origname=`git describe --abbrev=0 | sed -e 's/-[0-9-]*//'`
 
@@ -86,7 +89,7 @@ newversion=`git describe | sed -e 's/-g.*//'`
 
 # prepare the lightweight tag.
 echo "tagging ${newversion}."
-git tag ${newversion}
+# git tag ${newversion}
 
 # vi debian/changelog
 tar zcvf ../${packagename}_${origdebversion}.orig.tar.gz -X upstream-tgz-exclude.txt .
