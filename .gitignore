@@ -18,6 +18,7 @@
 /debian/sdplane/DEBIAN/md5sums
 /debian/sdplane/usr/share/doc/sdplane/changelog.gz
 /debian/.debhelper
+/debian/debhelper-build-stamp
 /debian/autoreconf.after
 /debian/autoreconf.before
 /debian/sdplane.debhelper.log

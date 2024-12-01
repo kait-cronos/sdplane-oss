@@ -22,12 +22,12 @@ function logentry() {
     echo
 }
 
-dirty=`git describe --dirty | grep dirty`
-if [ ! -z "$dirty" ]; then
-    echo -n "please commit first: "
-    git describe --dirty=-modified.
-    exit -1;
-fi
+# dirty=`git describe --dirty | grep dirty`
+# if [ ! -z "$dirty" ]; then
+#     echo -n "please commit first: "
+#     git describe --dirty=-modified.
+#     exit -1;
+# fi
 
 version=`git describe | sed -e 's/-g.*//'`
 ncommit=`echo $version | sed -e 's/^.*-//'`
@@ -48,10 +48,10 @@ previous: $previous
 origname: $origname
 EOHD
 
-if [ ${previous} = ${version} ]; then
-    echo nothing to release.
-    exit
-fi
+# if [ ${previous} = ${version} ]; then
+#     echo nothing to release.
+#     exit
+# fi
 
 if [ ! -f debian/changelog.${previous} ]; then
     echo create missing debian/changelog.${previous}
