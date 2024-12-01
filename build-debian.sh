@@ -32,7 +32,11 @@ function logentry() {
 version=`git describe | sed -e 's/-g.*//'`
 ncommit=`echo $version | sed -e 's/^.*-//'`
 newcommit=$ncommit
-((newcommit++))
+if [[ $newcommit =~ ^[0-9]+$ ]]; then
+  ((newcommit++))
+else
+  echo $newcommit is not a commit distance. major changed?
+fi
 newversion=`echo $version | sed -e "s/$ncommit/$newcommit/"`
 previous=`git describe --abbrev=0 --tags`
 origname=`git describe --abbrev=0 | sed -e 's/-[0-9-]*//'`
@@ -62,8 +66,10 @@ fi
 echo "create debian/changelog.${previous}-${newversion}."
 logentry $previous HEAD $debversion > debian/changelog.${previous}-${newversion}
 
-echo "create debian/changelog.${newversion}."
-cat debian/changelog.${previous}-${newversion} debian/changelog.${previous} > debian/changelog.${newversion}
+if [ ${previous} != ${newversion} ]; then
+  echo "create debian/changelog.${newversion}."
+  cat debian/changelog.${previous}-${newversion} debian/changelog.${previous} > debian/changelog.${newversion}
+fi
 rm debian/changelog.${previous}-${newversion}
 
 echo "create debian/changelog."
@@ -83,6 +89,9 @@ echo "tagging ${newversion}."
 git tag ${newversion}
 
 # vi debian/changelog
-tar zcvf ../${packagename}_${origdebversion}.orig.tar.gz .
+tar zcvf ../${packagename}_${origdebversion}.orig.tar.gz -X upstream-tgz-exclude.txt .
+
+exit
+
 debuild
 
