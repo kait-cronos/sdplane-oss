@@ -1,3 +1,11 @@
+sdplane (0.1.0-29) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update .gitignore
+  * show thread counter for lthread.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Mon, 18 Nov 2024 01:06:40 +0900
+
 sdplane (0.1.0-26) UNRELEASED; urgency=low
 
   * release. update changelog.

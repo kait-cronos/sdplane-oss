@@ -28,8 +28,12 @@ sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_M
 sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lzcmdsh
 
 FORCE:
-.PHONY: FORCE
+.PHONY: FORCE clean-version
 
 sdplane_version.c: FORCE
 	top_srcdir=$(top_srcdir) bash $(top_srcdir)/sdplane/sdplane-version-c.sh > sdplane_version.c
+
+clean-local: clean-version
+clean-version:
+	-rm -f sdplane_version.c
 

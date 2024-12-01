@@ -1,4 +1,4 @@
 #!/bin/bash
 
-git describe --tags --dirty=-modified
+git describe --dirty=-modified
 
