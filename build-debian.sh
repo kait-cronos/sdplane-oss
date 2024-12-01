@@ -89,12 +89,10 @@ newversion=`git describe | sed -e 's/-g.*//'`
 
 # prepare the lightweight tag.
 echo "tagging ${newversion}."
-# git tag ${newversion}
+git tag ${newversion}
 
 # vi debian/changelog
 tar zcvf ../${packagename}_${origdebversion}.orig.tar.gz -X upstream-exclude.txt .
-
-exit
 
 debuild
 

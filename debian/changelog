@@ -1,3 +1,12 @@
+sdplane (0.1.1-4) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * upstream-exclude.txt.
+  * update changelog for v0.1.1-2.
+  * update changelog for v0.1.1.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 17:13:18 +0900
+
 sdplane (0.1.1-2) UNRELEASED; urgency=low
 
   * release. update changelog.
