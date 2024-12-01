@@ -1,3 +1,14 @@
+sdplane (0.1.0-32) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * allow re-building of debian package. allow build on dirty work-dir. git remove for intermediate dh-files that made the version-number always labeled as dirty.
+  * sdplane "show version" fix.
+  * update install-memo.txt
+  * update .gitignore
+  * show thread counter for lthread.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 14:08:31 +0900
+
 sdplane (0.1.0-40) UNRELEASED; urgency=low
 
   * release. update changelog.
