@@ -191,9 +191,19 @@ CLI_COMMAND2 (show_thread_counter,
                      i, tinfo->name, tc->persec, tc->current, shell->NL);
         }
     }
-
 }
 
+CLI_COMMAND2 (show_tap_handler_rcu_replace,
+              "show tap-handler rcu-replace",
+              SHOW_HELP, "tap-handler information.\n",
+              "shwo tap-handler rcu-replace\n")
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  extern uint64_t tap_handler_rcu_replace;
+  fprintf (t, "tap_handerl_rcu_replace: %'llu%s",
+           tap_handler_rcu_replace, shell->NL);
+}
 
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
@@ -208,6 +218,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_loop_count);
   INSTALL_COMMAND2 (cmdset, show_version);
   INSTALL_COMMAND2 (cmdset, show_thread_counter);
+  INSTALL_COMMAND2 (cmdset, show_tap_handler_rcu_replace);
   thread_info_cmd_init (cmdset);
 }
 

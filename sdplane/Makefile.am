@@ -25,7 +25,7 @@ sdplane_SOURCES = \
         console_shell.c l2_repeater.c \
         sdplane_version.c thread_info.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR)
-sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lzcmdsh
+sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lzcmdsh -lurcu-qsbr
 
 FORCE:
 .PHONY: FORCE clean-version

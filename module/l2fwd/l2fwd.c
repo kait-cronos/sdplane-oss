@@ -51,6 +51,8 @@
 
 #include "l2fwd_export.h"
 
+#include <urcu/urcu-qsbr.h>
+
 extern volatile bool force_quit;
 
 __thread uint64_t loop_l2fwd = 0;
@@ -259,12 +261,16 @@ l2fwd_main_loop(void)
 
         loop_l2fwd_ptr[lcore_id] = &loop_l2fwd;
 
+        urcu_qsbr_register_thread ();
+
 	while (! force_quit && ! force_stop[lcore_id]) {
                loop_l2fwd++;
+#if 0
                if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
                                DEBUG_SDPLANE_L2FWD))
                  printf ("%s[%d]: %s: l2fwd scheduled.\n",
                          __FILE__, __LINE__, __func__);
+#endif
 
 		/* Drains TX queue in its main loop. 8< */
 		cur_tsc = rte_rdtsc();
@@ -329,7 +335,18 @@ l2fwd_main_loop(void)
 			}
 		}
 		/* >8 End of read packet from RX queues. */
+
+                urcu_qsbr_read_lock ();
+                char *shared;
+                extern void *ptr;
+                shared = (char *) rcu_dereference (ptr);
+                DEBUG_SDPLANE_LOG (L2FWD, "thread[%d]: rcu: %p: %s",
+                                   lcore_id, shared, shared);
+                urcu_qsbr_read_unlock ();
+                urcu_qsbr_quiescent_state ();
 	}
+
+        urcu_qsbr_unregister_thread ();
 }
 
 int

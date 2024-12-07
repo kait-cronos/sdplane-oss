@@ -29,6 +29,11 @@
 
 #include "sdplane.h"
 
+#include <urcu/urcu-qsbr.h>
+
+void *ptr;
+uint64_t tap_handler_rcu_replace = 0;
+
 #include <linux/if.h>
 #include <linux/if_tun.h>
 
@@ -178,6 +183,9 @@ tap_handler (__rte_unused void *dummy)
 
   struct vswitch_port *vswport;
   int vswport_id;
+
+  char buf[1024];
+  void *old, *new;
 
   DEBUG_SDPLANE_LOG (TAPHANDLER, "start thread on lcore[%d].",
                      rte_lcore_id ());
@@ -383,10 +391,27 @@ tap_handler (__rte_unused void *dummy)
             }
         }
 
+      snprintf (buf, sizeof (buf), "rcu %'llu", loop_counter);
+      new = strdup (buf);
+      old = rcu_dereference (ptr);
+      rcu_assign_pointer (ptr, new);
+      DEBUG_SDPLANE_LOG (TAPHANDLER, "rcu: new: %p: %s", new, new);
+      urcu_qsbr_synchronize_rcu ();
+      DEBUG_SDPLANE_LOG (TAPHANDLER, "rcu: free old: %p: %s", old, old);
+      free (old);
+      tap_handler_rcu_replace++;
+
       loop_counter++;
     }
 
   close (peek_fd);
+
+  old = rcu_dereference (ptr);
+  rcu_assign_pointer (ptr, NULL);
+  urcu_qsbr_synchronize_rcu ();
+  free (old);
+  tap_handler_rcu_replace++;
+
   printf ("%s on lcore[%d]: finished.\n", __func__, rte_lcore_id ());
   return 0;
 }
