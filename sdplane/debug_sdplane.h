@@ -2,6 +2,7 @@
 #define __DEBUG_SDPLANE_H__
 
 #include <stdint.h>
+
 #define DEBUG_SDPLANE_LTHREAD        (1ULL << 0)
 #define DEBUG_SDPLANE_CONSOLE        (1ULL << 1)
 #define DEBUG_SDPLANE_TAPHANDLER     (1ULL << 2)
@@ -16,6 +17,8 @@
 #define DEBUG_SDPLANE_PACKET         (1ULL << 11)
 #define DEBUG_SDPLANE_FDB            (1ULL << 12)
 #define DEBUG_SDPLANE_FDB_CHANGE     (1ULL << 13)
+#define DEBUG_SDPLANE_RCU_READ       (1ULL << 14)
+#define DEBUG_SDPLANE_RCU_WRITE      (1ULL << 15)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)

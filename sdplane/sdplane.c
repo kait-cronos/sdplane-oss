@@ -193,10 +193,8 @@ CLI_COMMAND2 (show_thread_counter,
     }
 }
 
-CLI_COMMAND2 (show_tap_handler_rcu_replace,
-              "show tap-handler rcu-replace",
-              SHOW_HELP, "tap-handler information.\n",
-              "shwo tap-handler rcu-replace\n")
+CLI_COMMAND2 (show_rcu, "show rcu",
+              SHOW_HELP, "show rcu-information.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
@@ -218,7 +216,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_loop_count);
   INSTALL_COMMAND2 (cmdset, show_version);
   INSTALL_COMMAND2 (cmdset, show_thread_counter);
-  INSTALL_COMMAND2 (cmdset, show_tap_handler_rcu_replace);
+  INSTALL_COMMAND2 (cmdset, show_rcu);
   thread_info_cmd_init (cmdset);
 }
 

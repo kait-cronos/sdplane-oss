@@ -186,8 +186,10 @@ tap_handler (__rte_unused void *dummy)
   struct vswitch_port *vswport;
   int vswport_id;
 
+#if HAVE_LIBURCU_QSBR
   char buf[1024];
   void *old, *new;
+#endif /*HAVE_LIBURCU_QSBR*/
 
   DEBUG_SDPLANE_LOG (TAPHANDLER, "start thread on lcore[%d].",
                      rte_lcore_id ());
@@ -398,9 +400,11 @@ tap_handler (__rte_unused void *dummy)
       new = strdup (buf);
       old = rcu_dereference (rcu_global_ptr);
       rcu_assign_pointer (rcu_global_ptr, new);
-      DEBUG_SDPLANE_LOG (TAPHANDLER, "rcu: new: %p: %s", new, new);
+      DEBUG_SDPLANE_LOG (RCU_WRITE, "rcu: thread[%d]: assign new: %p: %s",
+                         tap_handler_id, new, new);
       urcu_qsbr_synchronize_rcu ();
-      DEBUG_SDPLANE_LOG (TAPHANDLER, "rcu: free old: %p: %s", old, old);
+      DEBUG_SDPLANE_LOG (RCU_WRITE, "rcu: thread[%d]: free old: %p: %s",
+                         tap_handler_id, old, old);
       free (old);
       tap_handler_rcu_replace++;
 #endif /*HAVE_LIBURCU_QSBR*/

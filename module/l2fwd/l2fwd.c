@@ -2,6 +2,8 @@
  * Copyright(c) 2010-2016 Intel Corporation
  */
 
+#include "include.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -345,7 +347,7 @@ l2fwd_main_loop(void)
                 char *shared;
                 extern void *rcu_global_ptr;
                 shared = (char *) rcu_dereference (rcu_global_ptr);
-                DEBUG_SDPLANE_LOG (L2FWD, "thread[%d]: rcu: %p: %s",
+                DEBUG_SDPLANE_LOG (RCU_READ, "rcu: thread[%d]: read: %p: %s",
                                    lcore_id, shared, shared);
                 urcu_qsbr_read_unlock ();
                 urcu_qsbr_quiescent_state ();

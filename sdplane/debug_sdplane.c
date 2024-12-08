@@ -33,6 +33,8 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_PACKET, "packet" },
   { DEBUG_SDPLANE_FDB, "fdb" },
   { DEBUG_SDPLANE_FDB_CHANGE, "fdb-change" },
+  { DEBUG_SDPLANE_RCU_READ, "rcu-read" },
+  { DEBUG_SDPLANE_RCU_WRITE, "rcu-write" },
 };
 
 struct command_header debug_sdplane_cmd;
@@ -75,14 +77,14 @@ debug_sdplane_func (void *context, int argc, char **argv)
           if (negate)
             {
               FLAG_CLEAR (DEBUG_CONFIG (SDPLANE), debug_types[i].flag);
-              fprintf (shell->terminal, "debug: sdplane %s: disabled.%s",
-                       debug_types[i].name, shell->NL);
+              fprintf (shell->terminal, "debug: sdplane %s (%#x): disabled.%s",
+                       debug_types[i].name, debug_types[i].flag, shell->NL);
             }
           else
             {
               FLAG_SET (DEBUG_CONFIG (SDPLANE), debug_types[i].flag);
-              fprintf (shell->terminal, "debug: sdplane %s: enabled.%s",
-                       debug_types[i].name, shell->NL);
+              fprintf (shell->terminal, "debug: sdplane %s (%#x): enabled.%s",
+                       debug_types[i].name, debug_types[i].flag, shell->NL);
             }
         }
     }

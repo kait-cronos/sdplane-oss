@@ -1,3 +1,13 @@
+sdplane (0.1.1-9) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * fix prompting. sometimes other threads output comes after the prompt, and it is confusing for the user if the system is in the prompting state.
+  * lthread detach or join control in lthread_master.
+  * urcu-qsbr configure check.
+  * incorporate rcu framework.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 8 Dec 2024 14:48:18 +0900
+
 sdplane (0.1.1-4) UNRELEASED; urgency=low
 
   * release. update changelog.
