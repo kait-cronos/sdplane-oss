@@ -1,3 +1,10 @@
+sdplane (0.1.1-11) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * temporary fix for l2-repeater bug: tx_buffer_flush() contends from multiple l2-repeater doing tx_buffer_flush() for the same port (i.e., the same queue). we must allocate different queues for each l2-repeater thread for the same port.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 8 Dec 2024 21:53:50 +0900
+
 sdplane (0.1.1-9) UNRELEASED; urgency=low
 
   * release. update changelog.
