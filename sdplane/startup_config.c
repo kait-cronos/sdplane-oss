@@ -27,10 +27,6 @@ startup_config (__rte_unused void *dummy)
 {
   struct shell *shell = NULL;
 
-  lthread_detach ();
-
-  // printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
-
   shell = command_shell_create ();
   shell_set_prompt (shell, "startup-config> ");
   shell->pager = false;

@@ -36,8 +36,6 @@ vty_server (void *arg)
   int ret;
   int client_fd;
 
-  lthread_detach ();
-
   sockfd = lthread_socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sockfd == -1)
     {
@@ -70,7 +68,7 @@ vty_server (void *arg)
       return;
     }
 
-  printf ("Starting vty_server on port 9882\n");
+  DEBUG_SDPLANE_LOG (VTY_SERVER, "Starting vty_server on port 9882.");
 
   int client_size = 0;
   int i, client_id;
@@ -89,10 +87,7 @@ vty_server (void *arg)
 
   while (! force_quit && ! force_stop[lthread_core])
     {
-      lthread_sleep (1000); // yield.
-
-      if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), DEBUG_SDPLANE_LTHREAD))
-        printf ("%s: schedule.\n", __func__);
+      lthread_sleep (100); // yield.
 
       fds[0].fd = sockfd;
       fds[0].events = POLLIN;
@@ -125,7 +120,7 @@ vty_server (void *arg)
           continue;
         }
 
-      printf ("%s: lthread_accept: client[%d]\n", __func__, client_id);
+      DEBUG_SDPLANE_LOG (VTY_SERVER, "lthread_accept: client[%d].", client_id);
       client_info[client_id].peer_addr = peer_addr;
       client_info[client_id].fd = client_fd;
       ret = lthread_create (&client_info[client_id].lt,
