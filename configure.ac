@@ -12,8 +12,10 @@ AC_PROG_CC
 AC_PROG_LN_S
 
 # Checks for libraries.
-# FIXME: Replace `main' with a function in `-llthread':
-AC_CHECK_LIB([lthread], [main])
+AC_CHECK_LIB([lthread], [lthread_create], ,
+             [AC_MSG_ERROR([lthread library not found.])])
+AC_CHECK_LIB([urcu-qsbr], [urcu_qsbr_quiescent_state], ,
+             [AC_MSG_ERROR([urcu-qsbr library not found.])])
 
 AC_ARG_WITH([zcmdsh], [AS_HELP_STRING([--with-zcmdsh=DIR], [zcmdsh libdir (/usr/lib)])], [
         zcmdshdir="$withval"

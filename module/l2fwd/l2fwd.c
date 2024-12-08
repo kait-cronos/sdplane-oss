@@ -51,7 +51,9 @@
 
 #include "l2fwd_export.h"
 
+#if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
+#endif /*HAVE_LIBURCU_QSBR*/
 
 extern volatile bool force_quit;
 
@@ -261,7 +263,9 @@ l2fwd_main_loop(void)
 
         loop_l2fwd_ptr[lcore_id] = &loop_l2fwd;
 
+#if HAVE_LIBURCU_QSBR
         urcu_qsbr_register_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
 
 	while (! force_quit && ! force_stop[lcore_id]) {
                loop_l2fwd++;
@@ -336,17 +340,21 @@ l2fwd_main_loop(void)
 		}
 		/* >8 End of read packet from RX queues. */
 
+#if HAVE_LIBURCU_QSBR
                 urcu_qsbr_read_lock ();
                 char *shared;
-                extern void *ptr;
-                shared = (char *) rcu_dereference (ptr);
+                extern void *rcu_global_ptr;
+                shared = (char *) rcu_dereference (rcu_global_ptr);
                 DEBUG_SDPLANE_LOG (L2FWD, "thread[%d]: rcu: %p: %s",
                                    lcore_id, shared, shared);
                 urcu_qsbr_read_unlock ();
                 urcu_qsbr_quiescent_state ();
+#endif /*HAVE_LIBURCU_QSBR*/
 	}
 
+#if HAVE_LIBURCU_QSBR
         urcu_qsbr_unregister_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
 }
 
 int

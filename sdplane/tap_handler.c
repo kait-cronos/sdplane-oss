@@ -29,9 +29,11 @@
 
 #include "sdplane.h"
 
+#if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
+#endif /*HAVE_LIBURCU_QSBR*/
 
-void *ptr;
+void *rcu_global_ptr;
 uint64_t tap_handler_rcu_replace = 0;
 
 #include <linux/if.h>
@@ -391,26 +393,30 @@ tap_handler (__rte_unused void *dummy)
             }
         }
 
+#if HAVE_LIBURCU_QSBR
       snprintf (buf, sizeof (buf), "rcu %'llu", loop_counter);
       new = strdup (buf);
-      old = rcu_dereference (ptr);
-      rcu_assign_pointer (ptr, new);
+      old = rcu_dereference (rcu_global_ptr);
+      rcu_assign_pointer (rcu_global_ptr, new);
       DEBUG_SDPLANE_LOG (TAPHANDLER, "rcu: new: %p: %s", new, new);
       urcu_qsbr_synchronize_rcu ();
       DEBUG_SDPLANE_LOG (TAPHANDLER, "rcu: free old: %p: %s", old, old);
       free (old);
       tap_handler_rcu_replace++;
+#endif /*HAVE_LIBURCU_QSBR*/
 
       loop_counter++;
     }
 
   close (peek_fd);
 
-  old = rcu_dereference (ptr);
-  rcu_assign_pointer (ptr, NULL);
+#if HAVE_LIBURCU_QSBR
+  old = rcu_dereference (rcu_global_ptr);
+  rcu_assign_pointer (rcu_global_ptr, NULL);
   urcu_qsbr_synchronize_rcu ();
   free (old);
   tap_handler_rcu_replace++;
+#endif /*HAVE_LIBURCU_QSBR*/
 
   printf ("%s on lcore[%d]: finished.\n", __func__, rte_lcore_id ());
   return 0;
