@@ -210,9 +210,8 @@ vty_shell (void *arg)
       shell_read_nowait (shell);
     }
 
-  if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), DEBUG_SDPLANE_VTY_SHELL))
-    printf ("%s[%d]: %s: terminating for client[%d]: %s.\n", __FILE__,
-            __LINE__, __func__, client->id, client_addr_str);
+  DEBUG_SDPLANE_LOG (VTY, "terminating %s[%d]: client[%d]: %s.",
+                     "vty", client->id, client->id, client_addr_str);
 
   lthread_close (client->fd);
   client->fd = -1;

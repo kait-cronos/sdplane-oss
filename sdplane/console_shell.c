@@ -65,7 +65,7 @@
 
 extern int lthread_core;
 
-CLI_COMMAND2 (exit_cmd, "(exit|quit|logout)", "exit\n", "quite\n", "logout\n")
+CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
 {
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "console exit !\n");
@@ -79,20 +79,6 @@ CLI_COMMAND2 (exit_cmd, "(exit|quit|logout)", "exit\n", "quite\n", "logout\n")
 }
 
 bool reboot = false;
-
-CLI_COMMAND2 (reboot_cmd, "reboot", "reboot\n")
-{
-  struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "reboot !\n");
-  reboot = true;
-  FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
-  /* don't shell_close(): this closes stdout. */
-  // shell_close (shell);
-
-  int nb_lcores = rte_lcore_count ();
-  for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
-    stop_lcore (shell, lcore_id);
-}
 
 void
 get_winsize (struct shell *shell)
@@ -108,8 +94,6 @@ void
 console_shell (void *arg)
 {
   struct shell *shell = NULL;
-
-  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
 
   shell = command_shell_create ();
   shell_set_terminal (shell, 0, 1);
@@ -140,6 +124,7 @@ console_shell (void *arg)
 
   shell_clear (shell);
   shell_prompt (shell);
+  shell_refresh (shell);
 
   int thread_id;
   thread_id = thread_lookup (console_shell);
@@ -153,6 +138,5 @@ console_shell (void *arg)
     }
 
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
-
   termio_finish ();
 }

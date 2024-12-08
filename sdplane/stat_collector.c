@@ -54,8 +54,6 @@ stat_collector (__rte_unused void *dummy)
   int i, port_id;
   uint16_t nb_ports;
 
-  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
-
   memset (stats_prev, 0, sizeof (stats_prev));
   memset (stats_current, 0, sizeof (stats_current));
   memset (stats_per_sec, 0, sizeof (stats_per_sec));
