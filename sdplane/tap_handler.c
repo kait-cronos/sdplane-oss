@@ -314,26 +314,34 @@ tap_handler (__rte_unused void *dummy)
               struct rte_ipv6_hdr *ipv6;
               char eth_dst[32];
               char eth_src[32];
+              unsigned short eth_type;
               eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
               rte_ether_format_addr (eth_dst, sizeof (eth_dst),
                                      &eth->dst_addr);
               rte_ether_format_addr (eth_src, sizeof (eth_src),
                                      &eth->src_addr);
-              DEBUG_SDPLANE_LOG (
-                  PACKET, "m: %p ether: dst: %s src: %s type: %#hx", m,
-                  eth_dst, eth_src, rte_be_to_cpu_16 (eth->ether_type));
+              eth_type = rte_be_to_cpu_16 (eth->ether_type);
 
               if (RTE_ETH_IS_IPV4_HDR (m->packet_type))
                 {
                   ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
-                  DEBUG_SDPLANE_LOG (PACKET, "m: %p ipv4: len: %d", m,
+                  DEBUG_SDPLANE_LOG (PACKET, "m: %p ether[%#hx]: %s -> %s "
+                                     "ipv4: len: %d",
+                                     m, eth_type, eth_src, eth_dst,
                                      rte_be_to_cpu_16 (ipv4->total_length));
                 }
               else if (RTE_ETH_IS_IPV6_HDR (m->packet_type))
                 {
                   ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
-                  DEBUG_SDPLANE_LOG (PACKET, "m: %p ipv6: len: %d", m,
+                  DEBUG_SDPLANE_LOG (PACKET, "m: %p ether[%#hx]: %s -> %s "
+                                     "ipv6: len: %d",
+                                     m, eth_type, eth_src, eth_dst,
                                      rte_be_to_cpu_16 (ipv6->payload_len));
+                }
+              else
+                {
+                  DEBUG_SDPLANE_LOG (PACKET, "m: %p ether[%#hx]: %s -> %s",
+                                     m, eth_type, eth_src, eth_dst);
                 }
 
               for (j = 0; j < FDB_SIZE; j++)

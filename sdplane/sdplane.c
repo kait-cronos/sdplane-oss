@@ -199,7 +199,7 @@ CLI_COMMAND2 (show_rcu, "show rcu",
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
   extern uint64_t tap_handler_rcu_replace;
-  fprintf (t, "tap_handerl_rcu_replace: %'llu%s",
+  fprintf (t, "tap_handler_rcu_replace: %'llu%s",
            tap_handler_rcu_replace, shell->NL);
 }
 

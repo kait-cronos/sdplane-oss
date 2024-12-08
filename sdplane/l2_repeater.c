@@ -27,6 +27,8 @@
 #include "sdplane.h"
 #include "tap_handler.h"
 
+__thread  unsigned lcore_id;
+
 static void
 l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
 {
@@ -34,6 +36,10 @@ l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
   uint16_t nb_ports;
   int tx_portid;
   int sent;
+  struct rte_mbuf *c;
+
+  DEBUG_SDPLANE_LOG (L2_REPEATER, "m: %p thread[%d] from port %d",
+                     m, lcore_id, rx_portid);
 
   nb_ports = rte_eth_dev_count_avail ();
   for (tx_portid = 0; tx_portid < nb_ports; tx_portid++)
@@ -45,10 +51,19 @@ l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
       if (! buffer)
         continue;
 
-      sent = rte_eth_tx_buffer (tx_portid, 0, buffer, m);
-      if (sent)
-        port_statistics[tx_portid].tx += sent;
+      c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+      if (c)
+        {
+          sent = rte_eth_tx_buffer (tx_portid, 0, buffer, c);
+          if (sent)
+            port_statistics[tx_portid].tx += sent;
+          DEBUG_SDPLANE_LOG (L2_REPEATER,
+                             "m: %p thread[%d] c: %p tx to port %d",
+                             m, lcore_id, c, tx_portid);
+        }
     }
+
+  rte_pktmbuf_free (m);
 }
 
 int
@@ -57,13 +72,15 @@ l2_repeater (__rte_unused void *dummy)
   struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
   struct rte_mbuf *m;
   int sent;
-  unsigned lcore_id;
   uint64_t prev_tsc, diff_tsc, cur_tsc;
   unsigned i, j, portid, nb_rx;
   struct lcore_queue_conf *qconf;
   const uint64_t drain_tsc =
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
   struct rte_eth_dev_tx_buffer *buffer;
+
+  uint16_t nb_ports;
+  int tx_portid;
 
   uint64_t loop_counter = 0;
 
@@ -75,11 +92,11 @@ l2_repeater (__rte_unused void *dummy)
 
   if (qconf->n_rx_port == 0)
     {
-      DEBUG_SDPLANE_LOG (TAPHANDLER, "lcore %u has nothing to do.", lcore_id);
+      DEBUG_SDPLANE_LOG (L2_REPEATER, "lcore %u has nothing to do.", lcore_id);
       return 0;
     }
 
-  DEBUG_SDPLANE_LOG (TAPHANDLER, "entering main loop on lcore %u", lcore_id);
+  DEBUG_SDPLANE_LOG (L2_REPEATER, "entering main loop on lcore %u", lcore_id);
 
   while (! force_quit && ! force_stop[lcore_id])
     {
@@ -88,14 +105,25 @@ l2_repeater (__rte_unused void *dummy)
       diff_tsc = cur_tsc - prev_tsc;
       if (unlikely (diff_tsc > drain_tsc))
         {
-          for (i = 0; i < qconf->n_rx_port; i++)
+          nb_ports = rte_eth_dev_count_avail ();
+          for (tx_portid = 0; tx_portid < nb_ports; tx_portid++)
             {
-              /* l2_repeater flushes(tx) only on its corresponding rx-ports. */
-              portid = qconf->rx_port_list[i];
+              portid = tx_portid;
+              if (portid == 2)
+                continue;
+              if (portid == qconf->rx_port_list[0])
+                continue;
               buffer = tx_buffer[portid];
-              sent = rte_eth_tx_buffer_flush (portid, 0, buffer);
+              sent = 0;
+              if (buffer)
+                sent = rte_eth_tx_buffer_flush (portid, 0, buffer);
               if (sent)
-                port_statistics[portid].tx += sent;
+                {
+                  port_statistics[portid].tx += sent;
+                  DEBUG_SDPLANE_LOG (L2_REPEATER,
+                                 "tx_buffer_flush(): port %d, sent: %d",
+                                 tx_portid, sent);
+                }
             }
 
           prev_tsc = cur_tsc;
@@ -114,6 +142,7 @@ l2_repeater (__rte_unused void *dummy)
             {
               m = pkts_burst[j];
               rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
+
               if (enable_tap_copy)
                 l2fwd_copy_to_tap_ring (m, portid);
 

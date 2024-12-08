@@ -35,6 +35,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_FDB_CHANGE, "fdb-change" },
   { DEBUG_SDPLANE_RCU_READ, "rcu-read" },
   { DEBUG_SDPLANE_RCU_WRITE, "rcu-write" },
+  { DEBUG_SDPLANE_L2_REPEATER, "l2-repeater" },
 };
 
 struct command_header debug_sdplane_cmd;
