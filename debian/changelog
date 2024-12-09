@@ -1,3 +1,11 @@
+sdplane (0.1.1-14) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sdplane.conf.sample to enable l2-repeater.
+  * set_port_dev_configure and tx_buffer_per_q[][] for multiple core threads' tx to multiple queues on ports.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 10 Dec 2024 01:16:40 +0900
+
 sdplane (0.1.1-11) UNRELEASED; urgency=low
 
   * release. update changelog.
