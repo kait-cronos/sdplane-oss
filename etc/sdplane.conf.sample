@@ -1,9 +1,12 @@
 
-set l3fwd argv -c 0xf -- -p 0x3 --config="(0,0,1),(1,0,2)"
-l3fwd init
-
+log file /var/log/sdplane.log
+# debug sdplane tap-handler
 # debug shell
 # debug sdplane telnet-opt
+debug sdplane fdb-change
+
+set l3fwd argv -c 0xf -- -p 0x3 --config="(0,0,1),(1,0,2)"
+l3fwd init
 
 set worker lcore 1 l2fwd
 set worker lcore 2 l2fwd
@@ -12,6 +15,10 @@ set l2fwd l2fwd_enabled_port_mask 0x3
 set l2fwd l2fwd_rx_queue_per_lcore 1
 stop port all
 l2fwd init
+stop port all
+set port all dev-configure 1 4
+set worker lcore 1 l2-repeater
+set worker lcore 2 l2-repeater
 start worker lcore all
 set port all promiscuous enable
-
+start port all
