@@ -29,6 +29,10 @@
 
 __thread  unsigned lcore_id;
 
+uint64_t l2_repeat_pkt_copy_failure = 0;
+
+struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+
 static void
 l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
 {
@@ -37,6 +41,7 @@ l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
   int tx_portid;
   int sent;
   struct rte_mbuf *c;
+  uint16_t tx_queueid;
 
   DEBUG_SDPLANE_LOG (L2_REPEATER, "m: %p thread[%d] from port %d",
                      m, lcore_id, rx_portid);
@@ -47,19 +52,29 @@ l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
       if (rx_portid == tx_portid)
         continue;
 
-      buffer = tx_buffer[tx_portid];
+      buffer = tx_buffer_per_q[tx_portid][lcore_id];
       if (! buffer)
         continue;
 
+      /* copy the packet */
       c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
       if (c)
         {
-          sent = rte_eth_tx_buffer (tx_portid, 0, buffer, c);
+          /* send the packet-copy */
+          tx_queueid = lcore_id;
+          sent = rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, c);
           if (sent)
             port_statistics[tx_portid].tx += sent;
           DEBUG_SDPLANE_LOG (L2_REPEATER,
                              "m: %p thread[%d] c: %p tx to port %d",
                              m, lcore_id, c, tx_portid);
+        }
+      else
+        {
+          l2_repeat_pkt_copy_failure++;
+          DEBUG_SDPLANE_LOG (L2_REPEATER,
+                             "m: %p thread[%d] c: failed for tx to port %d",
+                             m, lcore_id, tx_portid);
         }
     }
 
@@ -113,10 +128,10 @@ l2_repeater (__rte_unused void *dummy)
                 continue;
               if (portid == qconf->rx_port_list[0])
                 continue;
-              buffer = tx_buffer[portid];
+              buffer = tx_buffer_per_q[portid][lcore_id];
               sent = 0;
               if (buffer)
-                sent = rte_eth_tx_buffer_flush (portid, 0, buffer);
+                sent = rte_eth_tx_buffer_flush (portid, lcore_id, buffer);
               if (sent)
                 {
                   port_statistics[portid].tx += sent;

@@ -531,6 +531,114 @@ CLI_COMMAND2 (
     }
 }
 
+extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+
+CLI_COMMAND2 (set_port_dev_configure,
+              "set port (<0-16>|all) dev-configure <0-64> <0-64>",
+              SHOW_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP,
+              ALL_HELP,
+              "rte_eth_dev_configure.\n",
+              "nb_rx_queue.\n",
+              "nb_tx_queue.\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  int port_spec = -1;
+  uint16_t port_id, nb_ports;
+
+  int ret;
+  struct rte_eth_dev_info dev_info;
+  struct rte_eth_conf port_conf =
+    { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, }, };
+
+  uint16_t nb_rx_queue = 1;
+  uint16_t nb_tx_queue = 1;
+
+  int i;
+  struct rte_eth_rxconf rxq_conf;
+  struct rte_eth_txconf txq_conf;
+
+  const uint16_t nb_rxd = RX_DESC_DEFAULT;
+  const uint16_t nb_txd = TX_DESC_DEFAULT;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_rx_queue = strtol (argv[4], NULL, 0);
+  nb_tx_queue = strtol (argv[5], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      ret = rte_eth_dev_info_get (port_id, &dev_info);
+      if (ret != 0)
+        {
+          fprintf (shell->terminal,
+                   "rte_eth_dev_info_get(): port: %d failed: %s%s",
+                   port_id, strerror (-ret), shell->NL);
+          continue;
+        }
+      if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE)
+        port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
+
+      ret = rte_eth_dev_configure (port_id, nb_rx_queue, nb_tx_queue,
+                                   &port_conf);
+      if (ret < 0)
+        {
+          fprintf (shell->terminal,
+                   "rte_eth_dev_info_get(): port: %d failed: %d%s",
+                   port_id, ret, shell->NL);
+        }
+
+      rxq_conf = dev_info.default_rxconf;
+      rxq_conf.offloads = port_conf.rxmode.offloads;
+      for (i = 0; i < nb_rx_queue; i++)
+        {
+          ret = rte_eth_rx_queue_setup (port_id, i, nb_rxd,
+                                        rte_eth_dev_socket_id (port_id),
+                                        &rxq_conf,
+                                        l2fwd_pktmbuf_pool);
+          if (ret < 0)
+            {
+              fprintf (shell->terminal,
+                       "rte_eth_rx_queue_setup(): "
+                       "port: %d queue: %d failed: %d%s",
+                       port_id, i, ret, shell->NL);
+            }
+        }
+
+      txq_conf = dev_info.default_txconf;
+      txq_conf.offloads = port_conf.txmode.offloads;
+      for (i = 0; i < nb_tx_queue; i++)
+        {
+          ret = rte_eth_tx_queue_setup (port_id, i, nb_txd,
+                                        rte_eth_dev_socket_id (port_id),
+                                        &txq_conf);
+          if (ret < 0)
+            {
+              fprintf (shell->terminal,
+                       "rte_eth_tx_queue_setup(): "
+                       "port: %d queue: %d failed: %d%s",
+                       port_id, i, ret, shell->NL);
+            }
+
+          if (tx_buffer_per_q[port_id][i])
+            continue;
+
+          tx_buffer_per_q[port_id][i] =
+            rte_zmalloc_socket ("tx_buffer",
+                                RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
+                                rte_eth_dev_socket_id (port_id));
+          rte_eth_tx_buffer_init (tx_buffer_per_q[port_id][i], MAX_PKT_BURST);
+        }
+    }
+}
+
 void
 dpdk_port_cmd_init (struct command_set *cmdset)
 {
@@ -541,4 +649,5 @@ dpdk_port_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_port_flowcontrol);
   INSTALL_COMMAND2 (cmdset, set_port_promiscuous);
   INSTALL_COMMAND2 (cmdset, set_port_flowcontrol);
+  INSTALL_COMMAND2 (cmdset, set_port_dev_configure);
 }
