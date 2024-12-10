@@ -965,9 +965,9 @@ DEFINE_COMMAND (list_keymaps, "list keymaps",
 }
 
 DEFINE_COMMAND (set_pager, "(set|no|) pager",
-                "set.\n"
-                "no.\n"
-                "pager.\n")
+                "set command.\n"
+                "no command.\n"
+                "pager command.\n")
 {
   struct shell *shell = (struct shell *) context;
   bool value = false;
@@ -982,6 +982,10 @@ DEFINE_COMMAND (set_pager, "(set|no|) pager",
     value = true;
   DEBUG_ZCMDSH_LOG (PAGER, "pager: %d", (int) value);
   shell->pager = value;
+  if (value == true)
+    fprintf (shell->terminal, "pager enabled.%s", shell->NL);
+  else
+    fprintf (shell->terminal, "pager disabled.%s", shell->NL);
 }
 
 DEFINE_COMMAND (set_pager_command, "set pager <FILE> (|<LINE>)",

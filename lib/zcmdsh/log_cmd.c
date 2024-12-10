@@ -43,11 +43,13 @@ DEFINE_COMMAND (show_logging, "show logging",
            shell->NL);
 }
 
-DEFINE_COMMAND (log_cmd, "(|no) log (syslog|stdout|stderr)",
-                NO_HELP "logging information.\n"
-                        "log to syslog.\n"
-                        "log to stdout.\n"
-                        "log to stderr.\n")
+DEFINE_COMMAND (log_cmd,
+                "(|no) log (syslog|stdout|stderr)",
+                NO_HELP
+                "logging information.\n"
+                "log to syslog.\n"
+                "log to stdout.\n"
+                "log to stderr.\n")
 {
   struct shell *shell = (struct shell *) context;
   int negate = 0;

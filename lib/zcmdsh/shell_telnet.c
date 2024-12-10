@@ -424,6 +424,7 @@ vty_shell_keyfunc_sb_end (struct shell *shell)
         }
     }
   fflush (shell->terminal);
+  shell_refresh (shell);
 }
 
 void
