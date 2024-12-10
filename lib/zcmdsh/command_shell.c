@@ -2,10 +2,14 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#define _GNU_SOURCE // for ppoll()
+//#define _GNU_SOURCE // for ppoll()
 #include <includes.h>
 #include <poll.h>
 #include <stdbool.h>
+
+#if HAVE_UTIL_H
+#include <util.h> // for openpty()
+#endif /*HAVE_UTIL_H*/
 
 #include "debug.h"
 #include "log.h"
@@ -277,7 +281,9 @@ timer_check ()
 }
 
 #include <poll.h>
+#if HAVE_PTY_H
 #include <pty.h>
+#endif /*HAVE_PTY_H*/
 #include <signal.h>
 
 #define DEFAULT_PAGER_ARG0 "/usr/bin/less"
@@ -458,8 +464,12 @@ pager_end (struct shell *shell)
       fds[0].events |= POLLIN;
       fds[1].fd = shell->pty_master;
       fds[1].events |= POLLIN;
+#if HAVE_PPOLL
       // DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll()");
       ret = ppoll (fds, nfds, NULL, NULL);
+#else
+      ret = poll (fds, nfds, 0);
+#endif /*HAVE_PPOLL*/
       if (ret < 0)
         {
           DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d: %s", ret,
