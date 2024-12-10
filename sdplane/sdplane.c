@@ -203,6 +203,59 @@ CLI_COMMAND2 (show_rcu, "show rcu",
            tap_handler_rcu_replace, shell->NL);
 }
 
+CLI_COMMAND2 (show_fdb, "show fdb",
+              SHOW_HELP, "show fdb-information.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  int i;
+  char buf[32];
+  for (i = 0; i < FDB_SIZE; i++)
+    {
+      rte_ether_format_addr (buf, sizeof (buf), &fdb[i].l2addr);
+      if (! rte_is_zero_ether_addr (&fdb[i].l2addr))
+        fprintf (t, "fdb[%d]: %s port %d%s",
+                 i, buf, fdb[i].port, shell->NL);
+    }
+}
+
+CLI_COMMAND2 (show_vswitch, "show vswitch",
+              SHOW_HELP, "show vswitch-information.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  struct vswitch *vswitch = &vswitch0;
+  struct vswitch_port *vport;
+  char *type_str;
+  int i;
+  for (i = 0; i < vswitch->size; i++)
+    {
+      vport = &vswitch->port[i];
+      type_str = NULL;
+      switch (vport->type)
+        {
+        case VSWITCH_PORT_TYPE_NONE:
+          type_str = "none";
+          break;
+        case VSWITCH_PORT_TYPE_DPDK_LCORE:
+          type_str = "dpdk-port";
+          break;
+        case VSWITCH_PORT_TYPE_LINUX_TAP:
+          type_str = "linux-tap";
+          break;
+        default:
+          type_str = "unknown";
+          break;
+        }
+      fprintf (t, "vswitch[%d]: %9s %s sock: %d lcore: %d ring[%p/%p]%s",
+               vport->id, type_str, vport->name, vport->sockfd,
+               vport->lcore_id,
+               vport->ring[TAPDIR_UP], vport->ring[TAPDIR_DOWN],
+               shell->NL);
+    }
+}
+
+
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
 
@@ -217,6 +270,8 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_version);
   INSTALL_COMMAND2 (cmdset, show_thread_counter);
   INSTALL_COMMAND2 (cmdset, show_rcu);
+  INSTALL_COMMAND2 (cmdset, show_fdb);
+  INSTALL_COMMAND2 (cmdset, show_vswitch);
   thread_info_cmd_init (cmdset);
 }
 

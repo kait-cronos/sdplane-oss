@@ -43,9 +43,6 @@ struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
 __thread struct rte_ring *thread_ring_to_tap;
 __thread struct rte_ring *thread_ring_from_tap;
 
-#define TAPDIR_UP   0
-#define TAPDIR_DOWN 1
-#define TAPDIR_SIZE 2
 struct rte_ring *tap_ring_lcore_dir[RTE_MAX_LCORE][TAPDIR_SIZE];
 
 bool enable_tap_copy = true;
@@ -144,27 +141,8 @@ tap_admin_up (char *ifname)
     }
 }
 
-#define VSWITCH_PORT_TYPE_NONE       0
-#define VSWITCH_PORT_TYPE_DPDK_LCORE 1
-#define VSWITCH_PORT_TYPE_LINUX_TAP  2
-
-struct vswitch_port
-{
-  uint8_t id;
-  uint8_t type;
-  char *name;
-  int sockfd;
-  int lcore_id;
-  struct rte_ring *ring[TAPDIR_SIZE];
-};
-
-#define VSWITCH_PORT_SIZE 16
-struct vswitch
-{
-  int limit;
-  int size;
-  struct vswitch_port port[VSWITCH_PORT_SIZE];
-};
+struct vswitch vswitch0;
+struct fdb_entry fdb[FDB_SIZE];
 
 int
 tap_handler (__rte_unused void *dummy)
@@ -180,7 +158,6 @@ tap_handler (__rte_unused void *dummy)
   unsigned lcore_id;
   struct rte_ring *tap_ring;
 
-  struct vswitch vswitch0;
   struct vswitch *vswitch;
 
   struct vswitch_port *vswport;
@@ -259,14 +236,7 @@ tap_handler (__rte_unused void *dummy)
         }
     }
 
-#define FDB_SIZE 16
   int i, j;
-  struct fdb_entry
-  {
-    struct rte_ether_addr l2addr;
-    int port;
-  };
-  struct fdb_entry fdb[FDB_SIZE];
   memset (fdb, 0, sizeof (fdb));
 
   DEBUG_SDPLANE_LOG (TAPHANDLER, "start main loop on lcore[%d].",
@@ -344,6 +314,7 @@ tap_handler (__rte_unused void *dummy)
                                      m, eth_type, eth_src, eth_dst);
                 }
 
+              /* register in FDB */
               for (j = 0; j < FDB_SIZE; j++)
                 {
                   if (rte_is_zero_ether_addr (&fdb[j].l2addr))
@@ -367,9 +338,10 @@ tap_handler (__rte_unused void *dummy)
                   char buf[32];
                   rte_ether_format_addr (buf, sizeof (buf), &fdb[j].l2addr);
                   DEBUG_SDPLANE_LOG (FDB, "m: %p fdb[%d]: addr: %s port: %d",
-                                     m, j, buf, fdb[i].port);
+                                     m, j, buf, fdb[j].port);
                 }
 
+              /* write to peek0 for packet capture. */
               if (peek_fd >= 0)
                 {
                   ret = write (peek_fd, pkt, data_len);
@@ -384,6 +356,7 @@ tap_handler (__rte_unused void *dummy)
                         data_len, pkt_len, m->port);
                 }
 
+              /* write to port-dpdkX. */
               if (port_fd[m->port] >= 0)
                 {
                   ret = write (port_fd[m->port], pkt, data_len);

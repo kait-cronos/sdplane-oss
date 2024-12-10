@@ -18,6 +18,41 @@ struct lcore_worker
 };
 extern struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 
+#define VSWITCH_PORT_TYPE_NONE       0
+#define VSWITCH_PORT_TYPE_DPDK_LCORE 1
+#define VSWITCH_PORT_TYPE_LINUX_TAP  2
+
+#define TAPDIR_UP   0
+#define TAPDIR_DOWN 1
+#define TAPDIR_SIZE 2
+
+struct vswitch_port
+{
+  uint8_t id;
+  uint8_t type;
+  char *name;
+  int sockfd;
+  int lcore_id;
+  struct rte_ring *ring[TAPDIR_SIZE];
+};
+
+#define VSWITCH_PORT_SIZE 16
+struct vswitch
+{
+  int limit;
+  int size;
+  struct vswitch_port port[VSWITCH_PORT_SIZE];
+};
+extern struct vswitch vswitch0;
+
+#define FDB_SIZE 16
+struct fdb_entry
+{
+  struct rte_ether_addr l2addr;
+  int port;
+};
+extern struct fdb_entry fdb[FDB_SIZE];
+
 // #define SHOW_HELP "show information\n"
 #define CLEAR_HELP        "clear information\n"
 #define SET_HELP          "set information\n"
