@@ -40,6 +40,10 @@
 #include <rte_mbuf.h>
 #include <rte_string_fns.h>
 
+#if HAVE_LIBURCU_QSBR
+#include <urcu/urcu-qsbr.h>
+#endif /*HAVE_LIBURCU_QSBR*/
+
 #include "tap_handler.h"
 #include "rte_override.h"
 
@@ -52,10 +56,6 @@
 #include "stat_collector.h"
 
 #include "l2fwd_export.h"
-
-#if HAVE_LIBURCU_QSBR
-#include <urcu/urcu-qsbr.h>
-#endif /*HAVE_LIBURCU_QSBR*/
 
 extern volatile bool force_quit;
 

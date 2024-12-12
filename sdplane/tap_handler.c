@@ -7,6 +7,10 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 
+#if HAVE_LIBURCU_QSBR
+#include <urcu/urcu-qsbr.h>
+#endif /*HAVE_LIBURCU_QSBR*/
+
 #include <zcmdsh/debug.h>
 #include <zcmdsh/termio.h>
 #include <zcmdsh/vector.h>
@@ -28,10 +32,6 @@
 #include "l2fwd_cmd.h"
 
 #include "sdplane.h"
-
-#if HAVE_LIBURCU_QSBR
-#include <urcu/urcu-qsbr.h>
-#endif /*HAVE_LIBURCU_QSBR*/
 
 void *rcu_global_ptr;
 uint64_t tap_handler_rcu_replace = 0;

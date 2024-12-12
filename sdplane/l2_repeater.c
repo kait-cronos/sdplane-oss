@@ -16,6 +16,10 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 
+#if HAVE_LIBURCU_QSBR
+#include <urcu/urcu-qsbr.h>
+#endif /*HAVE_LIBURCU_QSBR*/
+
 #include <zcmdsh/command.h>
 
 #include <zcmdsh/debug_log.h>
@@ -111,6 +115,10 @@ l2_repeater (__rte_unused void *dummy)
       return 0;
     }
 
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_register_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
   DEBUG_SDPLANE_LOG (L2_REPEATER, "entering main loop on lcore %u", lcore_id);
 
   while (! force_quit && ! force_stop[lcore_id])
@@ -167,6 +175,21 @@ l2_repeater (__rte_unused void *dummy)
             }
         }
 
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_read_lock ();
+      char *shared;
+      extern void *rcu_global_ptr;
+      shared = (char *) rcu_dereference (rcu_global_ptr);
+      DEBUG_SDPLANE_LOG (RCU_READ, "rcu: thread[%d]: read: %p: %s",
+                         lcore_id, shared, shared);
+      urcu_qsbr_read_unlock ();
+      urcu_qsbr_quiescent_state ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
       loop_counter++;
     }
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_unregister_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
 }
