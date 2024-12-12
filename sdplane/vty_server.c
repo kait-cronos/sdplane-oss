@@ -4,6 +4,7 @@
 
 #include <rte_common.h>
 #include <rte_launch.h>
+#include <rte_ether.h>
 
 #include <zcmdsh/shell.h>
 #include <zcmdsh/command.h>

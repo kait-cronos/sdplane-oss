@@ -1,6 +1,7 @@
 #ifndef __SOFT_DPLANE_H__
 #define __SOFT_DPLANE_H__
 
+#include <rte_ether.h>
 #include <zcmdsh/shell.h>
 
 #define L3FWD_ARGV_MAX 16

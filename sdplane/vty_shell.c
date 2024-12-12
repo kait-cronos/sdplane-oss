@@ -7,6 +7,7 @@
 
 #include <rte_common.h>
 #include <rte_launch.h>
+#include <rte_ether.h>
 
 #include <zcmdsh/shell.h>
 #include <zcmdsh/shell_keyfunc.h>
@@ -24,6 +25,7 @@
 #include "debug_sdplane.h"
 
 #include "sdplane.h"
+#include "thread_info.h"
 #include "l2fwd_cmd.h"
 #include "l3fwd_cmd.h"
 
