@@ -74,10 +74,12 @@ per_thread_tap_ring_init ()
   tap_ring_lcore_dir[lcore_id][TAPDIR_UP] = thread_ring_to_tap;
   tap_ring_lcore_dir[lcore_id][TAPDIR_DOWN] = thread_ring_from_tap;
 
+  int i;
   struct lcore_queue_conf *qconf;
   qconf = &lcore_queue_conf[lcore_id];
   for (i = 0; i < qconf->n_rx_port; i++)
     {
+      port_id = qconf->rx_port_list[i];
     }
 }
 
