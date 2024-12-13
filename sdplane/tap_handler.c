@@ -45,6 +45,11 @@ __thread struct rte_ring *thread_ring_from_tap;
 
 struct rte_ring *tap_ring_lcore_dir[RTE_MAX_LCORE][TAPDIR_SIZE];
 
+/* tx/rx is to the ring represented by rxq_id. */
+/* ring_up/dn[port_id][rx_queue_id]; */
+struct rte_ring *ring_up[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+struct rte_ring *ring_dn[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+
 bool enable_tap_copy = true;
 
 int port_fd[RTE_MAX_ETHPORTS];
@@ -68,6 +73,12 @@ per_thread_tap_ring_init ()
 
   tap_ring_lcore_dir[lcore_id][TAPDIR_UP] = thread_ring_to_tap;
   tap_ring_lcore_dir[lcore_id][TAPDIR_DOWN] = thread_ring_from_tap;
+
+  struct lcore_queue_conf *qconf;
+  qconf = &lcore_queue_conf[lcore_id];
+  for (i = 0; i < qconf->n_rx_port; i++)
+    {
+    }
 }
 
 int

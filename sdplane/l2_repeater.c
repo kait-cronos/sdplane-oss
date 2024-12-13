@@ -132,12 +132,7 @@ l2_repeater (__rte_unused void *dummy)
           for (tx_portid = 0; tx_portid < nb_ports; tx_portid++)
             {
               portid = tx_portid;
-#if 0
-              if (portid == 2)
-                continue;
-              if (portid == qconf->rx_port_list[0])
-                continue;
-#endif
+
               buffer = tx_buffer_per_q[portid][lcore_id];
               sent = 0;
               if (buffer)
