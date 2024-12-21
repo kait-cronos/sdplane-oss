@@ -22,6 +22,7 @@
 
 #include <lthread.h>
 #include "thread_info.h"
+#include "queue_config.h"
 
 CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 {
@@ -273,6 +274,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_fdb);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   thread_info_cmd_init (cmdset);
+  queue_config_cmd_init (cmdset);
 }
 
 extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];

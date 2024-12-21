@@ -70,6 +70,9 @@ extern struct fdb_entry fdb[FDB_SIZE];
 #define PORT_NUMBER_HELP "specify port number\n"
 #define PORT_ALL_HELP    "do for all ports\n"
 
+#define QUEUE_HELP       "queue information\n"
+#define QUEUE_NUMBER_HELP "specify queue number\n"
+
 #define ALL_HELP  "all variables\n"
 #define VARS_HELP "all variables\n"
 
