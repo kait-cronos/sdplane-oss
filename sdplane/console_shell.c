@@ -38,6 +38,7 @@
 #include <zcmdsh/termio.h>
 #include <zcmdsh/vector.h>
 #include <zcmdsh/shell.h>
+#include <zcmdsh/shell_keyfunc.h>
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/log_cmd.h>
@@ -112,8 +113,12 @@ console_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, debug_sdplane);
   INSTALL_COMMAND2 (shell->cmdset, show_debug_sdplane);
 
-  INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
+  shell_escape_keyfunc_init (shell);
+
+  /* clear_cmd doesn't work fine with pager. */
+  // INSTALL_COMMAND2 (shell->cmdset, clear_cmd);
   shell_install (shell, CONTROL ('L'), shell_keyfunc_clear_terminal);
+  shell_install (shell, 0x7f, shell_keyfunc_delete_char_advanced);
 
   log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
