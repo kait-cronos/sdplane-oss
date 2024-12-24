@@ -18,7 +18,7 @@ struct sdplane_queue_conf {
   struct port_queue_conf tx_queue_list[MAX_TX_QUEUE_PER_LCORE];
 } __rte_cache_aligned;
 
-struct sdplane_queue_conf thread_qconf[RTE_MAX_LCORE];
+extern struct sdplane_queue_conf thread_qconf[RTE_MAX_LCORE];
 
 EXTERN_COMMAND (set_thread_lcore_port_queue);
 

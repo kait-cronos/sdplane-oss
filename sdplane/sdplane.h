@@ -101,4 +101,6 @@ int lthread_main (__rte_unused void *dummy);
 void sdplane_cmd_init (struct command_set *cmdset);
 void sdplane_init ();
 
+extern struct rte_ring *msg_queue_rib;
+
 #endif /*__SOFT_DPLANE_H__*/

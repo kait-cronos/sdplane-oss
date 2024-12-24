@@ -9,9 +9,18 @@
 #include <zcmdsh/shell.h>
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
+#include <zcmdsh/log_cmd.h>
+#include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
 #include <zcmdsh/debug_cmd.h>
+#include <zcmdsh/debug_zcmdsh.h>
 
+#include "debug_sdplane.h"
+
+#include "queue_config.h"
 #include "sdplane.h"
+
+struct sdplane_queue_conf thread_qconf[RTE_MAX_LCORE];
 
 CLI_COMMAND2 (set_thread_lcore_port_queue,
               "set thread <0-128> port <0-128> queue <0-128>",
@@ -30,6 +39,11 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
   queue_id = (uint16_t) strtol (argv[6], NULL, 0);
   fprintf (shell->terminal, "lcore: %d port: %d rx-queue: %d%s",
            lcore_id, port_id, queue_id, shell->NL);
+
+  void *msgp;
+  msgp = malloc (4);
+  DEBUG_SDPLANE_LOG (RIB, "%s: sending message %p.", __func__, msgp);
+  rte_ring_enqueue (msg_queue_rib, msgp);
 }
 
 void

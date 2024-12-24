@@ -9,7 +9,12 @@
 #include <zcmdsh/shell.h>
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
+#include <zcmdsh/log_cmd.h>
+#include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
 #include <zcmdsh/debug_cmd.h>
+#include <zcmdsh/debug_zcmdsh.h>
+#include "debug_sdplane.h"
 
 #include "l3fwd.h"
 #include "l2fwd_export.h"
@@ -43,6 +48,7 @@ start_lcore (struct shell *shell, int lcore_id)
 
   rte_eal_remote_launch (lcore_workers[lcore_id].func,
                          lcore_workers[lcore_id].arg, lcore_id);
+  DEBUG_SDPLANE_LOG (THREAD, "started worker on lcore: %d.", lcore_id);
   fprintf (shell->terminal, "started worker on lcore: %d\n", lcore_id);
 }
 
@@ -50,6 +56,7 @@ void
 stop_lcore (struct shell *shell, int lcore_id)
 {
   fprintf (shell->terminal, "stopping worker on lcore: %d\n", lcore_id);
+  DEBUG_SDPLANE_LOG (THREAD, "stopping worker on lcore: %d.", lcore_id);
   force_stop[lcore_id] = true;
 
   if (lcore_id == rte_lcore_id ())

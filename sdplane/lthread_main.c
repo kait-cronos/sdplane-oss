@@ -64,6 +64,7 @@ int startup_config (__rte_unused void *dummy);
 void console_shell (void *arg);
 int stat_collector (__rte_unused void *dummy);
 void vty_server (void *arg);
+void rib_manager (void *arg);
 
 int
 lthread_main (__rte_unused void *dummy)
@@ -102,12 +103,16 @@ lthread_main (__rte_unused void *dummy)
   thread_register (lthread_core, lt, startup_config, "startup_config", NULL);
   lthread_join (lt, NULL, 0);
 
-  lthread_create (&lt, (lthread_func) console_shell, NULL);
-  thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
+  lthread_create (&lt, (lthread_func) rib_manager, NULL);
+  thread_register (lthread_core, lt, rib_manager, "rib_manager", NULL);
   lthread_detach2 (lt);
 
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
   thread_register (lthread_core, lt, stat_collector, "stat_collector", NULL);
+  lthread_detach2 (lt);
+
+  lthread_create (&lt, (lthread_func) console_shell, NULL);
+  thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
   lthread_detach2 (lt);
 
   // lthread_create (&lt, (lthread_func) tap_handler, NULL);

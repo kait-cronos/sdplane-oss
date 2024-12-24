@@ -36,6 +36,8 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_RCU_READ, "rcu-read" },
   { DEBUG_SDPLANE_RCU_WRITE, "rcu-write" },
   { DEBUG_SDPLANE_L2_REPEATER, "l2-repeater" },
+  { DEBUG_SDPLANE_THREAD, "thread" },
+  { DEBUG_SDPLANE_RIB, "rib" },
 };
 
 struct command_header debug_sdplane_cmd;

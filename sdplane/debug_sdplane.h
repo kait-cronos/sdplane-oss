@@ -20,6 +20,8 @@
 #define DEBUG_SDPLANE_RCU_READ       (1ULL << 14)
 #define DEBUG_SDPLANE_RCU_WRITE      (1ULL << 15)
 #define DEBUG_SDPLANE_L2_REPEATER    (1ULL << 16)
+#define DEBUG_SDPLANE_THREAD         (1ULL << 17)
+#define DEBUG_SDPLANE_RIB            (1ULL << 18)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)
