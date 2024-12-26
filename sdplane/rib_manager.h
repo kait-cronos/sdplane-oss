@@ -5,6 +5,9 @@
 
 struct rib {
   struct sdplane_queue_conf qconf[RTE_MAX_LCORE];
-};
+} __rte_cache_aligned;
+
+extern void *rcu_global_ptr_rib;
+extern uint64_t rib_rcu_replace;
 
 #endif /*__RIB_MANAGER_H__*/

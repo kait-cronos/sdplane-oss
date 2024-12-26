@@ -31,6 +31,10 @@
 #include "sdplane.h"
 #include "tap_handler.h"
 
+#include "rib_manager.h"
+
+static __thread struct rib *rib;
+
 __thread  unsigned lcore_id;
 
 uint64_t l2_repeat_pkt_copy_failure = 0;
@@ -123,10 +127,21 @@ l2_repeater_rx_burst ()
 
   qconf = &lcore_queue_conf[lcore_id];
 
+#if 0
   for (i = 0; i < qconf->n_rx_port; i++)
     {
+      uint16_t queueid = 0;
       portid = qconf->rx_port_list[i];
-      nb_rx = rte_eth_rx_burst (portid, 0, pkts_burst, MAX_PKT_BURST);
+#else
+  struct sdplane_queue_conf *sdplane_qconf;
+  sdplane_qconf = &rib->qconf[lcore_id];
+  for (i = 0; i < sdplane_qconf->nrxq; i++)
+    {
+      uint16_t queueid;
+      portid = sdplane_qconf->rx_queue_list[i].port_id;
+      queueid = sdplane_qconf->rx_queue_list[i].queue_id;
+#endif
+      nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
       if (unlikely (nb_rx == 0))
         continue;
 
@@ -184,6 +199,13 @@ l2_repeater (__rte_unused void *dummy)
     {
       cur_tsc = rte_rdtsc ();
 
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_read_lock ();
+      rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
+      if (! rib)
+        continue;
+#endif /*HAVE_LIBURCU_QSBR*/
+
       diff_tsc = cur_tsc - prev_tsc;
       if (unlikely (diff_tsc > drain_tsc))
         {
@@ -195,12 +217,6 @@ l2_repeater (__rte_unused void *dummy)
       l2_repeater_tx_burst ();
 
 #if HAVE_LIBURCU_QSBR
-      urcu_qsbr_read_lock ();
-      char *shared;
-      extern void *rcu_global_ptr;
-      shared = (char *) rcu_dereference (rcu_global_ptr);
-      DEBUG_SDPLANE_LOG (RCU_READ, "rcu: thread[%d]: read: %p: %s",
-                         lcore_id, shared, shared);
       urcu_qsbr_read_unlock ();
       urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/

@@ -32,7 +32,27 @@ struct rte_ring *msg_queue_rib;
 void *rcu_global_ptr_rib;
 uint64_t rib_rcu_replace = 0;
 
-struct rib *rib;
+static __thread struct rib *rib;
+
+void
+rcu_replace (void *new)
+{
+  void *old;
+  old = rcu_dereference (rcu_global_ptr_rib);
+
+  /* assign new */
+  rcu_assign_pointer (rcu_global_ptr_rib, new);
+  DEBUG_SDPLANE_LOG (RIB, "rcu: rib: assign new: %'llu: %p",
+                     rib_rcu_replace, new);
+
+  /* reclaim old */
+  urcu_qsbr_synchronize_rcu ();
+  DEBUG_SDPLANE_LOG (RIB, "rcu: rib: free old: %'llu: %p",
+                     rib_rcu_replace, old);
+  free (old);
+
+  rib_rcu_replace++;
+}
 
 void
 rib_manager_recv_message (void *msgp)
@@ -41,23 +61,35 @@ rib_manager_recv_message (void *msgp)
 
 #if HAVE_LIBURCU_QSBR
   struct rib *new, *old;
-  new = malloc (sizeof (struct rib));
 
-  /* change something according to the update instruction message. */
-  free (msgp);
+  /* allocate new */
+  new = malloc (sizeof (struct rib));
+  if (! new)
+    return;
   rib = new;
 
+  /* retrieve old */
   old = rcu_dereference (rcu_global_ptr_rib);
+  memcpy (new, old, sizeof (struct rib));
 
-  rcu_assign_pointer (rcu_global_ptr_rib, new);
-  DEBUG_SDPLANE_LOG (RIB, "rcu: rib: assign new: %'llu: %p",
-                     rib_rcu_replace, new);
+  /* change something according to the update instruction message. */
+  struct stream_msg_qconf *msg_qconf;
+  msg_qconf = msgp;
+  memcpy (new->qconf, msg_qconf->qconf,
+          sizeof (struct sdplane_queue_conf) * RTE_MAX_LCORE);
+  free (msgp);
 
-  urcu_qsbr_synchronize_rcu ();
-  DEBUG_SDPLANE_LOG (RIB, "rcu: rib: free old: %'llu: %p",
-                     rib_rcu_replace, old);
-  free (old);
-  rib_rcu_replace++;
+#if 0
+  struct rib *zero;
+  zero = malloc (sizeof (struct rib));
+  if (zero)
+    {
+      memset (zero, 0, sizeof (struct rib));
+      rcu_replace (zero);
+    }
+#endif
+
+  rcu_replace (new);
 #endif /*HAVE_LIBURCU_QSBR*/
 }
 

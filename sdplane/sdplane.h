@@ -103,4 +103,10 @@ void sdplane_init ();
 
 extern struct rte_ring *msg_queue_rib;
 
+#include "queue_config.h"
+
+struct stream_msg_qconf {
+  struct sdplane_queue_conf qconf[RTE_MAX_LCORE];
+};
+
 #endif /*__SOFT_DPLANE_H__*/

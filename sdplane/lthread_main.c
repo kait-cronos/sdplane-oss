@@ -62,9 +62,49 @@ int lthread_core = 0;
 
 int startup_config (__rte_unused void *dummy);
 void console_shell (void *arg);
-int stat_collector (__rte_unused void *dummy);
 void vty_server (void *arg);
+
+int stat_collector (__rte_unused void *dummy);
 void rib_manager (void *arg);
+
+CLI_COMMAND2 (set_worker_lthread_stat_collector,
+              "set worker lthread stat-collector",
+              SET_HELP,
+              WORKER_HELP,
+              "lthread information\n",
+              "stat-collector\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) stat_collector, NULL);
+  thread_register (lthread_core, lt, stat_collector, "stat_collector", NULL);
+  lthread_detach2 (lt);
+}
+
+CLI_COMMAND2 (set_worker_lthread_rib_manager,
+              "set worker lthread rib-manager",
+              SET_HELP,
+              WORKER_HELP,
+              "lthread information\n",
+              "rib-manager\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) rib_manager, NULL);
+  thread_register (lthread_core, lt, rib_manager, "rib_manager", NULL);
+  lthread_detach2 (lt);
+}
+
+void
+lthread_cmd_init (struct command_set *cmdset)
+{
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_stat_collector);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_rib_manager);
+}
 
 int
 lthread_main (__rte_unused void *dummy)
@@ -98,25 +138,17 @@ lthread_main (__rte_unused void *dummy)
   debug_zcmdsh_cmd_init ();
   command_shell_init ();
 
-  void *ptr;
+  // lthread_create (&lt, (lthread_func) tap_handler, NULL);
+  lthread_create (&lt, (lthread_func) vty_server, NULL);
+  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
+  lthread_detach2 (lt);
+
   lthread_create (&lt, (lthread_func) startup_config, NULL);
   thread_register (lthread_core, lt, startup_config, "startup_config", NULL);
   lthread_join (lt, NULL, 0);
-
-  lthread_create (&lt, (lthread_func) rib_manager, NULL);
-  thread_register (lthread_core, lt, rib_manager, "rib_manager", NULL);
-  lthread_detach2 (lt);
-
-  lthread_create (&lt, (lthread_func) stat_collector, NULL);
-  thread_register (lthread_core, lt, stat_collector, "stat_collector", NULL);
-  lthread_detach2 (lt);
 
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
   lthread_detach2 (lt);
 
-  // lthread_create (&lt, (lthread_func) tap_handler, NULL);
-  lthread_create (&lt, (lthread_func) vty_server, NULL);
-  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
-  lthread_detach2 (lt);
 }

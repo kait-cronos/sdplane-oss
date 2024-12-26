@@ -259,6 +259,8 @@ CLI_COMMAND2 (show_vswitch, "show vswitch",
 
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
+void lthread_cmd_init (struct command_set *cmdset);
+void queue_config_cmd_init (struct command_set *cmdset);
 
 void
 sdplane_cmd_init (struct command_set *cmdset)
@@ -274,6 +276,8 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_fdb);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   thread_info_cmd_init (cmdset);
+  queue_config_cmd_init (cmdset);
+  lthread_cmd_init (cmdset);
   queue_config_cmd_init (cmdset);
 }
 
