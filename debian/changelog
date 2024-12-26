@@ -1,3 +1,13 @@
+sdplane (0.1.1-35) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sleep command.
+  * smarter set thread port queue command. add stream msg type: stream_msg_eth_link. update port link-status command. display re-format. rib_replace (2-stage).
+  * rib replace feature by rcu started to work. set worker lthread (stat-collector|rib-manager). internal message queue to rib-manager. (set|show) thread qconf.
+  * rib_manager.[ch].
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Thu, 26 Dec 2024 21:59:14 +0900
+
 sdplane (0.1.1-30) UNRELEASED; urgency=low
 
   * release. update changelog.
