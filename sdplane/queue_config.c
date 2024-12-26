@@ -17,10 +17,43 @@
 
 #include "debug_sdplane.h"
 
+#include "rib_manager.h"
 #include "queue_config.h"
 #include "sdplane.h"
 
 struct sdplane_queue_conf thread_qconf[RTE_MAX_LCORE];
+
+CLI_COMMAND2 (update_port_link_status,
+              "update port link-status",
+              "update information\n",
+              PORT_HELP,
+              "link-status information\n")
+{
+  struct shell *shell = (struct shell *) context;
+
+  void *msgp;
+  struct stream_msg_header *msg_header;
+  struct stream_msg_eth_link *msg_eth_link;
+  uint16_t nb_ports;
+  int i;
+
+  msgp = (void *)
+    malloc (sizeof (struct stream_msg_header) +
+            sizeof (struct stream_msg_eth_link));
+  msg_header = (struct stream_msg_header *) msgp;
+  msg_eth_link = (struct stream_msg_eth_link *) (msg_header + 1);
+  msg_header->type = STREAM_MSG_TYPE_ETH_LINK;
+  msg_header->length = sizeof (struct stream_msg_eth_link);
+  memset (msg_eth_link, 0, sizeof (struct stream_msg_eth_link));
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (i = 0; i < nb_ports; i++)
+    {
+      rte_eth_link_get_nowait (i, &msg_eth_link->link[i]);
+    }
+
+  rib_manager_send_message (msgp, shell);
+}
 
 CLI_COMMAND2 (set_thread_lcore_port_queue,
               "set thread <0-128> port <0-128> queue <0-128>",
@@ -40,30 +73,55 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
   fprintf (shell->terminal, "lcore: %d port: %d rx-queue: %d%s",
            lcore_id, port_id, queue_id, shell->NL);
 
+  /* search existing */
   int i, j;
+  struct sdplane_queue_conf *lcore_conf;
+  struct port_queue_conf *port_qconf, *match;
+
   for (i = 0; i < RTE_MAX_LCORE; i++)
     {
-      if (thread_qconf[i].rx_queue_list[0].port_id == port_id)
+      lcore_conf = &thread_qconf[i];
+      for (j = 0; j < lcore_conf->nrxq; j++)
         {
-          if (i == lcore_id)
+          port_qconf = &lcore_conf->rx_queue_list[j];
+          if (port_qconf->port_id == port_id &&
+              port_qconf->queue_id == queue_id)
             {
-              thread_qconf[i].rx_queue_list[0].port_id = port_id;
-              thread_qconf[i].rx_queue_list[0].queue_id = 0;
-              thread_qconf[i].nrxq = 1;
-            }
-          else
-            {
-              /* cancel */
-              thread_qconf[i].rx_queue_list[0].port_id = 0;
-              thread_qconf[i].rx_queue_list[0].queue_id = 0;
-              thread_qconf[i].nrxq = 0;
+              if (i != lcore_id)
+                {
+                  int num;
+                  num = lcore_conf->nrxq - (j + 1);
+                  if (num)
+                    memmove (port_qconf, port_qconf + 1,
+                             sizeof (struct port_queue_conf) * num);
+                  lcore_conf->nrxq--;
+                }
             }
         }
-      else if (i == lcore_id)
+    }
+
+  match = NULL;
+  lcore_conf = &thread_qconf[lcore_id];
+  for (j = 0; j < lcore_conf->nrxq; j++)
+    {
+      port_qconf = &lcore_conf->rx_queue_list[j];
+
+      if (port_qconf->port_id == port_id &&
+          port_qconf->queue_id == queue_id)
         {
-          thread_qconf[i].rx_queue_list[0].port_id = port_id;
-          thread_qconf[i].rx_queue_list[0].queue_id = queue_id;
-          thread_qconf[i].nrxq = 1;
+          match = port_qconf;
+        }
+    }
+
+  if (! match)
+    {
+      j = lcore_conf->nrxq;
+      if (j < MAX_RX_QUEUE_PER_LCORE)
+        {
+          port_qconf = &lcore_conf->rx_queue_list[j];
+          port_qconf->port_id = port_id;
+          port_qconf->queue_id = queue_id;
+          lcore_conf->nrxq++;
         }
     }
 
@@ -83,23 +141,22 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
     }
 
   void *msgp;
+  struct stream_msg_header *msg_header;
   struct stream_msg_qconf *msg_qconf;
-  msg_qconf = (struct stream_msg_qconf *)
-    malloc (sizeof (struct stream_msg_qconf));
+
+  msgp = (void *)
+    malloc (sizeof (struct stream_msg_header) +
+            sizeof (struct stream_msg_qconf));
+  msg_header = (struct stream_msg_header *) msgp;
+  msg_qconf = (struct stream_msg_qconf *) (msg_header + 1);
+  msg_header->type = STREAM_MSG_TYPE_QCONF;
+  fprintf (shell->terminal, "sizeof (msg_qconf): %lu%s",
+           sizeof (struct stream_msg_qconf), shell->NL);
+  msg_header->length = (uint16_t) sizeof (struct stream_msg_qconf);
   memcpy (msg_qconf->qconf, thread_qconf,
           sizeof (struct sdplane_queue_conf) * RTE_MAX_LCORE);
-  msgp = msg_qconf;
 
-  if (msg_queue_rib)
-    {
-      DEBUG_SDPLANE_LOG (RIB, "%s: sending message %p.", __func__, msgp);
-      rte_ring_enqueue (msg_queue_rib, msgp);
-    }
-  else
-    {
-      fprintf (shell->terminal, "can't send message to rib: queue: NULL.%s",
-               shell->NL);
-    }
+  rib_manager_send_message (msgp, shell);
 }
 
 CLI_COMMAND2 (show_thread_qconf,
@@ -116,8 +173,8 @@ CLI_COMMAND2 (show_thread_qconf,
       for (j = 0; j < qconf->nrxq; j++)
         {
           fprintf (shell->terminal,
-                   "thread_qconf[%d]: rxq[%d]: port: %d queue: %d%s",
-                   i, j,
+                   "thread_qconf[%d]: rxq[%d/%d]: port: %d queue: %d%s",
+                   i, j, qconf->nrxq,
                    qconf->rx_queue_list[j].port_id,
                    qconf->rx_queue_list[j].queue_id,
                    shell->NL);
@@ -128,6 +185,7 @@ CLI_COMMAND2 (show_thread_qconf,
 void
 queue_config_cmd_init (struct command_set *cmdset)
 {
+  INSTALL_COMMAND2 (cmdset, update_port_link_status);
   INSTALL_COMMAND2 (cmdset, set_thread_lcore_port_queue);
   INSTALL_COMMAND2 (cmdset, show_thread_qconf);
 }

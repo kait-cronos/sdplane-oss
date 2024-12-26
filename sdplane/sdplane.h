@@ -2,6 +2,7 @@
 #define __SOFT_DPLANE_H__
 
 #include <rte_ether.h>
+#include <rte_ethdev.h>
 #include <zcmdsh/shell.h>
 
 #define L3FWD_ARGV_MAX 16
@@ -103,7 +104,21 @@ void sdplane_init ();
 
 extern struct rte_ring *msg_queue_rib;
 
+#include <rte_ethdev.h>
 #include "queue_config.h"
+
+struct stream_msg_header {
+  uint16_t type;
+  uint16_t length; // not including the header size.
+};
+
+#define STREAM_MSG_TYPE_NONE      0
+#define STREAM_MSG_TYPE_QCONF     1
+#define STREAM_MSG_TYPE_ETH_LINK  2
+
+struct stream_msg_eth_link {
+  struct rte_eth_link link[RTE_MAX_ETHPORTS];
+};
 
 struct stream_msg_qconf {
   struct sdplane_queue_conf qconf[RTE_MAX_LCORE];

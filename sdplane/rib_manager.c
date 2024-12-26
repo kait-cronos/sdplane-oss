@@ -35,20 +35,18 @@ uint64_t rib_rcu_replace = 0;
 static __thread struct rib *rib;
 
 void
-rcu_replace (void *new)
+rib_replace (void *new)
 {
   void *old;
   old = rcu_dereference (rcu_global_ptr_rib);
 
   /* assign new */
   rcu_assign_pointer (rcu_global_ptr_rib, new);
-  DEBUG_SDPLANE_LOG (RIB, "rcu: rib: assign new: %'llu: %p",
-                     rib_rcu_replace, new);
+  DEBUG_SDPLANE_LOG (RIB, "rib: replace: %'lu-th: %p -> %p",
+                     rib_rcu_replace, old, new);
 
   /* reclaim old */
   urcu_qsbr_synchronize_rcu ();
-  DEBUG_SDPLANE_LOG (RIB, "rcu: rib: free old: %'llu: %p",
-                     rib_rcu_replace, old);
   free (old);
 
   rib_rcu_replace++;
@@ -70,27 +68,63 @@ rib_manager_recv_message (void *msgp)
 
   /* retrieve old */
   old = rcu_dereference (rcu_global_ptr_rib);
-  memcpy (new, old, sizeof (struct rib));
+  if (old)
+    memcpy (new, old, sizeof (struct rib));
 
   /* change something according to the update instruction message. */
+  struct stream_msg_header *msg_header;
+  struct stream_msg_eth_link *msg_eth_link;
   struct stream_msg_qconf *msg_qconf;
-  msg_qconf = msgp;
-  memcpy (new->qconf, msg_qconf->qconf,
-          sizeof (struct sdplane_queue_conf) * RTE_MAX_LCORE);
+
+  msg_header = (struct stream_msg_header *) msgp;
+  switch (msg_header->type)
+    {
+    case STREAM_MSG_TYPE_ETH_LINK:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_eth_link: %p.", msgp);
+      msg_eth_link = (struct stream_msg_eth_link *) (msg_header + 1);
+      memcpy (new->link, msg_eth_link->link,
+              sizeof (struct rte_eth_link) * RTE_MAX_ETHPORTS);
+      break;
+    case STREAM_MSG_TYPE_QCONF:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_qconf: %p.", msgp);
+      msg_qconf = (struct stream_msg_qconf *) (msg_header + 1);
+      memcpy (new->qconf, msg_qconf->qconf,
+              sizeof (struct sdplane_queue_conf) * RTE_MAX_LCORE);
+      break;
+    default:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg unknown: %p.", msgp);
+      break;
+    }
+
   free (msgp);
 
-#if 0
+#if 1
   struct rib *zero;
   zero = malloc (sizeof (struct rib));
   if (zero)
     {
       memset (zero, 0, sizeof (struct rib));
-      rcu_replace (zero);
+      rib_replace (zero);
     }
 #endif
 
-  rcu_replace (new);
+  rib_replace (new);
 #endif /*HAVE_LIBURCU_QSBR*/
+}
+
+void
+rib_manager_send_message (void *msgp, struct shell *shell)
+{
+  if (msg_queue_rib)
+    {
+      DEBUG_SDPLANE_LOG (RIB, "%s: sending message %p.", __func__, msgp);
+      rte_ring_enqueue (msg_queue_rib, msgp);
+    }
+  else
+    {
+      fprintf (shell->terminal, "can't send message to rib: queue: NULL.%s",
+               shell->NL);
+    }
 }
 
 void

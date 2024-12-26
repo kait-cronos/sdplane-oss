@@ -51,13 +51,13 @@ l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
   struct rte_mbuf *c;
   uint16_t tx_queueid;
 
-  DEBUG_SDPLANE_LOG (L2_REPEATER, "m: %p thread[%d] from port %d",
-                     m, lcore_id, rx_portid);
-
   nb_ports = rte_eth_dev_count_avail ();
   for (tx_portid = 0; tx_portid < nb_ports; tx_portid++)
     {
       if (rx_portid == tx_portid)
+        continue;
+
+      if (! rib->link[tx_portid].link_status)
         continue;
 
       buffer = tx_buffer_per_q[tx_portid][lcore_id];
@@ -74,15 +74,15 @@ l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
           if (sent)
             port_statistics[tx_portid].tx += sent;
           DEBUG_SDPLANE_LOG (L2_REPEATER,
-                             "m: %p thread[%d] c: %p tx to port %d",
-                             m, lcore_id, c, tx_portid);
+                             "lcore[%d]: m: %p c: %p port %d -> %d",
+                             lcore_id, m, c, rx_portid, tx_portid);
         }
       else
         {
           l2_repeat_pkt_copy_failure++;
-          DEBUG_SDPLANE_LOG (L2_REPEATER,
-                             "m: %p thread[%d] c: failed for tx to port %d",
-                             m, lcore_id, tx_portid);
+          DEBUG_LOG_MSG ("lcore[%d]: m: %p port %d -> %d "
+                         "rte_pktmbuf_copy() failed.",
+                         lcore_id, m, rx_portid, tx_portid);
         }
     }
 
@@ -110,9 +110,6 @@ l2_repeater_tx_flush ()
       if (sent)
         {
           port_statistics[portid].tx += sent;
-          DEBUG_SDPLANE_LOG (L2_REPEATER,
-                         "tx_buffer_flush(): port %d, sent: %d",
-                         tx_portid, sent);
         }
     }
 }
@@ -120,19 +117,13 @@ l2_repeater_tx_flush ()
 static inline __attribute__ ((always_inline)) void
 l2_repeater_rx_burst ()
 {
-  struct lcore_queue_conf *qconf;
   struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
   struct rte_mbuf *m;
   unsigned i, j, portid, nb_rx;
 
-  qconf = &lcore_queue_conf[lcore_id];
+  if (unlikely (! rib))
+    return;
 
-#if 0
-  for (i = 0; i < qconf->n_rx_port; i++)
-    {
-      uint16_t queueid = 0;
-      portid = qconf->rx_port_list[i];
-#else
   struct sdplane_queue_conf *sdplane_qconf;
   sdplane_qconf = &rib->qconf[lcore_id];
   for (i = 0; i < sdplane_qconf->nrxq; i++)
@@ -140,7 +131,6 @@ l2_repeater_rx_burst ()
       uint16_t queueid;
       portid = sdplane_qconf->rx_queue_list[i].port_id;
       queueid = sdplane_qconf->rx_queue_list[i].queue_id;
-#endif
       nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
       if (unlikely (nb_rx == 0))
         continue;
@@ -152,8 +142,7 @@ l2_repeater_rx_burst ()
           m = pkts_burst[j];
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
-          if (enable_tap_copy)
-            l2fwd_copy_to_tap_ring (m, portid);
+          l2fwd_copy_to_tap_ring (m, portid);
 
           l2_repeat (m, portid);
         }
@@ -202,8 +191,6 @@ l2_repeater (__rte_unused void *dummy)
 #if HAVE_LIBURCU_QSBR
       urcu_qsbr_read_lock ();
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
-      if (! rib)
-        continue;
 #endif /*HAVE_LIBURCU_QSBR*/
 
       diff_tsc = cur_tsc - prev_tsc;

@@ -132,10 +132,14 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
   const struct rte_pci_device *pci_dev = NULL;
   FILE *t = shell->terminal;
   char link_capa[32];
+  char link_capa2[48];
   bool brief = false;
-  const char *devname;
+  char devname[32];
+  char *devname2;
   const char *businfo;
   struct rte_eth_link link;
+  char drivername[32];
+  char *drivername2;
   char *status;
 
   if (argc == 2)
@@ -144,8 +148,8 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
     port_spec = strtol (argv[2], NULL, 0);
 
   if (brief)
-    fprintf (t, "%-8s %-12s %6s %7s %-13s <%-24s>%s", "port:", "device",
-             "status", "speed", "driver", "capability", shell->NL);
+    fprintf (t, "%-8s %-7s %6s %7s %-9s %-24s%s", "port:", "device",
+             "status", "speed", "driver", "<capability>", shell->NL);
 
   nb_ports = rte_eth_dev_count_avail ();
   for (port_id = 0; port_id < nb_ports; port_id++)
@@ -169,19 +173,30 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
         }
       status = (link.link_status ? "up" : "down");
 
-      devname = rte_dev_name (dev->device);
+      snprintf (devname, sizeof (devname),
+                "%s", rte_dev_name (dev->device));
+      devname2 = NULL;
+      if (! strncmp (devname, "0000:", 5))
+        devname2 = &devname[5];
       businfo = rte_dev_bus_info (dev->device);
       snprintf_flags (link_capa, sizeof (link_capa), dev_info.speed_capa,
                       link_speeds, "|",
                       sizeof (link_speeds) / sizeof (struct flag_name));
+      snprintf (link_capa2, sizeof (link_capa2), "<%s>", link_capa);
+      snprintf (drivername, sizeof (drivername), "%s", dev->driver_name);
+      drivername2 = NULL;
+      if (! strncmp (drivername, "net_", 4))
+        drivername2 = &drivername[4];
 
       if (brief)
         {
           char port_name[16];
           snprintf (port_name, sizeof (port_name), "port[%d]:", port_id);
-          fprintf (t, "%-8s %-12s %6s %'7d %-13s <%-24s>%s", port_name,
-                   devname, status, link.link_speed, dev->driver_name,
-                   link_capa, shell->NL);
+          fprintf (t, "%-8s %-7s %6s %'7d %-9s %-24s%s",
+                   port_name, (devname2 ? devname2 : devname),
+                   status, link.link_speed,
+                   (drivername2 ? drivername2 : drivername),
+                   link_capa2, shell->NL);
         }
       else
         {
@@ -202,7 +217,7 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
                    dev->max_rx_pktlen, dev->max_lro_pkt_size, shell->NL);
           fprintf (t, "  max_rx_queues: %'u max_tx_queues: %'u%s",
                    dev->max_rx_queues, dev->max_tx_queues, shell->NL);
-          fprintf (t, "  speed_capa: <%s>%s", link_capa, shell->NL);
+          fprintf (t, "  speed_capa: %s%s", link_capa2, shell->NL);
           fprintf (t, "  nb_rx_queues: %'u nb_tx_queues: %'u%s",
                    dev->nb_rx_queues, dev->nb_tx_queues, shell->NL);
 
@@ -296,8 +311,6 @@ CLI_COMMAND2 (show_port_statistics,
   else
     fprintf (t, "%16s %8s %8s%s", "port name:", "bytes-in", "bytes-out",
              shell->NL);
-
-  fprintf (t, "stats_array: %p%s", stats_array, shell->NL);
 
   nb_ports = rte_eth_dev_count_avail ();
   for (port_id = 0; port_id < nb_ports; port_id++)

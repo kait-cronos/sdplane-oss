@@ -391,7 +391,7 @@ tap_handler (__rte_unused void *dummy)
         }
 
 #if HAVE_LIBURCU_QSBR
-      snprintf (buf, sizeof (buf), "rcu %'llu", loop_counter);
+      snprintf (buf, sizeof (buf), "rcu %'lu", loop_counter);
       new = strdup (buf);
       old = rcu_dereference (rcu_global_ptr);
       rcu_assign_pointer (rcu_global_ptr, new);
