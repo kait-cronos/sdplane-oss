@@ -256,6 +256,16 @@ CLI_COMMAND2 (show_vswitch, "show vswitch",
     }
 }
 
+CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
+              "sleep command\n",
+              "specify seconds to sleep.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  int sec;
+  sec = strtol (argv[1], NULL, 0);
+  sleep (sec);
+}
 
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
@@ -275,6 +285,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rcu);
   INSTALL_COMMAND2 (cmdset, show_fdb);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
+  INSTALL_COMMAND2 (cmdset, sleep_cmd);
   thread_info_cmd_init (cmdset);
   queue_config_cmd_init (cmdset);
   lthread_cmd_init (cmdset);
