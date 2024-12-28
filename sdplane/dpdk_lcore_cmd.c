@@ -23,6 +23,8 @@
 #include "tap_handler.h"
 #include "l2_repeater.h"
 
+#include "thread_info.h"
+
 volatile bool force_stop[RTE_MAX_LCORE];
 
 struct lcore_worker lcore_workers[RTE_MAX_LCORE];
@@ -45,6 +47,9 @@ start_lcore (struct shell *shell, int lcore_id)
       fprintf (shell->terminal, "skip for lthread lcore: %d\n", lcore_id);
       return;
     }
+
+  thread_register (lcore_id, NULL, (lthread_func) lcore_workers[lcore_id].func,
+                   lcore_workers[lcore_id].func_name, NULL);
 
   rte_eal_remote_launch (lcore_workers[lcore_id].func,
                          lcore_workers[lcore_id].arg, lcore_id);

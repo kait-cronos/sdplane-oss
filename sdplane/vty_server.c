@@ -25,10 +25,14 @@
 #include "vty_server.h"
 #include "vty_shell.h"
 
+#include "thread_info.h"
+
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
 vty_client_t client_info[VTY_CLIENT_MAX];
+
+static __thread uint64_t loop_counter = 0;
 
 void
 vty_server (void *arg)
@@ -86,9 +90,14 @@ vty_server (void *arg)
 
   struct pollfd fds[2];
 
+  int thread_id;
+  thread_id = thread_lookup (vty_server);
+  thread_register_loop_counter (thread_id, &loop_counter);
+
   while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (100); // yield.
+      loop_counter++;
 
       fds[0].fd = sockfd;
       fds[0].events = POLLIN;

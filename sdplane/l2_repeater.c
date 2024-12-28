@@ -32,6 +32,7 @@
 #include "tap_handler.h"
 
 #include "rib_manager.h"
+#include "thread_info.h"
 
 static __thread struct rib *rib;
 
@@ -154,6 +155,8 @@ l2_repeater_tx_burst ()
 {
 }
 
+static __thread uint64_t loop_counter = 0;
+
 int
 l2_repeater (__rte_unused void *dummy)
 {
@@ -163,8 +166,6 @@ l2_repeater (__rte_unused void *dummy)
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
   uint16_t nb_ports;
-
-  uint64_t loop_counter = 0;
 
   prev_tsc = 0;
   lcore_id = rte_lcore_id ();
@@ -177,6 +178,10 @@ l2_repeater (__rte_unused void *dummy)
       DEBUG_SDPLANE_LOG (L2_REPEATER, "lcore %u has nothing to do.", lcore_id);
       return 0;
     }
+
+  int thread_id;
+  thread_id = thread_lookup_by_lcore (l2_repeater, lcore_id);
+  thread_register_loop_counter (thread_id, &loop_counter);
 
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_register_thread ();

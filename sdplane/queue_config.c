@@ -160,9 +160,10 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
 }
 
 CLI_COMMAND2 (show_thread_qconf,
-              "show thread-qconf",
+              "show thread qconf",
               SHOW_HELP,
-              "thread-qconf\n")
+              "thread information.\n",
+              "queue configuration.\n")
 {
   struct shell *shell = (struct shell *) context;
   int i, j;

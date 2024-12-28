@@ -131,76 +131,13 @@ CLI_COMMAND2 (show_loop_count,
     }
 }
 
-void console_shell (void *arg);
-void vty_shell (void *arg);
-
-CLI_COMMAND2 (show_thread_counter,
-              "show thread counter (|console|vty-shell|l2fwd) (|pps|total)",
-              SHOW_HELP, "thread information.\n",
-              "counter information.\n", "console\n", "vty shell\n",
-              "l2fwd loop\n", "pps\n", "total count\n")
-{
-  struct shell *shell = (struct shell *) context;
-  FILE *t = shell->terminal;
-
-  char name[32];
-
-  lthread_func func;
-  bool pps, total;
-
-  func = NULL;
-  pps = total = false;
-  if (argc > 3)
-    {
-      if (! strcmp (argv[3], "console"))
-        func = console_shell;
-      else if (! strcmp (argv[3], "vty-shell"))
-        func = vty_shell;
-      // else if  (! strcmp (argv[3], "l2fwd"))
-      else if  (! strcmp (argv[3], "pps"))
-        pps = true;
-      else if  (! strcmp (argv[3], "total"))
-        total = true;
-    }
-  if (argc > 4)
-    {
-      if  (! strcmp (argv[4], "pps"))
-        pps = true;
-      else if  (! strcmp (argv[4], "total"))
-        total = true;
-    }
-
-  int i;
-  struct thread_info *tinfo;
-  struct thread_counter *tc;
-  for (i = 0; i < THREAD_INFO_LIMIT; i++)
-    {
-      tinfo = &threads[i];
-      tc = &thread_counters[i];
-      if (! tc->loop_counter_ptr)
-        continue;
-      if (! func || tinfo->func == func)
-        {
-          if (pps)
-            fprintf (t, "thread[%d] %16s %'8lu%s",
-                     i, tinfo->name, tc->persec, shell->NL);
-          else if (total)
-            fprintf (t, "thread[%d] %16s %'8lu%s",
-                     i, tinfo->name, tc->current, shell->NL);
-          else if (! pps && ! total)
-            fprintf (t, "thread[%d] %16s %'8lu %'8lu%s",
-                     i, tinfo->name, tc->persec, tc->current, shell->NL);
-        }
-    }
-}
-
 CLI_COMMAND2 (show_rcu, "show rcu",
               SHOW_HELP, "show rcu-information.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
   extern uint64_t tap_handler_rcu_replace;
-  fprintf (t, "tap_handler_rcu_replace: %'llu%s",
+  fprintf (t, "tap_handler_rcu_replace: %'lu%s",
            tap_handler_rcu_replace, shell->NL);
 }
 
@@ -264,7 +201,15 @@ CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
   FILE *t = shell->terminal;
   int sec;
   sec = strtol (argv[1], NULL, 0);
-  sleep (sec);
+  while (sec > 0)
+    {
+      fprintf (t, " %d", sec);
+      fflush (t);
+      sleep (1);
+      sec--;
+    }
+  fprintf (t, " 0.%s", shell->NL);
+  fflush (t);
 }
 
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
@@ -281,7 +226,6 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_l3fwd_argv);
   INSTALL_COMMAND2 (cmdset, show_loop_count);
   INSTALL_COMMAND2 (cmdset, show_version);
-  INSTALL_COMMAND2 (cmdset, show_thread_counter);
   INSTALL_COMMAND2 (cmdset, show_rcu);
   INSTALL_COMMAND2 (cmdset, show_fdb);
   INSTALL_COMMAND2 (cmdset, show_vswitch);

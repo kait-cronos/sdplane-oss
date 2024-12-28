@@ -158,12 +158,13 @@ tap_admin_up (char *ifname)
 struct vswitch vswitch0;
 struct fdb_entry fdb[FDB_SIZE];
 
+static __thread uint64_t loop_counter = 0;
+
 int
 tap_handler (__rte_unused void *dummy)
 {
   int peek_fd;
   int ret;
-  uint64_t loop_counter = 0;
 
   int port_id;
   uint16_t nb_ports;
@@ -253,10 +254,15 @@ tap_handler (__rte_unused void *dummy)
   int i, j;
   memset (fdb, 0, sizeof (fdb));
 
-  DEBUG_SDPLANE_LOG (TAPHANDLER, "start main loop on lcore[%d].",
-                     rte_lcore_id ());
-
   unsigned tap_handler_id = rte_lcore_id ();
+
+  int thread_id;
+  thread_id = thread_lookup_by_lcore (tap_handler, tap_handler_id);
+  thread_register_loop_counter (thread_id, &loop_counter);
+
+  DEBUG_SDPLANE_LOG (TAPHANDLER, "start main loop on lcore[%d].",
+                     tap_handler_id);
+
   while (! force_quit && ! force_stop[tap_handler_id])
     {
       // lthread_sleep (0); // yield.

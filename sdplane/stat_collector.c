@@ -48,11 +48,17 @@ rte_eth_stats_per_sec (struct rte_eth_stats *per_sec,
   per_sec->oerrors = stats_current->oerrors - stats_prev->oerrors;
 }
 
+static uint64_t loop_stat_collector = 0;
+
 int
 stat_collector (__rte_unused void *dummy)
 {
   int i, port_id;
   uint16_t nb_ports;
+
+  int thread_id;
+  thread_id = thread_lookup (stat_collector);
+  thread_register_loop_counter (thread_id, &loop_stat_collector);
 
   memset (stats_prev, 0, sizeof (stats_prev));
   memset (stats_current, 0, sizeof (stats_current));
@@ -124,6 +130,8 @@ stat_collector (__rte_unused void *dummy)
               loop_l2fwd_pps[i] = loop_l2fwd_current[i] - loop_l2fwd_prev[i];
             }
         }
+
+      loop_stat_collector++;
     }
 
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);

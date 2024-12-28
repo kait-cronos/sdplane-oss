@@ -19,6 +19,7 @@
 
 #include "rib_manager.h"
 #include "sdplane.h"
+#include "thread_info.h"
 
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
@@ -127,13 +128,14 @@ rib_manager_send_message (void *msgp, struct shell *shell)
     }
 }
 
+static __thread uint64_t loop_counter = 0;
+
 void
 rib_manager (void *arg)
 {
   int ret;
   void *msgp;
   unsigned lcore_id = rte_lcore_id ();
-  uint64_t loop_counter = 0;
 
   printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
   DEBUG_SDPLANE_LOG (RIB, "%s: started.", __func__);
@@ -141,6 +143,10 @@ rib_manager (void *arg)
   /* initialize */
   msg_queue_rib =
     rte_ring_create ("msg_queue_rib", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+
+  int thread_id;
+  thread_id = thread_lookup (rib_manager);
+  thread_register_loop_counter (thread_id, &loop_counter);
 
   while (! force_quit && ! force_stop[lthread_core])
     {

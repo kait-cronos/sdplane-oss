@@ -15,6 +15,7 @@
 #include "l3fwd.h"
 
 #include "sdplane.h"
+#include "thread_info.h"
 
 void
 signal_handler (int signum)
@@ -51,6 +52,7 @@ main (int argc, char **argv)
   sdplane_init ();
 
   lthread_create (&lt, (lthread_func) lthread_main, NULL);
+  thread_register (-1, lt, lthread_main, "lthread_main", NULL);
   lthread_run ();
 
   l3fwd_terminate (argc, argv);

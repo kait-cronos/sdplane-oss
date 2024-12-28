@@ -1,5 +1,8 @@
 #ifndef __THREAD_INFO_H__
 #define __THREAD_INFO_H__
+
+#include <lthread.h>
+
 struct thread_info
 {
   int lcore_id;
@@ -32,6 +35,7 @@ int thread_register_loop_counter (int thread_id, uint64_t *ptr);
 int thread_unregister_loop_counter (int thread_id);
 
 int thread_lookup (void *func);
+int thread_lookup_by_lcore (void *func, int lcore);
 
 EXTERN_COMMAND (show_thread_cmd);
 
