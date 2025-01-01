@@ -42,7 +42,7 @@ uint64_t l2_repeat_pkt_copy_failure = 0;
 
 struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
-static void
+static inline __attribute__ ((always_inline)) void
 l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
 {
   struct rte_eth_dev_tx_buffer *buffer;

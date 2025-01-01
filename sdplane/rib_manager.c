@@ -25,6 +25,9 @@
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
 
+struct rte_ring *ring_up[RTE_MAX_ETHPORTS][MAX_RX_QUEUE_PER_LCORE];
+struct rte_ring *ring_dn[RTE_MAX_ETHPORTS][MAX_RX_QUEUE_PER_LCORE];
+
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
@@ -35,7 +38,77 @@ uint64_t rib_rcu_replace = 0;
 
 static __thread struct rib *rib;
 
-void
+static inline __attribute__ ((always_inline)) struct rib *
+rib_create (struct rib *old)
+{
+  struct rib *new;
+
+  /* allocate new */
+  new = malloc (sizeof (struct rib));
+  if (! new)
+    return NULL;
+
+  if (! old)
+    memset (new, 0, sizeof (struct rib));
+  else
+    memcpy (new, old, sizeof (struct rib));
+
+  return new;
+}
+
+static inline __attribute__ ((always_inline)) void
+rib_delete (struct rib *old)
+{
+  free (old);
+}
+
+static inline __attribute__ ((always_inline)) void
+rib_check (struct rib *new)
+{
+  struct sdplane_queue_conf *qconf;
+  int lcore;
+  int i;
+  char ring_name[32];
+
+#define RING_TO_TAP_SIZE 64
+  for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++)
+    {
+      qconf = &new->qconf[lcore];
+      for (i = 0; i < qconf->nrxq; i++)
+        {
+          struct port_queue_conf *rxq;
+          rxq = &qconf->rx_queue_list[i];
+
+          if (! ring_up[rxq->port_id][rxq->queue_id])
+            {
+              snprintf (ring_name, sizeof (ring_name), "ring_up[%d][%d]",
+                        rxq->port_id, rxq->queue_id);
+              ring_up[rxq->port_id][rxq->queue_id] =
+                rte_ring_create (ring_name, RING_TO_TAP_SIZE,
+                                 rte_socket_id (),
+                                 (RING_F_SP_ENQ | RING_F_SC_DEQ));
+              DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p",
+                                 ring_name,
+                                 ring_up[rxq->port_id][rxq->queue_id]);
+            }
+
+          if (! ring_dn[rxq->port_id][rxq->queue_id])
+            {
+              snprintf (ring_name, sizeof (ring_name), "ring_dn[%d][%d]",
+                        rxq->port_id, rxq->queue_id);
+              ring_dn[rxq->port_id][rxq->queue_id] =
+                rte_ring_create (ring_name, RING_TO_TAP_SIZE,
+                                 rte_socket_id (),
+                                 (RING_F_SP_ENQ | RING_F_SC_DEQ));
+              DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p",
+                                 ring_name,
+                                 ring_dn[rxq->port_id][rxq->queue_id]);
+            }
+        }
+    }
+}
+
+static inline __attribute__ ((always_inline)) void
 rib_replace (void *new)
 {
   void *old;
@@ -48,7 +121,7 @@ rib_replace (void *new)
 
   /* reclaim old */
   urcu_qsbr_synchronize_rcu ();
-  free (old);
+  rib_delete (old);
 
   rib_rcu_replace++;
 }
@@ -61,16 +134,10 @@ rib_manager_recv_message (void *msgp)
 #if HAVE_LIBURCU_QSBR
   struct rib *new, *old;
 
-  /* allocate new */
-  new = malloc (sizeof (struct rib));
-  if (! new)
-    return;
-  rib = new;
-
   /* retrieve old */
   old = rcu_dereference (rcu_global_ptr_rib);
-  if (old)
-    memcpy (new, old, sizeof (struct rib));
+
+  new = rib_create (old);
 
   /* change something according to the update instruction message. */
   struct stream_msg_header *msg_header;
@@ -108,6 +175,8 @@ rib_manager_recv_message (void *msgp)
       rib_replace (zero);
     }
 #endif
+
+  rib_check (new);
 
   rib_replace (new);
 #endif /*HAVE_LIBURCU_QSBR*/

@@ -23,6 +23,26 @@
 
 struct sdplane_queue_conf thread_qconf[RTE_MAX_LCORE];
 
+struct port_queue_conf *
+qconf_diff (struct sdplane_queue_conf *new,
+            struct sdplane_queue_conf *old)
+{
+  int i, j;
+  struct port_queue_conf *p, *q;
+  for (i = 0; i < new->nrxq; i++)
+    {
+      p = &new->rx_queue_list[i];
+      for (j = 0; j < old->nrxq; j++)
+        {
+          q = &old->rx_queue_list[j];
+          if (p->port_id == q->port_id &&
+              p->queue_id == q->queue_id)
+            return p;
+        }
+    }
+  return NULL;
+}
+
 CLI_COMMAND2 (update_port_link_status,
               "update port link-status",
               "update information\n",

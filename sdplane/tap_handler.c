@@ -32,6 +32,7 @@
 #include "l2fwd_cmd.h"
 
 #include "sdplane.h"
+#include "thread_info.h"
 
 void *rcu_global_ptr;
 uint64_t tap_handler_rcu_replace = 0;
@@ -47,8 +48,8 @@ struct rte_ring *tap_ring_lcore_dir[RTE_MAX_LCORE][TAPDIR_SIZE];
 
 /* tx/rx is to the ring represented by rxq_id. */
 /* ring_up/dn[port_id][rx_queue_id]; */
-struct rte_ring *ring_up[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
-struct rte_ring *ring_dn[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+//struct rte_ring *ring_up[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+//struct rte_ring *ring_dn[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
 bool enable_tap_copy = true;
 
