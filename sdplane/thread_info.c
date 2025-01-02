@@ -152,14 +152,14 @@ CLI_COMMAND2 (show_thread_cmd,
   fprintf (shell->terminal, "thread size: %d%s",
            thread_info_size, shell->NL);
   fprintf (shell->terminal,
-           "%-4s %-4s %-7s %-16s %-10s %-16s%s",
+           "%-4s %-4s %-7s %-16s %-10s %-18s%s",
            "id", "core", "type", "func", "loop/sec", "#loops", shell->NL);
   for (i = 0; i < thread_info_size; i++)
     {
       tinfo = &threads[i];
       tc = &thread_counters[i];
       snprintf (buf, sizeof (buf),
-                "%-4d %-4d %-7s %-16s %'10lu %'16lu",
+                "%-4d %-4d %-7s %-16s %'10lu %'18lu",
                 i, tinfo->lcore_id,
                 (tinfo->lthread ? "lthread" : "dpdk"),
                 tinfo->name, tc->persec, tc->current);
@@ -168,69 +168,37 @@ CLI_COMMAND2 (show_thread_cmd,
   rte_rwlock_read_unlock (&thread_info_lock);
 }
 
-void console_shell (void *arg);
-void vty_shell (void *arg);
-
 CLI_COMMAND2 (show_thread_counter,
-              "show thread counter (|console|vty-shell|l2fwd) (|pps|total)",
-              SHOW_HELP, "thread information.\n",
-              "counter information.\n", "console\n", "vty shell\n",
-              "l2fwd loop\n", "pps\n", "total count\n")
+              "show thread counter",
+              SHOW_HELP,
+              "thread information.\n",
+              "counter information.\n")
 {
   struct shell *shell = (struct shell *) context;
-  FILE *t = shell->terminal;
-
-  char name[32];
-
-  lthread_func func;
-  bool pps, total;
-
-  func = NULL;
-  pps = total = false;
-  if (argc > 3)
-    {
-      if (! strcmp (argv[3], "console"))
-        func = console_shell;
-      else if (! strcmp (argv[3], "vty-shell"))
-        func = vty_shell;
-      // else if  (! strcmp (argv[3], "l2fwd"))
-      else if  (! strcmp (argv[3], "pps"))
-        pps = true;
-      else if  (! strcmp (argv[3], "total"))
-        total = true;
-    }
-  if (argc > 4)
-    {
-      if  (! strcmp (argv[4], "pps"))
-        pps = true;
-      else if  (! strcmp (argv[4], "total"))
-        total = true;
-    }
-
-  int i;
   struct thread_info *tinfo;
   struct thread_counter *tc;
-  for (i = 0; i < THREAD_INFO_LIMIT; i++)
+  int i;
+  char buf[256];
+
+  rte_rwlock_read_lock (&thread_info_lock);
+  fprintf (shell->terminal, "thread size: %d%s",
+           thread_info_size, shell->NL);
+  fprintf (shell->terminal,
+           "%-4s %-4s %-7s %-16s %-10s %-18s%s",
+           "id", "core", "type", "func", "loop/sec", "#loops", shell->NL);
+  for (i = 0; i < thread_info_size; i++)
     {
       tinfo = &threads[i];
       tc = &thread_counters[i];
-      if (! tc->loop_counter_ptr)
-        continue;
-      if (! func || tinfo->func == func)
-        {
-          if (pps)
-            fprintf (t, "thread[%d]: %-16s %'10lu%s",
-                     i, tinfo->name, tc->persec, shell->NL);
-          else if (total)
-            fprintf (t, "thread[%d]: %-16s %'16lu%s",
-                     i, tinfo->name, tc->current, shell->NL);
-          else if (! pps && ! total)
-            fprintf (t, "thread[%d]: %-16s %'10lu %'16lu%s",
-                     i, tinfo->name, tc->persec, tc->current, shell->NL);
-        }
+      snprintf (buf, sizeof (buf),
+                "%-4d %-4d %-7s %-16s %'10lu %'18lu",
+                i, tinfo->lcore_id,
+                (tinfo->lthread ? "lthread" : "dpdk"),
+                tinfo->name, tc->persec, tc->current);
+      fprintf (shell->terminal, "%s%s", buf, shell->NL);
     }
+  rte_rwlock_read_unlock (&thread_info_lock);
 }
-
 
 int
 thread_info_cmd_init (struct command_set *cmdset)

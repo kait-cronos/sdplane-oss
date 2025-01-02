@@ -43,6 +43,30 @@ uint64_t l2_repeat_pkt_copy_failure = 0;
 struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
 static inline __attribute__ ((always_inline)) void
+l2_repeater_tap_up (struct rte_mbuf *m, unsigned portid, unsigned queueid)
+{
+  struct rte_mbuf *c;
+  uint32_t pkt_len;
+  uint16_t data_len;
+  int ret;
+  pkt_len = rte_pktmbuf_pkt_len (m);
+  data_len = rte_pktmbuf_data_len (m);
+
+  DEBUG_SDPLANE_LOG (L2_REPEATER,
+                     "lcore[%d]: m: %p port %d queue %d to ring_up: %p",
+                     lcore_id, m, portid, queueid, ring_up[portid][queueid]);
+  c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+  ret = rte_ring_enqueue (ring_up[portid][queueid], c);
+  if (ret)
+    {
+      DEBUG_SDPLANE_LOG (L2_REPEATER,
+                         "lcore[%d]: m: %p port %d queue %d to ring: %d",
+                         lcore_id, m, portid, queueid, ret);
+      rte_pktmbuf_free (c);
+    }
+}
+
+static inline __attribute__ ((always_inline)) void
 l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
 {
   struct rte_eth_dev_tx_buffer *buffer;
@@ -143,7 +167,7 @@ l2_repeater_rx_burst ()
           m = pkts_burst[j];
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
-          l2fwd_copy_to_tap_ring (m, portid);
+          l2_repeater_tap_up (m, portid, queueid);
 
           l2_repeat (m, portid);
         }
@@ -183,11 +207,11 @@ l2_repeater (__rte_unused void *dummy)
   thread_id = thread_lookup_by_lcore (l2_repeater, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter);
 
+  DEBUG_SDPLANE_LOG (L2_REPEATER, "entering main loop on lcore %u", lcore_id);
+
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_register_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
-
-  DEBUG_SDPLANE_LOG (L2_REPEATER, "entering main loop on lcore %u", lcore_id);
 
   while (! force_quit && ! force_stop[lcore_id])
     {

@@ -53,6 +53,7 @@ rib_create (struct rib *old)
   else
     memcpy (new, old, sizeof (struct rib));
 
+  new->ver++;
   return new;
 }
 

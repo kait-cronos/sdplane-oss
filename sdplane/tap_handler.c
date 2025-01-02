@@ -34,6 +34,10 @@
 #include "sdplane.h"
 #include "thread_info.h"
 
+#include "rib_manager.h"
+
+static __thread struct rib *rib;
+
 void *rcu_global_ptr;
 uint64_t tap_handler_rcu_replace = 0;
 
@@ -161,6 +165,124 @@ struct fdb_entry fdb[FDB_SIZE];
 
 static __thread uint64_t loop_counter = 0;
 
+static inline __attribute__ ((always_inline)) void
+vswitch_port_update ()
+{
+  int i;
+  int lcore_id;
+  struct rte_ring *tap_ring_up, *tap_ring_down;
+  char port_name[64];
+
+  struct vswitch *vswitch = &vswitch0;
+  struct vswitch_port *vswport, *nextport;
+  int vswport_id;
+
+  if (! rib)
+    return;
+
+  for (i = 0; i < vswitch->size; i++)
+    {
+      vswport = &vswitch->port[i];
+      DEBUG_SDPLANE_LOG (VSWITCH,
+                         "vswport[%d]: id: %d type: %d name: %s sockfd: %d "
+                         "lcore_id: %d ring[0/1]: %p/%p ",
+                         i, vswport->id, vswport->type, vswport->name,
+                         vswport->sockfd, vswport->lcore_id,
+                         vswport->ring[0], vswport->ring[1]);
+    }
+
+  DEBUG_SDPLANE_LOG (VSWITCH, "removing DPDK port in vswitch: size %d",
+                     vswitch->size);
+  for (i = vswitch->size - 1; i >= 0; i--)
+    {
+      vswport = &vswitch->port[i];
+      DEBUG_SDPLANE_LOG (VSWITCH, "remove vswport[%d]", i);
+      if (vswport->type == VSWITCH_PORT_TYPE_DPDK_LCORE)
+        {
+          if (i + 1 < vswitch->size)
+            {
+              nextport = &vswitch->port[i + 1];
+              memmove (vswport, nextport,
+                       (vswitch->size - (i + 1)) * sizeof (struct vswitch_port));
+            }
+          else
+            {
+              memset (vswport, 0, sizeof (struct vswitch_port));
+            }
+          vswitch->size--;
+        }
+    }
+
+  DEBUG_SDPLANE_LOG (VSWITCH, "removed DPDK port in vswitch: size %d",
+                     vswitch->size);
+  for (i = 0; i < vswitch->size; i++)
+    {
+      vswport = &vswitch->port[i];
+      DEBUG_SDPLANE_LOG (VSWITCH,
+                         "vswport[%d]: id: %d type: %d name: %s sockfd: %d "
+                         "lcore_id: %d ring[0/1]: %p/%p ",
+                         i, vswport->id, vswport->type, vswport->name,
+                         vswport->sockfd, vswport->lcore_id,
+                         vswport->ring[0], vswport->ring[1]);
+    }
+
+  for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
+    {
+      struct sdplane_queue_conf *sdplane_qconf;
+
+      sdplane_qconf = &rib->qconf[lcore_id];
+      for (i = 0; i < sdplane_qconf->nrxq; i++)
+        {
+          uint16_t portid, queueid;
+          portid = sdplane_qconf->rx_queue_list[i].port_id;
+          queueid = sdplane_qconf->rx_queue_list[i].queue_id;
+
+          tap_ring_up = ring_up[portid][queueid];
+          tap_ring_down = ring_dn[portid][queueid];
+
+          if (tap_ring_up && vswitch->size < vswitch->limit)
+            {
+              vswport_id = vswitch->size;
+              vswport = &vswitch->port[vswport_id];
+              vswport->id = vswport_id;
+              vswport->type = VSWITCH_PORT_TYPE_DPDK_LCORE;
+#if 0
+              snprintf (port_name, sizeof (port_name), "tap_ring_lcore%d",
+                        lcore_id);
+#else
+              snprintf (port_name, sizeof (port_name),
+                        "ring_up[port-%d][queue-%d]",
+                        portid, queueid);
+#endif
+              vswport->name = strdup (port_name);
+              vswport->lcore_id = lcore_id;
+              vswport->ring[TAPDIR_UP] = tap_ring_up;
+              vswport->ring[TAPDIR_DOWN] = tap_ring_down;
+              DEBUG_SDPLANE_LOG (VSWITCH,
+                                 "vswitch->port[%d]: "
+                                 "type: dpdk-lcore name: %s lcore_id: %d "
+                                 "ring[up(%d)/down(%d)]: %p/%p",
+                                 vswport_id, vswport->name, vswport->lcore_id,
+                                 TAPDIR_UP, TAPDIR_DOWN, vswport->ring[TAPDIR_UP],
+                                 vswport->ring[TAPDIR_DOWN]);
+              vswitch->size++;
+            }
+        }
+    }
+
+  DEBUG_SDPLANE_LOG (VSWITCH, "updated DPDK port in vswitch: size %d",
+                     vswitch->size);
+  for (i = 0; i < vswitch->size; i++)
+    {
+      vswport = &vswitch->port[i];
+      DEBUG_SDPLANE_LOG (VSWITCH,
+                         "vswport[%d]: id: %d type: %d name: %s sockfd: %d lcore_id: %d ring[0/1]: %p/%p ",
+                         i, vswport->id, vswport->type, vswport->name,
+                         vswport->sockfd, vswport->lcore_id,
+                         vswport->ring[0], vswport->ring[1]);
+    }
+}
+
 int
 tap_handler (__rte_unused void *dummy)
 {
@@ -223,6 +345,7 @@ tap_handler (__rte_unused void *dummy)
         }
     }
 
+#if 0
   struct rte_ring *tap_ring_up, *tap_ring_down;
   for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
     {
@@ -251,6 +374,7 @@ tap_handler (__rte_unused void *dummy)
           vswitch->size++;
         }
     }
+#endif
 
   int i, j;
   memset (fdb, 0, sizeof (fdb));
@@ -264,10 +388,26 @@ tap_handler (__rte_unused void *dummy)
   DEBUG_SDPLANE_LOG (TAPHANDLER, "start main loop on lcore[%d].",
                      tap_handler_id);
 
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_register_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
   while (! force_quit && ! force_stop[tap_handler_id])
     {
       // lthread_sleep (0); // yield.
       // printf ("%s: schedule: %lu.\n", __func__, loop_counter);
+
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_read_lock ();
+      rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+
+      uint64_t rib_ver;
+      if (rib && rib_ver < rib->ver)
+        {
+          vswitch_port_update ();
+          rib_ver = rib->ver;
+        }
 
       for (port_id = 0; port_id < vswitch->size; port_id++)
         {
@@ -409,6 +549,11 @@ tap_handler (__rte_unused void *dummy)
                          tap_handler_id, old, old);
       free (old);
       tap_handler_rcu_replace++;
+#endif /*HAVE_LIBURCU_QSBR*/
+
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_read_unlock ();
+      urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
 
       loop_counter++;

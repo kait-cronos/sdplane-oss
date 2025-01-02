@@ -131,6 +131,7 @@ CLI_COMMAND2 (show_loop_count,
     }
 }
 
+extern uint64_t rib_rcu_replace;
 CLI_COMMAND2 (show_rcu, "show rcu",
               SHOW_HELP, "show rcu-information.\n")
 {
@@ -139,6 +140,8 @@ CLI_COMMAND2 (show_rcu, "show rcu",
   extern uint64_t tap_handler_rcu_replace;
   fprintf (t, "tap_handler_rcu_replace: %'lu%s",
            tap_handler_rcu_replace, shell->NL);
+  fprintf (t, "rib_rcu_replace: %'lu%s",
+           rib_rcu_replace, shell->NL);
 }
 
 CLI_COMMAND2 (show_fdb, "show fdb",
@@ -157,8 +160,10 @@ CLI_COMMAND2 (show_fdb, "show fdb",
     }
 }
 
-CLI_COMMAND2 (show_vswitch, "show vswitch",
-              SHOW_HELP, "show vswitch-information.\n")
+CLI_COMMAND2 (show_vswitch,
+              "show vswitch",
+              SHOW_HELP,
+              "show vswitch-information.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
@@ -185,8 +190,8 @@ CLI_COMMAND2 (show_vswitch, "show vswitch",
           type_str = "unknown";
           break;
         }
-      fprintf (t, "vswitch[%d]: %9s %s sock: %d lcore: %d ring[%p/%p]%s",
-               vport->id, type_str, vport->name, vport->sockfd,
+      fprintf (t, "vswport[%d]: [%d] %9s %s sock: %d lcore: %d ring[%p/%p]%s",
+               i, vport->id, type_str, vport->name, vport->sockfd,
                vport->lcore_id,
                vport->ring[TAPDIR_UP], vport->ring[TAPDIR_DOWN],
                shell->NL);

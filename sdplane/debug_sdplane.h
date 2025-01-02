@@ -22,6 +22,7 @@
 #define DEBUG_SDPLANE_L2_REPEATER    (1ULL << 16)
 #define DEBUG_SDPLANE_THREAD         (1ULL << 17)
 #define DEBUG_SDPLANE_RIB            (1ULL << 18)
+#define DEBUG_SDPLANE_VSWITCH        (1ULL << 19)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)
