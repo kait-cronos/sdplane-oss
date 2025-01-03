@@ -144,7 +144,8 @@ l2_repeater_rx_burst ()
 {
   struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
   struct rte_mbuf *m;
-  unsigned i, j, portid, nb_rx;
+  unsigned i, j, nb_rx;
+  uint16_t portid, queueid;
 
   if (unlikely (! rib))
     return;
@@ -153,9 +154,9 @@ l2_repeater_rx_burst ()
   sdplane_qconf = &rib->qconf[lcore_id];
   for (i = 0; i < sdplane_qconf->nrxq; i++)
     {
-      uint16_t queueid;
       portid = sdplane_qconf->rx_queue_list[i].port_id;
       queueid = sdplane_qconf->rx_queue_list[i].queue_id;
+
       nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
       if (unlikely (nb_rx == 0))
         continue;
@@ -177,6 +178,34 @@ l2_repeater_rx_burst ()
 static inline __attribute__ ((always_inline)) void
 l2_repeater_tx_burst ()
 {
+  struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
+  struct rte_mbuf *m;
+  unsigned i, nb_rx;
+  uint16_t portid, queueid;
+
+  if (unlikely (! rib))
+    return;
+
+  struct sdplane_queue_conf *sdplane_qconf;
+  sdplane_qconf = &rib->qconf[lcore_id];
+
+  for (i = 0; i < sdplane_qconf->nrxq; i++)
+    {
+      portid = sdplane_qconf->rx_queue_list[i].port_id;
+      queueid = sdplane_qconf->rx_queue_list[i].queue_id;
+
+      nb_rx = rte_ring_dequeue_burst (ring_dn[portid][queueid],
+                                     (void **) pkts_burst, MAX_PKT_BURST,
+                                     NULL);
+
+      if (unlikely (nb_rx == 0))
+        continue;
+
+      rte_eth_tx_burst (portid, queueid, pkts_burst, nb_rx);
+      DEBUG_SDPLANE_LOG (L2_REPEATER,
+                         "lcore[%d]: tx_burst: port: %d queue: %d pkts: %d",
+                         lcore_id, portid, queueid, nb_rx);
+    }
 }
 
 static __thread uint64_t loop_counter = 0;

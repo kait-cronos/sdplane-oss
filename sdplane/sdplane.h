@@ -35,6 +35,8 @@ struct vswitch_port
   char *name;
   int sockfd;
   int lcore_id;
+  int dpdk_port_id;
+  int dpdk_queue_id;
   struct rte_ring *ring[TAPDIR_SIZE];
 };
 
