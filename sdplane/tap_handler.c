@@ -1,6 +1,7 @@
 #include "include.h"
 
-#include <poll.h>
+#include <linux/if.h>
+#include <linux/if_tun.h>
 
 #include <lthread.h>
 
@@ -8,10 +9,6 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
-
-#if HAVE_LIBURCU_QSBR
-#include <urcu/urcu-qsbr.h>
-#endif /*HAVE_LIBURCU_QSBR*/
 
 #include <zcmdsh/debug.h>
 #include <zcmdsh/termio.h>
@@ -40,57 +37,8 @@
 
 static __thread struct rib *rib;
 
-void *rcu_global_ptr;
-uint64_t tap_handler_rcu_replace = 0;
-
-#include <linux/if.h>
-#include <linux/if_tun.h>
-
-struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
-__thread struct rte_ring *thread_ring_to_tap;
-__thread struct rte_ring *thread_ring_from_tap;
-
-struct rte_ring *tap_ring_lcore_dir[RTE_MAX_LCORE][TAPDIR_SIZE];
-
-/* tx/rx is to the ring represented by rxq_id. */
-/* ring_up/dn[port_id][rx_queue_id]; */
-//struct rte_ring *ring_up[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
-//struct rte_ring *ring_dn[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
-
-bool enable_tap_copy = true;
-
 int peek_fd = -1;
 int port_fd[RTE_MAX_ETHPORTS];
-
-void
-per_thread_tap_ring_init ()
-{
-#define RING_TO_TAP_SIZE 64
-  char ring_name[32];
-  int lcore_id = rte_lcore_id ();
-  snprintf (ring_name, sizeof (ring_name), "tap_ring_lcore%d_up", lcore_id);
-  thread_ring_to_tap =
-      rte_ring_create (ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
-                       (RING_F_SP_ENQ | RING_F_SC_DEQ));
-  tap_ring_by_lcore[lcore_id] = thread_ring_to_tap;
-
-  snprintf (ring_name, sizeof (ring_name), "tap_ring_lcore%d_down", lcore_id);
-  thread_ring_from_tap =
-      rte_ring_create (ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
-                       (RING_F_SP_ENQ | RING_F_SC_DEQ));
-
-  tap_ring_lcore_dir[lcore_id][TAPDIR_UP] = thread_ring_to_tap;
-  tap_ring_lcore_dir[lcore_id][TAPDIR_DOWN] = thread_ring_from_tap;
-
-  int i;
-  int port_id;
-  struct lcore_queue_conf *qconf;
-  qconf = &lcore_queue_conf[lcore_id];
-  for (i = 0; i < qconf->n_rx_port; i++)
-    {
-      port_id = qconf->rx_port_list[i];
-    }
-}
 
 int
 tap_open (char *ifname)
@@ -451,21 +399,21 @@ tap_handler_write_port_all (struct rte_mbuf *m)
   nb_ports = rte_eth_dev_count_avail ();
   for (port_id = 0; port_id < nb_ports; port_id++)
     {
-  /* write to port-dpdkX. */
-  if (port_fd[port_id] >= 0)
-    {
-      ret = write (port_fd[port_id], pkt, data_len);
-      if (ret < 0)
-        DEBUG_SDPLANE_LOG (
-            TAPHANDLER,
-            "write() failed: port_fd[%d]: %d error: %s.", port_id,
-            port_fd[port_id], strerror (errno));
-      else
-        DEBUG_SDPLANE_LOG (
-            TAPHANDLER,
-            "packet [%d/%d] (in_port: %d) to port-dpdk%d.",
-            data_len, pkt_len, m->port, port_id);
-    }
+      /* write to port-dpdkX. */
+      if (port_fd[port_id] >= 0)
+        {
+          ret = write (port_fd[port_id], pkt, data_len);
+          if (ret < 0)
+            DEBUG_SDPLANE_LOG (
+                TAPHANDLER,
+                "write() failed: port_fd[%d]: %d error: %s.", port_id,
+                port_fd[port_id], strerror (errno));
+          else
+            DEBUG_SDPLANE_LOG (
+                TAPHANDLER,
+                "packet [%d/%d] (in_port: %d) to port-dpdk%d.",
+                data_len, pkt_len, m->port, port_id);
+        }
     }
 }
 
@@ -620,11 +568,6 @@ tap_handler (__rte_unused void *dummy)
   struct vswitch_port *vswport;
   int vswport_id;
 
-#if HAVE_LIBURCU_QSBR
-  char buf[1024];
-  void *old, *new;
-#endif /*HAVE_LIBURCU_QSBR*/
-
   DEBUG_SDPLANE_LOG (TAPHANDLER, "start thread on lcore[%d].",
                      rte_lcore_id ());
 
@@ -667,37 +610,6 @@ tap_handler (__rte_unused void *dummy)
         }
     }
 
-#if 0
-  struct rte_ring *tap_ring_up, *tap_ring_down;
-  for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
-    {
-      tap_ring_up = tap_ring_lcore_dir[lcore_id][TAPDIR_UP];
-      tap_ring_down = tap_ring_lcore_dir[lcore_id][TAPDIR_DOWN];
-
-      if (tap_ring_up && vswitch->size < vswitch->limit)
-        {
-          vswport_id = vswitch->size;
-          vswport = &vswitch->port[vswport_id];
-          vswport->id = vswport_id;
-          vswport->type = VSWITCH_PORT_TYPE_DPDK_LCORE;
-          snprintf (port_name, sizeof (port_name), "tap_ring_lcore%d",
-                    lcore_id);
-          vswport->name = strdup (port_name);
-          vswport->lcore_id = lcore_id;
-          vswport->ring[TAPDIR_UP] = tap_ring_up;
-          vswport->ring[TAPDIR_DOWN] = tap_ring_down;
-          DEBUG_SDPLANE_LOG (TAPHANDLER,
-                             "vswitch->port[%d]: "
-                             "type: dpdk-lcore name: %s lcore_id: %d "
-                             "ring[up(%d)/down(%d)]: %p/%p",
-                             vswport_id, vswport->name, vswport->lcore_id,
-                             TAPDIR_UP, TAPDIR_DOWN, vswport->ring[TAPDIR_UP],
-                             vswport->ring[TAPDIR_DOWN]);
-          vswitch->size++;
-        }
-    }
-#endif
-
   int i, j;
   memset (fdb, 0, sizeof (fdb));
 
@@ -735,20 +647,6 @@ tap_handler (__rte_unused void *dummy)
       tap_handler_handle_packet_down ();
 
 #if HAVE_LIBURCU_QSBR
-      snprintf (buf, sizeof (buf), "rcu %'lu", loop_counter);
-      new = strdup (buf);
-      old = rcu_dereference (rcu_global_ptr);
-      rcu_assign_pointer (rcu_global_ptr, new);
-      DEBUG_SDPLANE_LOG (RCU_WRITE, "rcu: thread[%d]: assign new: %p: %s",
-                         tap_handler_id, new, new);
-      urcu_qsbr_synchronize_rcu ();
-      DEBUG_SDPLANE_LOG (RCU_WRITE, "rcu: thread[%d]: free old: %p: %s",
-                         tap_handler_id, old, old);
-      free (old);
-      tap_handler_rcu_replace++;
-#endif /*HAVE_LIBURCU_QSBR*/
-
-#if HAVE_LIBURCU_QSBR
       urcu_qsbr_read_unlock ();
       urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
@@ -758,14 +656,6 @@ tap_handler (__rte_unused void *dummy)
 
   close (peek_fd);
   peek_fd = -1;
-
-#if HAVE_LIBURCU_QSBR
-  old = rcu_dereference (rcu_global_ptr);
-  rcu_assign_pointer (rcu_global_ptr, NULL);
-  urcu_qsbr_synchronize_rcu ();
-  free (old);
-  tap_handler_rcu_replace++;
-#endif /*HAVE_LIBURCU_QSBR*/
 
   printf ("%s on lcore[%d]: finished.\n", __func__, rte_lcore_id ());
   return 0;

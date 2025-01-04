@@ -5,6 +5,7 @@
 #include <rte_common.h>
 #include <rte_launch.h>
 #include <rte_ether.h>
+#include <rte_malloc.h>
 
 #include <zcmdsh/shell.h>
 #include <zcmdsh/command.h>
@@ -21,12 +22,16 @@
 #include "sdplane.h"
 #include "thread_info.h"
 
+#include "l2fwd_export.h"
+
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
 
 struct rte_ring *ring_up[RTE_MAX_ETHPORTS][MAX_RX_QUEUE_PER_LCORE];
 struct rte_ring *ring_dn[RTE_MAX_ETHPORTS][MAX_RX_QUEUE_PER_LCORE];
+
+extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
@@ -63,14 +68,159 @@ rib_delete (struct rib *old)
   free (old);
 }
 
-static inline __attribute__ ((always_inline)) void
+int
+port_qconf_compare (const void *a, const void *b)
+{
+  struct port_queue_conf *pa = (struct port_queue_conf *) a;
+  struct port_queue_conf *pb = (struct port_queue_conf *) b;
+  if (pa->port_id < pb->port_id)
+    return -1;
+  else if (pa->port_id > pb->port_id)
+    return 1;
+  else if (pa->queue_id < pb->queue_id)
+    return -1;
+  else if (pa->queue_id > pb->queue_id)
+    return 1;
+  return 0;
+}
+
+static inline __attribute__ ((always_inline)) int
 rib_check (struct rib *new)
 {
   struct sdplane_queue_conf *qconf;
   int lcore;
-  int i;
+  int i, ret;
   char ring_name[32];
+  int j;
 
+  struct rte_eth_rxconf rxq_conf;
+  struct rte_eth_txconf txq_conf;
+
+#define RX_DESC_DEFAULT 1024
+#define TX_DESC_DEFAULT 1024
+  const uint16_t nb_rxd = RX_DESC_DEFAULT;
+  const uint16_t nb_txd = TX_DESC_DEFAULT;
+
+  for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++)
+    {
+      qconf = &new->qconf[lcore];
+      for (i = 0; i < qconf->nrxq; i++)
+        {
+          struct port_queue_conf *rxq;
+          rxq = &qconf->rx_queue_list[i];
+
+          DEBUG_SDPLANE_LOG (RIB, "new rib: lcore: %d qconf[%d]: port: %d queue: %d",
+                         lcore, i, rxq->port_id, rxq->queue_id);
+        }
+    }
+
+#define MAX_PORT_QCONF 256
+  struct port_queue_conf port_qconf[MAX_PORT_QCONF];
+  int port_qconf_size = 0;
+  memset (port_qconf, 0, sizeof (port_qconf));
+
+  /* check port's #rxq/#txq */
+  int max_lcore = 0;
+  for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++)
+    {
+      qconf = &new->qconf[lcore];
+      for (i = 0; i < qconf->nrxq; i++)
+        {
+          struct port_queue_conf *rxq;
+          rxq = &qconf->rx_queue_list[i];
+
+          if (max_lcore < lcore)
+            max_lcore = lcore;
+
+          port_qconf[port_qconf_size++] = *rxq;
+        }
+    }
+
+  qsort (port_qconf, port_qconf_size, sizeof (struct port_queue_conf),
+         port_qconf_compare);
+
+  int port_nrxq[RTE_MAX_ETHPORTS];
+  memset (port_nrxq, 0, sizeof (port_nrxq));
+
+  for (i = 0; i < port_qconf_size; i++)
+    {
+      struct port_queue_conf *rxq;
+      rxq = &port_qconf[i];
+      DEBUG_SDPLANE_LOG (RIB, "port_qconf[%d]: port: %d queue: %d",
+                         i, rxq->port_id, rxq->queue_id);
+      if (port_nrxq[rxq->port_id] == rxq->queue_id)
+        {
+          port_nrxq[rxq->port_id]++;
+        }
+      else
+        {
+          DEBUG_SDPLANE_LOG (RIB, "unorderd port_qconf[%d]: port: %d queue: %d",
+                             i, rxq->port_id, rxq->queue_id);
+          return -1;
+        }
+    }
+
+  struct rte_eth_conf port_conf =
+    { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, }, };
+  struct rte_eth_dev_info dev_info;
+
+  int ntxq;
+  ntxq = max_lcore + 1;
+  DEBUG_SDPLANE_LOG (RIB, "max_lcore: %d, ntxq: %d", max_lcore, ntxq);
+  int nb_ports;
+  nb_ports = rte_eth_dev_count_avail ();
+  for (i = 0; i < nb_ports; i++)
+    {
+      int nrxq;
+      nrxq = port_nrxq[i];
+      ret = rte_eth_dev_info_get (i, &dev_info);
+      if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE)
+        port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
+      else
+        port_conf.txmode.offloads &= (~RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE);
+      DEBUG_SDPLANE_LOG (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d",
+                         i, nrxq, ntxq);
+      ret = rte_eth_dev_stop (i);
+      ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
+
+      rxq_conf = dev_info.default_rxconf;
+      rxq_conf.offloads = port_conf.rxmode.offloads;
+
+      for (j = 0; j < nrxq; j++)
+        {
+          ret = rte_eth_rx_queue_setup (i, j, nb_rxd,
+                                        rte_eth_dev_socket_id (i),
+                                        &rxq_conf,
+                                        l2fwd_pktmbuf_pool);
+          DEBUG_SDPLANE_LOG (RIB, "port[%d]: rx_queue_setup: rxq: %d rxd: %d",
+                             i, j, nb_rxd);
+        }
+
+      txq_conf = dev_info.default_txconf;
+      txq_conf.offloads = port_conf.txmode.offloads;
+
+      for (j = 0; j < ntxq; j++)
+        {
+          ret = rte_eth_tx_queue_setup (i, j, nb_txd,
+                                        rte_eth_dev_socket_id (i),
+                                        &txq_conf);
+          DEBUG_SDPLANE_LOG (RIB, "port[%d]: tx_queue_setup: txq: %d txd: %d",
+                             i, j, nb_txd);
+
+          if (! tx_buffer_per_q[i][j])
+            {
+              tx_buffer_per_q[i][j] =
+                rte_zmalloc_socket ("tx_buffer",
+                                RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
+                                rte_eth_dev_socket_id (i));
+              rte_eth_tx_buffer_init (tx_buffer_per_q[i][j], MAX_PKT_BURST);
+            }
+        }
+
+      ret = rte_eth_dev_start (i);
+    }
+
+  /* prepare rte_ring "ring_up/dn[][]" */
 #define RING_TO_TAP_SIZE 64
   for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++)
     {
@@ -107,6 +257,8 @@ rib_check (struct rib *new)
             }
         }
     }
+
+  return 0;
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -130,7 +282,8 @@ rib_replace (void *new)
 void
 rib_manager_recv_message (void *msgp)
 {
-  DEBUG_SDPLANE_LOG (RIB, "%s: %p.", __func__, msgp);
+  int ret;
+  DEBUG_SDPLANE_LOG (RIB, "%s: msg: %p.", __func__, msgp);
 
 #if HAVE_LIBURCU_QSBR
   struct rib *new, *old;
@@ -167,6 +320,13 @@ rib_manager_recv_message (void *msgp)
 
   free (msgp);
 
+  ret = rib_check (new);
+  if (ret < 0)
+    {
+      DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+      return;
+    }
+
 #if 1
   struct rib *zero;
   zero = malloc (sizeof (struct rib));
@@ -176,8 +336,6 @@ rib_manager_recv_message (void *msgp)
       rib_replace (zero);
     }
 #endif
-
-  rib_check (new);
 
   rib_replace (new);
 #endif /*HAVE_LIBURCU_QSBR*/

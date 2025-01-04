@@ -244,7 +244,6 @@ l2fwd_main_loop(void)
 	lcore_id = rte_lcore_id();
 	qconf = &lcore_queue_conf[lcore_id];
 
-        per_thread_tap_ring_init ();
         /* MAC updating disabled for sdplane. */
         mac_updating = 0;
 
@@ -335,8 +334,7 @@ l2fwd_main_loop(void)
 			for (j = 0; j < nb_rx; j++) {
 				m = pkts_burst[j];
 				rte_prefetch0(rte_pktmbuf_mtod(m, void *));
-				if (enable_tap_copy)
-				  l2fwd_copy_to_tap_ring (m, portid);
+				l2fwd_copy_to_tap_ring (m, portid);
 				l2fwd_simple_forward(m, portid);
 			}
 		}
@@ -344,14 +342,10 @@ l2fwd_main_loop(void)
 
 #if HAVE_LIBURCU_QSBR
                 urcu_qsbr_read_lock ();
-                char *shared;
-                extern void *rcu_global_ptr;
-                shared = (char *) rcu_dereference (rcu_global_ptr);
-                DEBUG_SDPLANE_LOG (RCU_READ, "rcu: thread[%d]: read: %p: %s",
-                                   lcore_id, shared, shared);
                 urcu_qsbr_read_unlock ();
                 urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
+
 	}
 
 #if HAVE_LIBURCU_QSBR

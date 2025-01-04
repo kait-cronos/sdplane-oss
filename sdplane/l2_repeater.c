@@ -201,7 +201,7 @@ l2_repeater_tx_burst ()
       if (unlikely (nb_rx == 0))
         continue;
 
-      rte_eth_tx_burst (portid, queueid, pkts_burst, nb_rx);
+      rte_eth_tx_burst (portid, lcore_id, pkts_burst, nb_rx);
       DEBUG_SDPLANE_LOG (L2_REPEATER,
                          "lcore[%d]: tx_burst: port: %d queue: %d pkts: %d",
                          lcore_id, portid, queueid, nb_rx);
@@ -220,11 +220,11 @@ l2_repeater (__rte_unused void *dummy)
 
   uint16_t nb_ports;
 
+  memset (tx_buffer_per_q, 0, sizeof (tx_buffer_per_q));
+
   prev_tsc = 0;
   lcore_id = rte_lcore_id ();
   qconf = &lcore_queue_conf[lcore_id];
-
-  per_thread_tap_ring_init ();
 
   if (qconf->n_rx_port == 0)
     {

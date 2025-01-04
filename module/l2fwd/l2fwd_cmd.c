@@ -118,8 +118,6 @@ DEFINE_COMMAND (show_l2fwd_all,
   else if (! strcmp (argv[2], "all"))
     all = true;
 
-  fprintf (shell->terminal, "enable_tap_copy = %d%s",
-           enable_tap_copy, shell->NL);
   fprintf (shell->terminal, "l2fwd_enabled_port_mask = %#x%s",
            l2fwd_enabled_port_mask, shell->NL);
   fprintf (shell->terminal, "l2fwd_rx_queue_per_lcore = %d%s",
@@ -204,21 +202,6 @@ DEFINE_COMMAND (show_l2fwd_stats,
   print_stats ();
 }
 
-DEFINE_COMMAND (enable_l2fwd_tap_copy,
-                "(enable|disable) l2fwd tap-copy",
-                ENABLE_HELP
-                DISABLE_HELP
-                "l2fwd\n"
-                "tap-copy\n"
-               )
-{
-  struct shell *shell = (struct shell *) context;
-  if (! strcmp (argv[0], "enable"))
-    enable_tap_copy = true;
-  else
-    enable_tap_copy = false;
-}
-
 DEFINE_COMMAND (l2fwd_init,
                "l2fwd init",
                "l2fwd\n"
@@ -239,6 +222,5 @@ l2fwd_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_l2fwd_vars_mask);
   INSTALL_COMMAND2 (cmdset, set_l2fwd_vars_integer);
   INSTALL_COMMAND2 (cmdset, show_l2fwd_stats);
-  INSTALL_COMMAND2 (cmdset, enable_l2fwd_tap_copy);
 }
 

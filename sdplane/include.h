@@ -1,3 +1,6 @@
+#ifndef __INCLUDE_H__
+#define __INCLUDE_H__
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif /*HAVE_CONFIG_H*/
@@ -21,3 +24,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <poll.h>
+
+#if HAVE_LIBURCU_QSBR
+#include <urcu/urcu-qsbr.h>
+#endif /*HAVE_LIBURCU_QSBR*/
+
+#endif /*__INCLUDE_H__*/

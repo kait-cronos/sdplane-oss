@@ -144,7 +144,8 @@ lthread_main (__rte_unused void *dummy)
   lthread_detach2 (lt);
 
   lthread_create (&lt, (lthread_func) startup_config, NULL);
-  thread_register (lthread_core, lt, startup_config, "startup_config", NULL);
+  thread_register (lthread_core, lt, (lthread_func) startup_config,
+                   "startup_config", NULL);
   lthread_join (lt, NULL, 0);
 
   lthread_create (&lt, (lthread_func) console_shell, NULL);

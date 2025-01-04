@@ -2,6 +2,7 @@
 
 #include <rte_ethdev.h>
 #include <rte_bus_pci.h>
+#include <rte_malloc.h>
 
 #include <zcmdsh/debug.h>
 #include <zcmdsh/termio.h>

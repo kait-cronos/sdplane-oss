@@ -137,9 +137,6 @@ CLI_COMMAND2 (show_rcu, "show rcu",
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
-  extern uint64_t tap_handler_rcu_replace;
-  fprintf (t, "tap_handler_rcu_replace: %'lu%s",
-           tap_handler_rcu_replace, shell->NL);
   fprintf (t, "rib_rcu_replace: %'lu%s",
            rib_rcu_replace, shell->NL);
 }
@@ -241,14 +238,10 @@ sdplane_cmd_init (struct command_set *cmdset)
   queue_config_cmd_init (cmdset);
 }
 
-extern struct rte_ring *tap_ring_by_lcore[RTE_MAX_LCORE];
-
 void
 sdplane_init ()
 {
   int lcore_id;
-  for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
-    tap_ring_by_lcore[lcore_id] = NULL;
   debug_sdplane_cmd_init ();
   thread_info_init ();
 }

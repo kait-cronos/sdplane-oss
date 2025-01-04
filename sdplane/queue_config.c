@@ -152,8 +152,8 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
       for (j = 0; j < qconf->nrxq; j++)
         {
           fprintf (shell->terminal,
-                   "thread_qconf[%d]: rxq[%d/%d]: port: %d queue: %d%s",
-                   i, j, qconf->nrxq,
+                   "thread_qconf[%d]: lcore: %d rxq[%d/%d]: port: %d queue: %d%s",
+                   i, i, j, qconf->nrxq,
                    qconf->rx_queue_list[j].port_id,
                    qconf->rx_queue_list[j].queue_id,
                    shell->NL);
@@ -194,8 +194,8 @@ CLI_COMMAND2 (show_thread_qconf,
       for (j = 0; j < qconf->nrxq; j++)
         {
           fprintf (shell->terminal,
-                   "thread_qconf[%d]: rxq[%d/%d]: port: %d queue: %d%s",
-                   i, j, qconf->nrxq,
+                   "thread_qconf[%d]: lcore: %d rxq[%d/%d]: port: %d queue: %d%s",
+                   i, i, j, qconf->nrxq,
                    qconf->rx_queue_list[j].port_id,
                    qconf->rx_queue_list[j].queue_id,
                    shell->NL);
