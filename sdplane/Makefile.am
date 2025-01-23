@@ -17,7 +17,7 @@ sdplane_SOURCES = \
         $(L3FWD_MODULE_DIR)/l3fwd_cmd.c $(L3FWD_MODULE_DIR)/l3fwd_cmd.h \
         $(L2FWD_MODULE_DIR)/l2fwd.c \
         $(L2FWD_MODULE_DIR)/l2fwd_cmd.c $(L2FWD_MODULE_DIR)/l2fwd_cmd.h \
-        tap_handler.h tap_handler.c stat_collector.c \
+        tap.c tap_handler.h tap_handler.c stat_collector.c \
         startup_config.c snprintf_flags.c dpdk_flag.h \
         dpdk_lcore_cmd.c dpdk_port_cmd.c \
         vty_server.c vty_shell.c \
