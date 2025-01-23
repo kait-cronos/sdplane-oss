@@ -19,6 +19,9 @@
 
 #include "rib_manager.h"
 #include "queue_config.h"
+
+#include "internal_message.h"
+
 #include "sdplane.h"
 
 struct sdplane_queue_conf thread_qconf[RTE_MAX_LCORE];
@@ -52,19 +55,14 @@ CLI_COMMAND2 (update_port_link_status,
   struct shell *shell = (struct shell *) context;
 
   void *msgp;
-  struct stream_msg_header *msg_header;
-  struct stream_msg_eth_link *msg_eth_link;
+  struct internal_msg_eth_link *msg_eth_link;
+
   uint16_t nb_ports;
   int i;
 
-  msgp = (void *)
-    malloc (sizeof (struct stream_msg_header) +
-            sizeof (struct stream_msg_eth_link));
-  msg_header = (struct stream_msg_header *) msgp;
-  msg_eth_link = (struct stream_msg_eth_link *) (msg_header + 1);
-  msg_header->type = STREAM_MSG_TYPE_ETH_LINK;
-  msg_header->length = sizeof (struct stream_msg_eth_link);
-  memset (msg_eth_link, 0, sizeof (struct stream_msg_eth_link));
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ETH_LINK, NULL,
+                              sizeof (struct internal_msg_eth_link));
+  msg_eth_link = (struct internal_msg_eth_link *) internal_msg_body (msgp);
 
   nb_ports = rte_eth_dev_count_avail ();
   for (i = 0; i < nb_ports; i++)
@@ -72,7 +70,7 @@ CLI_COMMAND2 (update_port_link_status,
       rte_eth_link_get_nowait (i, &msg_eth_link->link[i]);
     }
 
-  rib_manager_send_message (msgp, shell);
+  internal_msg_send_to (msg_queue_rib, msgp, shell);
 }
 
 CLI_COMMAND2 (set_thread_lcore_port_queue,
@@ -161,22 +159,11 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
     }
 
   void *msgp;
-  struct stream_msg_header *msg_header;
-  struct stream_msg_qconf *msg_qconf;
+  struct internal_msg_qconf *msg_qconf;
 
-  msgp = (void *)
-    malloc (sizeof (struct stream_msg_header) +
-            sizeof (struct stream_msg_qconf));
-  msg_header = (struct stream_msg_header *) msgp;
-  msg_qconf = (struct stream_msg_qconf *) (msg_header + 1);
-  msg_header->type = STREAM_MSG_TYPE_QCONF;
-  fprintf (shell->terminal, "sizeof (msg_qconf): %lu%s",
-           sizeof (struct stream_msg_qconf), shell->NL);
-  msg_header->length = (uint16_t) sizeof (struct stream_msg_qconf);
-  memcpy (msg_qconf->qconf, thread_qconf,
-          sizeof (struct sdplane_queue_conf) * RTE_MAX_LCORE);
-
-  rib_manager_send_message (msgp, shell);
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF, thread_qconf,
+                              sizeof (thread_qconf));
+  internal_msg_send_to (msg_queue_rib, msgp, shell);
 }
 
 CLI_COMMAND2 (show_thread_qconf,

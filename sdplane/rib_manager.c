@@ -24,6 +24,8 @@
 
 #include "l2fwd_export.h"
 
+#include "internal_message.h"
+
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
@@ -281,7 +283,7 @@ rib_replace (struct rib *new)
 }
 
 void
-rib_manager_recv_message (void *msgp)
+rib_manager_process_message (void *msgp)
 {
   int ret;
   DEBUG_SDPLANE_LOG (RIB, "%s: msg: %p.", __func__, msgp);
@@ -295,22 +297,22 @@ rib_manager_recv_message (void *msgp)
   new = rib_create (old);
 
   /* change something according to the update instruction message. */
-  struct stream_msg_header *msg_header;
-  struct stream_msg_eth_link *msg_eth_link;
-  struct stream_msg_qconf *msg_qconf;
+  struct internal_msg_header *msg_header;
+  struct internal_msg_eth_link *msg_eth_link;
+  struct internal_msg_qconf *msg_qconf;
 
-  msg_header = (struct stream_msg_header *) msgp;
+  msg_header = (struct internal_msg_header *) msgp;
   switch (msg_header->type)
     {
-    case STREAM_MSG_TYPE_ETH_LINK:
+    case INTERNAL_MSG_TYPE_ETH_LINK:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_eth_link: %p.", msgp);
-      msg_eth_link = (struct stream_msg_eth_link *) (msg_header + 1);
+      msg_eth_link = (struct internal_msg_eth_link *) (msg_header + 1);
       memcpy (new->link, msg_eth_link->link,
               sizeof (struct rte_eth_link) * RTE_MAX_ETHPORTS);
       break;
-    case STREAM_MSG_TYPE_QCONF:
+    case INTERNAL_MSG_TYPE_QCONF:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_qconf: %p.", msgp);
-      msg_qconf = (struct stream_msg_qconf *) (msg_header + 1);
+      msg_qconf = (struct internal_msg_qconf *) (msg_header + 1);
       memcpy (new->qconf, msg_qconf->qconf,
               sizeof (struct sdplane_queue_conf) * RTE_MAX_LCORE);
       break;
@@ -382,11 +384,9 @@ rib_manager (void *arg)
       lthread_sleep (100); // yield.
       //DEBUG_SDPLANE_LOG (RIB, "%s: schedule.", __func__);
 
-      ret = rte_ring_dequeue (msg_queue_rib, &msgp);
-      if (ret != -ENOENT)
-        {
-          rib_manager_recv_message (msgp);
-        }
+      msgp = internal_msg_recv (msg_queue_rib);
+
+      rib_manager_process_message (msgp);
 
       loop_counter++;
     }

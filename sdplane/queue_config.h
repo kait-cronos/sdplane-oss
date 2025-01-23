@@ -14,6 +14,8 @@ struct port_queue_conf {
 struct sdplane_queue_conf {
   uint16_t nrxq;
   struct port_queue_conf rx_queue_list[MAX_RX_QUEUE_PER_LCORE];
+
+  /* unused */
   uint16_t ntxq;
   struct port_queue_conf tx_queue_list[MAX_TX_QUEUE_PER_LCORE];
 } __rte_cache_aligned;

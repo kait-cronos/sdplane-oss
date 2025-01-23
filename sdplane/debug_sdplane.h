@@ -26,6 +26,7 @@
 #define DEBUG_SDPLANE_ALL            (1ULL << 20)
 #define DEBUG_SDPLANE_RIB_MESG       (1ULL << 21)
 #define DEBUG_SDPLANE_RIB_CHECK      (1ULL << 22)
+#define DEBUG_SDPLANE_IMESSAGE       (1ULL << 23)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)
