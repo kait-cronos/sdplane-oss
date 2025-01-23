@@ -262,15 +262,16 @@ rib_check (struct rib *new)
 }
 
 static inline __attribute__ ((always_inline)) void
-rib_replace (void *new)
+rib_replace (struct rib *new)
 {
-  void *old;
+  struct rib *old;
   old = rcu_dereference (rcu_global_ptr_rib);
 
   /* assign new */
   rcu_assign_pointer (rcu_global_ptr_rib, new);
-  DEBUG_SDPLANE_LOG (RIB, "rib: replace: %'lu-th: %p -> %p",
-                     rib_rcu_replace, old, new);
+  DEBUG_SDPLANE_LOG (RIB, "rib: replace: %'lu-th: ver.%d (%p) -> ver.%d (%p)",
+                     rib_rcu_replace, (old ? old->ver : -1), old,
+                     (new ? new->ver : -1), new);
 
   /* reclaim old */
   urcu_qsbr_synchronize_rcu ();

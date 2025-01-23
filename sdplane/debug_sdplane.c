@@ -39,6 +39,9 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_THREAD, "thread" },
   { DEBUG_SDPLANE_RIB, "rib" },
   { DEBUG_SDPLANE_VSWITCH, "vswitch" },
+  { DEBUG_SDPLANE_ALL, "all" },
+  { DEBUG_SDPLANE_RIB_MESG, "rib-message" },
+  { DEBUG_SDPLANE_RIB_CHECK, "rib-check" },
 };
 
 struct command_header debug_sdplane_cmd;
@@ -72,6 +75,23 @@ debug_sdplane_func (void *context, int argc, char **argv)
       negate++;
       argv++;
       argc--;
+    }
+
+  if (! strcmp (argv[2], "all"))
+    {
+      if (negate)
+        {
+          FLAG_ZERO (DEBUG_CONFIG (SDPLANE));
+          fprintf (shell->terminal, "debug: sdplane: disable all.%s",
+                   shell->NL);
+        }
+      else
+        {
+          FLAG_SET (DEBUG_CONFIG (SDPLANE), 0xffffffffffffffff);
+          fprintf (shell->terminal, "debug: sdplane: enable all.%s",
+                   shell->NL);
+        }
+      return;
     }
 
   for (i = 0; i < debug_type_size; i++)
