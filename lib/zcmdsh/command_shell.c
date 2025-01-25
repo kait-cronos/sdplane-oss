@@ -553,6 +553,11 @@ pager_end (struct shell *shell)
 void
 shell_read_nowait_paging (struct shell *shell)
 {
+#if ! PAGER_USE_POPEN
+  int wstatus;
+  close (shell->pipefd[1]);
+#endif
+
   if (shell->pager_saved_terminal)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "pager end: terminal: %p -> %p.",
@@ -592,7 +597,7 @@ shell_read_nowait_paging (struct shell *shell)
         {
           DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d: %s", ret,
                             strerror (errno));
-          break;
+          return;
         }
 #if 0
       else
