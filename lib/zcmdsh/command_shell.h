@@ -34,6 +34,8 @@ void command_shell_delete (struct shell *shell);
 
 void command_shell_install_default (struct shell *shell);
 
+void shell_read_nowait_paging (struct shell *shell);
+
 void command_shell_init ();
 void command_shell_finish ();
 

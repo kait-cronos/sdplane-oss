@@ -551,6 +551,125 @@ pager_end (struct shell *shell)
 }
 
 void
+shell_read_nowait_paging (struct shell *shell)
+{
+  if (shell->pager_saved_terminal)
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "pager end: terminal: %p -> %p.",
+                        shell->terminal, shell->pager_saved_terminal);
+      pclose (shell->terminal);
+      shell->terminal = shell->pager_saved_terminal;
+      shell->writefd = shell->pager_saved_writefd;
+      shell->pager_saved_terminal = NULL;
+      shell->pager_saved_writefd = -1;
+    }
+
+#if ! PAGER_USE_POPEN
+  DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
+
+  int ret, nwrite;
+  struct pollfd fds[2];
+  nfds_t nfds = 2;
+  char buf[1024];
+  int closed = 0;
+  int i, j;
+
+  //while (1)
+    {
+      // DEBUG_ZCMDSH_LOG (PAGER, "pager: reset pollfds");
+      memset (fds, 0, sizeof (fds));
+      fds[0].fd = shell->readfd;
+      fds[0].events |= POLLIN;
+      fds[1].fd = shell->pty_master;
+      fds[1].events |= POLLIN;
+#if HAVE_PPOLL
+      // DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll()");
+      ret = ppoll (fds, nfds, NULL, NULL);
+#else
+      ret = poll (fds, nfds, 0);
+#endif /*HAVE_PPOLL*/
+      if (ret < 0)
+        {
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d: %s", ret,
+                            strerror (errno));
+          break;
+        }
+#if 0
+      else
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d", ret);
+#endif
+
+      for (i = 0; i < nfds; i++)
+        {
+          int readfd, writefd;
+          DEBUG_ZCMDSH_LOG (
+              PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x", i, fds[i].fd,
+              (fds[i].revents & POLLIN ? " POLLIN" : ""),
+              (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
+              (fds[i].revents & POLLERR ? " POLLERR" : ""), fds[i].revents);
+
+#if 0
+          if (fds[i].revents & POLLHUP)
+            closed++;
+#endif
+
+          if (! (fds[i].revents & (POLLIN | POLLHUP)))
+            continue;
+
+          readfd = fds[i].fd;
+          j = (i & 0x01) ^ 0x01;
+          writefd = fds[j].fd;
+          // DEBUG_ZCMDSH_LOG (PAGER, "pager: i: %d j: %d", i, j);
+
+          ret = read (readfd, buf, sizeof (buf));
+          if (ret < 0)
+            {
+              DEBUG_ZCMDSH_LOG (PAGER,
+                                "pager: read() from fd: %d returned %d: %s",
+                                readfd, ret, strerror (errno));
+              closed++;
+              continue;
+            }
+          else if (ret == 0)
+            {
+              DEBUG_ZCMDSH_LOG (PAGER, "pager: fds[%d]: fd: %d: closed, break",
+                                i, fds[i].fd);
+              closed++;
+            }
+          else
+            {
+              nwrite = write (writefd, buf, ret);
+              if (nwrite < 0)
+                DEBUG_ZCMDSH_LOG (PAGER, "write() failed: %s",
+                                  strerror (errno));
+              DEBUG_ZCMDSH_LOG (PAGER, "pager: fd: %d -> fd: %d, %d bytes",
+                                readfd, writefd, ret);
+            }
+        }
+    }
+
+  if (! closed)
+    return;
+
+  DEBUG_ZCMDSH_LOG (PAGER, "pager: waiting child: process %d...",
+                    shell->pager_pid);
+  waitpid (shell->pager_pid, &wstatus, 0);
+  if (WIFEXITED (wstatus))
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d exited normally.",
+                        shell->pager_pid);
+    }
+  else
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d failed.", shell->pager_pid);
+    }
+#endif
+
+  shell->is_paging = false;
+}
+
+
+void
 command_shell_execute (struct shell *shell)
 {
   int ret = 0;
