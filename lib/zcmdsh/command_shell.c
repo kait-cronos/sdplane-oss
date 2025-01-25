@@ -709,23 +709,27 @@ command_shell_execute (struct shell *shell)
 
   ret = command_execute (shell->command_line, shell->cmdset, shell);
 
+#if 0
   if (shell->is_paging)
     {
       fflush (shell->terminal);
       pager_end (shell);
     }
+#endif
 
   if (ret < 0)
     fprintf (shell->terminal, "no such command: %s%s", shell->command_line,
              shell->NL);
   command_history_add (shell->command_line, shell->history, shell);
 
+#if 0
   if (! shell_running (shell))
     return;
 
   shell_clear (shell);
   shell_prompt (shell);
   shell_refresh (shell);
+#endif
 }
 
 void
