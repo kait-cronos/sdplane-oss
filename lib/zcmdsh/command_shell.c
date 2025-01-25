@@ -722,14 +722,15 @@ command_shell_execute (struct shell *shell)
              shell->NL);
   command_history_add (shell->command_line, shell->history, shell);
 
-#if 0
   if (! shell_running (shell))
     return;
 
-  shell_clear (shell);
-  shell_prompt (shell);
-  shell_refresh (shell);
-#endif
+  if (! shell->is_paging)
+    {
+      shell_clear (shell);
+      shell_prompt (shell);
+      shell_refresh (shell);
+    }
 }
 
 void
