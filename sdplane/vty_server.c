@@ -94,10 +94,13 @@ vty_server (void *arg)
   thread_id = thread_lookup (vty_server);
   thread_register_loop_counter (thread_id, &loop_counter);
 
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_register_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
   while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (100); // yield.
-      loop_counter++;
 
       fds[0].fd = sockfd;
       fds[0].events = POLLIN;
@@ -137,7 +140,17 @@ vty_server (void *arg)
                             vty_shell, &client_info[client_id]);
       if (client_size < client_id)
         client_size = client_id + 1;
+
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_quiescent_state ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
+      loop_counter++;
     }
 
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_unregister_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
 }

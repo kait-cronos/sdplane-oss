@@ -24,6 +24,8 @@
 #include "thread_info.h"
 #include "queue_config.h"
 
+#include "rib.h"
+
 CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -230,6 +232,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_version);
   INSTALL_COMMAND2 (cmdset, show_rcu);
   INSTALL_COMMAND2 (cmdset, show_fdb);
+  INSTALL_COMMAND2 (cmdset, show_rib);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, sleep_cmd);
   thread_info_cmd_init (cmdset);

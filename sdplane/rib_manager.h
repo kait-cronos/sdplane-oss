@@ -4,10 +4,13 @@
 #include <rte_ethdev.h>
 #include "queue_config.h"
 
+#include "rib.h"
+
 struct rib {
   uint64_t ver;
   struct rte_eth_link link[RTE_MAX_ETHPORTS];
   struct sdplane_queue_conf qconf[RTE_MAX_LCORE];
+  struct rib_info *rib_info;
 } __rte_cache_aligned;
 
 extern void *rcu_global_ptr_rib;

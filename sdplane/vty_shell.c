@@ -207,9 +207,21 @@ vty_shell (void *arg)
 
   while (! force_quit && ! force_stop[lthread_core] && shell_running (shell))
     {
-      loop_vty_shell++;
       lthread_sleep (100); // yield.
-      shell_read_nowait (shell);
+
+      if (shell->is_paging)
+        {
+          DEBUG_ZCMDSH_LOG (PAGER, "nowait_pager");
+          shell_read_nowait_paging (shell);
+        }
+      else
+        shell_read_nowait (shell);
+
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_quiescent_state ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
+      loop_vty_shell++;
     }
 
   DEBUG_SDPLANE_LOG (VTY, "terminating %s[%d]: client[%d]: %s.",

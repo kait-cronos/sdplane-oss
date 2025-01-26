@@ -151,5 +151,4 @@ lthread_main (__rte_unused void *dummy)
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
   lthread_detach2 (lt);
-
 }

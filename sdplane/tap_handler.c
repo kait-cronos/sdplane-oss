@@ -589,5 +589,10 @@ tap_handler (__rte_unused void *dummy)
   peek_fd = -1;
 
   printf ("%s on lcore[%d]: finished.\n", __func__, rte_lcore_id ());
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_unregister_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
   return 0;
 }

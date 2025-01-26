@@ -45,6 +45,31 @@ uint64_t rib_rcu_replace = 0;
 
 static __thread struct rib *rib;
 
+static inline __attribute__ ((always_inline)) struct rib_info *
+rib_info_create (struct rib_info *old)
+{
+  struct rib_info *new;
+
+  /* allocate new */
+  new = malloc (sizeof (struct rib_info));
+  if (! new)
+    return NULL;
+
+  if (! old)
+    memset (new, 0, sizeof (struct rib_info));
+  else
+    memcpy (new, old, sizeof (struct rib_info));
+
+  new->ver++;
+  return new;
+}
+
+static inline __attribute__ ((always_inline)) void
+rib_info_delete (struct rib_info *old)
+{
+  free (old);
+}
+
 static inline __attribute__ ((always_inline)) struct rib *
 rib_create (struct rib *old)
 {
@@ -56,9 +81,14 @@ rib_create (struct rib *old)
     return NULL;
 
   if (! old)
-    memset (new, 0, sizeof (struct rib));
+    {
+      memset (new, 0, sizeof (struct rib));
+    }
   else
-    memcpy (new, old, sizeof (struct rib));
+    {
+      memcpy (new, old, sizeof (struct rib));
+      new->rib_info = rib_info_create (old->rib_info);
+    }
 
   new->ver++;
   return new;
@@ -67,6 +97,11 @@ rib_create (struct rib *old)
 static inline __attribute__ ((always_inline)) void
 rib_delete (struct rib *old)
 {
+  if (old->rib_info)
+    {
+      rib_info_delete (old->rib_info);
+      old->rib_info = NULL;
+    }
   free (old);
 }
 
@@ -276,8 +311,11 @@ rib_replace (struct rib *new)
                      (new ? new->ver : -1), new);
 
   /* reclaim old */
-  urcu_qsbr_synchronize_rcu ();
-  rib_delete (old);
+  if (old)
+    {
+      urcu_qsbr_synchronize_rcu ();
+      rib_delete (old);
+    }
 
   rib_rcu_replace++;
 }
@@ -385,8 +423,8 @@ rib_manager (void *arg)
       //DEBUG_SDPLANE_LOG (RIB, "%s: schedule.", __func__);
 
       msgp = internal_msg_recv (msg_queue_rib);
-
-      rib_manager_process_message (msgp);
+      if (msgp)
+        rib_manager_process_message (msgp);
 
       loop_counter++;
     }

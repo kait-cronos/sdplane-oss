@@ -137,9 +137,18 @@ console_shell (void *arg)
 
   while (! force_quit && ! force_stop[lthread_core] && shell_running (shell))
     {
-      loop_console++;
       lthread_sleep (100); // yield.
-      shell_read_nowait (shell);
+
+      if (shell->is_paging)
+        shell_read_nowait_paging (shell);
+      else
+        shell_read_nowait (shell);
+
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_quiescent_state ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
+      loop_console++;
     }
 
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);

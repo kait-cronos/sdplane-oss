@@ -10,7 +10,7 @@ struct tapif_conf
   int sockfd;
 };
 
-struct vswitch_port
+struct switch_port
 {
   uint8_t type; // dpdk or tapif
   uint8_t portid;
@@ -18,7 +18,7 @@ struct vswitch_port
 
 struct vswitch_conf
 {
-  struct vswitch_port port[MAX_VSWITCH_PORTS];
+  struct switch_port port[MAX_VSWITCH_PORTS];
 };
 
 struct port_conf
@@ -40,9 +40,11 @@ struct rib_info {
   uint8_t port_size;
   uint8_t lcore_size;
   struct tapif_conf tapif[MAX_TAPIF_PORTS];
-  struct vswitch_conf vswitch[MAX_SWITCH_ID];
+  struct vswitch_conf vswitch[MAX_VSWITCH_ID];
   struct port_conf port[RTE_MAX_ETHPORTS];
   struct lcore_qconf lcore_qconf[RTE_MAX_LCORE];
 } __rte_cache_aligned;
+
+EXTERN_COMMAND (show_rib);
 
 #endif /*__RIB_H__*/

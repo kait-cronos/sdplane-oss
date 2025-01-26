@@ -17,6 +17,8 @@
 void *
 internal_msg_body (struct internal_msg_header *msgp)
 {
+  if (! msgp)
+    return NULL;
   return (void *) (msgp + 1);
 }
 
@@ -75,14 +77,14 @@ internal_msg_recv (struct rte_ring *ring)
   int ret;
   void *msgp;
 
-  if (ring)
-    {
-      DEBUG_SDPLANE_LOG (IMESSAGE, "receiving message %p.", msgp);
-      ret = rte_ring_dequeue (ring, &msgp);
-      if (ret != -ENOENT)
-        return msgp;
-    }
+  if (! ring)
+    return NULL;
 
-  return NULL;
+  ret = rte_ring_dequeue (ring, &msgp);
+  if (ret == -ENOENT)
+    return NULL;
+
+  DEBUG_SDPLANE_LOG (IMESSAGE, "receiving message %p.", msgp);
+  return msgp;
 }
 
