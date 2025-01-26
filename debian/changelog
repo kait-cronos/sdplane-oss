@@ -1,3 +1,20 @@
+sdplane (0.1.1-48) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * forgot to add sdplane/rib.c.
+  * avoid blocking of lthread: block had occured during the pager. shell_read_nowait_paging() is provided as a solution. require zcmdsh (>= 0.3.36-31)
+  * internal_message.[ch].
+  * split to tap.[ch].
+  * (no|) debug sdplane all command.
+  * cleanup unused codes. rib_check() now checks the qconf and resets the port's txqs/rxqs. resetting queues prevents SIGSEGV. still have issues on some complex queue configuration.
+  * sending packets / down packet support. use of ring_dn[][]. started "repeater" function for both tx/rx.
+  * deploy ring_up/dn[][] queue in tap_handler. debug sdplane vswitch. dynamic vswitch port update.
+  * preparation of ring_up[][] and ring_dn[][].
+  * thread counter.
+  * update sdplane.conf.sample
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Sun, 26 Jan 2025 15:08:19 +0900
+
 sdplane (0.1.1-36) UNRELEASED; urgency=low
 
   * release. update changelog.
