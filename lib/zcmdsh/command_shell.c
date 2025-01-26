@@ -2,7 +2,6 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#define _GNU_SOURCE // for ppoll()
 #include <includes.h>
 #include <poll.h>
 #include <stdbool.h>
@@ -464,23 +463,13 @@ pager_end (struct shell *shell)
       fds[0].events |= POLLIN;
       fds[1].fd = shell->pty_master;
       fds[1].events |= POLLIN;
-#if HAVE_PPOLL
-      // DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll()");
-      struct timespec timeout = { 0 };
-      ret = ppoll (fds, nfds, &timeout, NULL);
-#else
       ret = poll (fds, nfds, 0);
-#endif /*HAVE_PPOLL*/
       if (ret < 0)
         {
           DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d: %s", ret,
                             strerror (errno));
           break;
         }
-#if 0
-      else
-          DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d", ret);
-#endif
 
       for (i = 0; i < nfds; i++)
         {
@@ -554,10 +543,8 @@ pager_end (struct shell *shell)
 void
 shell_read_nowait_paging (struct shell *shell)
 {
-#if ! PAGER_USE_POPEN
   int wstatus;
   close (shell->pipefd[1]);
-#endif
 
   if (shell->pager_saved_terminal)
     {
@@ -570,7 +557,6 @@ shell_read_nowait_paging (struct shell *shell)
       shell->pager_saved_writefd = -1;
     }
 
-#if ! PAGER_USE_POPEN
   DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
 
   int ret, nwrite;
@@ -588,23 +574,13 @@ shell_read_nowait_paging (struct shell *shell)
       fds[0].events |= POLLIN;
       fds[1].fd = shell->pty_master;
       fds[1].events |= POLLIN;
-#if HAVE_PPOLL
-      // DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll()");
-      struct timespec timeout = { 0 };
-      ret = ppoll (fds, nfds, &timeout, NULL);
-#else
       ret = poll (fds, nfds, 0);
-#endif /*HAVE_PPOLL*/
       if (ret < 0)
         {
           DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d: %s", ret,
                             strerror (errno));
           return;
         }
-#if 0
-      else
-          DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d", ret);
-#endif
 
       for (i = 0; i < nfds; i++)
         {
@@ -668,7 +644,6 @@ shell_read_nowait_paging (struct shell *shell)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d failed.", shell->pager_pid);
     }
-#endif
 
   shell->is_paging = false;
 
@@ -676,7 +651,6 @@ shell_read_nowait_paging (struct shell *shell)
   shell_prompt (shell);
   shell_refresh (shell);
 }
-
 
 void
 command_shell_execute (struct shell *shell)
