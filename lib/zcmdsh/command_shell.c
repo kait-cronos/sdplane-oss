@@ -2,7 +2,7 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-//#define _GNU_SOURCE // for ppoll()
+#define _GNU_SOURCE // for ppoll()
 #include <includes.h>
 #include <poll.h>
 #include <stdbool.h>
@@ -466,7 +466,8 @@ pager_end (struct shell *shell)
       fds[1].events |= POLLIN;
 #if HAVE_PPOLL
       // DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll()");
-      ret = ppoll (fds, nfds, NULL, NULL);
+      struct timespec timeout = { 0 };
+      ret = ppoll (fds, nfds, &timeout, NULL);
 #else
       ret = poll (fds, nfds, 0);
 #endif /*HAVE_PPOLL*/
@@ -589,7 +590,8 @@ shell_read_nowait_paging (struct shell *shell)
       fds[1].events |= POLLIN;
 #if HAVE_PPOLL
       // DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll()");
-      ret = ppoll (fds, nfds, NULL, NULL);
+      struct timespec timeout = { 0 };
+      ret = ppoll (fds, nfds, &timeout, NULL);
 #else
       ret = poll (fds, nfds, 0);
 #endif /*HAVE_PPOLL*/
@@ -613,13 +615,11 @@ shell_read_nowait_paging (struct shell *shell)
               (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
               (fds[i].revents & POLLERR ? " POLLERR" : ""), fds[i].revents);
 
-#if 0
-          if (fds[i].revents & POLLHUP)
-            closed++;
-#endif
-
           if (! (fds[i].revents & (POLLIN | POLLHUP)))
             continue;
+
+          if (fds[i].revents & POLLHUP)
+            closed++;
 
           readfd = fds[i].fd;
           j = (i & 0x01) ^ 0x01;
@@ -671,6 +671,10 @@ shell_read_nowait_paging (struct shell *shell)
 #endif
 
   shell->is_paging = false;
+
+  shell_clear (shell);
+  shell_prompt (shell);
+  shell_refresh (shell);
 }
 
 
@@ -709,18 +713,16 @@ command_shell_execute (struct shell *shell)
 
   ret = command_execute (shell->command_line, shell->cmdset, shell);
 
-#if 0
-  if (shell->is_paging)
-    {
-      fflush (shell->terminal);
-      pager_end (shell);
-    }
-#endif
-
   if (ret < 0)
     fprintf (shell->terminal, "no such command: %s%s", shell->command_line,
              shell->NL);
   command_history_add (shell->command_line, shell->history, shell);
+
+  if (shell->is_paging)
+    {
+      fflush (shell->terminal);
+      shell_read_nowait_paging (shell);
+    }
 
   if (! shell_running (shell))
     return;
