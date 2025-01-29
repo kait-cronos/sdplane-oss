@@ -36,11 +36,11 @@
 
 static __thread struct rib *rib;
 
-__thread  unsigned lcore_id;
+static __thread  unsigned lcore_id;
 
 uint64_t l2_repeat_pkt_copy_failure = 0;
 
-struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
 static inline __attribute__ ((always_inline)) void
 l2_repeater_tap_up (struct rte_mbuf *m, unsigned portid, unsigned queueid)
@@ -220,7 +220,8 @@ l2_repeater (__rte_unused void *dummy)
 
   uint16_t nb_ports;
 
-  memset (tx_buffer_per_q, 0, sizeof (tx_buffer_per_q));
+  /* the tx_buffer_per_q is initialized in rib_manager. */
+  //memset (tx_buffer_per_q, 0, sizeof (tx_buffer_per_q));
 
   prev_tsc = 0;
   lcore_id = rte_lcore_id ();

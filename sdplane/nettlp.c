@@ -33,15 +33,72 @@
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
+extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+
 struct rte_ring *msg_queue_nettlp;
 
+static __thread  unsigned lcore_id;
 static __thread uint64_t loop_counter = 0;
 static __thread struct rib *rib;
 
 void
 nettlp_send_dma_write ()
 {
-  DEBUG_SDPLANE_LOG (NETTLP, "send DMA write.");
+  int tx_portid;
+  uint16_t tx_queueid;
+  struct rte_mbuf *m;
+  uint16_t length;
+  struct rte_ether_hdr *eth;
+  struct rte_ipv4_hdr *ipv4;
+  struct rte_udp_hdr *udp;
+  struct rte_eth_dev_tx_buffer *buffer;
+
+  tx_portid = 1;
+  tx_queueid = lcore_id;
+  DEBUG_SDPLANE_LOG (NETTLP, "send DMA write: to port: %d queue %d.",
+                     tx_portid, tx_queueid);
+  m = rte_pktmbuf_alloc (l2fwd_pktmbuf_pool);
+  length = sizeof (struct rte_ipv4_hdr) + sizeof (struct rte_udp_hdr) + 64;
+  rte_pktmbuf_append (m, sizeof (struct rte_ether_hdr) + length);
+
+  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  memset (eth, 0, length);
+  ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
+  udp = (struct rte_udp_hdr *) (ipv4 + 1);
+
+  eth->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
+
+  ipv4->version_ihl = 0x45;
+  ipv4->total_length = rte_cpu_to_be_16 (length);
+  ipv4->src_addr = rte_cpu_to_be_32 (0x0b0b0b0b);
+  ipv4->dst_addr = rte_cpu_to_be_32 (0x0c0c0c0c);
+  ipv4->next_proto_id = IPPROTO_UDP;
+  ipv4->hdr_checksum = rte_ipv4_cksum (ipv4);
+
+  udp->src_port = rte_cpu_to_be_16 (1030);
+  udp->dst_port = rte_cpu_to_be_16 (1040);
+  udp->dgram_len = rte_cpu_to_be_16 (sizeof (struct rte_udp_hdr) + 64);
+
+  if (! tx_buffer_per_q[tx_portid][tx_queueid])
+    {
+      tx_buffer_per_q[tx_portid][tx_queueid] =
+        rte_zmalloc_socket ("tx_buffer",
+                        RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
+                        rte_eth_dev_socket_id (tx_portid));
+      rte_eth_tx_buffer_init (tx_buffer_per_q[tx_portid][tx_queueid],
+                              MAX_PKT_BURST);
+    }
+
+  buffer = tx_buffer_per_q[tx_portid][lcore_id];
+
+  if (buffer)
+    {
+      rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, m);
+      rte_eth_tx_buffer_flush (tx_portid, tx_queueid, buffer);
+      DEBUG_SDPLANE_LOG (NETTLP, "sent.");
+    }
+  else
+    DEBUG_SDPLANE_LOG (NETTLP, "no tx buffer.");
 }
 
 int
@@ -49,7 +106,8 @@ nettlp_thread (void *arg)
 {
   int ret;
   void *msgp;
-  unsigned lcore_id = rte_lcore_id ();
+
+  lcore_id = rte_lcore_id ();
 
   printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
   DEBUG_SDPLANE_LOG (NETTLP, "%s: started.", __func__);
