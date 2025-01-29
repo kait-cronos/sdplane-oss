@@ -1,3 +1,12 @@
+sdplane (0.1.1-55) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge branch 'nettlp' into devel
+  * nettlp dma-write test packet transmission.
+  * nettlp-send dma-write framework.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Wed, 29 Jan 2025 22:21:49 +0900
+
 sdplane (0.1.1-51) UNRELEASED; urgency=low
 
   * release. update changelog.
