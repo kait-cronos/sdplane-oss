@@ -380,6 +380,8 @@ tap_handler_handle_packet_up ()
           if (! m)
             continue;
 
+          DEBUG_SDPLANE_LOG (PACKET, "m: %p received from port: %d queue: %d",
+                             m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
           tap_handler_log_packet (m);
           tap_handler_register_fdb (m);
           tap_handler_write_peek (m);

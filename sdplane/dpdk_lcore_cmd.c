@@ -31,6 +31,8 @@ struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 
 extern int lthread_core;
 
+int nettlp_thread (void *arg);
+
 void
 start_lcore (struct shell *shell, int lcore_id)
 {
@@ -77,7 +79,7 @@ stop_lcore (struct shell *shell, int lcore_id)
 
 CLI_COMMAND2 (set_worker,
               "(set|reset|start|restart) worker lcore <0-16> "
-              "(|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater)",
+              "(|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater|nettlp-thread)",
               SET_HELP, RESET_HELP, START_HELP, RESTART_HELP, WORKER_HELP,
               LCORE_HELP, LCORE_NUMBER_HELP,
               "set lcore not to launch anything\n",
@@ -85,7 +87,9 @@ CLI_COMMAND2 (set_worker,
               "set lcore to launch l3fwd (default: lpm)\n",
               "set lcore to launch l3fwd-lpm\n",
               "set lcore to launch tap-handler\n",
-              "set lcore to launch l2-repeater\n")
+              "set lcore to launch l2-repeater\n",
+              "set lcore to launch nettlp-thread\n"
+              )
 {
   struct shell *shell = (struct shell *) context;
   int lcore_id;
@@ -103,6 +107,8 @@ CLI_COMMAND2 (set_worker,
     func = tap_handler;
   else if (! strcmp (argv[4], "l2-repeater"))
     func = l2_repeater;
+  else if (! strcmp (argv[4], "nettlp-thread"))
+    func = nettlp_thread;
   else /* if (! strcmp (argv[4], "l3fwd")) */
     func = lpm_main_loop;
 
@@ -124,6 +130,8 @@ CLI_COMMAND2 (set_worker,
     func_name = "tap-handler";
   else if (func == l2_repeater)
     func_name = "l2-repeater";
+  else if (func == nettlp_thread)
+    func_name = "nettlp-thread";
   else
     func_name = "none";
 

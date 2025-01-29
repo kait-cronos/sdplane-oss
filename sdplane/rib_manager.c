@@ -33,7 +33,7 @@
 struct rte_ring *ring_up[RTE_MAX_ETHPORTS][MAX_RX_QUEUE_PER_LCORE];
 struct rte_ring *ring_dn[RTE_MAX_ETHPORTS][MAX_RX_QUEUE_PER_LCORE];
 
-extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
@@ -200,6 +200,9 @@ rib_check (struct rib *new)
   struct rte_eth_conf port_conf =
     { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, }, };
   struct rte_eth_dev_info dev_info;
+
+  if (max_lcore < 3)
+    max_lcore = 3;
 
   int ntxq;
   ntxq = max_lcore + 1;
@@ -408,6 +411,9 @@ rib_manager (void *arg)
 
   printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
   DEBUG_SDPLANE_LOG (RIB, "%s: started.", __func__);
+
+  /* the tx_buffer_per_q is initialized in rib_manager. */
+  memset (tx_buffer_per_q, 0, sizeof (tx_buffer_per_q));
 
   /* initialize */
   msg_queue_rib =
