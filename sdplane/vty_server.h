@@ -6,10 +6,11 @@ struct vty_client
   int id;
   struct sockaddr_in peer_addr;
   int fd;
+  lthread_t *lt;
 };
 typedef struct vty_client vty_client_t;
 
-#define VTY_CLIENT_MAX  5
+#define VTY_CLIENT_MAX 5
 
 void vty_server (void *arg);
 

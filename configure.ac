@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([sdplane],[0.0.8],[yasu1976@gmail.com])
+AC_INIT([sdplane],[m4_esyscmd_s([. sdplane/sdplane-version.sh])],[yasu1976@gmail.com])
 AC_CONFIG_SRCDIR([sdplane/sdplane.c])
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_CONFIG_HEADERS([config.h])
@@ -12,8 +12,10 @@ AC_PROG_CC
 AC_PROG_LN_S
 
 # Checks for libraries.
-# FIXME: Replace `main' with a function in `-llthread':
-AC_CHECK_LIB([lthread], [main])
+AC_CHECK_LIB([lthread], [lthread_create], ,
+             [AC_MSG_ERROR([lthread library not found.])])
+AC_CHECK_LIB([urcu-qsbr], [urcu_qsbr_quiescent_state], ,
+             [AC_MSG_ERROR([urcu-qsbr library not found.])])
 
 AC_ARG_WITH([zcmdsh], [AS_HELP_STRING([--with-zcmdsh=DIR], [zcmdsh libdir (/usr/lib)])], [
         zcmdshdir="$withval"
@@ -48,5 +50,5 @@ PKG_CHECK_MODULES(DPDK, [libdpdk])
 
 AC_SUBST([systemdsystemunitdir], [$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
 
-AC_CONFIG_FILES([Makefile l2fwd/Makefile l3fwd/Makefile sdplane/Makefile])
+AC_CONFIG_FILES([Makefile sdplane/Makefile])
 AC_OUTPUT

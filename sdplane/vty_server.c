@@ -1,16 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <arpa/inet.h>
-#include <poll.h>
+#include "include.h"
 
 #include <lthread.h>
 
 #include <rte_common.h>
 #include <rte_launch.h>
+#include <rte_ether.h>
 
 #include <zcmdsh/shell.h>
 #include <zcmdsh/command.h>
@@ -18,8 +12,9 @@
 
 #include <zcmdsh/debug.h>
 #include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
+#include <zcmdsh/debug_log.h>
+#include <zcmdsh/debug_category.h>
+#include <zcmdsh/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "sdplane.h"
@@ -30,10 +25,14 @@
 #include "vty_server.h"
 #include "vty_shell.h"
 
+#include "thread_info.h"
+
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
 vty_client_t client_info[VTY_CLIENT_MAX];
+
+static __thread uint64_t loop_counter = 0;
 
 void
 vty_server (void *arg)
@@ -41,8 +40,6 @@ vty_server (void *arg)
   int sockfd;
   int ret;
   int client_fd;
-
-  lthread_detach ();
 
   sockfd = lthread_socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sockfd == -1)
@@ -52,8 +49,8 @@ vty_server (void *arg)
     }
 
   int optval = 1;
-  ret = setsockopt (sockfd, SOL_SOCKET, SO_REUSEADDR,
-                    &optval, sizeof (optval));
+  ret =
+      setsockopt (sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof (optval));
   if (ret < 0)
     {
       fprintf (stderr, "setsockopt(REUSEADDR) failed: %s.\n",
@@ -76,7 +73,7 @@ vty_server (void *arg)
       return;
     }
 
-  printf ("Starting vty_server on port 9882\n");
+  DEBUG_SDPLANE_LOG (VTY_SERVER, "Starting vty_server on port 9882.");
 
   int client_size = 0;
   int i, client_id;
@@ -93,13 +90,17 @@ vty_server (void *arg)
 
   struct pollfd fds[2];
 
+  int thread_id;
+  thread_id = thread_lookup (vty_server);
+  thread_register_loop_counter (thread_id, &loop_counter);
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_register_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
   while (! force_quit && ! force_stop[lthread_core])
     {
-      lthread_sleep (1000); // yield.
-
-      if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                      DEBUG_SDPLANE_LTHREAD))
-        printf ("%s: schedule.\n", __func__);
+      lthread_sleep (100); // yield.
 
       fds[0].fd = sockfd;
       fds[0].events = POLLIN;
@@ -107,8 +108,8 @@ vty_server (void *arg)
       if ((fds[0].revents & (POLLIN | POLLERR)) == 0)
         continue;
 
-      client_fd = lthread_accept (sockfd, (struct sockaddr *) &peer_addr,
-                                  &addrlen);
+      client_fd =
+          lthread_accept (sockfd, (struct sockaddr *) &peer_addr, &addrlen);
       if (client_fd < 0)
         {
           fprintf (stderr, "lthread_accept() failed.\n");
@@ -132,14 +133,24 @@ vty_server (void *arg)
           continue;
         }
 
-      printf ("%s: lthread_accept: client[%d]\n", __func__, client_id);
+      DEBUG_SDPLANE_LOG (VTY_SERVER, "lthread_accept: client[%d].", client_id);
       client_info[client_id].peer_addr = peer_addr;
       client_info[client_id].fd = client_fd;
-      ret = lthread_create (&client_lt, vty_shell, &client_info[client_id]);
+      ret = lthread_create (&client_info[client_id].lt,
+                            vty_shell, &client_info[client_id]);
       if (client_size < client_id)
         client_size = client_id + 1;
+
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_quiescent_state ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
+      loop_counter++;
     }
 
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
-}
 
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_unregister_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+}

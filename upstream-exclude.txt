@@ -1,0 +1,4 @@
+.git*
+debian*
+autom4te.cache*
+*.o

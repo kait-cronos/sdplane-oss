@@ -1,0 +1,17 @@
+
+[Unit]
+Description=software data-plane
+After=network.target
+
+[Service]
+ExecStartPre=-ip link set down dev enp2s0
+ExecStartPre=-ip link set down dev enp3s0
+ExecStartPre=-ip link set down dev enp4s0
+ExecStartPre=modprobe uio_pci_generic
+ExecStartPre=dpdk-devbind.py -b uio_pci_generic 02:00.0 03:00.0 04:00.0
+ExecStart=/usr/sbin/sdplane
+Type=simple
+
+[Install]
+WantedBy=default.target
+

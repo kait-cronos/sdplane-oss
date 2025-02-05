@@ -2,7 +2,7 @@ Source: sdplane
 Section: net
 Priority: optional
 Maintainer: Yasuhiro Ohara <yasu1976@gmail.com>
-Build-Depends: debhelper-compat (= 12), zcmdsh (>= 0.3.19)
+Build-Depends: debhelper-compat (= 12), zcmdsh (>= 0.3.36-31), liburcu8t64 (>= 0.14.0-3.1build1)
 Standards-Version: 4.5.0
 Homepage: http://www.yasuhironet.net/
 

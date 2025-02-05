@@ -1,10 +1,7 @@
 .DS_Store
 
-/l2fwd/build
-/l2fwd/l2fwd
-/l3fwd/build
-/l3fwd/l3fwd
 /sdplane/sdplane
+/sdplane/sdplane_version.c
 
 /sdplane_*.debian.tar.xz
 /sdplane_*.dsc
@@ -21,6 +18,7 @@
 /debian/sdplane/DEBIAN/md5sums
 /debian/sdplane/usr/share/doc/sdplane/changelog.gz
 /debian/.debhelper
+/debian/debhelper-build-stamp
 /debian/autoreconf.after
 /debian/autoreconf.before
 /debian/sdplane.debhelper.log

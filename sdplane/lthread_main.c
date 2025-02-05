@@ -1,15 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <sys/types.h>
-#include <string.h>
-#include <sys/queue.h>
-#include <stdarg.h>
-#include <errno.h>
-#include <getopt.h>
-#include <signal.h>
-#include <stdbool.h>
+#include "include.h"
 
 #include <rte_common.h>
 #include <rte_vect.h>
@@ -51,9 +40,8 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
-//#include <zcmdsh/shell_fselect.h>
+// #include <zcmdsh/shell_fselect.h>
+#include <zcmdsh/debug_zcmdsh.h>
 
 #include "l3fwd.h"
 #include "l3fwd_event.h"
@@ -68,13 +56,55 @@
 
 #include "debug_sdplane.h"
 #include "vty_shell.h"
+#include "thread_info.h"
 
 int lthread_core = 0;
 
 int startup_config (__rte_unused void *dummy);
 void console_shell (void *arg);
-int stat_collector (__rte_unused void *dummy);
 void vty_server (void *arg);
+
+int stat_collector (__rte_unused void *dummy);
+void rib_manager (void *arg);
+
+CLI_COMMAND2 (set_worker_lthread_stat_collector,
+              "set worker lthread stat-collector",
+              SET_HELP,
+              WORKER_HELP,
+              "lthread information\n",
+              "stat-collector\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) stat_collector, NULL);
+  thread_register (lthread_core, lt, (lthread_func) stat_collector, "stat_collector", NULL);
+  lthread_detach2 (lt);
+}
+
+CLI_COMMAND2 (set_worker_lthread_rib_manager,
+              "set worker lthread rib-manager",
+              SET_HELP,
+              WORKER_HELP,
+              "lthread information\n",
+              "rib-manager\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) rib_manager, NULL);
+  thread_register (lthread_core, lt, (lthread_func) rib_manager, "rib_manager", NULL);
+  lthread_detach2 (lt);
+}
+
+void
+lthread_cmd_init (struct command_set *cmdset)
+{
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_stat_collector);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_rib_manager);
+}
 
 int
 lthread_main (__rte_unused void *dummy)
@@ -82,7 +112,7 @@ lthread_main (__rte_unused void *dummy)
   lthread_t *lt = NULL;
 
   /* timer set */
-  //timer_init (60 * 60, "2024/12/31 23:59:59");
+  // timer_init (60 * 60, "2024/12/31 23:59:59");
   timer_init (0, NULL);
 
   /* initialize workers */
@@ -101,20 +131,24 @@ lthread_main (__rte_unused void *dummy)
   lcore_workers[lcore_id].func = lthread_main;
   lcore_workers[lcore_id].func_name = "lthread_main";
 
-  printf ("%s[%d]: %s: enter at core[%d].\n",
-          __FILE__, __LINE__, __func__, lthread_core);
+  printf ("%s[%d]: %s: enter at core[%d].\n", __FILE__, __LINE__, __func__,
+          lthread_core);
 
   /* library initialization. */
-  debug_cmd_init ();
+  debug_zcmdsh_cmd_init ();
   command_shell_init ();
 
-  debug_module_cmd_init ();
-
-  void *ptr;
-  lthread_create (&lt, (lthread_func) startup_config, NULL);
-  lthread_create (&lt, (lthread_func) console_shell, NULL);
-  lthread_create (&lt, (lthread_func) stat_collector, NULL);
-  //lthread_create (&lt, (lthread_func) tap_handler, NULL);
+  // lthread_create (&lt, (lthread_func) tap_handler, NULL);
   lthread_create (&lt, (lthread_func) vty_server, NULL);
-}
+  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
+  lthread_detach2 (lt);
 
+  lthread_create (&lt, (lthread_func) startup_config, NULL);
+  thread_register (lthread_core, lt, (lthread_func) startup_config,
+                   "startup_config", NULL);
+  lthread_join (lt, NULL, 0);
+
+  lthread_create (&lt, (lthread_func) console_shell, NULL);
+  thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
+  lthread_detach2 (lt);
+}

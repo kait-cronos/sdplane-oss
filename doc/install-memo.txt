@@ -1,7 +1,11 @@
 
-(ver. 14: 2024/08/01 23:41)
-zcmdsh_0.3.19-1_amd64.deb
-sdplane_0.0.9e-1_amd64.deb
+(ver. 17: 2024/11/05 04:23)
+zcmdsh_0.3.28-1_amd64.deb
+sdplane_0.0.9i-1_amd64.deb
+
+- passwd 生成方法:
+$ pwgen -cnB 12 1
+$ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
 
 ***********************
 * MacBook で Ubuntu 24.04 Server のインストール用USB作成
@@ -91,7 +95,8 @@ sdplane_0.0.9e-1_amd64.deb
     Name: wireuser
     Host: wiretap1/2/3/4
     Username: wireuser
-    Password: wirepass
+    Password: wirepass / yG2CK82dYLFm
+
   - Upgrade to ubuntu pro: skip for now で continue.
   - SSH Setup: Install OpenSSH server
     No authorized key
@@ -159,24 +164,26 @@ sdplane_0.0.9e-1_amd64.deb
   # update-grub
 
 * zcmdsh の install
-  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.19-1_amd64.deb
-  # apt install ./zcmdsh_0.3.19-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.28-1_amd64.deb
+  # apt install ./zcmdsh_0.3.28-1_amd64.deb
 
 * sdplane の install
-  $ wget https://www.yasuhironet.net/download/sdplane_0.0.9e-1_amd64.deb
-  # apt install ./sdplane_0.0.9e-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/sdplane_0.0.9i-1_amd64.deb
+  # apt install ./sdplane_0.0.9i-1_amd64.deb
 
 * netplan config install:
   # rm -f /etc/netplan/*.yaml
   # cp -f /etc/sdplane/60-netplan-sdplane.yaml /etc/netplan/
 
 * iptables rules files install:
-  # cp -f /etc/sdplane/rules.v{4,6} /etc/iptables/
+  # cp -f /etc/sdplane/iptables-rules.v4 /etc/iptables/rules.v4
+  # cp -f /etc/sdplane/iptables-rules.v6 /etc/iptables/rules.v6
 
 * sshd config file install:
   # cp -f /etc/sdplane/sshd_config /etc/sshd/
-  - PasswordAuthentication yes
-  - 192.168.0.0/8 10.0.0.0/8 172.16.0.0/16 からのみ PasswordAuth
+  - PasswordAuthentication no
+  - コメントアウト(無効化)してあるが、末尾に
+    192.168.0.0/8 10.0.0.0/8 172.16.0.0/16 からのみ PasswordAuth の設定。
 
 * sdplane startup config:
   # cp -f /etc/sdplane/sdplane.conf.sample /etc/sdplane/sdplane.conf
@@ -185,22 +192,36 @@ sdplane_0.0.9e-1_amd64.deb
   # systemctl enable sdplane
   # systemctl start sdplane
 
-* etckeeper commit
-  # etckeeper commit
-
 * screen and .screenrc のインストール
   $ wget http://www.yasuhironet.net/download/dot.screenrc
   $ mv dot.screenrc ~/.screenrc
 
-* tailscale
-  # curl -fsSL https://tailscale.com/install.sh | sh
+* tailscale install
+  - curl -fsSL https://tailscale.com/install.sh | sh
 
-* セットアップ wireadmin ユーザ
-  # adduser --disabled-password wireadmin
+* wireadmin アカウント設定
+  # adduser wireadmin
+    New password: dm9Fo6acPuDn
+    Full Name []: wiretap admin
+  # gpasswd -a wireadmin sudo
+  wireadminでlogin
+  $ wget http://www.yasuhironet.net/download/dot.screenrc
+  $ mv dot.screenrc ~/.screenrc
   - 公開鍵を設定
-  - パスワードを設定。これは秘密にしておく
-  (- sudoers に NOPASS で登録)
-  - 企業のユーザ権限昇格の規定を確認したい。
+  $ mkdir .ssh
+  $ wget http://www.yasuhironet.net/download/wireadmin.pub
+  $ wget https://github.com/yasuhironet.keys
+  $ mv wireadmin.pub .ssh/authorized_keys
+  $ sudo -s
+  # git config --global user.email "yasu1976@gmail.com"
+  # git config --global user.name "wiretap root user"
+  # echo "export EDITOR=vi" >> ~/.bashrc
+
+* wireadmin アカウント無効化
+  # sudo usermod --expiredate 1 wireadmin
+
+* etckeeper commit
+  # etckeeper commit
 
 ***********************
 * Ubuntu 再起動と確認。
@@ -234,5 +255,26 @@ sdplane_0.0.9e-1_amd64.deb
   sdplane version: 0.0.9e
   signature: partaker x86_64 enp1s0: 00:e0:67:30:d9:ba
   vty[1]> 
+
+***********************
+* 検収作業
+***********************
+* tailscale
+  - tailscale up
+  - To authenticate, visit:
+	https://login.tailscale.com/a/14f4cdf3014b2b
+    検収作業でこのURLを小原に通知する。
+    小原が yasuhironet の tailnet に接続し、確認。　
+  - 検収完了。
+
+***********************
+* tailscale 無効化
+***********************
+* tailscale down
+  コンソールで tailscale down する
+  tailscale down
+  systemctl disable tailscaled
+
+以上で完了です。
 
 

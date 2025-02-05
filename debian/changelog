@@ -1,3 +1,469 @@
+sdplane (0.1.1-57) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Wed, 29 Jan 2025 22:25:57 +0900
+
+sdplane (0.1.1-56) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Wed, 29 Jan 2025 22:25:50 +0900
+
+sdplane (0.1.1-55) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge branch 'nettlp' into devel
+  * nettlp dma-write test packet transmission.
+  * nettlp-send dma-write framework.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Wed, 29 Jan 2025 22:21:49 +0900
+
+sdplane (0.1.1-51) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Sun, 26 Jan 2025 15:14:27 +0900
+
+sdplane (0.1.1-50) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Sun, 26 Jan 2025 15:13:56 +0900
+
+sdplane (0.1.1-49) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Sun, 26 Jan 2025 15:09:05 +0900
+
+sdplane (0.1.1-48) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * forgot to add sdplane/rib.c.
+  * avoid blocking of lthread: block had occured during the pager. shell_read_nowait_paging() is provided as a solution. require zcmdsh (>= 0.3.36-31)
+  * internal_message.[ch].
+  * split to tap.[ch].
+  * (no|) debug sdplane all command.
+  * cleanup unused codes. rib_check() now checks the qconf and resets the port's txqs/rxqs. resetting queues prevents SIGSEGV. still have issues on some complex queue configuration.
+  * sending packets / down packet support. use of ring_dn[][]. started "repeater" function for both tx/rx.
+  * deploy ring_up/dn[][] queue in tap_handler. debug sdplane vswitch. dynamic vswitch port update.
+  * preparation of ring_up[][] and ring_dn[][].
+  * thread counter.
+  * update sdplane.conf.sample
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Sun, 26 Jan 2025 15:08:19 +0900
+
+sdplane (0.1.1-36) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Thu, 26 Dec 2024 22:01:17 +0900
+
+sdplane (0.1.1-35) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sleep command.
+  * smarter set thread port queue command. add stream msg type: stream_msg_eth_link. update port link-status command. display re-format. rib_replace (2-stage).
+  * rib replace feature by rcu started to work. set worker lthread (stat-collector|rib-manager). internal message queue to rib-manager. (set|show) thread qconf.
+  * rib_manager.[ch].
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Thu, 26 Dec 2024 21:59:14 +0900
+
+sdplane (0.1.1-30) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Sun, 22 Dec 2024 18:28:29 +0900
+
+sdplane (0.1.1-29) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Sun, 22 Dec 2024 18:27:34 +0900
+
+sdplane (0.1.1-28) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update the zcmdsh version requirement.
+  * new queue_config.
+  * cleanup framework of l2-repeater.
+  * escape handling in console shell.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Sun, 22 Dec 2024 18:26:49 +0900
+
+sdplane (0.1.1-23) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Fri, 13 Dec 2024 16:54:28 +0900
+
+sdplane (0.1.1-22) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Fri, 13 Dec 2024 16:53:09 +0900
+
+sdplane (0.1.1-21) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Fri, 13 Dec 2024 16:52:31 +0900
+
+sdplane (0.1.1-20) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * support rcu_read in l2_repeater.
+  * include header fix.
+  * show fdb and show vswitch commands.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Fri, 13 Dec 2024 00:28:48 +0900
+
+sdplane (0.1.1-16) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * remove temporary fix for l2_repeater.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 10 Dec 2024 22:08:21 +0900
+
+sdplane (0.1.1-14) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sdplane.conf.sample to enable l2-repeater.
+  * set_port_dev_configure and tx_buffer_per_q[][] for multiple core threads' tx to multiple queues on ports.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 10 Dec 2024 01:16:40 +0900
+
+sdplane (0.1.1-11) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * temporary fix for l2-repeater bug: tx_buffer_flush() contends from multiple l2-repeater doing tx_buffer_flush() for the same port (i.e., the same queue). we must allocate different queues for each l2-repeater thread for the same port.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 8 Dec 2024 21:53:50 +0900
+
+sdplane (0.1.1-9) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * fix prompting. sometimes other threads output comes after the prompt, and it is confusing for the user if the system is in the prompting state.
+  * lthread detach or join control in lthread_master.
+  * urcu-qsbr configure check.
+  * incorporate rcu framework.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 8 Dec 2024 14:48:18 +0900
+
+sdplane (0.1.1-4) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * upstream-exclude.txt.
+  * update changelog for v0.1.1-2.
+  * update changelog for v0.1.1.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 17:13:18 +0900
+
+sdplane (0.1.1-2) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update changelog for v0.1.1.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 16:40:59 +0900
+
+sdplane (0.2.1-1) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update changelog for v0.1.1.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 16:40:59 +0900
+
+sdplane (0.1.1-3) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update changelog for v0.2.1-1.
+  * update changelog for v0.1.1.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 17:01:13 +0900
+
+sdplane (0.2.1-1) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update changelog for v0.1.1.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 16:40:59 +0900
+
+sdplane (0.2.1-1) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update changelog for v0.1.1.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 16:40:59 +0900
+
+sdplane (0.1.1-8) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 16:52:18 +0900
+
+sdplane (0.1.1-7) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 16:51:39 +0900
+
+sdplane (0.1.1-6) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 16:48:31 +0900
+
+sdplane (0.2.1-1) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update changelog for v0.1.1.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 16:40:59 +0900
+
+sdplane (0.1.0-32) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * allow re-building of debian package. allow build on dirty work-dir. git remove for intermediate dh-files that made the version-number always labeled as dirty.
+  * sdplane "show version" fix.
+  * update install-memo.txt
+  * update .gitignore
+  * show thread counter for lthread.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 14:08:31 +0900
+
+sdplane (0.1.0-40) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 15:03:18 +0900
+
+sdplane (0.1.0-39) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 14:52:39 +0900
+
+sdplane (0.1.0-38) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * dirty-version test
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 14:52:35 +0900
+
+sdplane (0.1.0-36) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * dirty-version test
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 14:40:42 +0900
+
+sdplane (0.1.0-34) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 14:21:24 +0900
+
+sdplane (0.1.0-33) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * allow re-building of debian package.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 14:19:49 +0900
+
+sdplane (0.1.0-31) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sdplane "show version" fix.
+  * update install-memo.txt
+  * update .gitignore
+  * show thread counter for lthread.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 1 Dec 2024 14:07:40 +0900
+
+sdplane (0.1.0-29) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update .gitignore
+  * show thread counter for lthread.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Mon, 18 Nov 2024 01:06:40 +0900
+
+sdplane (0.1.0-26) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update required zcmdsh version.
+  * clang-format and CLI_COMMAND2().
+  * directory structure changed.
+  * update .gitignore
+  * remove l2fwd/ and l3fwd/
+  * unite includes in include.h
+  * clean up and vty-shell loop count.
+  * version changed and "show version" command.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 17 Nov 2024 17:10:10 +0900
+
+sdplane (0.1.0-17) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * support for packet analysis and fdb in tap_handler.
+  * debug sdplane (packet|fdb|fdb-change).
+  * l2_repeater started to work.
+  * sync
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 16 Nov 2024 04:26:48 +0900
+
+sdplane (0.1.0-12) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * build test
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 07:15:42 +0900
+
+sdplane (0.1.0-10) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sync
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 07:14:23 +0900
+
+sdplane (0.1.0-8) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * fix build-debian.sh
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 07:10:43 +0900
+
+sdplane (0.1.0-6) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sync
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 07:08:29 +0900
+
+sdplane (0.1.0-4) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sync
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 07:07:13 +0900
+
+sdplane (0.2.0-1) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sync
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 07:05:28 +0900
+
+sdplane (0.1.0) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update changelog for .
+  * update build-debian.sh
+  * l2_repeater.[ch].
+  * tap-handler: incoming packet written to port-dpdk0 I/F.
+  * test of input port in tap_handler.
+  * debug stat-collector started to work again.
+  * adjust startup-config.
+  * compile in build/ dir.
+  * fix Makefile.am's top_srcdir.
+  * fix 0.0.9l's debug sdplane.
+  * sync.
+  * 0.0.9l: remove debug_module framework.
+  * tap_handler change.
+  * 0.0.9j: fix systemd sdplane.service.
+  * update systemd sdplane.service.
+  * systemd sdplane.service.
+  * fix versions in install-memo.txt.
+  * fix install-memo.txt.
+  * 0.0.9i: fix dist_sysconf_DATA.
+  * version: 0.0.9h. adapt to zcmdsh_0.3.28, pager enabled. delete_char -> advanced, ^[-b (move-word-backword) and others were supported.
+  * sync.
+  * support topton-pc.
+  * Merge branch 'devel' of github.com:yasuhironet/soft-dplane into devel
+  * sync.
+  * fix compile error.
+  * version: 0.0.9g.
+  * update install-memo.txt.
+  * add allow rules for DHCP.
+  * add allow rules for mDNS.
+  * update TODO.
+  * Merge branch 'devel' of github.com:yasuhironet/soft-dplane into devel
+  * sdplane setup update.
+  * Merge branch 'devel'
+  * version: 0.0.9f.
+  * debug stat_collector (pps). enable log file in startup_config.
+  * changed to accept the location of libzcmdsh.so. console_shell.c is added.
+  * sdplane vty-shell debug message.
+  * add netplan file. update install-memo.txt.
+  * install netplan config.
+  * install-memo.txt: ver. 13
+  * ver: 0.0.9e.
+  * fix telnet cmd/opt, add vty_banner, add sdplane_version.
+  * shutdown operation from the signal, for systemctl stop.
+  * port setting for wiretap in the systemd service.
+  * install-memo.txt: ver. 12
+  * 0.0.9d: vty_server, vty_shell, telnet support.
+  * first incorporation of vty_server.
+  * change name to console_shell.
+  * TODO.
+  * thread_local loop counter and its per-lcore statistics.
+  * cancel timer. add loop_count. adapt to debug module.
+  * set_l3fwd_argv_cmd and l3fwd_init_cmd.
+  * adapt to debug module.
+  * l3fwd_argv backward-compat test.
+  * l3fwd_argv framework.
+  * snprintf_flags.[ch].
+  * newly created module framework compiled okay.
+  * split in dpdk_flag.[ch], dpdk_lcore_cmd.c, dpdk_port_cmd.c.
+  * module framework.
+  * Merge branch 'devel'
+  * Merge branch 'devel'
+  * Merge branch 'devel'
+  * Merge branch 'devel'
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 14 Nov 2024 06:58:03 +0900
+
+sdplane (0.0.9l-1) UNRELEASED; urgency=low
+
+  * remove debug_module framework.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 10 Nov 2024 04:55:56 +0900
+
+sdplane (0.0.9k-1) UNRELEASED; urgency=low
+
+  * tap_handler change.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 10 Nov 2024 02:21:56 +0900
+
+sdplane (0.0.9j-1) UNRELEASED; urgency=low
+
+  * fix systemd sdplane.service.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 07 Nov 2024 15:46:56 +0900
+
+sdplane (0.0.9i-1) UNRELEASED; urgency=low
+
+  * fix dist_sysconf_DATA: iptables rules and sshd_config.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 05 Nov 2024 4:13:56 +0900
+
+sdplane (0.0.9h-1) UNRELEASED; urgency=low
+
+  * adapt to zcmdsh_0.3.28. pager enabled.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 05 Nov 2024 3:58:56 +0900
+
+sdplane (0.0.9g-1) UNRELEASED; urgency=low
+
+  * fix iptables for DHCP, mDNS.
+  * update install-memo.txt. (wireadmin account and others.)
+
+sdplane (0.0.9f-1) UNRELEASED; urgency=low
+
+  * stat_collector(pps display) is fixed.
+  * add netplan.
+
 sdplane (0.0.9e-1) UNRELEASED; urgency=low
 
   * fix broken telnet option support.

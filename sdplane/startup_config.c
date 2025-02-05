@@ -1,8 +1,5 @@
-#include <stdio.h>
-#include <stdbool.h>
+#include "include.h"
 
-#include <unistd.h>
-#include <sys/ioctl.h>
 #include <lthread.h>
 
 #include <rte_ether.h>
@@ -15,9 +12,9 @@
 #include <zcmdsh/command.h>
 #include <zcmdsh/command_shell.h>
 #include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_module.h>
-#include <zcmdsh/debug_module_cmd.h>
-//#include <zcmdsh/shell_fselect.h>
+#include <zcmdsh/debug_zcmdsh.h>
+// #include <zcmdsh/shell_fselect.h>
+#include <zcmdsh/log_cmd.h>
 
 #include "l3fwd.h"
 #include "l3fwd_cmd.h"
@@ -30,42 +27,35 @@ startup_config (__rte_unused void *dummy)
 {
   struct shell *shell = NULL;
 
-  lthread_detach ();
-
-  printf ("%s[%d]: %s: enter.\n", __FILE__, __LINE__, __func__);
-
   shell = command_shell_create ();
-  //shell_set_terminal (shell, 0, 1);
-  //get_winsize (shell);
+  shell_set_prompt (shell, "startup-config> ");
+  shell->pager = false;
 
-  //INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
-  //INSTALL_COMMAND2 (shell->cmdset, reboot_cmd);
-
-  //INSTALL_COMMAND2 (shell->cmdset, show_worker);
+  // INSTALL_COMMAND2 (shell->cmdset, show_worker);
   INSTALL_COMMAND2 (shell->cmdset, set_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
 
-  INSTALL_COMMAND2 (shell->cmdset, debug);
-  //INSTALL_COMMAND2 (shell->cmdset, show_debug);
+  INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);
+  // INSTALL_COMMAND2 (shell->cmdset, show_debug_zcmdsh);
 
-  INSTALL_COMMAND3 (shell->cmdset, debug_module, debug_module_sdplane);
-  INSTALL_COMMAND2 (shell->cmdset, show_debug_module);
+  INSTALL_COMMAND2 (shell->cmdset, debug_sdplane);
+  // INSTALL_COMMAND2 (shell->cmdset, show_debug_sdplane);
 
   INSTALL_COMMAND2 (shell->cmdset, l2fwd_init);
 
   log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
   l3fwd_cmd_init (shell->cmdset);
-  soft_dplane_cmd_init (shell->cmdset);
+  sdplane_cmd_init (shell->cmdset);
 
-  //termio_init ();
+  // termio_init ();
 
   shell_clear (shell);
   shell_prompt (shell);
 
   char *config_file = "/etc/sdplane/sdplane.conf";
-  printf ("%s[%d]: %s: opening %s.\n",
-          __FILE__, __LINE__, __func__, config_file);
+  printf ("%s[%d]: %s: opening %s.\n", __FILE__, __LINE__, __func__,
+          config_file);
   int fd;
   fd = open (config_file, O_RDONLY);
   if (fd >= 0)
@@ -75,22 +65,16 @@ startup_config (__rte_unused void *dummy)
         {
           lthread_sleep (10); // yield.
 
-          if (FLAG_CHECK (debug_module_config[debug_module_sdplane],
-                          DEBUG_SDPLANE_LTHREAD))
-            printf ("%s: schedule.\n", __func__);
-
           shell_read_nowait (shell);
         }
     }
   else
-    printf ("%s[%d]: %s: opening %s: failed: %s.\n",
-            __FILE__, __LINE__, __func__, config_file, strerror (errno));
+    printf ("%s[%d]: %s: opening %s: failed: %s.\n", __FILE__, __LINE__,
+            __func__, config_file, strerror (errno));
 
-  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+  // printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
   fflush (stdout);
 
-  //termio_finish ();
+  // termio_finish ();
   return 0;
 }
-
-
