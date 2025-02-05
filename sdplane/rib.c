@@ -68,5 +68,74 @@ CLI_COMMAND2 (show_rib,
                    shell->NL);
         }
     }
+
+  if (! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no rib-info.%s", shell->NL);
+      return;
+    }
+
+  fprintf (shell->terminal, "rib_info: ver: %lu%s",
+           rib->rib_info->ver, shell->NL);
+
+  fprintf (shell->terminal, "rib_info: tapif_size: %d%s",
+           rib->rib_info->tapif_size, shell->NL);
+  for (i = 0; i < rib->rib_info->tapif_size; i++)
+    {
+      struct tapif_conf *tapconf;
+      tapconf = &rib->rib_info->tapif[i];
+      fprintf (shell->terminal, "rib_info: tapif[%d]: sockfd: %d%s",
+               i, tapconf->sockfd, shell->NL);
+    }
+
+  fprintf (shell->terminal, "rib_info: vswitch_size: %d%s",
+           rib->rib_info->vswitch_size, shell->NL);
+  for (i = 0; i < rib->rib_info->vswitch_size; i++)
+    {
+      struct vswitch_conf *vswitch;
+      vswitch = &rib->rib_info->vswitch[i];
+      fprintf (shell->terminal, "rib_info: vswitch[%d]: port_size: %d%s",
+               i, vswitch->port_size, shell->NL);
+      for (j = 0; j < vswitch->port_size; j++)
+        {
+          struct switch_port *port;
+          port = &vswitch->port[j];
+          fprintf (shell->terminal,
+                   "rib_info: vswitch[%d]: port[%d]: type: %d portid: %d%s",
+                   i, j, port->type, port->portid, shell->NL);
+        }
+    }
+
+  fprintf (shell->terminal, "rib_info: port_size: %d%s",
+           rib->rib_info->port_size, shell->NL);
+  for (i = 0; i < rib->rib_info->port_size; i++)
+    {
+      struct port_conf *port;
+      port = &rib->rib_info->port[i];
+      fprintf (shell->terminal, "rib_info: port[%d]: "
+             "link: speed: %lu duplex: %d autoneg: %d status: %d%s",
+             i, port->link.link_speed, port->link.link_duplex,
+             port->link.link_autoneg, port->link.link_status,
+             shell->NL);
+    }
+
+  fprintf (shell->terminal, "rib_info: lcore_size: %d%s",
+           rib->rib_info->lcore_size, shell->NL);
+  for (i = 0; i < rib->rib_info->lcore_size; i++)
+    {
+      struct lcore_qconf *qconf;
+      qconf = &rib->rib_info->lcore_qconf[i];
+      fprintf (shell->terminal, "rib_info: lcore[%d]: nrxq: %d%s",
+               i, qconf->nrxq, shell->NL);
+      for (j = 0; j < qconf->nrxq; j++)
+        {
+          struct port_queue_conf *rx_queue;
+          rx_queue = &qconf->rx_queue_list[j];
+          fprintf (shell->terminal, "rib_info: lcore[%d]: rxq[%d]: "
+                   "port_id: %d queue_id: %d%s",
+                   i, j, rx_queue->port_id, rx_queue->queue_id,
+                   shell->NL);
+        }
+    }
 }
 
