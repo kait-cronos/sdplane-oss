@@ -1,3 +1,12 @@
+sdplane (0.1.1-61) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge branch 'devel'
+  * Merge branch 'nettlp' into devel
+  * show_rib command.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Wed, 5 Feb 2025 17:20:40 +0900
+
 sdplane (0.1.1-57) UNRELEASED; urgency=low
 
   * release. update changelog.
