@@ -83,6 +83,7 @@ rib_create (struct rib *old)
   if (! old)
     {
       memset (new, 0, sizeof (struct rib));
+      new->rib_info = rib_info_create (NULL);
     }
   else
     {
@@ -309,9 +310,16 @@ rib_replace (struct rib *new)
 
   /* assign new */
   rcu_assign_pointer (rcu_global_ptr_rib, new);
-  DEBUG_SDPLANE_LOG (RIB, "rib: replace: %'lu-th: ver.%d (%p) -> ver.%d (%p)",
-                     rib_rcu_replace, (old ? old->ver : -1), old,
-                     (new ? new->ver : -1), new);
+  DEBUG_SDPLANE_LOG (RIB, "rib: replace: %'lu-th: "
+                     "rib: ver.%d (%p) -> ver.%d (%p) "
+                     "rib_info: ver.%d (%p) -> ver.%d (%p)",
+                     rib_rcu_replace,
+                     (old ? old->ver : -1), old,
+                     (new ? new->ver : -1), new,
+                     (old && old->rib_info ? old->rib_info->ver : -1),
+                     (old ? old->rib_info : NULL),
+                     (new && new->rib_info ? new->rib_info->ver : -1),
+                     (new ? new->rib_info : NULL));
 
   /* reclaim old */
   if (old)
@@ -327,6 +335,7 @@ void
 rib_manager_process_message (void *msgp)
 {
   int ret;
+  int i, j;
   DEBUG_SDPLANE_LOG (RIB, "%s: msg: %p.", __func__, msgp);
 
 #if HAVE_LIBURCU_QSBR
@@ -350,12 +359,37 @@ rib_manager_process_message (void *msgp)
       msg_eth_link = (struct internal_msg_eth_link *) (msg_header + 1);
       memcpy (new->link, msg_eth_link->link,
               sizeof (struct rte_eth_link) * RTE_MAX_ETHPORTS);
+      for (i = 0; i < RTE_MAX_ETHPORTS; i++)
+        {
+          if (msg_eth_link->link[i].link_speed ||
+              msg_eth_link->link[i].link_duplex ||
+              msg_eth_link->link[i].link_autoneg ||
+              msg_eth_link->link[i].link_status)
+            {
+              memcpy (&new->rib_info->port[i].link, &msg_eth_link->link[i],
+                      sizeof (struct rte_eth_link));
+              new->rib_info->port_size = i + 1;
+            }
+        }
       break;
     case INTERNAL_MSG_TYPE_QCONF:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_qconf: %p.", msgp);
       msg_qconf = (struct internal_msg_qconf *) (msg_header + 1);
       memcpy (new->qconf, msg_qconf->qconf,
               sizeof (struct sdplane_queue_conf) * RTE_MAX_LCORE);
+      new->rib_info->lcore_size = rte_eth_dev_count_avail ();
+      for (i = 0; i < RTE_MAX_LCORE; i++)
+        {
+          if (msg_qconf->qconf[i].nrxq)
+            {
+              new->rib_info->lcore_qconf[i].nrxq = msg_qconf->qconf[i].nrxq;
+              for (j = 0; j < msg_qconf->qconf[i].nrxq; j++)
+                {
+                  new->rib_info->lcore_qconf[i].rx_queue_list[j] =
+                    msg_qconf->qconf[i].rx_queue_list[j];
+                }
+            }
+        }
       break;
     default:
       DEBUG_SDPLANE_LOG (RIB, "recv msg unknown: %p.", msgp);

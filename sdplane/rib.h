@@ -18,11 +18,13 @@ struct switch_port
 
 struct vswitch_conf
 {
+  uint16_t port_size;
   struct switch_port port[MAX_VSWITCH_PORTS];
 };
 
 struct port_conf
 {
+  struct rte_eth_link link;
 };
 
 #include "queue_config.h"
