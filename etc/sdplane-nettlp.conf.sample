@@ -1,0 +1,58 @@
+
+log file /var/log/sdplane.log
+log stdout
+# debug sdplane tap-handler
+# debug shell
+# debug sdplane telnet-opt
+#debug sdplane fdb-change
+debug sdplane rib
+#debug sdplane l2-repeater
+#debug sdplane vswitch
+#debug sdplane internal-message
+debug sdplane nettlp
+
+set l3fwd argv -c 0xf -- -p 0x3 --config="(0,0,1),(1,0,2)"
+l3fwd init
+
+set worker lthread stat-collector
+set worker lthread rib-manager
+
+set worker lcore 1 l2fwd
+set worker lcore 2 l2fwd
+set worker lcore 3 tap-handler
+set l2fwd l2fwd_enabled_port_mask 0x3
+set l2fwd l2fwd_rx_queue_per_lcore 1
+stop port all
+l2fwd init
+stop port all
+
+#set port 0 dev-configure 2 4
+#set port 1 dev-configure 1 4
+
+set thread 1 port 0 queue 0
+set thread 1 port 1 queue 0
+
+set worker lcore 1 l2-repeater
+set worker lcore 2 l2-repeater
+set worker lcore 2 nettlp-thread
+
+start worker lcore all
+set port all promiscuous enable
+start port all
+
+set nettlp ether local-addr aa:bb:cc:dd:ee:ff
+set nettlp ether remote-addr 11:22:33:44:55:66
+set nettlp ipv4 local-addr 11.11.11.11
+set nettlp ipv4 remote-addr 11.11.11.12
+set nettlp udp src-port 1000
+set nettlp udp dst-port 0x3000
+set nettlp bus-number 0x3f device-number 0xab
+set nettlp pci-tag 128
+set nettlp tx-portid 1
+set nettlp memory-address 0xaaaabbbb
+#set nettlp size 16
+set nettlp max-payload-size 4096
+set nettlp payload-string A
+
+sleep 3
+update port link-status
