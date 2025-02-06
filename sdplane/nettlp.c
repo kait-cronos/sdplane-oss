@@ -58,6 +58,52 @@ int size;
 int max_payload_size; /*Max Payload Size */
 char payload_string[4096];
 
+int tlp_calculate_lstdw(uintptr_t addr, size_t count)
+{
+        uintptr_t end, end_start, start;
+
+        start = (addr >> 2) << 2;
+        end = addr + count;
+        if ((end & 0x3) == 0)
+                end_start = end - 4;
+        else
+                end_start = (end >> 2) << 2;
+
+        /* corner case. count is smaller than 8 */
+        if (end_start <= start)
+                end_start = addr + 4;
+        if (end < end_start)
+                return 0;
+
+        return ~(0xF << (end - end_start)) & 0xF;
+}
+
+int tlp_calculate_fstdw(uintptr_t addr, size_t count)
+{
+        uint8_t be = 0xF;
+
+        if (count < 4)
+                be = ~(0xF << count) & 0xF;
+
+        return (be << (addr & 0x3)) & 0xF;
+}
+
+int tlp_calculate_length(uintptr_t addr, size_t count)
+{
+        size_t len = 0;
+        uintptr_t start, end;
+
+        start = addr & 0xFFFFFFFFFFFFFFFc;
+        end = addr + count;
+
+        len = (end - start) >> 2;
+
+        if ((end - start) & 0x3)
+                len++;
+
+        return len;
+}
+
 void
 nettlp_send_dma_write ()
 {
@@ -74,24 +120,111 @@ nettlp_send_dma_write ()
   struct tlp_mr_hdr *mh;
 
   tx_queueid = lcore_id;
-
   DEBUG_SDPLANE_LOG (NETTLP, "send DMA write: to port: %d queue %d.",
                      tx_portid, tx_queueid);
+
   m = rte_pktmbuf_alloc (l2fwd_pktmbuf_pool);
 
-  udp_length = sizeof (struct rte_udp_hdr) + sizeof (struct nettlp_hdr) +
-               sizeof (struct tlp_mr_hdr) + sizeof (uint64_t) + size;
-  length = sizeof (struct rte_ipv4_hdr) + udp_length;
-  rte_pktmbuf_append (m, sizeof (struct rte_ether_hdr) + length);
+  length = sizeof (struct nettlp_hdr) + sizeof (struct tlp_mr_hdr);
+  rte_pktmbuf_append (m, length);
+  nh = rte_pktmbuf_mtod (m, struct nettlp_hdr *);
+  mh = (struct tlp_mr_hdr *) (nh + 1);
 
-  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  memset (eth, 0, length);
-  ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
-  udp = (struct rte_udp_hdr *) (ipv4 + 1);
+  uint16_t requester;
+  requester = (bus_number << 8 | dev_number);
+  mh->requester = rte_cpu_to_be_16 (requester);
+  mh->tag = pci_tag;
+  mh->lstdw = tlp_calculate_lstdw(memory_addr, size);
+  mh->fstdw = tlp_calculate_fstdw(memory_addr, size);
+  tlp_set_length(mh->tlp.falen, tlp_calculate_length(memory_addr, size));
 
-  eth->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
-  rte_ether_addr_copy (&local_ether, &eth->src_addr);
-  rte_ether_addr_copy (&remote_ether, &eth->dst_addr);
+  uint32_t *dst_addr32;
+  uint64_t *dst_addr64;
+  uint8_t *memory_addrp;
+
+  tlp_set_type(mh->tlp.fmt_type, TLP_TYPE_MWr);
+  if (memory_addr < UINT32_MAX)
+    {
+      tlp_set_fmt(mh->tlp.fmt_type, TLP_FMT_3DW, TLP_FMT_W_DATA);
+      length = sizeof (uint32_t);
+      rte_pktmbuf_append (m, length);
+      dst_addr32 = (uint32_t *) (mh + 1);
+      *dst_addr32 = rte_cpu_to_be_32 (memory_addr & 0xFFFFFFFC);
+      memory_addrp = (uint8_t *) dst_addr32;
+    }
+  else
+    {
+      tlp_set_fmt(mh->tlp.fmt_type, TLP_FMT_4DW, TLP_FMT_W_DATA);
+      length = sizeof (uint64_t);
+      rte_pktmbuf_append (m, length);
+      dst_addr64 = (uint64_t *) (mh + 1);
+      *dst_addr64 = rte_cpu_to_be_64 (memory_addr & 0xFFFFFFFFFFFFFFFC);
+      memory_addrp = (uint8_t *) dst_addr64;
+    }
+
+  /* XXX:
+   *
+   * 1st DW BE is used and not 0xF, move the buffer, if 1st DW
+   * is xx10, x100, or 1000. It needs padding.
+   */
+  int n;
+  int pad_len;
+  uint8_t *pad;
+
+  pad_len = 0;
+  pad = (uint8_t *) (memory_addrp + length);
+  if (mh->fstdw && mh->fstdw != 0xF)
+    {
+      for (n = 0; n < 3; n++)
+        {
+          if ((mh->fstdw & (0x1 << n)) == 0)
+            {
+              /* this byte is not used. padding! */
+              pad_len++;
+            }
+        }
+    }
+  if (pad_len)
+    {
+      rte_pktmbuf_append (m, pad_len);
+      memset (pad, 0, pad_len);
+    }
+
+  uint8_t *data;
+  rte_pktmbuf_append (m, size);
+  data = (uint8_t *) (pad + pad_len);
+  memcpy (data, payload_string, size);
+
+  pad_len = 0;
+  pad = (uint8_t *) (data + size);
+  if (mh->lstdw && mh->lstdw != 0xF)
+    {
+      for (n = 0; n < 3; n++)
+        {
+          if ((mh->lstdw & (0x8 >> n)) == 0)
+            {
+              /* this byte is not used, padding! */
+              pad_len++;
+            }
+        }
+    }
+  if (pad_len)
+    {
+      rte_pktmbuf_append (m, pad_len);
+      memset (pad, 0, pad_len);
+    }
+
+  rte_pktmbuf_prepend (m, sizeof (struct rte_udp_hdr));
+  udp = rte_pktmbuf_mtod (m, struct rte_udp_hdr *);
+  udp_length = rte_pktmbuf_pkt_len (m);
+
+  udp->src_port = rte_cpu_to_be_16 (src_port);
+  udp->dst_port = rte_cpu_to_be_16 (dst_port);
+  udp->dgram_len = rte_cpu_to_be_16 (udp_length);
+
+  rte_pktmbuf_prepend (m, sizeof (struct rte_ipv4_hdr));
+  ipv4 = rte_pktmbuf_mtod (m, struct rte_ipv4_hdr *);
+  length = rte_pktmbuf_pkt_len (m);
 
   ipv4->version_ihl = 0x45;
   ipv4->total_length = rte_cpu_to_be_16 (length);
@@ -100,24 +233,12 @@ nettlp_send_dma_write ()
   ipv4->next_proto_id = IPPROTO_UDP;
   ipv4->hdr_checksum = rte_ipv4_cksum (ipv4);
 
-  udp->src_port = rte_cpu_to_be_16 (src_port);
-  udp->dst_port = rte_cpu_to_be_16 (dst_port);
-  udp->dgram_len = rte_cpu_to_be_16 (udp_length);
+  rte_pktmbuf_prepend (m, sizeof (struct rte_ether_hdr));
+  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
 
-  nh = (struct nettlp_hdr *) (udp + 1);
-  mh = (struct tlp_mr_hdr *) (nh + 1);
-
-  tlp_set_type(mh->tlp.fmt_type, TLP_TYPE_MWr);
-  tlp_set_fmt(mh->tlp.fmt_type, TLP_FMT_4DW, TLP_FMT_W_DATA);
-
-  uint64_t *dst_addr64;
-  uint32_t *dst_addr32;
-  dst_addr64 = (uint64_t *) (mh + 1);
-  *dst_addr64 = rte_cpu_to_be_64 (memory_addr & 0xFFFFFFFFFFFFFFFC);
-
-  uint8_t *data;
-  data = (uint8_t *) (dst_addr64 + 1);
-  memcpy (data, payload_string, size);
+  eth->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
+  rte_ether_addr_copy (&local_ether, &eth->src_addr);
+  rte_ether_addr_copy (&remote_ether, &eth->dst_addr);
 
 
   if (! tx_buffer_per_q[tx_portid][tx_queueid])
@@ -277,7 +398,7 @@ CLI_COMMAND2 (set_nettlp_ether_local_remote,
       return;
     }
 
-  fprintf (shell->terminal, "set %s: %s.%s",
+  fprintf (shell->terminal, "set %s: %s%s",
            argv[3], argv[4], shell->NL);
 }
 
@@ -296,16 +417,16 @@ CLI_COMMAND2 (set_nettlp_ipv4_local_remote,
   struct in_addr *dst;
   int ret;
 
-  if (! strcmp (argv[2], "local-addr"))
+  if (! strcmp (argv[3], "local-addr"))
     dst = &local_addr;
-  else if (! strcmp (argv[2], "remote-addr"))
+  else if (! strcmp (argv[3], "remote-addr"))
     dst = &remote_addr;
 
-  ret = inet_pton (AF_INET, argv[3], dst);
+  ret = inet_pton (AF_INET, argv[4], dst);
   if (ret == 0)
     {
       fprintf (shell->terminal, "invalid address format: %s.%s",
-               argv[3], shell->NL);
+               argv[4], shell->NL);
       return;
     }
   if (ret < 0)
@@ -315,8 +436,8 @@ CLI_COMMAND2 (set_nettlp_ipv4_local_remote,
       return;
     }
 
-  fprintf (shell->terminal, "set %s: %s.%s",
-           argv[2], argv[3], shell->NL);
+  fprintf (shell->terminal, "set %s: %s%s",
+           argv[3], argv[4], shell->NL);
 }
 
 CLI_COMMAND2 (set_nettlp_bus_number,
@@ -335,7 +456,7 @@ CLI_COMMAND2 (set_nettlp_bus_number,
   bus_number = strtol (argv[3], NULL, 0);
   dev_number = strtol (argv[5], NULL, 0);
 
-  fprintf (shell->terminal, "bus_number %hx:%hx.%s",
+  fprintf (shell->terminal, "bus_number %hx:%hx%s",
            bus_number, dev_number, shell->NL);
 }
 
@@ -349,7 +470,7 @@ CLI_COMMAND2 (set_nettlp_pci_tag,
 {
   struct shell *shell = (struct shell *) context;
   pci_tag = strtol (argv[3], NULL, 0);
-  fprintf (shell->terminal, "pci-tag: %d.%s", pci_tag, shell->NL);
+  fprintf (shell->terminal, "pci-tag: %d%s", pci_tag, shell->NL);
 }
 
 CLI_COMMAND2 (set_nettlp_txportid,
@@ -362,7 +483,7 @@ CLI_COMMAND2 (set_nettlp_txportid,
 {
   struct shell *shell = (struct shell *) context;
   tx_portid = strtol (argv[3], NULL, 0);
-  fprintf (shell->terminal, "tx-portid: %d.%s", tx_portid, shell->NL);
+  fprintf (shell->terminal, "tx-portid: %d%s", tx_portid, shell->NL);
 }
 
 CLI_COMMAND2 (set_nettlp_udp_port,
@@ -384,7 +505,7 @@ CLI_COMMAND2 (set_nettlp_udp_port,
     dst = &dst_port;
 
   *dst = strtol (argv[4], NULL, 0);
-  fprintf (shell->terminal, "UDP %s: %hu.%s", argv[3], *dst, shell->NL);
+  fprintf (shell->terminal, "UDP %s: %hu%s", argv[3], *dst, shell->NL);
 }
 
 CLI_COMMAND2 (set_nettlp_memory_addr,
@@ -397,7 +518,7 @@ CLI_COMMAND2 (set_nettlp_memory_addr,
 {
   struct shell *shell = (struct shell *) context;
   memory_addr = strtoul (argv[3], NULL, 0);
-  fprintf (shell->terminal, "memory-addr: %p.%s",
+  fprintf (shell->terminal, "memory-addr: %p%s",
            (void *) memory_addr, shell->NL);
 }
 
@@ -411,7 +532,7 @@ CLI_COMMAND2 (set_nettlp_size,
 {
   struct shell *shell = (struct shell *) context;
   size = strtoul (argv[3], NULL, 0);
-  fprintf (shell->terminal, "size: %d.%s", size, shell->NL);
+  fprintf (shell->terminal, "size: %d%s", size, shell->NL);
 }
 
 CLI_COMMAND2 (set_nettlp_max_payload_size,
@@ -424,7 +545,7 @@ CLI_COMMAND2 (set_nettlp_max_payload_size,
 {
   struct shell *shell = (struct shell *) context;
   max_payload_size = strtoul (argv[3], NULL, 0);
-  fprintf (shell->terminal, "MaxPayloadSize: %d.%s",
+  fprintf (shell->terminal, "MaxPayloadSize: %d%s",
            max_payload_size, shell->NL);
 }
 
@@ -439,7 +560,8 @@ CLI_COMMAND2 (set_nettlp_payload_string,
   struct shell *shell = (struct shell *) context;
   snprintf (payload_string, sizeof (payload_string),
             "%s", argv[3]);
-  fprintf (shell->terminal, "payload-string: %s.%s",
+  size = strlen (payload_string);
+  fprintf (shell->terminal, "payload-string: %s%s",
            payload_string, shell->NL);
 }
 

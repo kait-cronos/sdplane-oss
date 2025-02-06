@@ -32,6 +32,10 @@ struct tlp_mr_hdr {
 
 } __attribute__((packed));
 
+/* TLP Length */
+#define TLP_LENGTH_MASK         0x03FF
+#define tlp_length(fl) (ntohs(fl) & TLP_LENGTH_MASK)
+#define tlp_set_length(fl, v) (fl = htons((ntohs(fl) & ~TLP_LENGTH_MASK) | v))
 
 #define TLP_TYPE_MASK           0x1F
 #define TLP_TYPE_MRd            0x00
