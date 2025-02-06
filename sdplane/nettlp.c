@@ -41,38 +41,7 @@ static __thread  unsigned lcore_id;
 static __thread uint64_t loop_counter = 0;
 static __thread struct rib *rib;
 
-/*
- * NetTLP specific header
- */
-struct nettlp_hdr {
-        uint16_t        seq;
-        uint32_t        tstamp;
-} __attribute__((packed));
-
-struct tlp_hdr {
-        uint8_t         fmt_type;       /* Formant and Type */
-        uint8_t         tclass;         /* Traffic Class */
-        uint16_t        falen;          /* Flag, Attr, Reseved, and Length */
-} __attribute__((packed));
-
-struct tlp_mr_hdr {
-        struct tlp_hdr tlp;
-
-        uint16_t requester;
-        uint8_t tag;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-        uint8_t fstdw : 4;
-        uint8_t lstdw : 4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
-        uint8_t lstdw : 4;
-        uint8_t fstdw : 4;
-#else
-# error "Please fix <bits/endian.h>"
-#endif
-
-} __attribute__((packed));
-
-
+#include "nettlp.h"
 
 int tx_portid;
 struct rte_ether_addr local_ether;
@@ -105,9 +74,11 @@ nettlp_send_dma_write ()
   struct tlp_mr_hdr *mh;
 
   tx_queueid = lcore_id;
+
   DEBUG_SDPLANE_LOG (NETTLP, "send DMA write: to port: %d queue %d.",
                      tx_portid, tx_queueid);
   m = rte_pktmbuf_alloc (l2fwd_pktmbuf_pool);
+
   udp_length = sizeof (struct rte_udp_hdr) + sizeof (struct nettlp_hdr) +
                sizeof (struct tlp_mr_hdr) + sizeof (uint64_t) + size;
   length = sizeof (struct rte_ipv4_hdr) + udp_length;
@@ -136,26 +107,6 @@ nettlp_send_dma_write ()
   nh = (struct nettlp_hdr *) (udp + 1);
   mh = (struct tlp_mr_hdr *) (nh + 1);
 
-#define TLP_TYPE_MASK           0x1F
-#define TLP_TYPE_MRd            0x00
-#define TLP_TYPE_MRdLk          0x01
-#define TLP_TYPE_MWr            0x00
-#define TLP_TYPE_Cpl            0x0A
-
-#define tlp_set_type(ft, v) ft = ((ft & ~TLP_TYPE_MASK) | (v & TLP_TYPE_MASK))
-
-#define TLP_FMT_DW_MASK         0x20
-#define TLP_FMT_3DW             0x00
-#define TLP_FMT_4DW             0x20
-
-#define TLP_FMT_DATA_MASK       0x40
-#define TLP_FMT_WO_DATA         0x00
-#define TLP_FMT_W_DATA          0x40
-
-#define tlp_set_fmt(ft, dw, wd)                                         \
-        (ft) = (((ft) & ~(TLP_FMT_DW_MASK | TLP_FMT_DATA_MASK)) |       \
-                ((dw) & TLP_FMT_DW_MASK) | ((wd) & TLP_FMT_DATA_MASK))
-
   tlp_set_type(mh->tlp.fmt_type, TLP_TYPE_MWr);
   tlp_set_fmt(mh->tlp.fmt_type, TLP_FMT_4DW, TLP_FMT_W_DATA);
 
@@ -167,6 +118,7 @@ nettlp_send_dma_write ()
   uint8_t *data;
   data = (uint8_t *) (dst_addr64 + 1);
   memcpy (data, payload_string, size);
+
 
   if (! tx_buffer_per_q[tx_portid][tx_queueid])
     {
@@ -330,10 +282,11 @@ CLI_COMMAND2 (set_nettlp_ether_local_remote,
 }
 
 
-CLI_COMMAND2 (set_nettlp_local_remote,
-              "set nettlp (local-addr|remote-addr) A.B.C.D",
+CLI_COMMAND2 (set_nettlp_ipv4_local_remote,
+              "set nettlp ipv4 (local-addr|remote-addr) A.B.C.D",
               SET_HELP,
               "NetTLP information.\n",
+              "IPv information.\n",
               "local IPv4 source address.\n",
               "remote IPv4 destination address.\n",
               "Specify IPv4 address.\n"
@@ -496,7 +449,7 @@ nettlp_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, nettlp_send_dma_write);
   INSTALL_COMMAND2 (cmdset, show_nettlp);
   INSTALL_COMMAND2 (cmdset, set_nettlp_ether_local_remote);
-  INSTALL_COMMAND2 (cmdset, set_nettlp_local_remote);
+  INSTALL_COMMAND2 (cmdset, set_nettlp_ipv4_local_remote);
   INSTALL_COMMAND2 (cmdset, set_nettlp_bus_number);
   INSTALL_COMMAND2 (cmdset, set_nettlp_pci_tag);
   INSTALL_COMMAND2 (cmdset, set_nettlp_txportid);
