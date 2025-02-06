@@ -1,3 +1,14 @@
+sdplane (0.1.1-67) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * remove network I/F configuration change in systemd service start.
+  * nettlp padding in dma_write.
+  * nettlp.h
+  * nettlp dma_write.
+  * Merge branch 'devel'
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Thu, 6 Feb 2025 15:13:03 +0900
+
 sdplane (0.1.1-61) UNRELEASED; urgency=low
 
   * release. update changelog.
