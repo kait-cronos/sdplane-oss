@@ -1,0 +1,28 @@
+
+How to run nettlp.
+2025/02/06 (Thu)
+
+* Source
+
+repo = /home/yasu/soft-dplane
+
+$repo/sdplane/nettlp.[ch]
+$repo/etc/sdplane-nettlp.conf.sample
+
+* Compile
+cd $repo; make distclean
+cd $repo/build; make distclean
+
+cd $repo
+sh autogen.sh
+mkdir build
+cd build
+CFLAGS="-g -O0" sh ../configure
+make
+
+* Run
+% cd $repo/build
+% sudo -s
+# gdb ./sdplane/sdplane
+
+

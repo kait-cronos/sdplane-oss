@@ -214,3 +214,18 @@ thread_info_init ()
   rte_rwlock_init (&thread_info_lock);
 }
 
+void
+lthread_cancel_all ()
+{
+  int i;
+  struct thread_info *tinfo;
+  rte_rwlock_read_lock (&thread_info_lock);
+  for (i = 0; i < thread_info_size; i++)
+    {
+      tinfo = &threads[i];
+      if (tinfo->lthread)
+        lthread_cancel (tinfo->lthread);
+    }
+  rte_rwlock_read_unlock (&thread_info_lock);
+}
+

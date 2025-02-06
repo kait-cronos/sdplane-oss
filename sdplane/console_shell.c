@@ -66,6 +66,8 @@
 
 extern int lthread_core;
 
+void lthread_cancel_all ();
+
 CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -75,8 +77,11 @@ CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
   // shell_close (shell);
 
   int nb_lcores = rte_lcore_count ();
-  for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
+  int lcore_id;
+  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
     stop_lcore (shell, lcore_id);
+
+  lthread_cancel_all ();
 }
 
 bool reboot = false;
