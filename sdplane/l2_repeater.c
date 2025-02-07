@@ -157,7 +157,9 @@ l2_repeater_rx_burst ()
       portid = sdplane_qconf->rx_queue_list[i].port_id;
       queueid = sdplane_qconf->rx_queue_list[i].queue_id;
 
-      nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
+      nb_rx = 0;
+      if (queueid < rib->rib_info->port[portid].dev_info.nb_rx_queues)
+        nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
       if (unlikely (nb_rx == 0))
         continue;
 

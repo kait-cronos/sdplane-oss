@@ -117,6 +117,9 @@ CLI_COMMAND2 (show_rib,
              i, port->link.link_speed, port->link.link_duplex,
              port->link.link_autoneg, port->link.link_status,
              shell->NL);
+      fprintf (shell->terminal, "rib_info: port[%d]: nrxq: %d ntxq: %d%s",
+               i, port->dev_info.nb_rx_queues, port->dev_info.nb_tx_queues,
+               shell->NL);
     }
 
   fprintf (shell->terminal, "rib_info: lcore_size: %d%s",

@@ -332,6 +332,19 @@ rib_replace (struct rib *new)
 }
 
 void
+update_port_status (struct rib *new)
+{
+  uint16_t nb_ports, port_id;
+  nb_ports = rte_eth_dev_count_avail ();
+  new->rib_info->port_size = nb_ports;
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      rte_eth_dev_info_get (port_id, &new->rib_info->port[port_id].dev_info);
+      rte_eth_link_get_nowait (port_id, &new->rib_info->port[port_id].link);
+    }
+}
+
+void
 rib_manager_process_message (void *msgp)
 {
   int ret;
@@ -354,6 +367,11 @@ rib_manager_process_message (void *msgp)
   msg_header = (struct internal_msg_header *) msgp;
   switch (msg_header->type)
     {
+    case INTERNAL_MSG_TYPE_PORT_STATUS:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_port_status: %p.", msgp);
+      update_port_status (new);
+      break;
+
     case INTERNAL_MSG_TYPE_ETH_LINK:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_eth_link: %p.", msgp);
       msg_eth_link = (struct internal_msg_eth_link *) (msg_header + 1);

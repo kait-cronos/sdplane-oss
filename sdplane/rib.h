@@ -25,6 +25,7 @@ struct vswitch_conf
 struct port_conf
 {
   struct rte_eth_link link;
+  struct rte_eth_dev_info dev_info;
 };
 
 #include "queue_config.h"

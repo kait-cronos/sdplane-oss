@@ -73,6 +73,19 @@ CLI_COMMAND2 (update_port_link_status,
   internal_msg_send_to (msg_queue_rib, msgp, shell);
 }
 
+CLI_COMMAND2 (update_port_status,
+              "update port status",
+              "update information\n",
+              PORT_HELP,
+              "port status information\n")
+{
+  struct shell *shell = (struct shell *) context;
+  void *msgp;
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_PORT_STATUS, NULL, 0);
+  internal_msg_send_to (msg_queue_rib, msgp, shell);
+}
+
 CLI_COMMAND2 (set_thread_lcore_port_queue,
               "set thread <0-128> port <0-128> queue <0-128>",
               SET_HELP,
@@ -194,6 +207,7 @@ void
 queue_config_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, update_port_link_status);
+  INSTALL_COMMAND2 (cmdset, update_port_status);
   INSTALL_COMMAND2 (cmdset, set_thread_lcore_port_queue);
   INSTALL_COMMAND2 (cmdset, show_thread_qconf);
 }
