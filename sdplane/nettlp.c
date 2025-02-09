@@ -37,11 +37,12 @@ extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_L
 
 struct rte_ring *msg_queue_nettlp;
 
-static __thread  unsigned lcore_id;
+static __thread unsigned lcore_id;
 static __thread uint64_t loop_counter = 0;
 static __thread struct rib *rib;
 
 #include "nettlp.h"
+#include "nettlp_support.h"
 
 int tx_portid;
 struct rte_ether_addr local_ether;
@@ -57,52 +58,6 @@ uintptr_t memory_addr; /* DMA memory address */
 int size;
 int max_payload_size; /*Max Payload Size */
 char payload_string[4096];
-
-int tlp_calculate_lstdw(uintptr_t addr, size_t count)
-{
-        uintptr_t end, end_start, start;
-
-        start = (addr >> 2) << 2;
-        end = addr + count;
-        if ((end & 0x3) == 0)
-                end_start = end - 4;
-        else
-                end_start = (end >> 2) << 2;
-
-        /* corner case. count is smaller than 8 */
-        if (end_start <= start)
-                end_start = addr + 4;
-        if (end < end_start)
-                return 0;
-
-        return ~(0xF << (end - end_start)) & 0xF;
-}
-
-int tlp_calculate_fstdw(uintptr_t addr, size_t count)
-{
-        uint8_t be = 0xF;
-
-        if (count < 4)
-                be = ~(0xF << count) & 0xF;
-
-        return (be << (addr & 0x3)) & 0xF;
-}
-
-int tlp_calculate_length(uintptr_t addr, size_t count)
-{
-        size_t len = 0;
-        uintptr_t start, end;
-
-        start = addr & 0xFFFFFFFFFFFFFFFc;
-        end = addr + count;
-
-        len = (end - start) >> 2;
-
-        if ((end - start) & 0x3)
-                len++;
-
-        return len;
-}
 
 void
 nettlp_send_dma_write ()
@@ -263,11 +218,275 @@ nettlp_send_dma_write ()
     DEBUG_SDPLANE_LOG (NETTLP, "no tx buffer.");
 }
 
+void
+nettlp_send_dma_read ()
+{
+  uint16_t tx_queueid;
+  struct rte_mbuf *m;
+  uint16_t udp_length;
+  uint16_t length;
+  struct rte_ether_hdr *eth;
+  struct rte_ipv4_hdr *ipv4;
+  struct rte_udp_hdr *udp;
+  struct rte_eth_dev_tx_buffer *buffer;
+
+  struct nettlp_hdr *nh;
+  struct tlp_mr_hdr *mh;
+
+  tx_queueid = lcore_id;
+  DEBUG_SDPLANE_LOG (NETTLP, "send DMA read: to port: %d queue %d.",
+                     tx_portid, tx_queueid);
+
+  m = rte_pktmbuf_alloc (l2fwd_pktmbuf_pool);
+
+  length = sizeof (struct nettlp_hdr) + sizeof (struct tlp_mr_hdr);
+  rte_pktmbuf_append (m, length);
+  nh = rte_pktmbuf_mtod (m, struct nettlp_hdr *);
+  mh = (struct tlp_mr_hdr *) (nh + 1);
+
+  uint16_t requester;
+  requester = (bus_number << 8 | dev_number);
+  mh->requester = rte_cpu_to_be_16 (requester);
+  mh->tag = pci_tag;
+  mh->lstdw = tlp_calculate_lstdw(memory_addr, size);
+  mh->fstdw = tlp_calculate_fstdw(memory_addr, size);
+  tlp_set_length(mh->tlp.falen, tlp_calculate_length(memory_addr, size));
+
+  uint32_t *dst_addr32;
+  uint64_t *dst_addr64;
+  uint8_t *memory_addrp;
+
+  tlp_set_type(mh->tlp.fmt_type, TLP_TYPE_MRd);
+  if (memory_addr < UINT32_MAX)
+    {
+      tlp_set_fmt(mh->tlp.fmt_type, TLP_FMT_3DW, TLP_FMT_WO_DATA);
+      length = sizeof (uint32_t);
+      rte_pktmbuf_append (m, length);
+      dst_addr32 = (uint32_t *) (mh + 1);
+      *dst_addr32 = rte_cpu_to_be_32 (memory_addr & 0xFFFFFFFC);
+      memory_addrp = (uint8_t *) dst_addr32;
+    }
+  else
+    {
+      tlp_set_fmt(mh->tlp.fmt_type, TLP_FMT_4DW, TLP_FMT_WO_DATA);
+      length = sizeof (uint64_t);
+      rte_pktmbuf_append (m, length);
+      dst_addr64 = (uint64_t *) (mh + 1);
+      *dst_addr64 = rte_cpu_to_be_64 (memory_addr & 0xFFFFFFFFFFFFFFFC);
+      memory_addrp = (uint8_t *) dst_addr64;
+    }
+
+#if 0
+  /* XXX:
+   *
+   * 1st DW BE is used and not 0xF, move the buffer, if 1st DW
+   * is xx10, x100, or 1000. It needs padding.
+   */
+  int n;
+  int pad_len;
+  uint8_t *pad;
+
+  pad_len = 0;
+  pad = (uint8_t *) (memory_addrp + length);
+  if (mh->fstdw && mh->fstdw != 0xF)
+    {
+      for (n = 0; n < 3; n++)
+        {
+          if ((mh->fstdw & (0x1 << n)) == 0)
+            {
+              /* this byte is not used. padding! */
+              pad_len++;
+            }
+        }
+    }
+  if (pad_len)
+    {
+      rte_pktmbuf_append (m, pad_len);
+      memset (pad, 0, pad_len);
+    }
+
+  uint8_t *data;
+  rte_pktmbuf_append (m, size);
+  data = (uint8_t *) (pad + pad_len);
+  memcpy (data, payload_string, size);
+
+  pad_len = 0;
+  pad = (uint8_t *) (data + size);
+  if (mh->lstdw && mh->lstdw != 0xF)
+    {
+      for (n = 0; n < 3; n++)
+        {
+          if ((mh->lstdw & (0x8 >> n)) == 0)
+            {
+              /* this byte is not used, padding! */
+              pad_len++;
+            }
+        }
+    }
+  if (pad_len)
+    {
+      rte_pktmbuf_append (m, pad_len);
+      memset (pad, 0, pad_len);
+    }
+#endif
+
+  rte_pktmbuf_prepend (m, sizeof (struct rte_udp_hdr));
+  udp = rte_pktmbuf_mtod (m, struct rte_udp_hdr *);
+  udp_length = rte_pktmbuf_pkt_len (m);
+
+  udp->src_port = rte_cpu_to_be_16 (src_port);
+  udp->dst_port = rte_cpu_to_be_16 (dst_port);
+  udp->dgram_len = rte_cpu_to_be_16 (udp_length);
+
+  rte_pktmbuf_prepend (m, sizeof (struct rte_ipv4_hdr));
+  ipv4 = rte_pktmbuf_mtod (m, struct rte_ipv4_hdr *);
+  length = rte_pktmbuf_pkt_len (m);
+
+  ipv4->version_ihl = 0x45;
+  ipv4->total_length = rte_cpu_to_be_16 (length);
+  ipv4->src_addr = local_addr.s_addr;
+  ipv4->dst_addr = remote_addr.s_addr;
+  ipv4->next_proto_id = IPPROTO_UDP;
+  ipv4->hdr_checksum = rte_ipv4_cksum (ipv4);
+
+  rte_pktmbuf_prepend (m, sizeof (struct rte_ether_hdr));
+  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+
+  eth->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
+  rte_ether_addr_copy (&local_ether, &eth->src_addr);
+  rte_ether_addr_copy (&remote_ether, &eth->dst_addr);
+
+
+  if (! tx_buffer_per_q[tx_portid][tx_queueid])
+    {
+      tx_buffer_per_q[tx_portid][tx_queueid] =
+        rte_zmalloc_socket ("tx_buffer",
+                        RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
+                        rte_eth_dev_socket_id (tx_portid));
+      rte_eth_tx_buffer_init (tx_buffer_per_q[tx_portid][tx_queueid],
+                              MAX_PKT_BURST);
+    }
+
+  buffer = tx_buffer_per_q[tx_portid][lcore_id];
+
+  if (buffer)
+    {
+      rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, m);
+      rte_eth_tx_buffer_flush (tx_portid, tx_queueid, buffer);
+      DEBUG_SDPLANE_LOG (NETTLP, "sent.");
+    }
+  else
+    DEBUG_SDPLANE_LOG (NETTLP, "no tx buffer.");
+}
+
+static inline __attribute__ ((always_inline)) void
+nettlp_internal_msg_recv ()
+{
+  void *msgp;
+
+  msgp = internal_msg_recv (msg_queue_nettlp);
+  if (msgp)
+    {
+      struct internal_msg_header *imsghdr;
+      imsghdr = (struct internal_msg_header *) msgp;
+
+      switch (imsghdr->type)
+        {
+        case INTERNAL_MSG_TYPE_NETTLP_SEND_DMA_WRITE:
+          nettlp_send_dma_write ();
+          break;
+
+        case INTERNAL_MSG_TYPE_NETTLP_SEND_DMA_READ:
+          nettlp_send_dma_read ();
+          break;
+
+        default:
+          break;
+        }
+
+      internal_msg_delete (msgp);
+    }
+}
+
+static inline __attribute__ ((always_inline)) void
+nettlp_log_packet (struct rte_mbuf *m, uint16_t input_port)
+{
+  struct rte_ether_hdr *eth;
+  struct rte_ipv4_hdr *ipv4;
+  struct rte_ipv6_hdr *ipv6;
+  char eth_dst[32];
+  char eth_src[32];
+  unsigned short eth_type;
+  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  rte_ether_format_addr (eth_dst, sizeof (eth_dst),
+                         &eth->dst_addr);
+  rte_ether_format_addr (eth_src, sizeof (eth_src),
+                         &eth->src_addr);
+  eth_type = rte_be_to_cpu_16 (eth->ether_type);
+
+  if (RTE_ETH_IS_IPV4_HDR (m->packet_type))
+    {
+      ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
+      DEBUG_SDPLANE_FLAG ((DEBUG_SDPLANE_PACKET | DEBUG_SDPLANE_NETTLP),
+          "m: %p ether[%#hx]: %s -> %s ipv4: len: %d",
+          m, eth_type, eth_src, eth_dst,
+          rte_be_to_cpu_16 (ipv4->total_length));
+    }
+  else if (RTE_ETH_IS_IPV6_HDR (m->packet_type))
+    {
+      ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
+      DEBUG_SDPLANE_FLAG ((DEBUG_SDPLANE_PACKET | DEBUG_SDPLANE_NETTLP),
+          "m: %p ether[%#hx]: %s -> %s ipv6: len: %d",
+          m, eth_type, eth_src, eth_dst,
+          rte_be_to_cpu_16 (ipv6->payload_len));
+    }
+  else
+    {
+      DEBUG_SDPLANE_FLAG ((DEBUG_SDPLANE_PACKET | DEBUG_SDPLANE_NETTLP),
+          "m: %p ether[%#hx]: %s -> %s",
+          m, eth_type, eth_src, eth_dst);
+    }
+}
+
+static inline __attribute__ ((always_inline)) void
+nettlp_rx_burst ()
+{
+  struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
+  struct rte_mbuf *m;
+  unsigned i, j, nb_rx;
+  uint16_t portid, queueid;
+
+  if (unlikely (! rib))
+    return;
+
+  struct sdplane_queue_conf *sdplane_qconf;
+  sdplane_qconf = &rib->qconf[lcore_id];
+  for (i = 0; i < sdplane_qconf->nrxq; i++)
+    {
+      portid = sdplane_qconf->rx_queue_list[i].port_id;
+      queueid = sdplane_qconf->rx_queue_list[i].queue_id;
+
+      nb_rx = 0;
+      if (queueid < rib->rib_info->port[portid].dev_info.nb_rx_queues)
+        nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
+      if (unlikely (nb_rx == 0))
+        continue;
+
+      for (j = 0; j < nb_rx; j++)
+        {
+          m = pkts_burst[j];
+          rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
+
+          nettlp_log_packet (m, portid);
+        }
+    }
+}
+
+
 int
 nettlp_thread (void *arg)
 {
   int ret;
-  void *msgp;
 
   lcore_id = rte_lcore_id ();
 
@@ -296,12 +515,8 @@ nettlp_thread (void *arg)
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      msgp = internal_msg_recv (msg_queue_nettlp);
-      if (msgp)
-        {
-          nettlp_send_dma_write ();
-          internal_msg_delete (msgp);
-        }
+      nettlp_internal_msg_recv ();
+      nettlp_rx_burst ();
 
 #if HAVE_LIBURCU_QSBR
       urcu_qsbr_read_unlock ();
@@ -321,19 +536,24 @@ nettlp_thread (void *arg)
 #endif /*HAVE_LIBURCU_QSBR*/
 }
 
-CLI_COMMAND2 (nettlp_send_dma_write,
-              "nettlp-send dma-write",
+CLI_COMMAND2 (nettlp_send_dma_write_read,
+              "nettlp-send (dma-write|dma-read)",
               "NetTLP send command\n",
-              "DMA write packet\n"
+              "DMA write packet\n",
+              "DMA read packet\n"
               )
 {
   struct shell *shell = (struct shell *) context;
-
   void *msgp;
-  struct internal_msg_qconf *msg_qconf;
+  uint16_t type;
+  char buf[8] = { 0 };
 
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF, thread_qconf,
-                              sizeof (thread_qconf));
+  if (! strcmp (argv[1], "dma-write"))
+    type = INTERNAL_MSG_TYPE_NETTLP_SEND_DMA_WRITE;
+  else if (! strcmp (argv[1], "dma-read"))
+    type = INTERNAL_MSG_TYPE_NETTLP_SEND_DMA_READ;
+
+  msgp = internal_msg_create (type, buf, sizeof (buf));
   internal_msg_send_to (msg_queue_nettlp, msgp, shell);
 }
 
@@ -568,7 +788,7 @@ CLI_COMMAND2 (set_nettlp_payload_string,
 void
 nettlp_cmd_init (struct command_set *cmdset)
 {
-  INSTALL_COMMAND2 (cmdset, nettlp_send_dma_write);
+  INSTALL_COMMAND2 (cmdset, nettlp_send_dma_write_read);
   INSTALL_COMMAND2 (cmdset, show_nettlp);
   INSTALL_COMMAND2 (cmdset, set_nettlp_ether_local_remote);
   INSTALL_COMMAND2 (cmdset, set_nettlp_ipv4_local_remote);
