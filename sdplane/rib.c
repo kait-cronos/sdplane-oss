@@ -44,6 +44,7 @@ CLI_COMMAND2 (show_rib,
   if (! rib)
     return;
 
+#if 0
   nb_ports = rte_eth_dev_count_avail ();
 
   fprintf (shell->terminal, "rib: ver: %llu%s", rib->ver, shell->NL);
@@ -68,6 +69,7 @@ CLI_COMMAND2 (show_rib,
                    shell->NL);
         }
     }
+#endif
 
   if (! rib->rib_info)
     {

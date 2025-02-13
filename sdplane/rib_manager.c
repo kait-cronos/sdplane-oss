@@ -342,6 +342,10 @@ update_port_status (struct rib *new)
       rte_eth_dev_info_get (port_id, &new->rib_info->port[port_id].dev_info);
       rte_eth_link_get_nowait (port_id, &new->rib_info->port[port_id].link);
     }
+
+  uint16_t lcore_size;
+  lcore_size = rte_lcore_count ();
+  new->rib_info->lcore_size = lcore_size;
 }
 
 void
@@ -395,8 +399,11 @@ rib_manager_process_message (void *msgp)
       msg_qconf = (struct internal_msg_qconf *) (msg_header + 1);
       memcpy (new->qconf, msg_qconf->qconf,
               sizeof (struct sdplane_queue_conf) * RTE_MAX_LCORE);
-      new->rib_info->lcore_size = rte_eth_dev_count_avail ();
-      for (i = 0; i < RTE_MAX_LCORE; i++)
+      //new->rib_info->lcore_size = rte_eth_dev_count_avail ();
+      uint16_t lcore_size;
+      lcore_size = rte_lcore_count ();
+      new->rib_info->lcore_size = lcore_size;
+      for (i = 0; i < lcore_size; i++)
         {
           if (msg_qconf->qconf[i].nrxq)
             {
