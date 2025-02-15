@@ -113,7 +113,8 @@ vswitch_port_update ()
       struct sdplane_queue_conf *sdplane_qconf;
 
       sdplane_qconf = &rib->qconf[lcore_id];
-      for (i = 0; i < sdplane_qconf->nrxq; i++)
+      //for (i = 0; i < sdplane_qconf->nrxq; i++)
+      for (i = 0; i < rib->rib_info->lcore_qconf[lcore_id].nrxq; i++)
         {
           uint16_t portid, queueid;
           portid = sdplane_qconf->rx_queue_list[i].port_id;

@@ -82,7 +82,7 @@ l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
       if (rx_portid == tx_portid)
         continue;
 
-      if (! rib->link[tx_portid].link_status)
+      if (! rib->rib_info->port[tx_portid].link.link_status)
         continue;
 
       buffer = tx_buffer_per_q[tx_portid][lcore_id];
