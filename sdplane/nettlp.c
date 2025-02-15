@@ -39,7 +39,7 @@ struct rte_ring *msg_queue_nettlp;
 
 static __thread unsigned lcore_id;
 static __thread uint64_t loop_counter = 0;
-static __thread struct rib *rib;
+static __thread struct rib *rib = NULL;
 
 #include "nettlp.h"
 #include "nettlp_support.h"
@@ -455,15 +455,15 @@ nettlp_rx_burst ()
   unsigned i, j, nb_rx;
   uint16_t portid, queueid;
 
-  if (unlikely (! rib))
+  if (unlikely (! rib || ! rib->rib_info))
     return;
 
-  struct sdplane_queue_conf *sdplane_qconf;
-  sdplane_qconf = &rib->qconf[lcore_id];
-  for (i = 0; i < sdplane_qconf->nrxq; i++)
+  struct lcore_qconf *lcore_qconf;
+  lcore_qconf = &rib->rib_info->lcore_qconf[lcore_id];
+  for (i = 0; i < lcore_qconf->nrxq; i++)
     {
-      portid = sdplane_qconf->rx_queue_list[i].port_id;
-      queueid = sdplane_qconf->rx_queue_list[i].queue_id;
+      portid = lcore_qconf->rx_queue_list[i].port_id;
+      queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
       nb_rx = 0;
       if (queueid < rib->rib_info->port[portid].dev_info.nb_rx_queues)

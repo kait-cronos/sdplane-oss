@@ -34,9 +34,8 @@
 #include "rib_manager.h"
 #include "thread_info.h"
 
-static __thread struct rib *rib;
-
 static __thread  unsigned lcore_id;
+static __thread struct rib *rib = NULL;
 
 uint64_t l2_repeat_pkt_copy_failure = 0;
 
@@ -147,15 +146,15 @@ l2_repeater_rx_burst ()
   unsigned i, j, nb_rx;
   uint16_t portid, queueid;
 
-  if (unlikely (! rib))
+  if (unlikely (! rib || ! rib->rib_info))
     return;
 
-  struct sdplane_queue_conf *sdplane_qconf;
-  sdplane_qconf = &rib->qconf[lcore_id];
-  for (i = 0; i < sdplane_qconf->nrxq; i++)
+  struct lcore_qconf *lcore_qconf;
+  lcore_qconf = &rib->rib_info->lcore_qconf[lcore_id];
+  for (i = 0; i < lcore_qconf->nrxq; i++)
     {
-      portid = sdplane_qconf->rx_queue_list[i].port_id;
-      queueid = sdplane_qconf->rx_queue_list[i].queue_id;
+      portid = lcore_qconf->rx_queue_list[i].port_id;
+      queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
       nb_rx = 0;
       if (queueid < rib->rib_info->port[portid].dev_info.nb_rx_queues)
@@ -185,16 +184,15 @@ l2_repeater_tx_burst ()
   unsigned i, nb_rx;
   uint16_t portid, queueid;
 
-  if (unlikely (! rib))
+  if (unlikely (! rib || ! rib->rib_info))
     return;
 
-  struct sdplane_queue_conf *sdplane_qconf;
-  sdplane_qconf = &rib->qconf[lcore_id];
-
-  for (i = 0; i < sdplane_qconf->nrxq; i++)
+  struct lcore_qconf *lcore_qconf;
+  lcore_qconf = &rib->rib_info->lcore_qconf[lcore_id];
+  for (i = 0; i < lcore_qconf->nrxq; i++)
     {
-      portid = sdplane_qconf->rx_queue_list[i].port_id;
-      queueid = sdplane_qconf->rx_queue_list[i].queue_id;
+      portid = lcore_qconf->rx_queue_list[i].port_id;
+      queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
       nb_rx = rte_ring_dequeue_burst (ring_dn[portid][queueid],
                                      (void **) pkts_burst, MAX_PKT_BURST,

@@ -209,7 +209,8 @@ CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
     {
       fprintf (t, " %d", sec);
       fflush (t);
-      sleep (1);
+      //sleep (1);
+      lthread_sleep (1000);
       sec--;
     }
   fprintf (t, " 0.%s", shell->NL);

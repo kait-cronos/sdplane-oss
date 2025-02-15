@@ -37,8 +37,6 @@
 
 #include "tap.h"
 
-static __thread struct rib *rib;
-
 int peek_fd = -1;
 int port_fd[RTE_MAX_ETHPORTS];
 
@@ -46,6 +44,7 @@ struct vswitch vswitch0;
 struct fdb_entry fdb[FDB_SIZE];
 
 static __thread uint64_t loop_counter = 0;
+static __thread struct rib *rib = NULL;
 
 static inline __attribute__ ((always_inline)) void
 vswitch_port_update ()
@@ -110,15 +109,13 @@ vswitch_port_update ()
 
   for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
     {
-      struct sdplane_queue_conf *sdplane_qconf;
-
-      sdplane_qconf = &rib->qconf[lcore_id];
-      //for (i = 0; i < sdplane_qconf->nrxq; i++)
-      for (i = 0; i < rib->rib_info->lcore_qconf[lcore_id].nrxq; i++)
+      struct lcore_qconf *lcore_qconf;
+      lcore_qconf = &rib->rib_info->lcore_qconf[lcore_id];
+      for (i = 0; i < lcore_qconf->nrxq; i++)
         {
           uint16_t portid, queueid;
-          portid = sdplane_qconf->rx_queue_list[i].port_id;
-          queueid = sdplane_qconf->rx_queue_list[i].queue_id;
+          portid = lcore_qconf->rx_queue_list[i].port_id;
+          queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
           tap_ring_up = ring_up[portid][queueid];
           tap_ring_down = ring_dn[portid][queueid];
@@ -571,10 +568,10 @@ tap_handler (__rte_unused void *dummy)
 #endif /*HAVE_LIBURCU_QSBR*/
 
       uint64_t rib_ver;
-      if (rib && rib_ver < rib->ver)
+      if (rib && rib->rib_info && rib_ver < rib->rib_info->ver)
         {
           vswitch_port_update ();
-          rib_ver = rib->ver;
+          rib_ver = rib->rib_info->ver;
         }
 
       tap_handler_handle_packet_up ();

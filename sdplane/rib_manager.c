@@ -43,7 +43,7 @@ struct rte_ring *msg_queue_rib;
 void *rcu_global_ptr_rib;
 uint64_t rib_rcu_replace = 0;
 
-static __thread struct rib *rib;
+static __thread struct rib *rib = NULL;
 
 static inline __attribute__ ((always_inline)) struct rib_info *
 rib_info_create (struct rib_info *old)
@@ -91,7 +91,6 @@ rib_create (struct rib *old)
       new->rib_info = rib_info_create (old->rib_info);
     }
 
-  new->ver++;
   return new;
 }
 
@@ -126,10 +125,14 @@ static inline __attribute__ ((always_inline)) int
 rib_check (struct rib *new)
 {
   struct sdplane_queue_conf *qconf;
+  struct lcore_qconf *lcore_qconf;
   int lcore;
   int i, ret;
   char ring_name[32];
   int j;
+
+  DEBUG_SDPLANE_LOG (RIB, "ver: %d rib: %p rib_info: %p.",
+                     new->rib_info->ver, new, new->rib_info);
 
   struct rte_eth_rxconf rxq_conf;
   struct rte_eth_txconf txq_conf;
@@ -141,11 +144,11 @@ rib_check (struct rib *new)
 
   for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++)
     {
-      qconf = &new->qconf[lcore];
-      for (i = 0; i < qconf->nrxq; i++)
+      lcore_qconf = &new->rib_info->lcore_qconf[lcore];
+      for (i = 0; i < lcore_qconf->nrxq; i++)
         {
           struct port_queue_conf *rxq;
-          rxq = &qconf->rx_queue_list[i];
+          rxq = &lcore_qconf->rx_queue_list[i];
 
           DEBUG_SDPLANE_LOG (RIB, "new rib: lcore: %d qconf[%d]: port: %d queue: %d",
                          lcore, i, rxq->port_id, rxq->queue_id);
@@ -159,13 +162,13 @@ rib_check (struct rib *new)
 
   /* check port's #rxq/#txq */
   int max_lcore = 0;
-  for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++)
+  for (lcore = 0; lcore < new->rib_info->lcore_size; lcore++)
     {
-      qconf = &new->qconf[lcore];
-      for (i = 0; i < qconf->nrxq; i++)
+      lcore_qconf = &new->rib_info->lcore_qconf[lcore];
+      for (i = 0; i < lcore_qconf->nrxq; i++)
         {
           struct port_queue_conf *rxq;
-          rxq = &qconf->rx_queue_list[i];
+          rxq = &lcore_qconf->rx_queue_list[i];
 
           if (max_lcore < lcore)
             max_lcore = lcore;
@@ -201,9 +204,6 @@ rib_check (struct rib *new)
   struct rte_eth_conf port_conf =
     { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, }, };
   struct rte_eth_dev_info dev_info;
-
-  if (max_lcore < 3)
-    max_lcore = 3;
 
   int ntxq;
   ntxq = max_lcore + 1;
@@ -265,11 +265,11 @@ rib_check (struct rib *new)
 #define RING_TO_TAP_SIZE 64
   for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++)
     {
-      qconf = &new->qconf[lcore];
-      for (i = 0; i < qconf->nrxq; i++)
+      lcore_qconf = &new->rib_info->lcore_qconf[lcore];
+      for (i = 0; i < lcore_qconf->nrxq; i++)
         {
           struct port_queue_conf *rxq;
-          rxq = &qconf->rx_queue_list[i];
+          rxq = &lcore_qconf->rx_queue_list[i];
 
           if (! ring_up[rxq->port_id][rxq->queue_id])
             {
@@ -311,11 +311,10 @@ rib_replace (struct rib *new)
   /* assign new */
   rcu_assign_pointer (rcu_global_ptr_rib, new);
   DEBUG_SDPLANE_LOG (RIB, "rib: replace: %'lu-th: "
-                     "rib: ver.%d (%p) -> ver.%d (%p) "
+                     "rib: %p -> %p "
                      "rib_info: ver.%d (%p) -> ver.%d (%p)",
                      rib_rcu_replace,
-                     (old ? old->ver : -1), old,
-                     (new ? new->ver : -1), new,
+                     old, new,
                      (old && old->rib_info ? old->rib_info->ver : -1),
                      (old ? old->rib_info : NULL),
                      (new && new->rib_info ? new->rib_info->ver : -1),
@@ -335,12 +334,18 @@ void
 update_port_status (struct rib *new)
 {
   uint16_t nb_ports, port_id;
+  DEBUG_SDPLANE_LOG (RIB, "update port status: ver: %d rib: %p rib_info: %p.",
+                     new->rib_info->ver, new, new->rib_info);
   nb_ports = rte_eth_dev_count_avail ();
   new->rib_info->port_size = nb_ports;
   for (port_id = 0; port_id < nb_ports; port_id++)
     {
       rte_eth_dev_info_get (port_id, &new->rib_info->port[port_id].dev_info);
       rte_eth_link_get_nowait (port_id, &new->rib_info->port[port_id].link);
+      DEBUG_SDPLANE_LOG (RIB, "port: %d link: %d ver: %d rib_info: %p.",
+                         port_id,
+                         new->rib_info->port[port_id].link.link_status,
+                         new->rib_info->ver, new->rib_info);
     }
 
   uint16_t lcore_size;
@@ -378,6 +383,7 @@ rib_manager_process_message (void *msgp)
 
     case INTERNAL_MSG_TYPE_ETH_LINK:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_eth_link: %p.", msgp);
+#if 0
       msg_eth_link = (struct internal_msg_eth_link *) (msg_header + 1);
       memcpy (new->link, msg_eth_link->link,
               sizeof (struct rte_eth_link) * RTE_MAX_ETHPORTS);
@@ -393,13 +399,16 @@ rib_manager_process_message (void *msgp)
               new->rib_info->port_size = i + 1;
             }
         }
+#endif
       break;
     case INTERNAL_MSG_TYPE_QCONF:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_qconf: %p.", msgp);
       msg_qconf = (struct internal_msg_qconf *) (msg_header + 1);
+#if 0
       memcpy (new->qconf, msg_qconf->qconf,
               sizeof (struct sdplane_queue_conf) * RTE_MAX_LCORE);
       //new->rib_info->lcore_size = rte_eth_dev_count_avail ();
+#endif
       uint16_t lcore_size;
       lcore_size = rte_lcore_count ();
       new->rib_info->lcore_size = lcore_size;
@@ -415,6 +424,24 @@ rib_manager_process_message (void *msgp)
                 }
             }
         }
+
+      ret = rib_check (new);
+      if (ret < 0)
+        {
+          DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+          return;
+        }
+
+#if 1
+      struct rib *zero;
+      zero = malloc (sizeof (struct rib));
+      if (zero)
+        {
+          memset (zero, 0, sizeof (struct rib));
+          rib_replace (zero);
+        }
+#endif
+
       break;
     default:
       DEBUG_SDPLANE_LOG (RIB, "recv msg unknown: %p.", msgp);
@@ -422,23 +449,6 @@ rib_manager_process_message (void *msgp)
     }
 
   free (msgp);
-
-  ret = rib_check (new);
-  if (ret < 0)
-    {
-      DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
-      return;
-    }
-
-#if 1
-  struct rib *zero;
-  zero = malloc (sizeof (struct rib));
-  if (zero)
-    {
-      memset (zero, 0, sizeof (struct rib));
-      rib_replace (zero);
-    }
-#endif
 
   rib_replace (new);
 #endif /*HAVE_LIBURCU_QSBR*/

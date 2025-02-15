@@ -26,6 +26,8 @@
 
 #include "internal_message.h"
 
+static __thread struct rib *rib = NULL;
+
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
@@ -77,8 +79,8 @@ CLI_COMMAND2 (show_rib,
       return;
     }
 
-  fprintf (shell->terminal, "rib_info: ver: %lu%s",
-           rib->rib_info->ver, shell->NL);
+  fprintf (shell->terminal, "rib_info: ver: %lu (%p)%s",
+           rib->rib_info->ver, rib->rib_info, shell->NL);
 
   fprintf (shell->terminal, "rib_info: tapif_size: %d%s",
            rib->rib_info->tapif_size, shell->NL);

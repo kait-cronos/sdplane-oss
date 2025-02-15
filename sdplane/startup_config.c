@@ -72,7 +72,7 @@ startup_config (__rte_unused void *dummy)
     printf ("%s[%d]: %s: opening %s: failed: %s.\n", __FILE__, __LINE__,
             __func__, config_file, strerror (errno));
 
-  // printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
   fflush (stdout);
 
   // termio_finish ();
