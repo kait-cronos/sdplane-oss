@@ -55,7 +55,7 @@ uint16_t bus_number;
 uint16_t dev_number;
 uint8_t pci_tag; /* PCI tag value */
 uintptr_t memory_addr; /* DMA memory address */
-int size;
+int payload_size;
 int max_payload_size; /*Max Payload Size */
 char payload_string[4096];
 
@@ -89,9 +89,9 @@ nettlp_send_dma_write ()
   requester = (bus_number << 8 | dev_number);
   mh->requester = rte_cpu_to_be_16 (requester);
   mh->tag = pci_tag;
-  mh->lstdw = tlp_calculate_lstdw(memory_addr, size);
-  mh->fstdw = tlp_calculate_fstdw(memory_addr, size);
-  tlp_set_length(mh->tlp.falen, tlp_calculate_length(memory_addr, size));
+  mh->lstdw = tlp_calculate_lstdw(memory_addr, payload_size);
+  mh->fstdw = tlp_calculate_fstdw(memory_addr, payload_size);
+  tlp_set_length(mh->tlp.falen, tlp_calculate_length(memory_addr, payload_size));
 
   uint32_t *dst_addr32;
   uint64_t *dst_addr64;
@@ -146,12 +146,12 @@ nettlp_send_dma_write ()
     }
 
   uint8_t *data;
-  rte_pktmbuf_append (m, size);
+  rte_pktmbuf_append (m, payload_size);
   data = (uint8_t *) (pad + pad_len);
-  memcpy (data, payload_string, size);
+  memcpy (data, payload_string, payload_size);
 
   pad_len = 0;
-  pad = (uint8_t *) (data + size);
+  pad = (uint8_t *) (data + payload_size);
   if (mh->lstdw && mh->lstdw != 0xF)
     {
       for (n = 0; n < 3; n++)
@@ -248,9 +248,9 @@ nettlp_send_dma_read ()
   requester = (bus_number << 8 | dev_number);
   mh->requester = rte_cpu_to_be_16 (requester);
   mh->tag = pci_tag;
-  mh->lstdw = tlp_calculate_lstdw(memory_addr, size);
-  mh->fstdw = tlp_calculate_fstdw(memory_addr, size);
-  tlp_set_length(mh->tlp.falen, tlp_calculate_length(memory_addr, size));
+  mh->lstdw = tlp_calculate_lstdw(memory_addr, payload_size);
+  mh->fstdw = tlp_calculate_fstdw(memory_addr, payload_size);
+  tlp_set_length(mh->tlp.falen, tlp_calculate_length(memory_addr, payload_size));
 
   uint32_t *dst_addr32;
   uint64_t *dst_addr64;
@@ -355,7 +355,6 @@ nettlp_send_dma_read ()
   eth->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
   rte_ether_addr_copy (&local_ether, &eth->src_addr);
   rte_ether_addr_copy (&remote_ether, &eth->dst_addr);
-
 
   if (! tx_buffer_per_q[tx_portid][tx_queueid])
     {
@@ -585,7 +584,7 @@ CLI_COMMAND2 (show_nettlp,
   fprintf (shell->terminal, "pci-tag: %d.%s", pci_tag, shell->NL);
   fprintf (shell->terminal, "memory-addr: %p.%s",
            (void *) memory_addr, shell->NL);
-  fprintf (shell->terminal, "size: %d.%s", size, shell->NL);
+  fprintf (shell->terminal, "payload-size: %d.%s", payload_size, shell->NL);
   fprintf (shell->terminal, "MaxPayloadSize: %d.%s",
            max_payload_size, shell->NL);
   fprintf (shell->terminal, "payload-string: %s.%s",
@@ -742,17 +741,17 @@ CLI_COMMAND2 (set_nettlp_memory_addr,
            (void *) memory_addr, shell->NL);
 }
 
-CLI_COMMAND2 (set_nettlp_size,
-              "set nettlp size <0-4096>",
+CLI_COMMAND2 (set_nettlp_payload_size,
+              "set nettlp payload-size <0-4096>",
               SET_HELP,
               "NetTLP information.\n",
-              "Set size.\n",
+              "Set payload-size.\n",
               "Specify size.\n"
               )
 {
   struct shell *shell = (struct shell *) context;
-  size = strtoul (argv[3], NULL, 0);
-  fprintf (shell->terminal, "size: %d%s", size, shell->NL);
+  payload_size = strtoul (argv[3], NULL, 0);
+  fprintf (shell->terminal, "payload-size: %d%s", payload_size, shell->NL);
 }
 
 CLI_COMMAND2 (set_nettlp_max_payload_size,
@@ -778,11 +777,12 @@ CLI_COMMAND2 (set_nettlp_payload_string,
               )
 {
   struct shell *shell = (struct shell *) context;
+  memset (payload_string, 0, sizeof (payload_string));
   snprintf (payload_string, sizeof (payload_string),
             "%s", argv[3]);
-  size = strlen (payload_string);
-  fprintf (shell->terminal, "payload-string: %s%s",
-           payload_string, shell->NL);
+  payload_size = strlen (payload_string);
+  fprintf (shell->terminal, "payload-string: %s (size: %d)%s",
+           payload_string, payload_size, shell->NL);
 }
 
 void
@@ -797,7 +797,7 @@ nettlp_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_nettlp_txportid);
   INSTALL_COMMAND2 (cmdset, set_nettlp_udp_port);
   INSTALL_COMMAND2 (cmdset, set_nettlp_memory_addr);
-  INSTALL_COMMAND2 (cmdset, set_nettlp_size);
+  INSTALL_COMMAND2 (cmdset, set_nettlp_payload_size);
   INSTALL_COMMAND2 (cmdset, set_nettlp_max_payload_size);
   INSTALL_COMMAND2 (cmdset, set_nettlp_payload_string);
 }
