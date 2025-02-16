@@ -229,6 +229,7 @@ nettlp_send_dma_write ()
 
   ipv4->version_ihl = 0x45;
   ipv4->total_length = rte_cpu_to_be_16 (length);
+  ipv4->packet_id = random();
   ipv4->src_addr = local_addr.s_addr;
   ipv4->dst_addr = remote_addr.s_addr;
   ipv4->next_proto_id = IPPROTO_UDP;
