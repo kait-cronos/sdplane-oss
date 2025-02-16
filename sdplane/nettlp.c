@@ -89,6 +89,11 @@ int max_payload_size; /*Max Payload Size */
 char payload_string[4096];
 int read_payload_size = 4;
 
+uintptr_t psmem_addr = 0; /* Pseudo memory base address (BAR4) */
+char *psmem_memory = NULL;
+//uint32_t psmem_size = 256 * 1024 * 1024; //256MiB.
+uint32_t psmem_size = 8 * 1024 ; //8KiB.
+
 void
 nettlp_send_dma_write ()
 {
@@ -474,6 +479,42 @@ nettlp_internal_msg_recv ()
 }
 
 static inline __attribute__ ((always_inline)) void
+nettlp_psmem_mrd (struct nettlp_hdr *nh, struct tlp_mr_hdr *mh)
+{
+  ssize_t len = tlp_length (mh->tlp.falen) << 2;
+  ssize_t data_len = tlp_mr_data_length (mh);
+  uintptr_t addr = tlp_mr_addr (mh);
+
+  DEBUG_SDPLANE_LOG (NETTLP, "MRd to 0x%lx, tag 0x%02x %lu byte",
+                     (addr >> 2) << 2, mh->tag, data_len);
+
+  if (addr < psmem_addr || addr + len > psmem_addr + psmem_size)
+    {
+      DEBUG_SDPLANE_LOG (NETTLP,
+          "MRd request to 0x%lx which goes "
+          "out of the pseudo memory region: %lx -- %lx.",
+          addr, psmem_addr, psmem_addr + psmem_size);
+    }
+}
+
+static inline __attribute__ ((always_inline)) void
+nettlp_psmem_mwr (struct nettlp_hdr *nh, struct tlp_mr_hdr *mh)
+{
+  void *ptr = tlp_mwr_data (mh);
+  int len = tlp_mr_data_length (mh);
+}
+
+static inline __attribute__ ((always_inline)) void
+nettlp_psmem_cpl (struct nettlp_hdr *nh, struct tlp_cpl_hdr *ch)
+{
+}
+
+static inline __attribute__ ((always_inline)) void
+nettlp_psmem_cpld (struct nettlp_hdr *nh, struct tlp_cpl_hdr *ch)
+{
+}
+
+static inline __attribute__ ((always_inline)) void
 nettlp_psmem_receive (struct rte_mbuf *m)
 {
   struct rte_ether_hdr *eth;
@@ -526,17 +567,20 @@ nettlp_psmem_receive (struct rte_mbuf *m)
   if (tlp_is_mrd (th->fmt_type))
     {
       DEBUG_SDPLANE_LOG (NETTLP, "MRd: type: %#x", th->fmt_type);
+      nettlp_psmem_mrd (nh, mh);
     }
   else if (tlp_is_mwr (th->fmt_type))
     {
       DEBUG_SDPLANE_LOG (NETTLP, "MWr: data: %p len: %d",
                          tlp_mwr_data (mh),
                          tlp_mr_data_length (mh));
+      nettlp_psmem_mwr (nh, mh);
     }
   else if (tlp_is_cpl (th->fmt_type) &&
            tlp_is_wo_data (th->fmt_type))
     {
       DEBUG_SDPLANE_LOG (NETTLP, "Cpl without data");
+      nettlp_psmem_cpl (nh, ch);
     }
   else if (tlp_is_cpl (th->fmt_type) &&
            tlp_is_w_data (th->fmt_type))
@@ -544,6 +588,7 @@ nettlp_psmem_receive (struct rte_mbuf *m)
       DEBUG_SDPLANE_LOG (NETTLP, "Cpl with data: %p len: %d",
                          tlp_cpld_data (ch),
                          tlp_cpld_data_length (ch));
+      nettlp_psmem_cpld (nh, ch);
     }
   else
     {
@@ -601,7 +646,6 @@ nettlp_rx_burst ()
         }
     }
 }
-
 
 int
 nettlp_thread (void *arg)
@@ -906,6 +950,81 @@ CLI_COMMAND2 (set_nettlp_payload_string,
            payload_string, payload_size, shell->NL);
 }
 
+CLI_COMMAND2 (set_nettlp_psmem_addr,
+              "set nettlp psmem-address <WORD>",
+              SET_HELP,
+              "NetTLP information.\n",
+              "Set psmem address.\n",
+              "Specify memory address.\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  char *endptr;
+
+  psmem_addr = strtoul (argv[3], &endptr, 0);
+  if (*endptr != '\0')
+    {
+      fprintf (shell->terminal, "invalid addr: %s%s",
+               argv[3], shell->NL);
+      return;
+    }
+
+  if (psmem_addr == 0 && psmem_memory)
+    {
+      free (psmem_memory);
+      psmem_memory = NULL;
+    }
+  else
+    {
+      psmem_memory = malloc (psmem_size);
+      if (! psmem_memory)
+        {
+          fprintf (shell->terminal, "malloc() failed: %s%s",
+                   strerror (errno), shell->NL);
+          return;
+        }
+    }
+
+  fprintf (shell->terminal, "psmem: 0x%lx memory: %p size: %d%s",
+           psmem_addr, psmem_memory, psmem_size, shell->NL);
+}
+
+CLI_COMMAND2 (show_nettlp_psmem,
+              "show nettlp psmem",
+              SHOW_HELP,
+              "NetTLP information.\n",
+              "Show psmem.\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  char *endptr;
+  int i;
+
+  fprintf (shell->terminal, "psmem: 0x%lx memory: %p size: %d%s",
+           psmem_addr, psmem_memory, psmem_size, shell->NL);
+
+  if (! psmem_memory)
+    return;
+
+  for (i = 0; i < psmem_size; i++)
+    {
+      if (i % 64 == 0)
+        fprintf (shell->terminal, "0x%04x  ", i);
+      if (isspace (psmem_memory[i]))
+        fprintf (shell->terminal, "%c", '_');
+      else if (psmem_memory[i] == '\n')
+        fprintf (shell->terminal, "%c", 'n');
+      else if (isgraph (psmem_memory[i]))
+        fprintf (shell->terminal, "%c", psmem_memory[i]);
+      else
+        fprintf (shell->terminal, "#");
+      if (i % 8 == 7)
+        fprintf (shell->terminal, " ");
+      if (i % 64 == 63)
+        fprintf (shell->terminal, "%s", shell->NL);
+    }
+}
+
 void
 nettlp_cmd_init (struct command_set *cmdset)
 {
@@ -921,5 +1040,8 @@ nettlp_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_nettlp_payload_size);
   INSTALL_COMMAND2 (cmdset, set_nettlp_max_payload_size);
   INSTALL_COMMAND2 (cmdset, set_nettlp_payload_string);
+
+  INSTALL_COMMAND2 (cmdset, set_nettlp_psmem_addr);
+  INSTALL_COMMAND2 (cmdset, show_nettlp_psmem);
 }
 
