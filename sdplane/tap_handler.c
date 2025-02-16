@@ -37,6 +37,8 @@
 
 #include "tap.h"
 
+#include "log_packet.h"
+
 int peek_fd = -1;
 int port_fd[RTE_MAX_ETHPORTS];
 
@@ -162,46 +164,6 @@ vswitch_port_update ()
                          i, vswport->id, vswport->type, vswport->name,
                          vswport->sockfd, vswport->lcore_id,
                          vswport->ring[0], vswport->ring[1]);
-    }
-}
-
-static inline __attribute__ ((always_inline)) void
-tap_handler_log_packet (struct rte_mbuf *m)
-{
-  /* analyze packet */
-  struct rte_ether_hdr *eth;
-  struct rte_ipv4_hdr *ipv4;
-  struct rte_ipv6_hdr *ipv6;
-  char eth_dst[32];
-  char eth_src[32];
-  unsigned short eth_type;
-  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  rte_ether_format_addr (eth_dst, sizeof (eth_dst),
-                         &eth->dst_addr);
-  rte_ether_format_addr (eth_src, sizeof (eth_src),
-                         &eth->src_addr);
-  eth_type = rte_be_to_cpu_16 (eth->ether_type);
-
-  if (RTE_ETH_IS_IPV4_HDR (m->packet_type))
-    {
-      ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
-      DEBUG_SDPLANE_LOG (PACKET, "m: %p ether[%#hx]: %s -> %s "
-                         "ipv4: len: %d",
-                         m, eth_type, eth_src, eth_dst,
-                         rte_be_to_cpu_16 (ipv4->total_length));
-    }
-  else if (RTE_ETH_IS_IPV6_HDR (m->packet_type))
-    {
-      ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
-      DEBUG_SDPLANE_LOG (PACKET, "m: %p ether[%#hx]: %s -> %s "
-                         "ipv6: len: %d",
-                         m, eth_type, eth_src, eth_dst,
-                         rte_be_to_cpu_16 (ipv6->payload_len));
-    }
-  else
-    {
-      DEBUG_SDPLANE_LOG (PACKET, "m: %p ether[%#hx]: %s -> %s",
-                         m, eth_type, eth_src, eth_dst);
     }
 }
 
@@ -380,7 +342,8 @@ tap_handler_handle_packet_up ()
 
           DEBUG_SDPLANE_LOG (PACKET, "m: %p received from port: %d queue: %d",
                              m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
-          tap_handler_log_packet (m);
+          log_packet (m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
+
           tap_handler_register_fdb (m);
           tap_handler_write_peek (m);
           tap_handler_write_port_all (m);

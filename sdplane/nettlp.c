@@ -26,6 +26,8 @@
 
 #include "internal_message.h"
 
+#include "log_packet.h"
+
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
@@ -471,46 +473,6 @@ nettlp_internal_msg_recv ()
 }
 
 static inline __attribute__ ((always_inline)) void
-nettlp_log_packet (struct rte_mbuf *m, uint16_t input_port)
-{
-  struct rte_ether_hdr *eth;
-  struct rte_ipv4_hdr *ipv4;
-  struct rte_ipv6_hdr *ipv6;
-  char eth_dst[32];
-  char eth_src[32];
-  unsigned short eth_type;
-  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  rte_ether_format_addr (eth_dst, sizeof (eth_dst),
-                         &eth->dst_addr);
-  rte_ether_format_addr (eth_src, sizeof (eth_src),
-                         &eth->src_addr);
-  eth_type = rte_be_to_cpu_16 (eth->ether_type);
-
-  if (RTE_ETH_IS_IPV4_HDR (m->packet_type))
-    {
-      ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
-      DEBUG_SDPLANE_FLAG ((DEBUG_SDPLANE_PACKET | DEBUG_SDPLANE_NETTLP),
-          "m: %p ether[%#hx]: %s -> %s ipv4: len: %d",
-          m, eth_type, eth_src, eth_dst,
-          rte_be_to_cpu_16 (ipv4->total_length));
-    }
-  else if (RTE_ETH_IS_IPV6_HDR (m->packet_type))
-    {
-      ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
-      DEBUG_SDPLANE_FLAG ((DEBUG_SDPLANE_PACKET | DEBUG_SDPLANE_NETTLP),
-          "m: %p ether[%#hx]: %s -> %s ipv6: len: %d",
-          m, eth_type, eth_src, eth_dst,
-          rte_be_to_cpu_16 (ipv6->payload_len));
-    }
-  else
-    {
-      DEBUG_SDPLANE_FLAG ((DEBUG_SDPLANE_PACKET | DEBUG_SDPLANE_NETTLP),
-          "m: %p ether[%#hx]: %s -> %s",
-          m, eth_type, eth_src, eth_dst);
-    }
-}
-
-static inline __attribute__ ((always_inline)) void
 nettlp_rx_burst ()
 {
   struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
@@ -551,7 +513,7 @@ nettlp_rx_burst ()
 
           if (rx_portid >= 0 && rx_queueid >= 0)
             nettlp_send_packet_tap_up (m, rx_portid, rx_queueid);
-          nettlp_log_packet (m, portid);
+          log_packet (m, portid, rx_queueid);
         }
     }
 }
