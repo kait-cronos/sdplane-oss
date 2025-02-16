@@ -41,9 +41,36 @@ static __thread unsigned lcore_id;
 static __thread uint64_t loop_counter = 0;
 static __thread struct rib *rib = NULL;
 
+static inline __attribute__ ((always_inline)) void
+nettlp_send_packet_tap_up (struct rte_mbuf *m, unsigned portid, unsigned queueid)
+{
+  struct rte_mbuf *c;
+  uint32_t pkt_len;
+  uint16_t data_len;
+  int ret = 0;
+  pkt_len = rte_pktmbuf_pkt_len (m);
+  data_len = rte_pktmbuf_data_len (m);
+
+  DEBUG_SDPLANE_LOG (NETTLP,
+                     "lcore[%d]: m: %p port %d queue %d to ring_up: %p",
+                     lcore_id, m, portid, queueid, ring_up[portid][queueid]);
+  c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+  if (ring_up[portid][queueid])
+    ret = rte_ring_enqueue (ring_up[portid][queueid], c);
+  if (ret)
+    {
+      DEBUG_SDPLANE_LOG (NETTLP,
+                         "lcore[%d]: m: %p port %d queue %d to ring: %d",
+                         lcore_id, m, portid, queueid, ret);
+      rte_pktmbuf_free (c);
+    }
+}
+
 #include "nettlp.h"
 #include "nettlp_support.h"
 
+int rx_portid = -1;
+int rx_queueid = -1;
 int tx_portid;
 struct rte_ether_addr local_ether;
 struct rte_ether_addr remote_ether;
@@ -58,6 +85,7 @@ uintptr_t memory_addr; /* DMA memory address */
 int payload_size;
 int max_payload_size; /*Max Payload Size */
 char payload_string[4096];
+int read_payload_size = 4;
 
 void
 nettlp_send_dma_write ()
@@ -141,6 +169,7 @@ nettlp_send_dma_write ()
     }
   if (pad_len)
     {
+      DEBUG_SDPLANE_LOG (NETTLP, "pad: fstdw: len %d.", pad_len);
       rte_pktmbuf_append (m, pad_len);
       memset (pad, 0, pad_len);
     }
@@ -165,6 +194,7 @@ nettlp_send_dma_write ()
     }
   if (pad_len)
     {
+      DEBUG_SDPLANE_LOG (NETTLP, "pad: lstdw: len %d.", pad_len);
       rte_pktmbuf_append (m, pad_len);
       memset (pad, 0, pad_len);
     }
@@ -195,6 +225,8 @@ nettlp_send_dma_write ()
   rte_ether_addr_copy (&local_ether, &eth->src_addr);
   rte_ether_addr_copy (&remote_ether, &eth->dst_addr);
 
+  if (rx_portid >= 0 && rx_queueid >= 0)
+    nettlp_send_packet_tap_up (m, rx_portid, rx_queueid);
 
   if (! tx_buffer_per_q[tx_portid][tx_queueid])
     {
@@ -206,7 +238,7 @@ nettlp_send_dma_write ()
                               MAX_PKT_BURST);
     }
 
-  buffer = tx_buffer_per_q[tx_portid][lcore_id];
+  buffer = tx_buffer_per_q[tx_portid][tx_queueid];
 
   if (buffer)
     {
@@ -248,9 +280,9 @@ nettlp_send_dma_read ()
   requester = (bus_number << 8 | dev_number);
   mh->requester = rte_cpu_to_be_16 (requester);
   mh->tag = pci_tag;
-  mh->lstdw = tlp_calculate_lstdw(memory_addr, payload_size);
-  mh->fstdw = tlp_calculate_fstdw(memory_addr, payload_size);
-  tlp_set_length(mh->tlp.falen, tlp_calculate_length(memory_addr, payload_size));
+  mh->lstdw = tlp_calculate_lstdw(memory_addr, read_payload_size);
+  mh->fstdw = tlp_calculate_fstdw(memory_addr, read_payload_size);
+  tlp_set_length(mh->tlp.falen, tlp_calculate_length(memory_addr, read_payload_size));
 
   uint32_t *dst_addr32;
   uint64_t *dst_addr64;
@@ -356,6 +388,9 @@ nettlp_send_dma_read ()
   rte_ether_addr_copy (&local_ether, &eth->src_addr);
   rte_ether_addr_copy (&remote_ether, &eth->dst_addr);
 
+  if (rx_portid >= 0 && rx_queueid >= 0)
+    nettlp_send_packet_tap_up (m, rx_portid, rx_queueid);
+
   if (! tx_buffer_per_q[tx_portid][tx_queueid])
     {
       tx_buffer_per_q[tx_portid][tx_queueid] =
@@ -366,7 +401,7 @@ nettlp_send_dma_read ()
                               MAX_PKT_BURST);
     }
 
-  buffer = tx_buffer_per_q[tx_portid][lcore_id];
+  buffer = tx_buffer_per_q[tx_portid][tx_queueid];
 
   if (buffer)
     {
@@ -460,10 +495,20 @@ nettlp_rx_burst ()
 
   struct lcore_qconf *lcore_qconf;
   lcore_qconf = &rib->rib_info->lcore_qconf[lcore_id];
+
+  if (lcore_qconf->nrxq == 0)
+    {
+      rx_portid = -1;
+      rx_queueid = -1;
+      return;
+    }
+
   for (i = 0; i < lcore_qconf->nrxq; i++)
     {
       portid = lcore_qconf->rx_queue_list[i].port_id;
       queueid = lcore_qconf->rx_queue_list[i].queue_id;
+      rx_portid = portid;
+      rx_queueid = queueid;
 
       nb_rx = 0;
       if (queueid < rib->rib_info->port[portid].dev_info.nb_rx_queues)
@@ -476,6 +521,8 @@ nettlp_rx_burst ()
           m = pkts_burst[j];
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
+          if (rx_portid >= 0 && rx_queueid >= 0)
+            nettlp_send_packet_tap_up (m, rx_portid, rx_queueid);
           nettlp_log_packet (m, portid);
         }
     }
