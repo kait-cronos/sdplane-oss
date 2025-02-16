@@ -48,4 +48,102 @@ int tlp_calculate_length(uintptr_t addr, size_t count)
         return len;
 }
 
+uintptr_t tlp_mr_addr(struct tlp_mr_hdr *mh)
+{
+	int n;
+	uintptr_t addr;
+	uint32_t *addr32;
+	uint64_t *addr64;
+
+	if (tlp_is_3dw(mh->tlp.fmt_type)) {
+		addr32 = (uint32_t *)(mh + 1);
+		addr = be32toh(*addr32);
+	} else {
+		addr64 = (uint64_t *)(mh + 1);
+		addr = be64toh(*addr64);
+	}
+
+	/* move forard the address in accordance with the 1st DW BE */
+	if (mh->fstdw && mh->fstdw != 0xF) {
+		for (n = 0; n < 4; n++) {
+			if ((mh->fstdw & (0x1 << n)) == 0) {
+				addr += 1;
+			} else
+				break;
+		}
+	}
+
+	return addr;
+}
+
+int tlp_mr_data_length(struct tlp_mr_hdr *mh)
+{
+	int n;
+	uint32_t len;
+
+	len = tlp_length(mh->tlp.falen) << 2;
+
+	if (mh->fstdw && mh->fstdw != 0xF) {
+		for (n = 0; n < 4; n++) {
+			if ((mh->fstdw & (0x1 << n)) == 0) {
+				len--;
+			}
+		}
+	}
+
+	if (mh->lstdw && mh->lstdw != 0xF) {
+		for (n = 0; n < 4; n++) {
+			if ((mh->lstdw & (0x8 >> n)) == 0) {
+				len--;
+			} else
+				break;
+		}
+	}
+
+	return len;
+}
+
+void *tlp_mwr_data(struct tlp_mr_hdr *mh)
+{
+	int n;
+	void *p;
+
+	p = tlp_is_3dw(mh->tlp.fmt_type) ?
+		((char *)(mh + 1)) + 4 : ((char *)(mh + 1)) + 8;
+
+	if (mh->fstdw && mh->fstdw != 0xF) {
+		for (n = 0; n < 4; n++) {
+			if ((mh->fstdw & (0x1 << n)) == 0) {
+				p++;
+			} else
+				break;
+		}
+	}
+
+	return p;
+}
+
+int tlp_cpld_data_length(struct tlp_cpl_hdr *ch)
+{
+	/* if this is last CplD, byte count is actual byte length */
+	if (tlp_length(ch->tlp.falen) ==
+	    ((ch->lowaddr & 0x3) + tlp_cpl_bcnt(ch->stcnt) + 3) >> 2)
+		return tlp_cpl_bcnt(ch->stcnt);
+
+	/* if not, length - padding due to 4DW alignment */
+	return (tlp_length(ch->tlp.falen) << 2) - (ch->lowaddr & 0x3);
+}
+
+void *tlp_cpld_data(struct tlp_cpl_hdr *ch)
+{
+	void *p;
+
+	p = tlp_is_3dw(ch->tlp.fmt_type) ?
+		((char *)(ch + 1)) + 4 : ((char *)(ch + 1)) + 8;
+
+	/* shift for padding due to 4DW alignment */
+	p += (ch->lowaddr & 0x3);
+	return p;
+}
+
 

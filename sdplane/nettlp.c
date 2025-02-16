@@ -474,6 +474,87 @@ nettlp_internal_msg_recv ()
 }
 
 static inline __attribute__ ((always_inline)) void
+nettlp_psmem_receive (struct rte_mbuf *m)
+{
+  struct rte_ether_hdr *eth;
+  struct rte_ipv4_hdr *ipv4;
+  struct rte_udp_hdr *udp;
+  struct nettlp_hdr *nh;
+  struct tlp_hdr *th;
+  struct tlp_mr_hdr *mh;
+  struct tlp_cpl_hdr *ch;
+
+  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  if (memcmp (&eth->dst_addr, &local_ether, RTE_ETHER_ADDR_LEN))
+    {
+      char eth_dst[32];
+      rte_ether_format_addr (eth_dst, sizeof (eth_dst),
+                             &eth->dst_addr);
+      DEBUG_SDPLANE_LOG (NETTLP, "different ether dst: %s",
+                         eth_dst);
+    }
+  if (rte_be_to_cpu_16 (eth->ether_type) != 0x0800)
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "different ether proto: 0x%04hx",
+                         rte_be_to_cpu_16 (eth->ether_type));
+      return;
+    }
+
+  ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
+  if (memcmp (&ipv4->dst_addr, &local_addr,
+              sizeof (struct in_addr)))
+    {
+      char ip_dst[16];
+      inet_ntop (AF_INET, &ipv4->dst_addr, ip_dst, sizeof (ip_dst));
+      DEBUG_SDPLANE_LOG (NETTLP, "different ipv4 dst: %s",
+                         ip_dst);
+    }
+  if (ipv4->next_proto_id != IPPROTO_UDP)
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "non-UDP packet: proto: %d",
+                         ipv4->next_proto_id);
+      return;
+    }
+
+  udp = (struct rte_udp_hdr *) (ipv4 + 1);
+
+  nh = (struct nettlp_hdr *) (udp + 1);
+  th = (struct tlp_hdr *) (nh + 1);
+  mh = (struct tlp_mr_hdr *) th;
+  ch = (struct tlp_cpl_hdr *) th;
+
+  if (tlp_is_mrd (th->fmt_type))
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "MRd: type: %#x", th->fmt_type);
+    }
+  else if (tlp_is_mwr (th->fmt_type))
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "MWr: data: %p len: %d",
+                         tlp_mwr_data (mh),
+                         tlp_mr_data_length (mh));
+    }
+  else if (tlp_is_cpl (th->fmt_type) &&
+           tlp_is_wo_data (th->fmt_type))
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "Cpl without data");
+    }
+  else if (tlp_is_cpl (th->fmt_type) &&
+           tlp_is_w_data (th->fmt_type))
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "Cpl with data: %p len: %d",
+                         tlp_cpld_data (ch),
+                         tlp_cpld_data_length (ch));
+    }
+  else
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "unknown TLP: fmt_type: %#x",
+                         th->fmt_type);
+    }
+
+  rte_pktmbuf_free (m);
+}
+
+static inline __attribute__ ((always_inline)) void
 nettlp_rx_burst ()
 {
   struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
@@ -514,7 +595,9 @@ nettlp_rx_burst ()
 
           if (rx_portid >= 0 && rx_queueid >= 0)
             nettlp_send_packet_tap_up (m, rx_portid, rx_queueid);
-          log_packet (m, portid, rx_queueid);
+
+          //log_packet (m, rx_portid, rx_queueid);
+          nettlp_psmem_receive (m);
         }
     }
 }
