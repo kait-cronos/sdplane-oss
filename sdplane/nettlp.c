@@ -88,6 +88,7 @@ int payload_size;
 int max_payload_size; /*Max Payload Size */
 char payload_string[4096];
 int read_payload_size = 4;
+uint16_t requester;
 
 uintptr_t psmem_addr = 0; /* Pseudo memory base address (BAR4) */
 char *psmem_memory = NULL;
@@ -134,8 +135,6 @@ nettlp_send_dma_write ()
   nh = rte_pktmbuf_mtod (m, struct nettlp_hdr *);
   mh = (struct tlp_mr_hdr *) (nh + 1);
 
-  uint16_t requester;
-  requester = (bus_number << 8 | dev_number);
   mh->requester = rte_cpu_to_be_16 (requester);
   mh->tag = pci_tag;
   mh->lstdw = tlp_calculate_lstdw(memory_addr, payload_size);
@@ -312,8 +311,6 @@ nettlp_send_dma_read ()
   nh = rte_pktmbuf_mtod (m, struct nettlp_hdr *);
   mh = (struct tlp_mr_hdr *) (nh + 1);
 
-  uint16_t requester;
-  requester = (bus_number << 8 | dev_number);
   mh->requester = rte_cpu_to_be_16 (requester);
   mh->tag = pci_tag;
   mh->lstdw = tlp_calculate_lstdw(memory_addr, read_payload_size);
@@ -479,7 +476,60 @@ nettlp_internal_msg_recv ()
 }
 
 static inline __attribute__ ((always_inline)) void
-nettlp_psmem_mrd (struct nettlp_hdr *nh, struct tlp_mr_hdr *mh)
+nettlp_udp_send (struct rte_mbuf *m)
+{
+  struct rte_udp_hdr *udp;
+  uint16_t udp_length;
+  struct rte_ipv4_hdr *ipv4;
+  uint16_t length;
+  struct rte_ether_hdr *eth;
+  struct rte_eth_dev_tx_buffer *buffer;
+
+  uint16_t tx_queueid = lcore_id;
+  uint16_t tx_portid = rx_portid;
+
+  rte_pktmbuf_prepend (m, sizeof (struct rte_udp_hdr));
+  udp = rte_pktmbuf_mtod (m, struct rte_udp_hdr *);
+  udp_length = rte_pktmbuf_pkt_len (m);
+
+  udp->src_port = rte_cpu_to_be_16 (src_port);
+  udp->dst_port = rte_cpu_to_be_16 (dst_port);
+  udp->dgram_len = rte_cpu_to_be_16 (udp_length);
+
+  rte_pktmbuf_prepend (m, sizeof (struct rte_ipv4_hdr));
+  ipv4 = rte_pktmbuf_mtod (m, struct rte_ipv4_hdr *);
+  length = rte_pktmbuf_pkt_len (m);
+
+  ipv4->version_ihl = 0x45;
+  ipv4->total_length = rte_cpu_to_be_16 (length);
+  ipv4->src_addr = local_addr.s_addr;
+  ipv4->dst_addr = remote_addr.s_addr;
+  ipv4->next_proto_id = IPPROTO_UDP;
+  ipv4->hdr_checksum = rte_ipv4_cksum (ipv4);
+
+  rte_pktmbuf_prepend (m, sizeof (struct rte_ether_hdr));
+  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+
+  eth->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
+  rte_ether_addr_copy (&local_ether, &eth->src_addr);
+  rte_ether_addr_copy (&remote_ether, &eth->dst_addr);
+
+  if (rx_portid >= 0 && rx_queueid >= 0)
+    nettlp_send_packet_tap_up (m, rx_portid, rx_queueid);
+
+  buffer = tx_buffer_per_q[tx_portid][tx_queueid];
+  if (buffer)
+    {
+      rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, m);
+      rte_eth_tx_buffer_flush (tx_portid, tx_queueid, buffer);
+      DEBUG_SDPLANE_LOG (NETTLP, "sent.");
+    }
+  else
+    DEBUG_SDPLANE_LOG (NETTLP, "no tx buffer.");
+}
+
+static inline __attribute__ ((always_inline)) void
+nettlp_psmem_mrd (struct nettlp_hdr *nh_recv, struct tlp_mr_hdr *mh)
 {
   ssize_t len = tlp_length (mh->tlp.falen) << 2;
   ssize_t data_len = tlp_mr_data_length (mh);
@@ -494,14 +544,79 @@ nettlp_psmem_mrd (struct nettlp_hdr *nh, struct tlp_mr_hdr *mh)
           "MRd request to 0x%lx which goes "
           "out of the pseudo memory region: %lx -- %lx.",
           addr, psmem_addr, psmem_addr + psmem_size);
+      return;
     }
+
+  struct rte_mbuf *m;
+  struct nettlp_hdr *nh;
+  struct tlp_cpl_hdr *ch;
+  void *data;
+  void *from;
+
+#define MAXPAYLOADSIZE  256
+  do
+    {
+      ssize_t send_len;
+      send_len = len < MAXPAYLOADSIZE ? len : MAXPAYLOADSIZE;
+
+      m = rte_pktmbuf_alloc (l2fwd_pktmbuf_pool);
+      rte_pktmbuf_append (m, sizeof (struct nettlp_hdr));
+      rte_pktmbuf_append (m, sizeof (struct tlp_cpl_hdr));
+      nh = rte_pktmbuf_mtod (m, struct nettlp_hdr *);
+      ch = (struct tlp_cpl_hdr *) (nh + 1);
+
+      memset (nh, 0, sizeof (struct nettlp_hdr));
+      memset (ch, 0, sizeof (struct tlp_cpl_hdr));
+
+      /* XXX: copy flag and attribute. should handle properly */
+      memcpy (&ch->tlp, &mh->tlp, sizeof (struct tlp_cpl_hdr));
+
+      /* Build CplD header */
+      tlp_set_fmt(ch->tlp.fmt_type, TLP_FMT_3DW, TLP_FMT_W_DATA);
+      tlp_set_type(ch->tlp.fmt_type, TLP_TYPE_Cpl);
+      tlp_set_length(ch->tlp.falen, send_len >> 2);
+      tlp_set_cpl_status(ch->stcnt, TLP_CPL_STATUS_SC);
+      tlp_set_cpl_bcnt(ch->stcnt, data_len);
+      ch->completer = rte_cpu_to_be_16 (requester);
+      ch->requester = mh->requester;
+      ch->tag = mh->tag;
+      ch->lowaddr = addr & 0x7F;
+
+      /* memory to be sent */
+      rte_pktmbuf_append (m, send_len);
+      data = (void *) (ch + 1);
+      from = psmem_memory + ((addr >> 2) << 2) - psmem_addr;
+      memcpy (data, from, send_len);
+
+      nettlp_udp_send (m);
+
+      len -= send_len;
+      data_len -= send_len - (addr & 0x3);
+      addr = ((addr >> 2) << 2) + send_len;
+    }
+  while (data_len > 0);
 }
 
 static inline __attribute__ ((always_inline)) void
 nettlp_psmem_mwr (struct nettlp_hdr *nh, struct tlp_mr_hdr *mh)
 {
+  uintptr_t addr = tlp_mr_addr (mh);
   void *ptr = tlp_mwr_data (mh);
   int len = tlp_mr_data_length (mh);
+
+  DEBUG_SDPLANE_LOG (NETTLP, "MWr to 0x%lx, tag 0x%02x, %lu byte",
+                     addr, mh->tag, len);
+
+  if (addr < psmem_addr || addr + len > psmem_addr + psmem_size)
+    {
+      DEBUG_SDPLANE_LOG (NETTLP,
+          "MWr request to 0x%lx which goes "
+          "out of the pseudo memory region: %lx -- %lx.",
+          addr, psmem_addr, psmem_addr + psmem_size);
+      return;
+    }
+
+  memcpy (psmem_memory + (addr - psmem_addr), ptr, len);
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -566,7 +681,9 @@ nettlp_psmem_receive (struct rte_mbuf *m)
 
   if (tlp_is_mrd (th->fmt_type))
     {
-      DEBUG_SDPLANE_LOG (NETTLP, "MRd: type: %#x", th->fmt_type);
+      DEBUG_SDPLANE_LOG (NETTLP, "MRd: addr: %p len: %d",
+                         tlp_mr_addr (mh),
+                         tlp_mr_data_length (mh));
       nettlp_psmem_mrd (nh, mh);
     }
   else if (tlp_is_mwr (th->fmt_type))
@@ -839,6 +956,7 @@ CLI_COMMAND2 (set_nettlp_bus_number,
 
   bus_number = strtol (argv[3], NULL, 0);
   dev_number = strtol (argv[5], NULL, 0);
+  requester = (bus_number << 8 | dev_number);
 
   fprintf (shell->terminal, "bus_number %hx:%hx%s",
            bus_number, dev_number, shell->NL);
