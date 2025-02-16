@@ -25,6 +25,7 @@
 #include "queue_config.h"
 
 #include "rib.h"
+#include "tap_cmd.h"
 
 CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 {
@@ -240,6 +241,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   thread_info_cmd_init (cmdset);
   queue_config_cmd_init (cmdset);
   lthread_cmd_init (cmdset);
+  tap_cmd_init (cmdset);
 
   nettlp_cmd_init (cmdset);
 }

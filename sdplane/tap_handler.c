@@ -39,7 +39,10 @@
 
 #include "log_packet.h"
 
-int peek_fd = -1;
+int capture_fd = -1;
+char capture_ifname[64] = { 0 };
+int capture_if_persistent = 0;
+
 int port_fd[RTE_MAX_ETHPORTS];
 
 struct vswitch vswitch0;
@@ -218,10 +221,10 @@ tap_handler_write_peek (struct rte_mbuf *m)
   data_len = rte_pktmbuf_data_len (m);
   pkt = rte_pktmbuf_mtod (m, char *);
 
-  /* write to peek0 for packet capture. */
-  if (peek_fd >= 0)
+  /* write to capture_fd for packet capture. */
+  if (capture_fd >= 0)
     {
-      ret = write (peek_fd, pkt, data_len);
+      ret = write (capture_fd, pkt, data_len);
       if (ret < 0)
         DEBUG_SDPLANE_LOG (TAPHANDLER,
                            "warning: write () failed: %s",
@@ -229,7 +232,7 @@ tap_handler_write_peek (struct rte_mbuf *m)
       else
         DEBUG_SDPLANE_LOG (
             TAPHANDLER,
-            "packet [%d/%d] (in_port: %d) written to peek0.",
+            "packet [%d/%d] (in_port: %d) written to capture I/F.",
             data_len, pkt_len, m->port);
     }
 }
@@ -465,10 +468,13 @@ tap_handler (__rte_unused void *dummy)
   DEBUG_SDPLANE_LOG (TAPHANDLER, "start thread on lcore[%d].",
                      rte_lcore_id ());
 
-  snprintf (port_name, sizeof (port_name), "peek0");
-  peek_fd = tap_open (port_name);
-  tap_admin_up (port_name);
-  DEBUG_SDPLANE_LOG (TAPHANDLER, "create %s and make it up.", port_name);
+  if (! strlen (capture_ifname))
+    snprintf (capture_ifname, sizeof (capture_ifname), "peek0");
+  capture_fd = tap_open (capture_ifname);
+  if (capture_if_persistent)
+    ioctl (capture_fd, TUNSETPERSIST, 1);
+  tap_admin_up (capture_ifname);
+  DEBUG_SDPLANE_LOG (TAPHANDLER, "create %s and make it up.", capture_ifname);
 
   memset (&vswitch0, 0, sizeof (vswitch));
   vswitch = &vswitch0;
@@ -548,8 +554,8 @@ tap_handler (__rte_unused void *dummy)
       loop_counter++;
     }
 
-  close (peek_fd);
-  peek_fd = -1;
+  close (capture_fd);
+  capture_fd = -1;
 
   printf ("%s on lcore[%d]: finished.\n", __func__, rte_lcore_id ());
 
