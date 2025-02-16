@@ -106,6 +106,20 @@ nettlp_send_dma_write ()
   DEBUG_SDPLANE_LOG (NETTLP, "send DMA write: to port: %d queue %d.",
                      tx_portid, tx_queueid);
 
+  if (! rib || ! rib->rib_info)
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "rib not yet.");
+      return;
+    }
+
+  if (tx_portid >= rib->rib_info->port_size ||
+      tx_queueid >= rib->rib_info->port[tx_portid].dev_info.nb_tx_queues)
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "port %d queue %d not yet.",
+		         tx_portid, tx_queueid);
+      return;
+    }
+
   m = rte_pktmbuf_alloc (l2fwd_pktmbuf_pool);
 
   length = sizeof (struct nettlp_hdr) + sizeof (struct tlp_mr_hdr);
@@ -268,6 +282,20 @@ nettlp_send_dma_read ()
   tx_queueid = lcore_id;
   DEBUG_SDPLANE_LOG (NETTLP, "send DMA read: to port: %d queue %d.",
                      tx_portid, tx_queueid);
+
+  if (! rib || ! rib->rib_info)
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "rib not yet.");
+      return;
+    }
+
+  if (tx_portid >= rib->rib_info->port_size ||
+      tx_queueid >= rib->rib_info->port[tx_portid].dev_info.nb_tx_queues)
+    {
+      DEBUG_SDPLANE_LOG (NETTLP, "port %d queue %d not yet.",
+		         tx_portid, tx_queueid);
+      return;
+    }
 
   m = rte_pktmbuf_alloc (l2fwd_pktmbuf_pool);
 
