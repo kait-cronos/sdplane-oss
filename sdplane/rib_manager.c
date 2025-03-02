@@ -383,6 +383,8 @@ rib_manager_process_message (void *msgp)
 
     case INTERNAL_MSG_TYPE_ETH_LINK:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_eth_link: %p.", msgp);
+      /* this message is functionally substituted by the above
+         update_port_status(). */
 #if 0
       msg_eth_link = (struct internal_msg_eth_link *) (msg_header + 1);
       memcpy (new->link, msg_eth_link->link,
@@ -401,6 +403,7 @@ rib_manager_process_message (void *msgp)
         }
 #endif
       break;
+
     case INTERNAL_MSG_TYPE_QCONF:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_qconf: %p.", msgp);
       msg_qconf = (struct internal_msg_qconf *) (msg_header + 1);
@@ -425,6 +428,7 @@ rib_manager_process_message (void *msgp)
             }
         }
 
+      /* for qconf change, we need strict rib_check(). */
       ret = rib_check (new);
       if (ret < 0)
         {
@@ -432,7 +436,9 @@ rib_manager_process_message (void *msgp)
           return;
         }
 
-#if 1
+      /* for qconf change, we need an intermittent state to avoid
+         a conflict between different cores. */
+      /* XXX, we can use smarter intermitent state. */
       struct rib *zero;
       zero = malloc (sizeof (struct rib));
       if (zero)
@@ -440,9 +446,41 @@ rib_manager_process_message (void *msgp)
           memset (zero, 0, sizeof (struct rib));
           rib_replace (zero);
         }
-#endif
 
       break;
+
+    case INTERNAL_MSG_TYPE_QCONF2:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_qconf2: %p.", msgp);
+      msg_qconf = (struct internal_msg_qconf *) (msg_header + 1);
+      new->rib_info->lcore_size = rte_lcore_count ();
+      new->rib_info->lcore_qconf[0].nrxq = 0;
+      new->rib_info->lcore_qconf[1].nrxq = 0;
+      new->rib_info->lcore_qconf[2].nrxq = 2;
+      new->rib_info->lcore_qconf[2].rx_queue_list[0].port_id = 0;
+      new->rib_info->lcore_qconf[2].rx_queue_list[0].queue_id = 0;
+      new->rib_info->lcore_qconf[2].rx_queue_list[1].port_id = 1;
+      new->rib_info->lcore_qconf[2].rx_queue_list[1].queue_id = 0;
+
+      /* for qconf change, we need strict rib_check(). */
+      ret = rib_check (new);
+      if (ret < 0)
+        {
+          DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+          return;
+        }
+
+      /* for qconf change, we need an intermittent state to avoid
+         a conflict between different cores. */
+      /* XXX, we can use smarter intermitent state. */
+      //struct rib *zero;
+      zero = malloc (sizeof (struct rib));
+      if (zero)
+        {
+          memset (zero, 0, sizeof (struct rib));
+          rib_replace (zero);
+        }
+      break;
+
     default:
       DEBUG_SDPLANE_LOG (RIB, "recv msg unknown: %p.", msgp);
       break;

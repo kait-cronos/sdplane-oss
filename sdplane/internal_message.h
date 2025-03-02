@@ -17,6 +17,7 @@ struct internal_msg_header {
 #define INTERNAL_MSG_TYPE_PORT_STATUS  3
 #define INTERNAL_MSG_TYPE_NETTLP_SEND_DMA_WRITE  4
 #define INTERNAL_MSG_TYPE_NETTLP_SEND_DMA_READ   5
+#define INTERNAL_MSG_TYPE_QCONF2                 6
 
 struct internal_msg_eth_link {
   struct rte_eth_link link[RTE_MAX_ETHPORTS];

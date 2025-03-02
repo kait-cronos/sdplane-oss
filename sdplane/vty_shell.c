@@ -54,6 +54,10 @@ CLI_COMMAND2 (clear_cmd, "clear", CLEAR_HELP)
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
+uint64_t loop_vty_shell = 0;
+
+static __thread struct rib *rib = NULL;
+
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <sys/utsname.h>
@@ -124,8 +128,6 @@ CLI_COMMAND2 (shutdown_cmd, "shutdown", "shutdown\n")
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
   force_quit = true;
 }
-
-uint64_t loop_vty_shell = 0;
 
 void
 vty_shell (void *arg)
@@ -218,6 +220,9 @@ vty_shell (void *arg)
         shell_read_nowait (shell);
 
 #if HAVE_LIBURCU_QSBR
+      /* we define rcu_read_lock does not survibe between two
+      shell command execution. */
+      /* for the safety, we report to rcu system a quiescent state. */
       urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
 

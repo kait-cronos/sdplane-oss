@@ -173,9 +173,10 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
 
   void *msgp;
   struct internal_msg_qconf *msg_qconf;
+  char dummy[8];
 
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF, thread_qconf,
-                              sizeof (thread_qconf));
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF2, dummy,
+                              sizeof (dummy));
   internal_msg_send_to (msg_queue_rib, msgp, shell);
 }
 
@@ -188,6 +189,33 @@ CLI_COMMAND2 (show_thread_qconf,
   struct shell *shell = (struct shell *) context;
   int i, j;
   struct sdplane_queue_conf *qconf;
+
+  struct rib *rib = NULL;
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_read_lock ();
+  rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+
+  if (rib && rib->rib_info)
+    {
+      for (i = 0; i < rib->rib_info->lcore_size; i++)
+        {
+          int nrxq;
+          nrxq = rib->rib_info->lcore_qconf[i].nrxq;
+          for (j = 0; j < nrxq; j++)
+            {
+              struct port_queue_conf *rxq;
+              rxq = &rib->rib_info->lcore_qconf[i].rx_queue_list[j];
+              fprintf (shell->terminal,
+                   "rib->rib_info: lcore: %d rxq[%d/%d]: port: %d queue: %d%s",
+                   i, j, nrxq,
+                   rxq->port_id, rxq->queue_id,
+                   shell->NL);
+            }
+        }
+    }
+  else
+    {
   for (i = 0; i < RTE_MAX_LCORE; i++)
     {
       qconf = &thread_qconf[i];
@@ -201,6 +229,12 @@ CLI_COMMAND2 (show_thread_qconf,
                    shell->NL);
         }
     }
+    }
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_read_unlock ();
+  urcu_qsbr_quiescent_state ();
+#endif /*HAVE_LIBURCU_QSBR*/
 }
 
 void
