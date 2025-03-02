@@ -1078,8 +1078,9 @@ CLI_COMMAND2 (set_nettlp_psmem_addr,
 {
   struct shell *shell = (struct shell *) context;
   char *endptr;
+  uintptr_t new_addr;
 
-  psmem_addr = strtoul (argv[3], &endptr, 0);
+  new_addr = strtoul (argv[3], &endptr, 0);
   if (*endptr != '\0')
     {
       fprintf (shell->terminal, "invalid addr: %s%s",
@@ -1087,13 +1088,28 @@ CLI_COMMAND2 (set_nettlp_psmem_addr,
       return;
     }
 
-  if (psmem_addr == 0 && psmem_memory)
+  /* if new_addr is set to 0, it indicates release. */
+  if (psmem_memory && (new_addr == 0 || !psmem_size))
     {
       free (psmem_memory);
       psmem_memory = NULL;
     }
+  else if (psmem_memory && psmem_size)
+    {
+      psmem_memory = realloc (psmem_memory, psmem_size);
+      if (! psmem_memory)
+        {
+          fprintf (shell->terminal, "realloc() failed: %s%s",
+                   strerror (errno), shell->NL);
+        }
+      else
+        {
+          psmem_addr = new_addr;
+        }
+    }
   else
     {
+      assert (psmem_memory == NULL);
       psmem_memory = malloc (psmem_size);
       if (! psmem_memory)
         {
@@ -1101,30 +1117,127 @@ CLI_COMMAND2 (set_nettlp_psmem_addr,
                    strerror (errno), shell->NL);
           return;
         }
+      else
+        {
+          psmem_addr = new_addr;
+        }
     }
 
-  fprintf (shell->terminal, "psmem: 0x%lx memory: %p size: %d%s",
-           psmem_addr, psmem_memory, psmem_size, shell->NL);
+  fprintf (shell->terminal, "psmem: 0x%lx--0x%lx memory: %p size: %d%s",
+           psmem_addr, psmem_addr + psmem_size, psmem_memory, psmem_size,
+           shell->NL);
 }
 
-CLI_COMMAND2 (show_nettlp_psmem,
-              "show nettlp psmem",
-              SHOW_HELP,
+CLI_COMMAND2 (set_nettlp_psmem_size,
+              "set nettlp psmem-size (<WORD>|256M)",
+              SET_HELP,
               "NetTLP information.\n",
-              "Show psmem.\n"
+              "Set psmem size.\n",
+              "Specify memory size.\n"
+              "Specify memory size as 256MiB.\n"
               )
 {
   struct shell *shell = (struct shell *) context;
   char *endptr;
-  int i;
+  uint32_t new_size;
 
-  fprintf (shell->terminal, "psmem: 0x%lx memory: %p size: %d%s",
-           psmem_addr, psmem_memory, psmem_size, shell->NL);
+  if (! strcmp (argv[3], "256M"))
+    new_size = 256 * 1024 * 1024;
+  else
+    {
+      new_size = strtoul (argv[3], &endptr, 0);
+      if (*endptr != '\0')
+        {
+          fprintf (shell->terminal, "invalid addr: %s%s",
+                   argv[3], shell->NL);
+          return;
+        }
+    }
 
-  if (! psmem_memory)
+  /* if psmem_addr is set to 0, it indicates release. */
+  if (psmem_memory && (psmem_addr == 0 || !new_size))
+    {
+      free (psmem_memory);
+      psmem_memory = NULL;
+      psmem_size = new_size;
+    }
+  else if (psmem_memory && new_size)
+    {
+      psmem_memory = realloc (psmem_memory, new_size);
+      if (! psmem_memory)
+        {
+          fprintf (shell->terminal, "realloc() failed: %s%s",
+                   strerror (errno), shell->NL);
+        }
+      else
+        {
+          psmem_size = new_size;
+        }
+    }
+  else
+    {
+      assert (psmem_memory == NULL);
+      psmem_memory = malloc (new_size);
+      if (! psmem_memory)
+        {
+          fprintf (shell->terminal, "malloc() failed: %s%s",
+                   strerror (errno), shell->NL);
+        }
+      else
+        {
+          psmem_size = new_size;
+        }
+    }
+
+  fprintf (shell->terminal, "psmem: 0x%lx--0x%lx memory: %p size: %d%s",
+           psmem_addr, psmem_addr + psmem_size, psmem_memory, psmem_size,
+           shell->NL);
+}
+
+CLI_COMMAND2 (show_nettlp_psmem,
+              "show nettlp psmem (|<WORD>)",
+              SHOW_HELP,
+              "NetTLP information.\n",
+              "Show psmem.\n",
+              "Show from the specified start offset.\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  char *endptr;
+  uintptr_t start_offset;
+  uintptr_t end_offset;
+  uint32_t i;
+  uint32_t psmem_show_size = 8 * 1024 ; //8KiB.
+  uint32_t show_size;
+
+  start_offset = 0;
+  if (argc > 3)
+    {
+      start_offset = strtoul (argv[3], &endptr, 0);
+      if (*endptr != '\0')
+        {
+          fprintf (shell->terminal, "invalid addr: %s%s",
+                   argv[3], shell->NL);
+          return;
+        }
+    }
+
+  if (! psmem_memory || ! psmem_size)
     return;
 
-  for (i = 0; i < psmem_size; i++)
+  end_offset = start_offset + psmem_show_size;
+  if (psmem_size < end_offset)
+    end_offset = psmem_size;
+
+  fprintf (shell->terminal, "psmem: 0x%lx--0x%lx memory: %p size: %d%s",
+           psmem_addr, psmem_addr + psmem_size, psmem_memory, psmem_size,
+           shell->NL);
+
+  fprintf (shell->terminal, "show: offset: 0x%lx--0x%lx addr: 0x%lx--0x%lx%s",
+           start_offset, end_offset, psmem_addr + start_offset,
+           psmem_addr + end_offset, shell->NL);
+
+  for (i = start_offset; i < end_offset; i++)
     {
       if (i % 64 == 0)
         fprintf (shell->terminal, "0x%04x  ", i);
@@ -1160,6 +1273,7 @@ nettlp_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_nettlp_payload_string);
 
   INSTALL_COMMAND2 (cmdset, set_nettlp_psmem_addr);
+  INSTALL_COMMAND2 (cmdset, set_nettlp_psmem_size);
   INSTALL_COMMAND2 (cmdset, show_nettlp_psmem);
 }
 
