@@ -139,8 +139,8 @@ rib_check (struct rib *new)
 
 #define RX_DESC_DEFAULT 1024
 #define TX_DESC_DEFAULT 1024
-  const uint16_t nb_rxd = RX_DESC_DEFAULT;
-  const uint16_t nb_txd = TX_DESC_DEFAULT;
+  uint16_t nb_rxd = RX_DESC_DEFAULT;
+  uint16_t nb_txd = TX_DESC_DEFAULT;
 
   for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++)
     {
@@ -223,6 +223,13 @@ rib_check (struct rib *new)
                          i, nrxq, ntxq);
       ret = rte_eth_dev_stop (i);
       ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
+
+      nb_rxd = RX_DESC_DEFAULT;
+      if (new->rib_info->port[i].nb_rxd)
+        nb_rxd = new->rib_info->port[i].nb_rxd;
+      nb_txd = TX_DESC_DEFAULT;
+      if (new->rib_info->port[i].nb_txd)
+        nb_txd = new->rib_info->port[i].nb_txd;
 
       rxq_conf = dev_info.default_rxconf;
       rxq_conf.offloads = port_conf.rxmode.offloads;
@@ -479,6 +486,16 @@ rib_manager_process_message (void *msgp)
           memset (zero, 0, sizeof (struct rib));
           rib_replace (zero);
         }
+      break;
+
+    case INTERNAL_MSG_TYPE_TXRX_DESC:
+      struct internal_msg_txrx_desc *msg_txrx_desc;
+      int portid;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_txrx_desc: %p.", msgp);
+      msg_txrx_desc = (struct internal_msg_txrx_desc *) (msg_header + 1);
+      portid = msg_txrx_desc->portid;
+      new->rib_info->port[portid].nb_rxd = msg_txrx_desc->nb_rxd;
+      new->rib_info->port[portid].nb_txd = msg_txrx_desc->nb_txd;
       break;
 
     default:

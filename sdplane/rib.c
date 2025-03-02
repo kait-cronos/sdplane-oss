@@ -117,6 +117,9 @@ CLI_COMMAND2 (show_rib,
       struct port_conf *port;
       port = &rib->rib_info->port[i];
       fprintf (shell->terminal, "rib_info: port[%d]: "
+             "nb_rxd: %hu nb_txd: %hu%s",
+             i, port->nb_rxd, port->nb_txd, shell->NL);
+      fprintf (shell->terminal, "rib_info: port[%d]: "
              "link: speed: %lu duplex: %d autoneg: %d status: %d%s",
              i, port->link.link_speed, port->link.link_duplex,
              port->link.link_autoneg, port->link.link_status,

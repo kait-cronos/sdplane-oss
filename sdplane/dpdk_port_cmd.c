@@ -21,6 +21,9 @@
 
 #include "snprintf_flags.h"
 
+#include "rib.h"
+#include "internal_message.h"
+
 struct flag_name link_speeds[] = {
   { "Fix", RTE_ETH_LINK_SPEED_FIXED },
   { "10M-hd", RTE_ETH_LINK_SPEED_10M_HD },
@@ -653,6 +656,100 @@ CLI_COMMAND2 (set_port_dev_configure,
     }
 }
 
+CLI_COMMAND2 (set_port_txrx_desc,
+              "set port (<0-16>|all) (nrxdesc|ntxdesc) <0-16384>",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP,
+              ALL_HELP,
+              "set the number of rx descriptor for the port\n",
+              "set the number of tx descriptor for the port\n",
+              "Specify the descriptor number.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+  bool rx_spec, tx_spec;
+  uint16_t nb_rx_desc, nb_tx_desc;
+  uint16_t desc_val;
+  struct rib *rib;
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_read_lock ();
+  rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  rx_spec = false;
+  if (! strcmp (argv[3], "nrxdesc"))
+    rx_spec = true;
+  tx_spec = false;
+  if (! strcmp (argv[3], "ntxdesc"))
+    tx_spec = true;
+
+  desc_val = strtol (argv[4], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      nb_rx_desc = RX_DESC_DEFAULT;
+      if (rib && rib->rib_info && rib->rib_info->port[port_id].nb_rxd)
+        nb_rx_desc = rib->rib_info->port[port_id].nb_rxd;
+      if (rx_spec)
+        nb_rx_desc = desc_val;
+
+      nb_tx_desc = TX_DESC_DEFAULT;
+      if (rib && rib->rib_info && rib->rib_info->port[port_id].nb_txd)
+        nb_tx_desc = rib->rib_info->port[port_id].nb_txd;
+      if (tx_spec)
+        nb_tx_desc = desc_val;
+
+      fprintf (shell->terminal,
+               "port: %d nb_rxd: %hu nb_txd: %hu%s",
+               port_id, nb_rx_desc, nb_tx_desc, shell->NL);
+
+      ret = rte_eth_dev_adjust_nb_rx_tx_desc (port_id,
+                                              &nb_rx_desc, &nb_tx_desc);
+      if (ret < 0)
+        {
+          fprintf (shell->terminal,
+                   "rte_eth_dev_adjust_nb_rx_tx_desc(): error: ret: %d%s",
+                   ret, shell->NL);
+          continue;
+        }
+      else
+        {
+          fprintf (shell->terminal,
+                   "rte_eth_dev_adjust_nb_rx_tx_desc(): success: ret: %d%s",
+                   ret, shell->NL);
+        }
+
+      void *msgp;
+      struct internal_msg_txrx_desc txrx_desc;
+      txrx_desc.portid = port_id;
+      txrx_desc.nb_rxd = nb_rx_desc;
+      txrx_desc.nb_txd = nb_tx_desc;
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC,
+                                  &txrx_desc, sizeof (txrx_desc));
+      internal_msg_send_to (msg_queue_rib, msgp, shell);
+
+      fprintf (shell->terminal,
+               "send internal msg: %p%s", msgp, shell->NL);
+    }
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_read_unlock ();
+  urcu_qsbr_quiescent_state ();
+#endif /*HAVE_LIBURCU_QSBR*/
+}
+
+
 void
 dpdk_port_cmd_init (struct command_set *cmdset)
 {
@@ -664,4 +761,5 @@ dpdk_port_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_port_promiscuous);
   INSTALL_COMMAND2 (cmdset, set_port_flowcontrol);
   INSTALL_COMMAND2 (cmdset, set_port_dev_configure);
+  INSTALL_COMMAND2 (cmdset, set_port_txrx_desc);
 }
