@@ -1,7 +1,7 @@
 
 (ver. 18: 2025/03/02 22:19)
 zcmdsh_0.3.36-32_amd64.deb
-sdplane_0.0.9e-1_amd64.deb
+sdplane_0.1.1-93_amd64.deb
 
 - passwd 生成方法:
 $ pwgen -cnB 12 1
@@ -164,12 +164,12 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   # update-grub
 
 * zcmdsh の install
-  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.24-1_amd64.deb
-  # apt install ./zcmdsh_0.3.24-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.36-32_amd64.deb
+  # apt install ./zcmdsh_0.3.36-32_amd64.deb
 
 * sdplane の install
-  $ wget https://www.yasuhironet.net/download/sdplane_0.0.9g-1_amd64.deb
-  # apt install ./sdplane_0.0.9g-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/sdplane_0.1.1-93_amd64.deb
+  # apt install ./sdplane_0.1.1-93_amd64.deb
 
 * netplan config install:
   # rm -f /etc/netplan/*.yaml
