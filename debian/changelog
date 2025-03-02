@@ -1,3 +1,49 @@
+sdplane (0.1.1-90) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 2 Mar 2025 12:25:15 +0000
+
+sdplane (0.1.1-90) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 2 Mar 2025 12:25:15 +0000
+
+sdplane (0.1.1-90) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * function to change #rxd (rx_descriptor size) of the NIC/queue to help NetTLP project avoid packet losses.
+  * realloc of psmem.
+  * hard coding the port/queue for NetTLP. started work in -O2.
+  * implement psmem MRd and MWr. nettlp_psmem_mrd(), nettlp_psmem_mwr().
+  * psmem memory allocation.
+  * nettlp_psmem_receive().
+  * set tap capture ifname cmd set tap capture persistent cmd
+  * nettlp: fill in ipv4 packet_id.
+  * unified log_packet().
+  * update nettlp-memo.txt
+  * guard for unprepared port/queue.
+  * nettlp_send_packet_tap_up ().
+  * rib_check() is done only when queue_conf is changed. sleep_cmd in shell is changed to lthread_sleep(). removed obsolete rib members. adjust rib_info for worker threads.
+  * nettlp: rename size -> payload_size.
+  * moving to rib->rib_info.
+  * fix lcore_size update in rib.
+  * nettlp-send (dma-write|dma-read) cmd.
+  * update port status cmd. avoid accessing unprepared port, using rcu'ed rib_info. working instance for nettlp.
+  * lthread_cancel_all(). doc/nettlp-memo.txt started.
+  * sdplane-nettlp.conf.sample
+  * sync.
+  * update changelog for v0.1.1-68.
+  * update changelog for v0.1.1-67.
+  * remove network I/F configuration change in systemd service start.
+  * nettlp padding in dma_write.
+  * nettlp.h
+  * nettlp dma_write.
+  * Merge branch 'devel'
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 2 Mar 2025 12:25:15 +0000
+
 sdplane (0.1.1-68) UNRELEASED; urgency=low
 
   * release. update changelog.

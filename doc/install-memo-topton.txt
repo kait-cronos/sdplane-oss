@@ -1,6 +1,6 @@
 
-(ver. 15: 2024/10/16 22:41)
-zcmdsh_0.3.19-1_amd64.deb
+(ver. 18: 2025/03/02 22:19)
+zcmdsh_0.3.36-32_amd64.deb
 sdplane_0.0.9e-1_amd64.deb
 
 - passwd 生成方法:
