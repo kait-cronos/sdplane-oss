@@ -23,11 +23,11 @@ internal_msg_body (struct internal_msg_header *msgp)
 }
 
 struct internal_msg_header *
-internal_msg_create (uint16_t type, void *contentp, uint16_t content_length)
+internal_msg_create (uint16_t type, void *contentp, uint32_t content_length)
 {
   void *msgp;
   struct internal_msg_header *msg_header;
-  uint16_t length;
+  uint32_t length;
   void *msg_content;
 
   length = sizeof (struct internal_msg_header) + content_length;

@@ -175,8 +175,10 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
   struct internal_msg_qconf *msg_qconf;
   char dummy[8];
 
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF2, dummy,
-                              sizeof (dummy));
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF, thread_qconf,
+                              sizeof (thread_qconf));
+  //msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF2, dummy,
+  //                            sizeof (dummy));
   internal_msg_send_to (msg_queue_rib, msgp, shell);
 }
 

@@ -7,8 +7,8 @@
 #include "queue_config.h"
 
 struct internal_msg_header {
-  uint16_t type;
-  uint16_t length; // not including the header size.
+  uint32_t type;
+  uint32_t length; // not including the header size.
 };
 
 #define INTERNAL_MSG_TYPE_NONE         0
@@ -37,7 +37,7 @@ struct internal_msg_txrx_desc {
 void *internal_msg_body (struct internal_msg_header *msgp);
 
 struct internal_msg_header *
-internal_msg_create (uint16_t type, void *contentp, uint16_t content_length);
+internal_msg_create (uint16_t type, void *contentp, uint32_t content_length);
 
 void
 internal_msg_delete (struct internal_msg_header *msgp);

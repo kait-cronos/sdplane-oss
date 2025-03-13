@@ -173,7 +173,13 @@ rib_check (struct rib *new)
           if (max_lcore < lcore)
             max_lcore = lcore;
 
+#if 0
           port_qconf[port_qconf_size++] = *rxq;
+#else
+          memcpy (&port_qconf[port_qconf_size], rxq,
+                  sizeof (struct port_queue_conf));
+          port_qconf_size++;
+#endif
         }
     }
 
@@ -429,8 +435,19 @@ rib_manager_process_message (void *msgp)
               new->rib_info->lcore_qconf[i].nrxq = msg_qconf->qconf[i].nrxq;
               for (j = 0; j < msg_qconf->qconf[i].nrxq; j++)
                 {
+                  char *src, *dst;
+                  int len;
+                  dst = (char *) &new->rib_info->lcore_qconf[i].rx_queue_list[j];
+                  src = (char *) &msg_qconf->qconf[i].rx_queue_list[j];
+                  len = sizeof (new->rib_info->lcore_qconf[i].rx_queue_list[j]);
+                  memcpy (dst, src, len);
+#if 0
+                  len = sizeof (struct port_queue_conf);
+                  memcpy (dst, src, len);
+                  *(struct port_queue_conf *)dst = *(struct port_queue_conf *)src;
                   new->rib_info->lcore_qconf[i].rx_queue_list[j] =
                     msg_qconf->qconf[i].rx_queue_list[j];
+#endif
                 }
             }
         }
