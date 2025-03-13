@@ -1,3 +1,11 @@
+sdplane (0.1.1-96) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * avoid crash: internal message length (uint16_t -> uint32_t), and avoid using structure-copy (use memcpy instead).
+  * install-memo for topton.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 13 Mar 2025 15:13:11 +0900
+
 sdplane (0.1.1-93) UNRELEASED; urgency=low
 
   * release. update changelog.
