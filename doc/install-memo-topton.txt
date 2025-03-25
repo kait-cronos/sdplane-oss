@@ -290,3 +290,9 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
 以上で完了です。
 
 
+***********************
+* 温度・消費電力監視
+***********************
+sudo turbostat --Summary --quiet --show Busy%,Avg_MHz,PkgTmp,PkgWatt --interval 10
+
+
