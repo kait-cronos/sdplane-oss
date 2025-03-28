@@ -33,15 +33,15 @@
 #include <sys/ioctl.h>
 #include <lthread.h>
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/termio.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/debug_cmd.h>
-// #include <zcmdsh/shell_fselect.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/debug.h>
+#include <sdplane/termio.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/debug_cmd.h>
+// #include <sdplane/shell_fselect.h>
+#include <sdplane/debug_zcmdsh.h>
 
 #include "l3fwd.h"
 #include "l3fwd_event.h"

@@ -5,16 +5,16 @@
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/termio.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_zcmdsh.h>
-// #include <zcmdsh/shell_fselect.h>
-#include <zcmdsh/log_cmd.h>
+#include <sdplane/debug.h>
+#include <sdplane/termio.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/debug_cmd.h>
+#include <sdplane/debug_zcmdsh.h>
+// #include <sdplane/shell_fselect.h>
+#include <sdplane/log_cmd.h>
 
 #include "l3fwd.h"
 #include "l3fwd_cmd.h"

@@ -1,3 +1,41 @@
+sdplane (0.1.1-101) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * howto check the temperature and power consumption.
+  * add sdplane-topton.conf
+  * start using vfio-pci in topton. update install-memo.
+  * update install-memo-topton.txt
+  * update changelog for v0.1.1-96.
+  * avoid crash: internal message length (uint16_t -> uint32_t), and avoid using structure-copy (use memcpy instead).
+  * install-memo for topton.
+  * update changelog for v0.1.1-93.
+  * update changelog for v0.1.1-92.
+  * update changelog for v0.1.1-91.
+  * update changelog for v0.1.1-90.
+  * function to change #rxd (rx_descriptor size) of the NIC/queue to help NetTLP project avoid packet losses.
+  * realloc of psmem.
+  * hard coding the port/queue for NetTLP. started work in -O2.
+  * implement psmem MRd and MWr. nettlp_psmem_mrd(), nettlp_psmem_mwr().
+  * psmem memory allocation.
+  * nettlp_psmem_receive().
+  * set tap capture ifname cmd set tap capture persistent cmd
+  * nettlp: fill in ipv4 packet_id.
+  * unified log_packet().
+  * update nettlp-memo.txt
+  * guard for unprepared port/queue.
+  * nettlp_send_packet_tap_up ().
+  * rib_check() is done only when queue_conf is changed. sleep_cmd in shell is changed to lthread_sleep(). removed obsolete rib members. adjust rib_info for worker threads.
+  * nettlp: rename size -> payload_size.
+  * moving to rib->rib_info.
+  * fix lcore_size update in rib.
+  * nettlp-send (dma-write|dma-read) cmd.
+  * update port status cmd. avoid accessing unprepared port, using rcu'ed rib_info. working instance for nettlp.
+  * lthread_cancel_all(). doc/nettlp-memo.txt started.
+  * sdplane-nettlp.conf.sample
+  * sync.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 25 Mar 2025 10:37:32 +0900
+
 sdplane (0.1.1-96) UNRELEASED; urgency=low
 
   * release. update changelog.

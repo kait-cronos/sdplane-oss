@@ -1,8 +1,8 @@
 #include "include.h"
 
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
 
 #include "sdplane.h"
 #include "tap_handler.h"
