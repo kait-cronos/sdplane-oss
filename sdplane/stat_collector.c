@@ -6,11 +6,11 @@
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 
-#include <zcmdsh/log.h>
-#include <zcmdsh/debug.h>
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/log.h>
+#include <sdplane/debug.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "thread_info.h"

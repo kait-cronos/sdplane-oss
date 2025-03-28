@@ -9,19 +9,19 @@
 #include <rte_launch.h>
 #include <rte_ether.h>
 
-#include <zcmdsh/shell.h>
-#include <zcmdsh/shell_keyfunc.h>
-#include <zcmdsh/shell_telnet.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/debug.h>
-#include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/log.h>
-#include <zcmdsh/log_cmd.h>
+#include <sdplane/shell.h>
+#include <sdplane/shell_keyfunc.h>
+#include <sdplane/shell_telnet.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/debug.h>
+#include <sdplane/debug_cmd.h>
+#include <sdplane/log.h>
+#include <sdplane/log_cmd.h>
 
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "sdplane.h"
