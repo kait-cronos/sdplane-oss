@@ -2,23 +2,23 @@
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib
 
-lib_LTLIBRARIES = libzcmdsh.la
+lib_LTLIBRARIES = libsdplane.la
 
-libzcmdsh_la_SOURCES = \
+libsdplane_la_SOURCES = \
 	include.h \
-	zcmdsh/log.c zcmdsh/vector.c zcmdsh/termio.c \
-	zcmdsh/shell.c zcmdsh/command.c zcmdsh/command_shell.c \
-	zcmdsh/file.c zcmdsh/shell_fselect.c \
-	zcmdsh/debug.c zcmdsh/debug_cmd.c \
-	zcmdsh/log_cmd.c zcmdsh/shell_keyfunc.c zcmdsh/debug_log.c \
-	zcmdsh/debug_zcmdsh.c \
-	zcmdsh/shell_telnet.c
+	sdplane/log.c sdplane/vector.c sdplane/termio.c \
+	sdplane/shell.c sdplane/command.c sdplane/command_shell.c \
+	sdplane/file.c sdplane/shell_fselect.c \
+	sdplane/debug.c sdplane/debug_cmd.c \
+	sdplane/log_cmd.c sdplane/shell_keyfunc.c sdplane/debug_log.c \
+	sdplane/debug_zcmdsh.c \
+	sdplane/shell_telnet.c
 
 nobase_include_HEADERS = \
-	zcmdsh/log.h zcmdsh/vector.h zcmdsh/termio.h zcmdsh/flag.h \
-	zcmdsh/shell.h zcmdsh/command.h zcmdsh/command_shell.h \
-	zcmdsh/debug.h zcmdsh/debug_cmd.h \
-	zcmdsh/log_cmd.h zcmdsh/shell_keyfunc.h \
-        zcmdsh/debug_log.h zcmdsh/debug_category.h zcmdsh/debug_zcmdsh.h \
-	zcmdsh/debug_backtrace.h \
-        zcmdsh/shell_telnet.h
+	sdplane/log.h sdplane/vector.h sdplane/termio.h sdplane/flag.h \
+	sdplane/shell.h sdplane/command.h sdplane/command_shell.h \
+	sdplane/debug.h sdplane/debug_cmd.h \
+	sdplane/log_cmd.h sdplane/shell_keyfunc.h \
+        sdplane/debug_log.h sdplane/debug_category.h sdplane/debug_zcmdsh.h \
+	sdplane/debug_backtrace.h \
+        sdplane/shell_telnet.h
