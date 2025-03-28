@@ -55,10 +55,10 @@ previous: $previous
 origname: $origname
 EOHD
 
-# if [ ${previous} = ${version} ]; then
-#     echo nothing to release.
-#     exit
-# fi
+if [ ${previous} = ${version} ]; then
+    echo "nothing to release (previous = version: ${version})."
+    exit
+fi
 
 if [ ! -f debian/changelog.${previous} ]; then
     echo create missing debian/changelog.${previous}
