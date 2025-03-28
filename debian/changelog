@@ -1,3 +1,10 @@
+sdplane (0.1.1-106) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * do not generate dpkg on a new version number when there's no update.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Sat, 29 Mar 2025 02:02:35 +0900
+
 sdplane (0.1.1-104) UNRELEASED; urgency=low
 
   * release. update changelog.
