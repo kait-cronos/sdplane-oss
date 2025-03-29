@@ -240,7 +240,8 @@ pci_bus_number_match (char *spec, char *word)
 
 CLI_COMMAND2 (set_device_driver,
               "set device <WORD> "
-              "driver (ixgbe|igb|igc|uio_pci_generic|igb_uio|vfio-pci|unbound)",
+              "driver (ixgbe|igb|igc|uio_pci_generic|igb_uio|vfio-pci|unbound) "
+              " (|bind|driver_override)",
               SET_HELP,
               "Devices information.\n",
               "Specify PCI Bus Number for the device.\n",
@@ -252,6 +253,8 @@ CLI_COMMAND2 (set_device_driver,
               "module: igb_uio.\n",
               "module: vfio-pci.\n",
               "unbind the device.\n"
+              "use the bind method.\n"
+              "use the driver_override method.\n"
               )
 {
   struct shell *shell = (struct shell *) context;
@@ -277,14 +280,26 @@ CLI_COMMAND2 (set_device_driver,
 
   snprintf (driver_name , sizeof (driver_name), "%s", argv[4]);
 
+  if (! strcmp (driver_name, "unbound") && argc > 5)
+    fprintf (shell->terminal, "unbinding driver, %s method ignored.%s",
+             argv[5], shell->NL);
+
   if (! strcmp (driver_name, "unbound"))
     snprintf (driver_bind_path, sizeof (driver_bind_path),
               "%s/%s/%s/unbind",
               devices_path, pci_number, "driver");
-  else
+  else if (argc > 5 && ! strcmp (argv[5], "driver_override"))
     snprintf (driver_bind_path, sizeof (driver_bind_path),
               "%s/%s/driver_override",
               devices_path, pci_number);
+  else if (argc > 5 && ! strcmp (argv[5], "bind"))
+    snprintf (driver_bind_path, sizeof (driver_bind_path),
+              "%s/%s/bind",
+              drivers_path, driver_name);
+  else
+    snprintf (driver_bind_path, sizeof (driver_bind_path),
+              "%s/%s/bind",
+              drivers_path, driver_name);
 
   fd = open (driver_bind_path, O_WRONLY, 0);
   if (fd < 0)
@@ -294,14 +309,30 @@ CLI_COMMAND2 (set_device_driver,
       return;
     }
 
-  if (! strcmp (driver_name, "unbound"))
-    ret = write (fd, pci_number, strlen (pci_number));
+  char *target;
+  int target_len;
+
+  if (argc > 5 && ! strcmp (argv[5], "driver_override"))
+    {
+      target = driver_name;
+      target_len = strlen (driver_name);
+
+    }
   else
-    ret = write (fd, driver_name, strlen (driver_name));
+    {
+      target = pci_number;
+      target_len = strlen (pci_number);
+    }
+
+  fprintf (shell->terminal, "write %s (len: %d) to %s%s",
+           target, target_len, driver_bind_path, shell->NL);
+
+  ret = write (fd, target, target_len);
   if (ret < 0)
     {
-      fprintf (shell->terminal, "write %s to %s failed: %s%s",
-               pci_number, driver_bind_path, strerror (errno), shell->NL);
+      fprintf (shell->terminal, "write %s (len: %d) to %s failed: %s%s",
+               target, target_len, driver_bind_path,
+               strerror (errno), shell->NL);
       return;
     }
 
