@@ -242,6 +242,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   queue_config_cmd_init (cmdset);
   lthread_cmd_init (cmdset);
   tap_cmd_init (cmdset);
+  dpdk_devbind_cmd_init (cmdset);
 
   nettlp_cmd_init (cmdset);
 }

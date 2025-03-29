@@ -44,6 +44,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_RIB_CHECK, "rib-check" },
   { DEBUG_SDPLANE_IMESSAGE, "internal-message" },
   { DEBUG_SDPLANE_NETTLP, "nettlp" },
+  { DEBUG_SDPLANE_NETDEVICE, "netdevice" },
 };
 
 struct command_header debug_sdplane_cmd;
