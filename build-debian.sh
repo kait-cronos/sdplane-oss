@@ -55,7 +55,7 @@ previous: $previous
 origname: $origname
 EOHD
 
-if [ ${previous} = ${version} ]; then
+if [ ${previous} = ${version} && $1 != "-f" ]; then
     echo "nothing to release (previous = version: ${version})."
     exit
 fi
