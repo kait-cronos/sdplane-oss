@@ -98,8 +98,8 @@ l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
           if (sent)
             port_statistics[tx_portid].tx += sent;
           DEBUG_SDPLANE_LOG (L2_REPEATER,
-                             "lcore[%d]: m: %p c: %p port %d -> %d",
-                             lcore_id, m, c, rx_portid, tx_portid);
+                             "lcore[%d]: m: %p c: %p port %d -> %d queue %d",
+                             lcore_id, m, c, rx_portid, tx_portid, tx_queueid);
         }
       else
         {
@@ -118,22 +118,29 @@ l2_repeater_tx_flush ()
 {
   uint16_t nb_ports;
   int tx_portid;
-  unsigned portid;
   struct rte_eth_dev_tx_buffer *buffer;
   int sent;
+  uint16_t tx_queueid;
 
   nb_ports = rte_eth_dev_count_avail ();
   for (tx_portid = 0; tx_portid < nb_ports; tx_portid++)
     {
-      portid = tx_portid;
+      tx_queueid = lcore_id;
 
-      buffer = tx_buffer_per_q[portid][lcore_id];
+      buffer = tx_buffer_per_q[tx_portid][tx_queueid];
       sent = 0;
       if (buffer)
-        sent = rte_eth_tx_buffer_flush (portid, lcore_id, buffer);
+	{
+          sent = rte_eth_tx_buffer_flush (tx_portid, tx_queueid, buffer);
+#if 0
+          DEBUG_SDPLANE_LOG (L2_REPEATER,
+                             "lcore[%d]: port %d queue %d flush",
+                             lcore_id, tx_portid, tx_queueid);
+#endif
+	}
       if (sent)
         {
-          port_statistics[portid].tx += sent;
+          port_statistics[tx_portid].tx += sent;
         }
     }
 }
