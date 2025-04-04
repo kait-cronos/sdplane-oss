@@ -47,11 +47,11 @@
 #include "tap_handler.h"
 #include "rte_override.h"
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_zcmdsh.h>
-#include <zcmdsh/debug_cmd.h>
+#include <sdplane/debug.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
+#include <sdplane/debug_cmd.h>
 #include "debug_sdplane.h"
 #include "stat_collector.h"
 

@@ -1,8 +1,8 @@
 #ifndef __TAP_HANDLER_H__
 #define __TAP_HANDLER_H__
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/command.h>
+#include <sdplane/debug.h>
+#include <sdplane/command.h>
 
 #include "sdplane.h"
 #include "rib_manager.h"
