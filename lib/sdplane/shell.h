@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <sys/ioctl.h>
 
-#include <zcmdsh/flag.h>
+#include <sdplane/flag.h>
 
 #define SHELL_WORD_DELIMITERS     " "
 #define SHELL_WORD_DELIMITERS_SUB " /"

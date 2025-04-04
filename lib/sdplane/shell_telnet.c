@@ -4,16 +4,16 @@
 
 #include <arpa/telnet.h>
 
-#include "zcmdsh/command.h"
-#include "zcmdsh/command_shell.h"
-#include "zcmdsh/shell.h"
+#include "sdplane/command.h"
+#include "sdplane/command_shell.h"
+#include "sdplane/shell.h"
 
-#include "zcmdsh/debug.h"
-#include "zcmdsh/debug_cmd.h"
+#include "sdplane/debug.h"
+#include "sdplane/debug_cmd.h"
 
-#include "zcmdsh/debug_category.h"
-#include "zcmdsh/debug_log.h"
-#include "zcmdsh/debug_zcmdsh.h"
+#include "sdplane/debug_category.h"
+#include "sdplane/debug_log.h"
+#include "sdplane/debug_zcmdsh.h"
 
 shell_keyfunc_t key_func_iac_1[256];
 shell_keyfunc_t key_func_iac_2[256];

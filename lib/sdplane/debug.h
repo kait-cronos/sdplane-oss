@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-#include <zcmdsh/flag.h>
+#include <sdplane/flag.h>
 
 extern uint64_t debug_config;
 

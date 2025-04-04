@@ -16,7 +16,7 @@
 //#define DEBUG_ZCMDSH(type, format, ...) \
 //  DEBUG_LOG(ZCMDSH, type, format, ##__VA_ARGS__)
 
-#include <zcmdsh/command.h>
+#include <sdplane/command.h>
 
 EXTERN_COMMAND (debug_zcmdsh);
 EXTERN_COMMAND (show_debug_zcmdsh);
