@@ -30,6 +30,7 @@ startup_config (__rte_unused void *dummy)
   shell = command_shell_create ();
   shell_set_prompt (shell, "startup-config> ");
   shell->pager = false;
+  FLAG_UNSET (shell->flag, SHELL_FLAG_INTERACTIVE);
 
   // INSTALL_COMMAND2 (shell->cmdset, show_worker);
   INSTALL_COMMAND2 (shell->cmdset, set_worker);
@@ -57,6 +58,7 @@ startup_config (__rte_unused void *dummy)
   printf ("%s[%d]: %s: opening %s.\n", __FILE__, __LINE__, __func__,
           config_file);
   int fd;
+  int ret;
   fd = open (config_file, O_RDONLY);
   if (fd >= 0)
     {
@@ -65,7 +67,9 @@ startup_config (__rte_unused void *dummy)
         {
           lthread_sleep (10); // yield.
 
-          shell_read_nowait (shell);
+          ret = shell_read_nowait (shell);
+	  if (ret < 0)
+            FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
         }
     }
   else

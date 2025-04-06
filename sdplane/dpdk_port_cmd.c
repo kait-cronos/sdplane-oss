@@ -121,6 +121,7 @@ CLI_COMMAND2 (start_stop_port, "(start|stop|reset) port (|<0-16>|all)",
         ret = rte_eth_dev_reset (port_id);
       printf ("rte_eth_dev_%s (): ret: %d port: %u\n", argv[0], ret, port_id);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
@@ -268,6 +269,7 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
             }
         }
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_port_statistics,
@@ -328,6 +330,7 @@ CLI_COMMAND2 (show_port_statistics,
         fprintf (t, "%16s %'8lu %'8lu%s", name, stats->ibytes, stats->obytes,
                  shell->NL);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_port_promiscuous, "show port (<0-16>|all) promiscuous",
@@ -357,6 +360,7 @@ CLI_COMMAND2 (show_port_promiscuous, "show port (<0-16>|all) promiscuous",
         fprintf (shell->terminal, "port[%d]: promiscuous: disabled.%s",
                  port_id, shell->NL);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_port_flowcontrol, "show port (<0-16>|all) flowcontrol",
@@ -417,6 +421,7 @@ CLI_COMMAND2 (show_port_flowcontrol, "show port (<0-16>|all) flowcontrol",
       fprintf (shell->terminal, "forward mac control frames: %s%s",
                (fc_conf.mac_ctrl_frame_fwd ? "on" : "off"), shell->NL);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (set_port_promiscuous,
@@ -444,6 +449,7 @@ CLI_COMMAND2 (set_port_promiscuous,
       if (ret < 0)
         fprintf (shell->terminal, "set promiscuous error: ret: %d\n", ret);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (
@@ -546,6 +552,7 @@ CLI_COMMAND2 (
       ret = rte_eth_dev_flow_ctrl_set (port_id, &fc_conf);
       fprintf (shell->terminal, "set flow_ctrl error: ret: %d\n", ret);
     }
+  return 0;
 }
 
 extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
@@ -608,7 +615,7 @@ CLI_COMMAND2 (set_port_dev_configure,
       if (ret < 0)
         {
           fprintf (shell->terminal,
-                   "rte_eth_dev_info_get(): port: %d failed: %d%s",
+                   "rte_eth_dev_configure(): port: %d failed: %d%s",
                    port_id, ret, shell->NL);
         }
 
@@ -654,6 +661,7 @@ CLI_COMMAND2 (set_port_dev_configure,
           rte_eth_tx_buffer_init (tx_buffer_per_q[port_id][i], MAX_PKT_BURST);
         }
     }
+  return 0;
 }
 
 CLI_COMMAND2 (set_port_txrx_desc,
@@ -747,6 +755,8 @@ CLI_COMMAND2 (set_port_txrx_desc,
   urcu_qsbr_read_unlock ();
   urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
+
+  return 0;
 }
 
 

@@ -116,7 +116,7 @@ CLI_COMMAND2 (set_worker,
     {
       fprintf (shell->terminal, "cannot override lthread: lcore[%d].\n",
                lcore_id);
-      return;
+      return -1;
     }
 
   char *func_name;
@@ -154,6 +154,7 @@ CLI_COMMAND2 (set_worker,
   else
     fprintf (shell->terminal,
              "workers need to be restarted for changes to take effect.\n");
+  return 0;
 }
 
 CLI_COMMAND2 (start_stop_worker,
@@ -191,6 +192,7 @@ CLI_COMMAND2 (start_stop_worker,
           start_lcore (shell, lcore_id);
         }
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
@@ -217,6 +219,7 @@ CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
       fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s", lcore_name, flags,
                state, lcore_workers[lcore_id].func_name, shell->NL);
     }
+  return 0;
 }
 
 void

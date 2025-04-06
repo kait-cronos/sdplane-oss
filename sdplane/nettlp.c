@@ -836,6 +836,7 @@ CLI_COMMAND2 (nettlp_send_dma_write_read,
 
   msgp = internal_msg_create (type, buf, sizeof (buf));
   internal_msg_send_to (msg_queue_nettlp, msgp, shell);
+  return 0;
 }
 
 CLI_COMMAND2 (show_nettlp,
@@ -871,6 +872,7 @@ CLI_COMMAND2 (show_nettlp,
            max_payload_size, shell->NL);
   fprintf (shell->terminal, "payload-string: %s.%s",
            payload_string, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_ether_local_remote,
@@ -896,11 +898,12 @@ CLI_COMMAND2 (set_nettlp_ether_local_remote,
     {
       fprintf (shell->terminal, "invalid address format: %s.%s",
                argv[4], shell->NL);
-      return;
+      return -1;
     }
 
   fprintf (shell->terminal, "set %s: %s%s",
            argv[3], argv[4], shell->NL);
+  return 0;
 }
 
 
@@ -928,17 +931,18 @@ CLI_COMMAND2 (set_nettlp_ipv4_local_remote,
     {
       fprintf (shell->terminal, "invalid address format: %s.%s",
                argv[4], shell->NL);
-      return;
+      return -1;
     }
   if (ret < 0)
     {
       fprintf (shell->terminal, "inet_pton() failed: %s.%s",
                strerror (errno), shell->NL);
-      return;
+      return -1;
     }
 
   fprintf (shell->terminal, "set %s: %s%s",
            argv[3], argv[4], shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_bus_number,
@@ -960,6 +964,7 @@ CLI_COMMAND2 (set_nettlp_bus_number,
 
   fprintf (shell->terminal, "bus_number %hx:%hx%s",
            bus_number, dev_number, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_pci_tag,
@@ -973,6 +978,7 @@ CLI_COMMAND2 (set_nettlp_pci_tag,
   struct shell *shell = (struct shell *) context;
   pci_tag = strtol (argv[3], NULL, 0);
   fprintf (shell->terminal, "pci-tag: %d%s", pci_tag, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_txportid,
@@ -986,6 +992,7 @@ CLI_COMMAND2 (set_nettlp_txportid,
   struct shell *shell = (struct shell *) context;
   tx_portid = strtol (argv[3], NULL, 0);
   fprintf (shell->terminal, "tx-portid: %d%s", tx_portid, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_udp_port,
@@ -1008,6 +1015,7 @@ CLI_COMMAND2 (set_nettlp_udp_port,
 
   *dst = strtol (argv[4], NULL, 0);
   fprintf (shell->terminal, "UDP %s: %hu%s", argv[3], *dst, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_memory_addr,
@@ -1022,6 +1030,7 @@ CLI_COMMAND2 (set_nettlp_memory_addr,
   memory_addr = strtoul (argv[3], NULL, 0);
   fprintf (shell->terminal, "memory-addr: %p%s",
            (void *) memory_addr, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_payload_size,
@@ -1035,6 +1044,7 @@ CLI_COMMAND2 (set_nettlp_payload_size,
   struct shell *shell = (struct shell *) context;
   payload_size = strtoul (argv[3], NULL, 0);
   fprintf (shell->terminal, "payload-size: %d%s", payload_size, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_max_payload_size,
@@ -1049,6 +1059,7 @@ CLI_COMMAND2 (set_nettlp_max_payload_size,
   max_payload_size = strtoul (argv[3], NULL, 0);
   fprintf (shell->terminal, "MaxPayloadSize: %d%s",
            max_payload_size, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_payload_string,
@@ -1066,6 +1077,7 @@ CLI_COMMAND2 (set_nettlp_payload_string,
   payload_size = strlen (payload_string);
   fprintf (shell->terminal, "payload-string: %s (size: %d)%s",
            payload_string, payload_size, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_psmem_addr,
@@ -1085,7 +1097,7 @@ CLI_COMMAND2 (set_nettlp_psmem_addr,
     {
       fprintf (shell->terminal, "invalid addr: %s%s",
                argv[3], shell->NL);
-      return;
+      return -1;
     }
 
   /* if new_addr is set to 0, it indicates release. */
@@ -1115,7 +1127,7 @@ CLI_COMMAND2 (set_nettlp_psmem_addr,
         {
           fprintf (shell->terminal, "malloc() failed: %s%s",
                    strerror (errno), shell->NL);
-          return;
+          return -1;
         }
       else
         {
@@ -1126,6 +1138,7 @@ CLI_COMMAND2 (set_nettlp_psmem_addr,
   fprintf (shell->terminal, "psmem: 0x%lx--0x%lx memory: %p size: %d%s",
            psmem_addr, psmem_addr + psmem_size, psmem_memory, psmem_size,
            shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_psmem_size,
@@ -1150,7 +1163,7 @@ CLI_COMMAND2 (set_nettlp_psmem_size,
         {
           fprintf (shell->terminal, "invalid addr: %s%s",
                    argv[3], shell->NL);
-          return;
+          return 0;
         }
     }
 
@@ -1192,6 +1205,7 @@ CLI_COMMAND2 (set_nettlp_psmem_size,
   fprintf (shell->terminal, "psmem: 0x%lx--0x%lx memory: %p size: %d%s",
            psmem_addr, psmem_addr + psmem_size, psmem_memory, psmem_size,
            shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (show_nettlp_psmem,
@@ -1218,12 +1232,12 @@ CLI_COMMAND2 (show_nettlp_psmem,
         {
           fprintf (shell->terminal, "invalid addr: %s%s",
                    argv[3], shell->NL);
-          return;
+          return 0;
         }
     }
 
   if (! psmem_memory || ! psmem_size)
-    return;
+    return 0;
 
   end_offset = start_offset + psmem_show_size;
   if (psmem_size < end_offset)
@@ -1254,6 +1268,7 @@ CLI_COMMAND2 (show_nettlp_psmem,
       if (i % 64 == 63)
         fprintf (shell->terminal, "%s", shell->NL);
     }
+  return 0;
 }
 
 void

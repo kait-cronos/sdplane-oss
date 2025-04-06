@@ -111,7 +111,7 @@ CLI_COMMAND2 (show_devices,
     {
       fprintf (shell->terminal, "can't open directory: %s%s",
                drivers_path, shell->NL);
-      return;
+      return 0;
     }
 
   while ((dirent = readdir (dir)) != NULL)
@@ -132,7 +132,7 @@ CLI_COMMAND2 (show_devices,
         {
           fprintf (shell->terminal, "can't open directory: %s%s",
                    drvrpath, shell->NL);
-          return;
+          return 0;
         }
 
       while ((driver_ent = readdir (driver_dir)) != NULL)
@@ -163,7 +163,7 @@ CLI_COMMAND2 (show_devices,
     {
       fprintf (shell->terminal, "can't open directory: %s%s",
                devices_path, shell->NL);
-      return;
+      return 0;
     }
 
   char *is_netdev, *netdev_name;
@@ -195,6 +195,7 @@ CLI_COMMAND2 (show_devices,
     }
 
   closedir (dir);
+  return 0;
 }
 
 int
@@ -270,7 +271,7 @@ CLI_COMMAND2 (set_device_driver,
     {
       fprintf (shell->terminal, "unknown PCI number: %s%s",
                argv[2], shell->NL);
-      return;
+      return -1;
     }
 
   if (strlen (argv[2]) == 7)
@@ -306,7 +307,7 @@ CLI_COMMAND2 (set_device_driver,
     {
       fprintf (shell->terminal, "opening %s failed: %s%s",
                driver_bind_path, strerror (errno), shell->NL);
-      return;
+      return -1;
     }
 
   char *target;
@@ -316,7 +317,6 @@ CLI_COMMAND2 (set_device_driver,
     {
       target = driver_name;
       target_len = strlen (driver_name);
-
     }
   else
     {
@@ -333,11 +333,12 @@ CLI_COMMAND2 (set_device_driver,
       fprintf (shell->terminal, "write %s (len: %d) to %s failed: %s%s",
                target, target_len, driver_bind_path,
                strerror (errno), shell->NL);
-      return;
+      return -1;
     }
 
   fprintf (shell->terminal, "bind %s to dev: %s%s",
            argv[4], argv[2], shell->NL);
+  return 0;
 }
 
 void

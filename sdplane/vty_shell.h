@@ -2,7 +2,7 @@
 #define __VTY_SHELL__
 
 
-void shell_keyfunc_clear_terminal (struct shell *shell);
+int shell_keyfunc_clear_terminal (struct shell *shell);
 EXTERN_COMMAND (clear_cmd);
 
 void vty_shell (void *arg);

@@ -34,7 +34,7 @@
 
 #include "sdplane_version.h"
 
-void
+int
 shell_keyfunc_clear_terminal (struct shell *shell)
 {
   const char clr[] = { 27, '[', '2', 'J', '\0' };
@@ -43,12 +43,14 @@ shell_keyfunc_clear_terminal (struct shell *shell)
   fprintf (shell->terminal, "%s%s", clr, topLeft);
   fflush (shell->terminal);
   shell_refresh (shell);
+  return 0;
 }
 
 CLI_COMMAND2 (clear_cmd, "clear", CLEAR_HELP)
 {
   struct shell *shell = (struct shell *) context;
   shell_keyfunc_clear_terminal (shell);
+  return 0;
 }
 
 extern int lthread_core;
@@ -119,6 +121,7 @@ CLI_COMMAND2 (vty_exit_cmd, "(exit|quit|logout)", "exit\n", "quite\n",
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "vty exit !%s", shell->NL);
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
+  return 0;
 }
 
 CLI_COMMAND2 (shutdown_cmd, "shutdown", "shutdown\n")
@@ -127,6 +130,7 @@ CLI_COMMAND2 (shutdown_cmd, "shutdown", "shutdown\n")
   fprintf (shell->terminal, "shutdown !%s", shell->NL);
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
   force_quit = true;
+  return 0;
 }
 
 void
