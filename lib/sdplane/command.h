@@ -8,7 +8,7 @@
 #define COMMAND_WORD_DELIMITERS " "
 #define COMMAND_HELP_DELIMITERS "\n"
 
-typedef void (*command_func_t) (void *context, int argc, char **argv);
+typedef int (*command_func_t) (void *context, int argc, char **argv);
 
 struct command_node
 {
@@ -34,9 +34,9 @@ struct command_header
 };
 
 #define DEFINE_COMMAND(cmdname, cmdstr, helpstr)                              \
-  void cmdname##_func (void *context, int argc, char **argv);                 \
+  int cmdname##_func (void *context, int argc, char **argv);                  \
   struct command_header cmdname##_cmd = { cmdstr, helpstr, cmdname##_func };  \
-  void cmdname##_func (void *context, int argc, char **argv)
+  int cmdname##_func (void *context, int argc, char **argv)
 
 #define ALIAS_COMMAND(aliasname, cmdname, cmdstr, helpstr)                    \
   struct command_header aliasname##_cmd = { cmdstr, helpstr, cmdname##_func };
@@ -113,6 +113,7 @@ void command_config_write (struct vector *config, FILE *fp);
 #define SHOW_HELP "show information.\n"
 #define NO_HELP   "disable information.\n"
 
+#if 0 //obsolete CLI_COMMAND. please use CLI_COMMAND2.
 
 #define DEFINE_COMMAND1(cmdname, cmdstr, h1)                                  \
   DEFINE_COMMAND (cmdname, cmdstr, h1)
@@ -177,6 +178,9 @@ void command_config_write (struct vector *config, FILE *fp);
 #define CLI_COMMAND(cmdname, cmdstr, ...)                                     \
   DEFCOM_NARG (__VA_ARGS__)                                                   \
   (cmdname, cmdstr, __VA_ARGS__)
+
+#endif /*0*/
+
 
 #define ZCMDSH_MKSTR_AUX(x) #x
 #define ZCMDSH_MKSTR(x) ZCMDSH_MKSTR_AUX(x)

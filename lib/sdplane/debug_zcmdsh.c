@@ -31,7 +31,7 @@ char debug_zcmdsh_cmdstr[128 * 16];
 /* assume 128 debug items of max-helpstr-len: 64 */
 char debug_zcmdsh_helpstr[128 * 64];
 
-void
+int
 debug_zcmdsh_func (void *context, int argc, char **argv)
 {
   struct shell *shell = (struct shell *) context;
@@ -74,6 +74,7 @@ debug_zcmdsh_func (void *context, int argc, char **argv)
             }
         }
     }
+  return 0;
 }
 
 DEFINE_COMMAND (show_debug_zcmdsh, "show debugging zcmdsh",
@@ -94,6 +95,7 @@ DEFINE_COMMAND (show_debug_zcmdsh, "show debugging zcmdsh",
                     : "off"),
                shell->NL);
     }
+  return 0;
 }
 
 void

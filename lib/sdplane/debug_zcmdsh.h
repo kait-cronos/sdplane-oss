@@ -13,8 +13,10 @@
 #define DEBUG_ZCMDSH_LOG(type, format, ...)                                   \
   DEBUG_LOG (ZCMDSH, type, format, ##__VA_ARGS__)
 
-//#define DEBUG_ZCMDSH(type, format, ...) \
-//  DEBUG_LOG(ZCMDSH, type, format, ##__VA_ARGS__)
+#if 0
+#define DEBUG_ZCMDSH(type, format, ...) \
+  DEBUG_LOG(ZCMDSH, type, format, ##__VA_ARGS__)
+#endif
 
 #include <sdplane/command.h>
 

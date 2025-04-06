@@ -19,7 +19,7 @@
 #define CONTROL(X) ((X) - '@')
 
 struct shell;
-typedef void (*shell_keyfunc_t) (struct shell *shell);
+typedef int (*shell_keyfunc_t) (struct shell *shell);
 
 struct shell
 {
@@ -84,7 +84,7 @@ void shell_prompt (struct shell *shell);
 void shell_refresh (struct shell *shell);
 
 void shell_insert (struct shell *shell, char *s);
-void shell_input_char (struct shell *shell);
+int shell_input_char (struct shell *shell);
 void shell_insert_char (struct shell *shell, char ch);
 void shell_delete_string (struct shell *shell, int start, int end);
 void shell_cut (struct shell *shell, int start, int end);

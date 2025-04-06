@@ -652,7 +652,7 @@ shell_read_nowait_paging (struct shell *shell)
   shell_refresh (shell);
 }
 
-void
+int
 command_shell_execute (struct shell *shell)
 {
   int ret = 0;
@@ -699,7 +699,7 @@ command_shell_execute (struct shell *shell)
     }
 
   if (! shell_running (shell))
-    return;
+    return ret;
 
   if (! shell->is_paging)
     {
@@ -707,6 +707,8 @@ command_shell_execute (struct shell *shell)
       shell_prompt (shell);
       shell_refresh (shell);
     }
+
+  return ret;
 }
 
 void
@@ -946,7 +948,7 @@ func_table_lookup (void *ptr)
 
 #define FUNC_STR_MAP(x)                                                       \
   {                                                                           \
-    x, #x                                                                     \
+    (void *) x, #x                                                            \
   }
 struct funcp_str_map func2str[FUNC_TABLE_SIZE] = {
   FUNC_STR_MAP (shell_terminate),

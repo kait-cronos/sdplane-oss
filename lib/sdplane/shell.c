@@ -78,15 +78,22 @@ shell_format (struct shell *shell)
            shell->end,  cursor, shell->NL);
 #endif
 
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
+    {
   /* move to the beginning. */
   for (i = shell->cursor; 0 < i; i--)
     writec (shell->writefd, CONTROL ('H'));
+    }
+  else
+    writec (shell->writefd, '\n');
 
   /* re-write the new command-line. */
   ret = write (shell->writefd, command_line, strlen (command_line));
   if (ret < 0)
     DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
 
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
+    {
   /* erase the last part. */
   for (i = end; i < shell->end; i++)
     writec (shell->writefd, ' ');
@@ -94,6 +101,7 @@ shell_format (struct shell *shell)
   /* move back to the cursor. */
   for (i = shell->end; cursor < i; i--)
     writec (shell->writefd, CONTROL ('H'));
+    }
 
   free (shell->command_line);
   shell->command_line = command_line;
@@ -139,6 +147,7 @@ void
 shell_prompt (struct shell *shell)
 {
   int ret;
+
   if (shell->writefd < 0)
     return;
 
@@ -149,9 +158,13 @@ shell_prompt (struct shell *shell)
   /* move cursor to beginning */
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
     writec (shell->writefd, '\r');
+  else
+    writec (shell->writefd, '\n');
 
   /* print prompt */
   ret = write (shell->writefd, shell->prompt, strlen (shell->prompt));
+  if (ret < 0)
+    DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
 }
 
 static void
@@ -194,19 +207,22 @@ shell_insert (struct shell *shell, char *s)
     {
       ret = write (shell->writefd, &shell->command_line[shell->cursor],
                    strlen (&shell->command_line[shell->cursor]));
+      if (ret < 0)
+        DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
       shell->cursor += strlen (s);
       for (i = shell->end; shell->cursor < i; i--)
         writec (shell->writefd, CONTROL ('H'));
     }
 }
 
-void
+int
 shell_input_char (struct shell *shell)
 {
   char str[2];
   str[0] = shell->inputch;
   str[1] = '\0';
   shell_insert (shell, str);
+  return 0;
 }
 
 void
@@ -250,6 +266,8 @@ shell_delete_string (struct shell *shell, int start, int end)
   /* redraw the part related to this deletion */
   ret = write (shell->writefd, &shell->command_line[start],
                strlen (&shell->command_line[start]));
+  if (ret < 0)
+    DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
 
   /* adjust the cursor pointer and go back to it */
   shell->cursor = start;
@@ -554,7 +572,7 @@ shell_debug (struct shell *shell)
 {
   int i;
   char debug[64];
-  int ret;
+  //int ret;
 
   shell_terminate (shell);
 
@@ -617,6 +635,8 @@ shell_refresh (struct shell *shell)
   shell_terminate (shell);
   ret = write (shell->writefd, shell->command_line,
                strlen (shell->command_line));
+  if (ret < 0)
+    DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
 
   /* move cursor back to its position */
   for (i = shell->end; shell->cursor < i; i--)

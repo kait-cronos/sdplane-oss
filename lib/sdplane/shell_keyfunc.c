@@ -148,83 +148,92 @@ shell_keyfunc_t default_keymap[256] = {
   shell_keyfunc_delete_char_advanced, /* Function for DEL */
 };
 
-void
+int
 shell_keyfunc_forward_char (struct shell *shell)
 {
   /* Move forward */
   shell_forward (shell, 1);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_backward_char (struct shell *shell)
 {
   /* Move backward */
   shell_backward (shell, 1);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_move_to_begin (struct shell *shell)
 {
   /* Move to beggining-of-line */
   shell_backward (shell, shell->cursor);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_move_to_end (struct shell *shell)
 {
   /* Move to end-of-line */
   shell_forward (shell, shell->end - shell->cursor);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_delete_char (struct shell *shell)
 {
   /* Delete one character */
   if (shell->cursor < shell->end)
     shell_delete_string (shell, shell->cursor, shell->cursor + 1);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_backspace (struct shell *shell)
 {
   /* Backspace */
   if (shell->cursor <= 0)
-    return;
+    return 0;
 
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_ESCAPE))
     {
       shell_delete_word_backward (shell);
-      return;
+      return 0;
     }
 
   shell_backward (shell, 1);
   shell_delete_string (shell, shell->cursor, shell->cursor + 1);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_kill_line (struct shell *shell)
 {
   /* Kill after the cursor */
   shell_cut (shell, shell->cursor, shell->end);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_kill_all (struct shell *shell)
 {
   /* Kill all the line */
   shell_backward (shell, shell->cursor);
   shell_cut (shell, 0, shell->end);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_yank (struct shell *shell)
 {
   /* Paste (Yank) */
   if (shell->cut_buffer)
     shell_insert (shell, shell->cut_buffer);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_clear_screen (struct shell *shell)
 {
   const char clear[] = { 27, '[', '2', 'J', '\0' };
@@ -233,9 +242,10 @@ shell_keyfunc_clear_screen (struct shell *shell)
   shell_format (shell);
   // shell_linefeed (shell);
   shell_refresh (shell);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_refresh (struct shell *shell)
 {
   /* Refresh and Re-format */
@@ -243,36 +253,41 @@ shell_keyfunc_refresh (struct shell *shell)
   shell_format (shell);
   shell_linefeed (shell);
   shell_refresh (shell);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_empty_enter (struct shell *shell)
 {
   shell_linefeed (shell);
   shell_clear (shell);
   shell_prompt (shell);
   fflush (shell->terminal);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_insert_tab (struct shell *shell)
 {
   shell_insert (shell, "<tab>");
+  return 0;
 }
 
-void
+int
 shell_keyfunc_escape (struct shell *shell)
 {
   FLAG_SET (shell->flag, SHELL_FLAG_ESCAPE);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_delete_word_backward (struct shell *shell)
 {
   shell_delete_word_backward (shell);
+  return 0;
 }
 
-void
+int
 shell_keyfunc_delete_char_advanced (struct shell *shell)
 {
   /* Delete one character */
@@ -280,48 +295,55 @@ shell_keyfunc_delete_char_advanced (struct shell *shell)
     shell_delete_string (shell, shell->cursor, shell->cursor + 1);
   else if (shell->end > 0)
     shell_delete_string (shell, shell->end - 1, shell->end);
+  return 0;
 }
 
 shell_keyfunc_t key_func_escape_1[256];
 shell_keyfunc_t key_func_escape_2[256];
 
-void
+int
 vty_shell_keyfunc_normal (struct shell *shell)
 {
   shell->keymap = shell->keymap_normal;
+  return 0;
 }
 
-void
+int
 vty_shell_move_word_backward (struct shell *shell)
 {
   shell_move_word_backward (shell);
   vty_shell_keyfunc_normal (shell);
+  return 0;
 }
 
-void
+int
 vty_shell_move_word_forward (struct shell *shell)
 {
   shell_move_word_forward (shell);
   vty_shell_keyfunc_normal (shell);
+  return 0;
 }
 
-void
+int
 vty_shell_delete_word_backward (struct shell *shell)
 {
   shell_delete_word_backward (shell);
   vty_shell_keyfunc_normal (shell);
+  return 0;
 }
 
-void
+int
 vty_shell_keyfunc_escape_1 (struct shell *shell)
 {
   shell->keymap = key_func_escape_1;
+  return 0;
 }
 
-void
+int
 vty_shell_keyfunc_escape_2 (struct shell *shell)
 {
   shell->keymap = key_func_escape_2;
+  return 0;
 }
 
 void

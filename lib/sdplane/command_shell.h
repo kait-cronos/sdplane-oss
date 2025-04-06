@@ -62,7 +62,7 @@ extern struct funcp_str_map func2str[];
         {                                                                     \
           if (! func2str[i].ptr)                                              \
             {                                                                 \
-              func2str[i].ptr = x;                                            \
+              func2str[i].ptr = (void *) x;                                   \
               func2str[i].str = #x;                                           \
               break;                                                          \
             }                                                                 \

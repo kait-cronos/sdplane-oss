@@ -229,7 +229,7 @@ telopts2str (u_char telnet_opt)
 void
 vty_will_echo (struct shell *shell)
 {
-  char cmd[] = { IAC, WILL, TELOPT_ECHO, '\0' };
+  u_char cmd[] = { IAC, WILL, TELOPT_ECHO, '\0' };
   fprintf (shell->terminal, "%s", cmd);
   if (FLAG_CHECK (shell->debug_zcmdsh, DEBUG_TYPE (ZCMDSH, TELNET)))
     fprintf (shell->terminal, "IAC WILL TELOPT_ECHO%s", shell->NL);
@@ -240,7 +240,7 @@ vty_will_echo (struct shell *shell)
 void
 vty_will_suppress_go_ahead (struct shell *shell)
 {
-  char cmd[] = { IAC, WILL, TELOPT_SGA, '\0' };
+  u_char cmd[] = { IAC, WILL, TELOPT_SGA, '\0' };
   fprintf (shell->terminal, "%s", cmd);
   if (FLAG_CHECK (shell->debug_zcmdsh, DEBUG_TYPE (ZCMDSH, TELNET)))
     fprintf (shell->terminal, "IAC WILL TELOPT_SGA%s", shell->NL);
@@ -251,7 +251,7 @@ vty_will_suppress_go_ahead (struct shell *shell)
 void
 vty_dont_linemode (struct shell *shell)
 {
-  char cmd[] = { IAC, DONT, TELOPT_LINEMODE, '\0' };
+  u_char cmd[] = { IAC, DONT, TELOPT_LINEMODE, '\0' };
   fprintf (shell->terminal, "%s", cmd);
   if (FLAG_CHECK (shell->debug_zcmdsh, DEBUG_TYPE (ZCMDSH, TELNET)))
     fprintf (shell->terminal, "IAC DONT TELOPT_LINEMODE%s", shell->NL);
@@ -262,14 +262,14 @@ vty_dont_linemode (struct shell *shell)
 void
 vty_do_window_size (struct shell *shell)
 {
-  char cmd[] = { IAC, DO, TELOPT_NAWS, '\0' };
+  u_char cmd[] = { IAC, DO, TELOPT_NAWS, '\0' };
   fprintf (shell->terminal, "%s", cmd);
   if (FLAG_CHECK (shell->debug_zcmdsh, DEBUG_TYPE (ZCMDSH, TELNET)))
     fprintf (shell->terminal, "IAC DO TELOPT_NAWS%s", shell->NL);
   fflush (shell->terminal);
 }
 
-void
+int
 vty_shell_keyfunc_iac_start (struct shell *shell)
 {
   shell->keymap = key_func_iac_1;
@@ -280,9 +280,10 @@ vty_shell_keyfunc_iac_start (struct shell *shell)
     fprintf (shell->terminal, "IAC received.%s", shell->NL);
   fflush (shell->terminal);
 #endif
+  return 0;
 }
 
-void
+int
 vty_shell_keyfunc_telnet_opt (struct shell *shell)
 {
   shell->keymap = shell->keymap_normal;
@@ -310,9 +311,10 @@ vty_shell_keyfunc_telnet_opt (struct shell *shell)
     fprintf (shell->terminal, "IAC %s %s.%s", telnet_cmd_strbuf,
              telnet_opt_strbuf, shell->NL);
   fflush (shell->terminal);
+  return 0;
 }
 
-void
+int
 vty_shell_keyfunc_telnet_cmd (struct shell *shell)
 {
   shell->keymap = key_func_iac_2;
@@ -335,9 +337,10 @@ vty_shell_keyfunc_telnet_cmd (struct shell *shell)
 
   fflush (shell->terminal);
 #endif
+  return 0;
 }
 
-void
+int
 vty_shell_keyfunc_subnego (struct shell *shell)
 {
 #if 0
@@ -354,9 +357,10 @@ vty_shell_keyfunc_subnego (struct shell *shell)
       shell->subnego_size++;
     }
   fflush (shell->terminal);
+  return 0;
 }
 
-void
+int
 vty_shell_keyfunc_sb_start (struct shell *shell)
 {
   shell->keymap = key_func_subnego;
@@ -366,9 +370,10 @@ vty_shell_keyfunc_sb_start (struct shell *shell)
   if (FLAG_CHECK (shell->debug_zcmdsh, DEBUG_TYPE (ZCMDSH, TELNET)))
     fprintf (shell->terminal, "IAC SB (%#hhx).%s", shell->inputch, shell->NL);
   fflush (shell->terminal);
+  return 0;
 }
 
-void
+int
 vty_shell_keyfunc_sb_end (struct shell *shell)
 {
   shell->keymap = shell->keymap_normal;
@@ -412,11 +417,11 @@ vty_shell_keyfunc_sb_end (struct shell *shell)
                        shell->subnego_buf[4];
               shell->winsize.ws_row = height;
               shell->winsize.ws_col = width;
-              DEBUG_ZCMDSH_LOG (TELNET, "width: %'hu height: %'hu",
+              DEBUG_ZCMDSH_LOG (TELNET, "width: %hu height: %hu",
                                 shell->winsize.ws_col, shell->winsize.ws_row);
               if (FLAG_CHECK (shell->debug_zcmdsh,
                               DEBUG_TYPE (ZCMDSH, TELNET)))
-                fprintf (shell->terminal, "width: %'hu height: %'hu%s",
+                fprintf (shell->terminal, "width: %hu height: %hu%s",
                          shell->winsize.ws_col, shell->winsize.ws_row,
                          shell->NL);
             }
@@ -425,6 +430,7 @@ vty_shell_keyfunc_sb_end (struct shell *shell)
     }
   fflush (shell->terminal);
   shell_refresh (shell);
+  return 0;
 }
 
 void
