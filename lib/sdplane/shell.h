@@ -75,13 +75,13 @@ struct shell
 #define SHELL_FLAG_DEBUG       0x08
 #define SHELL_FLAG_INTERACTIVE 0x10
 
-void shell_terminate (struct shell *shell);
-void shell_format (struct shell *shell);
-void shell_linefeed (struct shell *shell);
-void shell_clear (struct shell *shell);
+int shell_terminate (struct shell *shell);
+int shell_format (struct shell *shell);
+int shell_linefeed (struct shell *shell);
+int shell_clear (struct shell *shell);
 void shell_set_prompt (struct shell *shell, char *prompt);
 void shell_prompt (struct shell *shell);
-void shell_refresh (struct shell *shell);
+int shell_refresh (struct shell *shell);
 
 void shell_insert (struct shell *shell, char *s);
 int shell_input_char (struct shell *shell);
@@ -97,10 +97,10 @@ int shell_word_head (struct shell *shell, int point);
 int shell_word_end (struct shell *shell, int point);
 
 int shell_subword_head (struct shell *shell, int point);
-void shell_delete_word_backward (struct shell *shell);
+int shell_delete_word_backward (struct shell *shell);
 
-void shell_move_word_backward (struct shell *shell);
-void shell_move_word_forward (struct shell *shell);
+int shell_move_word_backward (struct shell *shell);
+int shell_move_word_forward (struct shell *shell);
 
 void shell_close (struct shell *shell);
 int shell_read (struct shell *shell);

@@ -5,6 +5,8 @@
 #ifndef __COMMAND_SHELL_H__
 #define __COMMAND_SHELL_H__
 
+#include <sdplane/shell.h>
+
 extern char *prompt_default;
 extern struct command_set *cmdset_default;
 
@@ -50,7 +52,7 @@ void file_ls_candidate (struct shell *shell, char *file_path);
 #define FUNC_TABLE_SIZE 512
 struct funcp_str_map
 {
-  void *ptr;
+  shell_keyfunc_t ptr;
   char *str;
 };
 extern struct funcp_str_map func2str[];

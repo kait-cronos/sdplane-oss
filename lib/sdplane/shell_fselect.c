@@ -199,7 +199,7 @@ fselect_completion ()
   return strdup (completion);
 }
 
-void
+int
 fselect_keyfunc_start (struct shell *shell)
 {
   int last_head;
@@ -215,7 +215,7 @@ fselect_keyfunc_start (struct shell *shell)
       fprintf (shell->terminal, "\n");
       // fprintf (shell->terminal, "no command node matched.\n");
       shell_refresh (shell);
-      return;
+      return 0;
     }
 
   if (! file_spec (match->cmdstr))
@@ -237,7 +237,7 @@ fselect_keyfunc_start (struct shell *shell)
           fprintf (shell->terminal, "\n");
           // fprintf (shell->terminal, "not in file spec.\n");
           shell_refresh (shell);
-          return;
+          return 0;
         }
     }
 
@@ -256,7 +256,7 @@ fselect_keyfunc_start (struct shell *shell)
 
   dir = opendir (fselect_dirname);
   if (dir == NULL)
-    return;
+    return 0;
 
   fselect_maxlen = 0;
   fselect_nentry = 0;
@@ -285,17 +285,19 @@ fselect_keyfunc_start (struct shell *shell)
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_quit (struct shell *shell)
 {
   shell_refresh (shell);
   free (fselect_path);
   shell->keymap = (shell_keyfunc_t *) shell->keymap_normal;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_enter (struct shell *shell)
 {
   char *completion;
@@ -328,9 +330,10 @@ fselect_keyfunc_enter (struct shell *shell)
     }
 
   fselect_keyfunc_quit (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_left (struct shell *shell)
 {
   if (fselect_ncolumn > 1 && fselect_index % fselect_ncolumn > 0)
@@ -339,9 +342,10 @@ fselect_keyfunc_left (struct shell *shell)
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
   shell->keymap = key_func_fselect;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_right (struct shell *shell)
 {
   if (fselect_ncolumn > 1 &&
@@ -351,9 +355,10 @@ fselect_keyfunc_right (struct shell *shell)
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
   shell->keymap = key_func_fselect;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_up (struct shell *shell)
 {
   if (fselect_index - fselect_ncolumn >= 0)
@@ -362,9 +367,10 @@ fselect_keyfunc_up (struct shell *shell)
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
   shell->keymap = key_func_fselect;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_down (struct shell *shell)
 {
   if (fselect_index + fselect_ncolumn < fselect_nentry)
@@ -373,17 +379,19 @@ fselect_keyfunc_down (struct shell *shell)
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
   shell->keymap = key_func_fselect;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_none (struct shell *shell)
 {
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_leftmost (struct shell *shell)
 {
   int leftmost;
@@ -392,9 +400,10 @@ fselect_keyfunc_leftmost (struct shell *shell)
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_rightmost (struct shell *shell)
 {
   int rightmost;
@@ -406,36 +415,41 @@ fselect_keyfunc_rightmost (struct shell *shell)
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_first (struct shell *shell)
 {
   fselect_index = 0;
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_end (struct shell *shell)
 {
   fselect_index = fselect_nentry - 1;
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc2_start (struct shell *shell)
 {
   shell->keymap = key_func_fselect2;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc3_start (struct shell *shell)
 {
   shell->keymap = key_func_fselect3;
+  return 0;
 }
 
 void

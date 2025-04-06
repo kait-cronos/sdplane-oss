@@ -30,7 +30,7 @@ DEFINE_COMMAND (show_logging, "show logging",
   if (debug_log_filename)
     {
       fprintf (shell->terminal, "log: file: filename: %s fp: %p%s",
-               debug_log_filename, debug_log_file, shell->NL);
+               debug_log_filename, (void *) debug_log_file, shell->NL);
     }
 
   fprintf (shell->terminal, "log: stdout: %s%s",
@@ -41,6 +41,7 @@ DEFINE_COMMAND (show_logging, "show logging",
            (FLAG_CHECK (debug_output, DEBUG_OUTPUT_STDERR) ? "enabled"
                                                            : "disabled"),
            shell->NL);
+  return 0;
 }
 
 DEFINE_COMMAND (log_cmd,
@@ -51,7 +52,7 @@ DEFINE_COMMAND (log_cmd,
                 "log to stdout.\n"
                 "log to stderr.\n")
 {
-  struct shell *shell = (struct shell *) context;
+  //struct shell *shell = (struct shell *) context;
   int negate = 0;
 
   if (! strcmp (argv[0], "no"))
@@ -82,6 +83,7 @@ DEFINE_COMMAND (log_cmd,
       else
         FLAG_SET (debug_output, DEBUG_OUTPUT_STDERR);
     }
+  return 0;
 }
 
 DEFINE_COMMAND (log_file_cmd, "log file <FILE>",
@@ -89,16 +91,18 @@ DEFINE_COMMAND (log_file_cmd, "log file <FILE>",
                 "log to file.\n"
                 "log filename.\n")
 {
-  struct shell *shell = (struct shell *) context;
+  //struct shell *shell = (struct shell *) context;
   DEBUG_OUTPUT_FILE_SET (argv[2]);
+  return 0;
 }
 
 DEFINE_COMMAND (no_log_file_cmd, "no log file",
                 NO_HELP "logging information.\n"
                         "log to file.\n")
 {
-  struct shell *shell = (struct shell *) context;
+  //struct shell *shell = (struct shell *) context;
   DEBUG_OUTPUT_FILE_UNSET ();
+  return 0;
 }
 
 void

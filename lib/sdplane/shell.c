@@ -22,15 +22,16 @@ writec (int fd, char c)
   return write (fd, &c, 1);
 }
 
-void
+int
 shell_terminate (struct shell *shell)
 {
   if (shell->end < 0 || shell->size <= shell->end)
-    return;
+    return 0;
   shell->command_line[shell->end] = '\0';
+  return 0;
 }
 
-void
+int
 shell_format (struct shell *shell)
 {
   char *command_line;
@@ -42,7 +43,7 @@ shell_format (struct shell *shell)
   cursor = 0;
   command_line = (char *) malloc (shell->size);
   if (command_line == NULL)
-    return;
+    return 0;
   memset (command_line, 0, shell->size);
 
   /* filter out the duplicated consecutive spaces. */
@@ -107,20 +108,23 @@ shell_format (struct shell *shell)
   shell->command_line = command_line;
   shell->cursor = cursor;
   shell->end = end;
+  return 0;
 }
 
-void
+int
 shell_linefeed (struct shell *shell)
 {
   fprintf (shell->terminal, "%s", shell->NL);
+  return 0;
 }
 
-void
+int
 shell_clear (struct shell *shell)
 {
   shell->cursor = 0;
   shell->end = 0;
   shell_terminate (shell);
+  return 0;
 }
 
 void
@@ -533,7 +537,7 @@ shell_subword_prev_head (struct shell *shell, int point)
   return head;
 }
 
-void
+int
 shell_delete_word_backward (struct shell *shell)
 {
   int start;
@@ -543,9 +547,10 @@ shell_delete_word_backward (struct shell *shell)
     start = shell_subword_prev_head (shell, shell->cursor);
 
   shell_cut (shell, start, shell->cursor);
+  return 0;
 }
 
-void
+int
 shell_move_word_backward (struct shell *shell)
 {
   int start;
@@ -555,15 +560,17 @@ shell_move_word_backward (struct shell *shell)
     start = shell_subword_prev_head (shell, shell->cursor);
 
   shell_moveto (shell, start);
+  return 0;
 }
 
-void
+int
 shell_move_word_forward (struct shell *shell)
 {
   int start;
 
   start = shell_word_next_head (shell, shell->cursor);
   shell_moveto (shell, start);
+  return 0;
 }
 
 #define DEBUG_POS 82
@@ -618,7 +625,7 @@ shell_debug (struct shell *shell)
 #endif
 }
 
-void
+int
 shell_refresh (struct shell *shell)
 {
   int i;
@@ -641,6 +648,7 @@ shell_refresh (struct shell *shell)
   /* move cursor back to its position */
   for (i = shell->end; shell->cursor < i; i--)
     writec (shell->writefd, CONTROL ('H'));
+  return 0;
 }
 
 void

@@ -36,6 +36,7 @@ DEFINE_COMMAND (exit, "exit", "exit\n")
   /* don't do shell_close() here: it closes stdout,
      and breaks safe termination. */
   // shell_close (shell);
+  return 0;
 }
 
 ALIAS_COMMAND (logout, exit, "logout", "logout\n");
@@ -49,6 +50,7 @@ DEFINE_COMMAND (enable_shell_debugging, "enable shell debugging",
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "enable shell debugging.\n");
   FLAG_SET (shell->flag, SHELL_FLAG_DEBUG);
+  return 0;
 }
 
 DEFINE_COMMAND (disable_shell_debugging, "disable shell debugging",
@@ -59,6 +61,7 @@ DEFINE_COMMAND (disable_shell_debugging, "disable shell debugging",
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "disable shell debugging.\n");
   FLAG_CLEAR (shell->flag, SHELL_FLAG_DEBUG);
+  return 0;
 }
 
 void
@@ -92,14 +95,14 @@ command_history_add (char *command_line, struct command_history *history,
   history->array[history->current] = NULL;
 }
 
-void
+int
 command_history_prev (struct shell *shell)
 {
   int ceil, start, prev;
   struct command_history *history = shell->history;
 
   if (! history)
-    return;
+    return 0;
 
   ceil = HISTORY_NEXT (history->last);
   start = HISTORY_NEXT (ceil);
@@ -111,7 +114,7 @@ command_history_prev (struct shell *shell)
 
   /* wrapping */
   if (history->current == start)
-    return;
+    return 0;
 
   prev = HISTORY_PREV (history->current);
   if (history->array[prev])
@@ -120,16 +123,17 @@ command_history_prev (struct shell *shell)
       shell_insert (shell, history->array[prev]);
       history->current = prev;
     }
+  return 0;
 }
 
-void
+int
 command_history_next (struct shell *shell)
 {
   int floor, start, next;
   struct command_history *history = shell->history;
 
   if (! history)
-    return;
+    return 0;
 
   floor = HISTORY_NEXT (history->last);
   start = HISTORY_NEXT (floor);
@@ -141,7 +145,7 @@ command_history_next (struct shell *shell)
 
   /* wrapping */
   if (history->current == floor)
-    return;
+    return 0;
 
   next = HISTORY_NEXT (history->current);
   if (history->array[next])
@@ -150,6 +154,7 @@ command_history_next (struct shell *shell)
       shell_insert (shell, history->array[next]);
       history->current = next;
     }
+  return 0;
 }
 
 DEFINE_COMMAND (show_history, "show history",
@@ -169,6 +174,7 @@ DEFINE_COMMAND (show_history, "show history",
   for (i = start; i != floor; i = HISTORY_NEXT (i))
     if (history->array[i])
       fprintf (shell->terminal, "[%3d] %s\n", i, history->array[i]);
+  return 0;
 }
 
 int duration_limit = 0;
@@ -679,7 +685,7 @@ command_shell_execute (struct shell *shell)
       shell_clear (shell);
       shell_prompt (shell);
       shell_refresh (shell);
-      return;
+      return 0;
     }
 
   if (shell->pager)
@@ -711,7 +717,7 @@ command_shell_execute (struct shell *shell)
   return ret;
 }
 
-void
+int
 command_shell_completion (struct shell *shell)
 {
   char *completion = NULL;
@@ -723,6 +729,7 @@ command_shell_completion (struct shell *shell)
     shell_insert (shell, completion);
 
   fflush (shell->terminal);
+  return 0;
 }
 
 static void
@@ -866,7 +873,7 @@ file_ls_candidate (struct shell *shell, char *file_path)
   free (path);
 }
 
-void
+int
 command_shell_ls_candidate (struct shell *shell)
 {
   char *cmd_dup;
@@ -918,6 +925,7 @@ command_shell_ls_candidate (struct shell *shell)
   // shell_format (shell);
   shell_linefeed (shell);
   shell_refresh (shell);
+  return 0;
 }
 
 DEFINE_COMMAND (list_func_table, "list func-table",
@@ -932,10 +940,11 @@ DEFINE_COMMAND (list_func_table, "list func-table",
         fprintf (shell->terminal, "  func2str[%d]: %p: %s%s", i,
                  func2str[i].ptr, func2str[i].str, shell->NL);
     }
+  return 0;
 }
 
 int
-func_table_lookup (void *ptr)
+func_table_lookup (shell_keyfunc_t ptr)
 {
   int i;
   for (i = 0; i < FUNC_TABLE_SIZE; i++)
@@ -948,7 +957,7 @@ func_table_lookup (void *ptr)
 
 #define FUNC_STR_MAP(x)                                                       \
   {                                                                           \
-    (void *) x, #x                                                            \
+    x, #x                                                            \
   }
 struct funcp_str_map func2str[FUNC_TABLE_SIZE] = {
   FUNC_STR_MAP (shell_terminate),
@@ -992,11 +1001,12 @@ DEFINE_COMMAND (list_keymaps, "list keymaps",
 {
   struct shell *shell = (struct shell *) context;
   int i;
-  void *ptr;
+  //void *ptr;
+  shell_keyfunc_t ptr;
   char *name;
   int index = -1;
   int start = -1;
-  void *next_ptr = NULL;
+  shell_keyfunc_t next_ptr = NULL;
   char strname[32];
 
   bool summary = true;
@@ -1027,7 +1037,7 @@ DEFINE_COMMAND (list_keymaps, "list keymaps",
 
           if (start >= 0)
             {
-              void *prev_ptr;
+              shell_keyfunc_t prev_ptr;
               int prev_index;
               char *prev_name;
               prev_ptr = shell->keymap[start];
@@ -1049,7 +1059,7 @@ DEFINE_COMMAND (list_keymaps, "list keymaps",
                        start, strname, shell->NL);
 
               fprintf (shell->terminal, "%-31s %p: %s%s", "          :",
-                       prev_ptr, prev_name, shell->NL);
+                       (void *) prev_ptr, prev_name, shell->NL);
             }
         }
 
@@ -1065,10 +1075,11 @@ DEFINE_COMMAND (list_keymaps, "list keymaps",
                  shell->NL);
       else
         fprintf (shell->terminal, "  key: 0x%02x (%3d)%-14s %p: %s%s", i, i,
-                 strname, ptr, name, shell->NL);
+                 strname, (void *) ptr, name, shell->NL);
 
       start = -1;
     }
+  return 0;
 }
 
 DEFINE_COMMAND (set_pager, "(set|no|) pager",
@@ -1093,6 +1104,7 @@ DEFINE_COMMAND (set_pager, "(set|no|) pager",
     fprintf (shell->terminal, "pager enabled.%s", shell->NL);
   else
     fprintf (shell->terminal, "pager disabled.%s", shell->NL);
+  return 0;
 }
 
 DEFINE_COMMAND (set_pager_command, "set pager <FILE> (|<LINE>)",
@@ -1123,6 +1135,7 @@ DEFINE_COMMAND (set_pager_command, "set pager <FILE> (|<LINE>)",
 
   shell->pager_command = strdup (line);
   shell->pager = true;
+  return 0;
 }
 
 DEFINE_COMMAND (set_pager_default, "set pager default",
@@ -1136,6 +1149,7 @@ DEFINE_COMMAND (set_pager_default, "set pager default",
       free (shell->pager_command);
       shell->pager_command = NULL;
     }
+  return 0;
 }
 
 void

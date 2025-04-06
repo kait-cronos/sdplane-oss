@@ -36,7 +36,7 @@ fopen_create (char *file, char *mode)
   int ret;
   struct stat statbuf;
 
-  strncpy (pathname, file, sizeof (pathname));
+  strncpy (pathname, file, sizeof (pathname) - 1);
   path_disassemble (pathname, &dirname, &filename);
 
   p = dirname;
