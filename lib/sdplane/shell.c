@@ -651,7 +651,7 @@ shell_refresh (struct shell *shell)
   return 0;
 }
 
-void
+int
 shell_input (struct shell *shell, unsigned char ch)
 {
   int escaped = 0;
@@ -682,14 +682,17 @@ shell_input (struct shell *shell, unsigned char ch)
     }
 #endif
 
+  int ret = 0;
   if (shell->keymap[ch])
-    (*shell->keymap[ch]) (shell);
+    ret = (*shell->keymap[ch]) (shell);
 
   if (escaped)
     FLAG_CLEAR (shell->flag, SHELL_FLAG_ESCAPE);
 
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
     shell_refresh (shell);
+
+  return ret;
 }
 
 void
@@ -758,10 +761,15 @@ shell_read (struct shell *shell)
       return ret;
     }
 
+  int ret_shell = 0;
   for (i = 0; i < ret; i++)
-    shell_input (shell, buf[i]);
+    {
+      ret_shell = shell_input (shell, buf[i]);
+      if (ret_shell < 0)
+        break;
+    }
 
-  return 0;
+  return ret_shell;
 }
 
 #include <poll.h>
