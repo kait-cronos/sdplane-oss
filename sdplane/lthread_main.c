@@ -138,6 +138,11 @@ lthread_main (__rte_unused void *dummy)
   debug_zcmdsh_cmd_init ();
   command_shell_init ();
 
+  // lthread_create (&lt, (lthread_func) tap_handler, NULL);
+  lthread_create (&lt, (lthread_func) vty_server, NULL);
+  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
+  lthread_detach2 (lt);
+
 #if 0
   lthread_create (&lt, (lthread_func) startup_config, NULL);
   thread_register (lthread_core, lt, (lthread_func) startup_config,
@@ -153,11 +158,6 @@ lthread_main (__rte_unused void *dummy)
       exit (-1);
     }
 #endif
-
-  // lthread_create (&lt, (lthread_func) tap_handler, NULL);
-  lthread_create (&lt, (lthread_func) vty_server, NULL);
-  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
-  lthread_detach2 (lt);
 
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
