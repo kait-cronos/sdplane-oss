@@ -60,7 +60,7 @@ startup_config (__rte_unused void *dummy)
   printf ("%s[%d]: %s: opening %s.\n", __FILE__, __LINE__, __func__,
           config_file);
   int fd;
-  int ret;
+  int ret = 0;
   fd = open (config_file, O_RDONLY);
   if (fd >= 0)
     {
