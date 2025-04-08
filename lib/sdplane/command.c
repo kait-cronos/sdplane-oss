@@ -817,6 +817,14 @@ command_execute (char *command_line, struct command_set *cmdset, void *context)
         }
 
       ret = (*match->func) (context, argc, argv);
+      if (ret < 0)
+        {
+          printf ("%s[%d]: %s: argv[%d]:", __FILE__, __LINE__, __func__, argc);
+          for (int i = 0; i < argc; i++)
+            printf (" %s", argv[i]);
+          printf ("\n");
+          printf ("func: %s returned %d\n", match->cmdstr, ret);
+        }
     }
   else
     ret = -1;

@@ -766,7 +766,11 @@ shell_read (struct shell *shell)
     {
       ret_shell = shell_input (shell, buf[i]);
       if (ret_shell < 0)
-        break;
+        {
+          printf ("shell_input: %d input char: '%c'\n",
+                  ret_shell, buf[i]);
+          break;
+        }
     }
 
   return ret_shell;
