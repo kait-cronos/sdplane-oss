@@ -67,6 +67,7 @@ internal_msg_send_to (struct rte_ring *ring,
                  "ring-queue: NULL.%s", msgp, shell->NL);
       DEBUG_SDPLANE_LOG (IMESSAGE, "can't send message %p. "
                  "ring-queue: NULL", msgp);
+      return -1;
     }
   return 0;
 }

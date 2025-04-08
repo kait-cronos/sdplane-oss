@@ -174,12 +174,19 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
   void *msgp;
   struct internal_msg_qconf *msg_qconf;
   char dummy[8];
+  int ret;
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF, thread_qconf,
                               sizeof (thread_qconf));
   //msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF2, dummy,
   //                            sizeof (dummy));
-  internal_msg_send_to (msg_queue_rib, msgp, shell);
+  ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
+  if (ret < 0)
+    {
+      DEBUG_SDPLANE_LOG (RIB, "imsg fail.");
+      return -1;
+    }
+  return 0;
 }
 
 CLI_COMMAND2 (show_thread_qconf,

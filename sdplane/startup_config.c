@@ -12,6 +12,8 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
 // #include <sdplane/shell_fselect.h>
 #include <sdplane/log_cmd.h>
@@ -69,7 +71,11 @@ startup_config (__rte_unused void *dummy)
 
           ret = shell_read_nowait (shell);
 	  if (ret < 0)
-            FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
+            {
+              FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
+              DEBUG_SDPLANE_LOG (RIB, "shell_read_nowait: %d", ret);
+              printf ("shell_read_nowait: %d\n", ret);
+            }
         }
     }
   else
@@ -80,5 +86,7 @@ startup_config (__rte_unused void *dummy)
   fflush (stdout);
 
   // termio_finish ();
+  if (ret < 0)
+    return ret;
   return 0;
 }
