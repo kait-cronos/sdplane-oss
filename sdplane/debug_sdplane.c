@@ -55,7 +55,7 @@ char debug_sdplane_cmdstr[128 * 16];
 /* assume 128 debug items of max-helpstr-len: 64 */
 char debug_sdplane_helpstr[128 * 64];
 
-void
+int
 debug_sdplane_func (void *context, int argc, char **argv)
 {
   struct shell *shell = (struct shell *) context;
@@ -94,7 +94,7 @@ debug_sdplane_func (void *context, int argc, char **argv)
           fprintf (shell->terminal, "debug: sdplane: enable all.%s",
                    shell->NL);
         }
-      return;
+      return 0;
     }
 
   for (i = 0; i < debug_type_size; i++)
@@ -115,6 +115,7 @@ debug_sdplane_func (void *context, int argc, char **argv)
             }
         }
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_debug_sdplane, "show debugging sdplane", SHOW_HELP,
@@ -135,6 +136,7 @@ CLI_COMMAND2 (show_debug_sdplane, "show debugging sdplane", SHOW_HELP,
                : "off"),
           shell->NL);
     }
+  return 0;
 }
 
 void

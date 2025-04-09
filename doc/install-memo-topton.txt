@@ -143,6 +143,8 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   # apt install libnuma-dev
   # apt install pkgconf
 
+  # apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
+
 * DPDK 23.11.1 を install
   $ wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
   $ tar vxJf dpdk-23.11.1.tar.xz

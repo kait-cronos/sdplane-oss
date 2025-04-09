@@ -244,6 +244,7 @@ CLI_COMMAND2 (show_thread_qconf,
   urcu_qsbr_read_unlock ();
   urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
+  return 0;
 }
 
 void
