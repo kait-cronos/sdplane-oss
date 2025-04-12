@@ -234,11 +234,13 @@ l2_repeater (__rte_unused void *dummy)
   lcore_id = rte_lcore_id ();
   qconf = &lcore_queue_conf[lcore_id];
 
+#if 0
   if (qconf->n_rx_port == 0)
     {
       DEBUG_SDPLANE_LOG (L2_REPEATER, "lcore %u has nothing to do.", lcore_id);
       return 0;
     }
+#endif
 
   int thread_id;
   thread_id = thread_lookup_by_lcore (l2_repeater, lcore_id);
