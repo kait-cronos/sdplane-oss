@@ -56,6 +56,9 @@ stat_collector (__rte_unused void *dummy)
   int i, port_id;
   uint16_t nb_ports;
 
+  printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
+  DEBUG_SDPLANE_LOG (STAT_COLLECTOR, "%s: started.", __func__);
+
   int thread_id;
   thread_id = thread_lookup (stat_collector);
   thread_register_loop_counter (thread_id, &loop_stat_collector);
