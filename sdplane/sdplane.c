@@ -216,6 +216,8 @@ CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
     }
   fprintf (t, " 0.%s", shell->NL);
   fflush (t);
+  lthread_sleep (0);
+  return 0;
 }
 
 void dpdk_lcore_cmd_init (struct command_set *cmdset);

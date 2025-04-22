@@ -7,6 +7,7 @@ sdplane (0.1.1-123) UNRELEASED; urgency=low
 sdplane (0.1.1-122) UNRELEASED; urgency=low
 
   * release. update changelog.
+  * debug lthread on VM.
   * stop depending on the l3fwd/l2fwd init functions.
   * fix command return values.
   * adjust module/l3fwd to DPDK 24.11.1.
@@ -18,6 +19,60 @@ sdplane (0.1.1-122) UNRELEASED; urgency=low
   * fix zcmdsh -> sdplane.
 
  -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 13 Apr 2025 02:39:15 +0900
+
+  * working configuration on topton.
+  * log/varname change.
+  * update changelog for v0.1.1-110.
+  * now we can specify bind or driver_override method. unbound -> driver_override -> bind may work.
+  * dpdk_devbind.c
+  * Merge branch 'libsdplane' into devel
+  * update changelog for v0.1.1-106.
+  * do not generate dpkg on a new version number when there's no update.
+  * update changelog for v0.1.1-104.
+  * update changelog for v0.1.1-103.
+  * update changelog for v0.1.1-102.
+  * update changelog for v0.1.1-101.
+  * howto check the temperature and power consumption.
+  * add sdplane-topton.conf
+  * start using vfio-pci in topton. update install-memo.
+  * update install-memo-topton.txt
+  * update changelog for v0.1.1-96.
+  * avoid crash: internal message length (uint16_t -> uint32_t), and avoid using structure-copy (use memcpy instead).
+  * install-memo for topton.
+  * update changelog for v0.1.1-93.
+  * update changelog for v0.1.1-92.
+  * update changelog for v0.1.1-91.
+  * update changelog for v0.1.1-90.
+  * function to change #rxd (rx_descriptor size) of the NIC/queue to help NetTLP project avoid packet losses.
+  * realloc of psmem.
+  * hard coding the port/queue for NetTLP. started work in -O2.
+  * implement psmem MRd and MWr. nettlp_psmem_mrd(), nettlp_psmem_mwr().
+  * psmem memory allocation.
+  * nettlp_psmem_receive().
+  * set tap capture ifname cmd set tap capture persistent cmd
+  * nettlp: fill in ipv4 packet_id.
+  * unified log_packet().
+  * update nettlp-memo.txt
+  * guard for unprepared port/queue.
+  * nettlp_send_packet_tap_up ().
+  * rib_check() is done only when queue_conf is changed. sleep_cmd in shell is changed to lthread_sleep(). removed obsolete rib members. adjust rib_info for worker threads.
+  * nettlp: rename size -> payload_size.
+  * moving to rib->rib_info.
+  * fix lcore_size update in rib.
+  * nettlp-send (dma-write|dma-read) cmd.
+  * update port status cmd. avoid accessing unprepared port, using rcu'ed rib_info. working instance for nettlp.
+  * lthread_cancel_all(). doc/nettlp-memo.txt started.
+  * sdplane-nettlp.conf.sample
+  * sync.
+  * update changelog for v0.1.1-68.
+  * update changelog for v0.1.1-67.
+  * remove network I/F configuration change in systemd service start.
+  * nettlp padding in dma_write.
+  * nettlp.h
+  * nettlp dma_write.
+  * Merge branch 'devel'
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 15 Apr 2025 05:22:09 +0000
 
 sdplane (0.1.1-113) UNRELEASED; urgency=low
 
