@@ -1,3 +1,13 @@
+sdplane (0.1.1-128) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * fix sleep cmd.
+  * Merge branch 'devel' of github.com:yasuhironet/sdplane into devel
+  * update changelog for v0.1.1-123.
+  * debug lthread on VM.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 22 Apr 2025 20:34:07 +0900
+
 sdplane (0.1.1-123) UNRELEASED; urgency=low
 
   * release. update changelog.
