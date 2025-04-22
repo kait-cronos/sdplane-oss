@@ -206,17 +206,20 @@ CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
   FILE *t = shell->terminal;
   int sec;
   sec = strtol (argv[1], NULL, 0);
-  while (sec > 0)
+  if (sec > 0)
     {
-      fprintf (t, " %d", sec);
-      fflush (t);
-      //sleep (1);
-      lthread_sleep (1000);
-      sec--;
+      while (sec > 0)
+        {
+          fprintf (t, " %d", sec);
+          fflush (t);
+          lthread_sleep (1000);
+          sec--;
+        }
     }
+  else
+    lthread_sleep (0);
   fprintf (t, " 0.%s", shell->NL);
   fflush (t);
-  lthread_sleep (0);
   return 0;
 }
 
