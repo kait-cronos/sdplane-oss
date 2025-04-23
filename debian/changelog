@@ -1,3 +1,27 @@
+sdplane (0.1.1-129) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * sdplane l2_repeater #queues=1 hard-coding, for the use in VM.
+  * fix sleep cmd.
+  * Merge branch 'devel' of github.com:yasuhironet/sdplane into devel
+  * update changelog for v0.1.1-123.
+  * update changelog for v0.1.1-123.
+  * update changelog for v0.1.1-122.
+  * debug lthread on VM.
+  * stop depending on the l3fwd/l2fwd init functions.
+  * fix command return values.
+  * adjust module/l3fwd to DPDK 24.11.1.
+  * debug uninitialized command return.
+  * temporary fix for rcu assertion crash.
+  * error stop in startup_config.
+  * preparing return value framework for commands.
+  * adjust configurations for topton.
+  * fix zcmdsh -> sdplane.
+  * working configuration on topton.
+  * log/varname change.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 23 Apr 2025 05:06:01 +0000
+
 sdplane (0.1.1-123) UNRELEASED; urgency=low
 
   * release. update changelog.
