@@ -12,6 +12,11 @@
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
 
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
+#include "debug_sdplane.h"
+
 #include "l3fwd.h"
 #include "l2fwd_export.h"
 
@@ -654,6 +659,8 @@ CLI_COMMAND2 (set_port_dev_configure,
           if (tx_buffer_per_q[port_id][i])
             continue;
 
+	  DEBUG_SDPLANE_LOG (L2_REPEATER, "tx_buffer_init: port: %d queue: %d",
+			  port_id, i);
           tx_buffer_per_q[port_id][i] =
             rte_zmalloc_socket ("tx_buffer",
                                 RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
