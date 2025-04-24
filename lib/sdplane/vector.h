@@ -24,7 +24,8 @@ struct vector
 };
 
 void vector_sort (vector_cmp_t cmp, struct vector *v);
-int vector_lookup_index_bsearch (void *data, vector_cmp_t cmp, struct vector *v);
+int vector_lookup_index_bsearch (void *data, vector_cmp_t cmp,
+                                 struct vector *v);
 int vector_lookup_index (void *data, struct vector *v);
 void *vector_lookup_bsearch (void *data, vector_cmp_t cmp, struct vector *v);
 void *vector_lookup (void *data, struct vector *v);

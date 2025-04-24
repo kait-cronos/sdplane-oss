@@ -6,12 +6,11 @@
 
 #include "log.h"
 
-struct loginfo log_default =
-{
-  LOGINFO_STDOUT,    /* flags */
-  LOG_DAEMON,        /* facility */
-  LOG_INFO,        /* maskpri */
-  NULL,              /* fp */
+struct loginfo log_default = {
+  LOGINFO_STDOUT, /* flags */
+  LOG_DAEMON,     /* facility */
+  LOG_INFO,       /* maskpri */
+  NULL,           /* fp */
 };
 
 int
@@ -26,7 +25,7 @@ log_setmask (int mask)
   log_default.maskpri = mask;
 }
 
-#define TIMEBUFSIZ  32
+#define TIMEBUFSIZ 32
 
 static void
 time_printbuf (char *buf, int size)
@@ -143,4 +142,3 @@ log_warn (const char *format, ...)
   for (index = 0; index < LOG_INDEX_MAX; index++)
     va_end (args[index]);
 }
-

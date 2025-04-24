@@ -36,7 +36,7 @@ fopen_create (char *file, char *mode)
   int ret;
   struct stat statbuf;
 
-  strncpy (pathname, file, sizeof (pathname));
+  strncpy (pathname, file, sizeof (pathname) - 1);
   path_disassemble (pathname, &dirname, &filename);
 
   p = dirname;
@@ -146,13 +146,11 @@ dirent_copy (struct dirent *dirent)
   new = malloc (len);
   if (! new)
     {
-      fprintf (stderr, "malloc() failed: %s\n",
-               strerror (errno));
+      fprintf (stderr, "malloc() failed: %s\n", strerror (errno));
       return NULL;
     }
 
   memcpy (new, dirent, len);
-  //printf ("%s: len: %d\n", __func__, len);
+  // printf ("%s: len: %d\n", __func__, len);
   return new;
 }
-

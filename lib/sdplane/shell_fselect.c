@@ -4,14 +4,14 @@
 
 #include <includes.h>
 
-#include "flag.h"
 #include "debug.h"
+#include "flag.h"
 
-#include "vector.h"
-#include "file.h"
-#include "shell.h"
 #include "command.h"
 #include "command_shell.h"
+#include "file.h"
+#include "shell.h"
+#include "vector.h"
 
 shell_keyfunc_t key_func_fselect[256];
 shell_keyfunc_t key_func_fselect2[256];
@@ -26,20 +26,19 @@ char *fselect_dirname;
 char *fselect_filename;
 
 static void
-print_dirent_fselect (struct shell *shell, struct dirent *dirent,
-                      int num, int ncolumn, int print_width)
+print_dirent_fselect (struct shell *shell, struct dirent *dirent, int num,
+                      int ncolumn, int print_width)
 {
   char printname[1024];
   char *suffix;
 
   /* append necessary suffix. */
   suffix = (dirent->d_type == DT_DIR ? "/" : "");
-  snprintf (printname, sizeof (printname),
-            "%s%s", dirent->d_name, suffix);
+  snprintf (printname, sizeof (printname), "%s%s", dirent->d_name, suffix);
 
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    fprintf (shell->terminal, "num: %d ncolumn: %d index: %d %s\n",
-             num, ncolumn, fselect_index, printname);
+    fprintf (shell->terminal, "num: %d ncolumn: %d index: %d %s\n", num,
+             ncolumn, fselect_index, printname);
 
   if (num % ncolumn == 0)
     fprintf (shell->terminal, "  ");
@@ -84,13 +83,10 @@ fselect_ls_candidate (struct shell *shell)
   if (FLAG_CHECK (debug_config, DEBUG_SHELL))
     {
       fprintf (shell->terminal, "\n");
-      fprintf (shell->terminal,
-               "  path: %s dir: %s filename: %s\n",
+      fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
                fselect_path, fselect_dirname, fselect_filename);
-      fprintf (shell->terminal,
-               "  maxlen: %d ncol: %d nentry: %d index: %d\n",
-               fselect_maxlen, fselect_ncolumn,
-               fselect_nentry, fselect_index);
+      fprintf (shell->terminal, "  maxlen: %d ncol: %d nentry: %d index: %d\n",
+               fselect_maxlen, fselect_ncolumn, fselect_nentry, fselect_index);
       fprintf (shell->terminal, "\n");
     }
 
@@ -109,8 +105,8 @@ fselect_ls_candidate (struct shell *shell)
       if (sort_vector)
         sort_vector[num] = dirent_copy (dirent);
       else
-        print_dirent_fselect (shell, dirent, num,
-                              fselect_ncolumn, fselect_maxlen + 2);
+        print_dirent_fselect (shell, dirent, num, fselect_ncolumn,
+                              fselect_maxlen + 2);
 
       num++;
     }
@@ -118,12 +114,12 @@ fselect_ls_candidate (struct shell *shell)
 
   if (sort_vector)
     {
-      qsort ((void *) sort_vector, sort_size,
-             sizeof (struct dirent *), dirent_cmp);
+      qsort ((void *) sort_vector, sort_size, sizeof (struct dirent *),
+             dirent_cmp);
 
       for (i = 0; i < sort_size; i++)
-        print_dirent_fselect (shell, sort_vector[i], i,
-                              fselect_ncolumn, fselect_maxlen + 2);
+        print_dirent_fselect (shell, sort_vector[i], i, fselect_ncolumn,
+                              fselect_maxlen + 2);
     }
 
   fprintf (shell->terminal, "\n");
@@ -171,8 +167,8 @@ fselect_completion ()
           if (num == fselect_index)
             {
               char *suffix = (dirent->d_type == DT_DIR ? "/" : "");
-              snprintf (completion, sizeof (completion),
-                        "%s%s", dirent->d_name, suffix);
+              snprintf (completion, sizeof (completion), "%s%s",
+                        dirent->d_name, suffix);
               break;
             }
         }
@@ -182,8 +178,8 @@ fselect_completion ()
 
   if (sort_vector)
     {
-      qsort ((void *) sort_vector, sort_size,
-             sizeof (struct dirent *), dirent_cmp);
+      qsort ((void *) sort_vector, sort_size, sizeof (struct dirent *),
+             dirent_cmp);
 
       for (int i = 0; i < sort_size; i++)
         {
@@ -192,8 +188,8 @@ fselect_completion ()
               char *suffix;
               dirent = sort_vector[i];
               suffix = (dirent->d_type == DT_DIR ? "/" : "");
-              snprintf (completion, sizeof (completion),
-                        "%s%s", dirent->d_name, suffix);
+              snprintf (completion, sizeof (completion), "%s%s",
+                        dirent->d_name, suffix);
               break;
             }
         }
@@ -203,7 +199,7 @@ fselect_completion ()
   return strdup (completion);
 }
 
-void
+int
 fselect_keyfunc_start (struct shell *shell)
 {
   int last_head;
@@ -217,9 +213,9 @@ fselect_keyfunc_start (struct shell *shell)
   if (! match || match == cmdset->root)
     {
       fprintf (shell->terminal, "\n");
-      //fprintf (shell->terminal, "no command node matched.\n");
+      // fprintf (shell->terminal, "no command node matched.\n");
       shell_refresh (shell);
-      return;
+      return 0;
     }
 
   if (! file_spec (match->cmdstr))
@@ -239,9 +235,9 @@ fselect_keyfunc_start (struct shell *shell)
       if (! is_file_spec)
         {
           fprintf (shell->terminal, "\n");
-          //fprintf (shell->terminal, "not in file spec.\n");
+          // fprintf (shell->terminal, "not in file spec.\n");
           shell_refresh (shell);
-          return;
+          return 0;
         }
     }
 
@@ -260,7 +256,7 @@ fselect_keyfunc_start (struct shell *shell)
 
   dir = opendir (fselect_dirname);
   if (dir == NULL)
-    return;
+    return 0;
 
   fselect_maxlen = 0;
   fselect_nentry = 0;
@@ -276,8 +272,9 @@ fselect_keyfunc_start (struct shell *shell)
         continue;
 
       /* calculate the maxmum entry name length. */
-      fselect_maxlen = (fselect_maxlen < strlen (dirent->d_name) ?
-                        strlen (dirent->d_name) : fselect_maxlen);
+      fselect_maxlen =
+          (fselect_maxlen < strlen (dirent->d_name) ? strlen (dirent->d_name)
+                                                    : fselect_maxlen);
 
       fselect_nentry++;
     }
@@ -288,23 +285,25 @@ fselect_keyfunc_start (struct shell *shell)
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_quit (struct shell *shell)
 {
   shell_refresh (shell);
   free (fselect_path);
-  shell->keymap = (shell_keyfunc_t *)shell->keymap_normal;
+  shell->keymap = (shell_keyfunc_t *) shell->keymap_normal;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_enter (struct shell *shell)
 {
   char *completion;
   int cursor_orig, last_head, last_end, last_subword_head;
 
-  //fprintf (shell->terminal, "%s: called.\n", __func__);
+  // fprintf (shell->terminal, "%s: called.\n", __func__);
 
   shell_refresh (shell);
 
@@ -331,21 +330,22 @@ fselect_keyfunc_enter (struct shell *shell)
     }
 
   fselect_keyfunc_quit (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_left (struct shell *shell)
 {
-  if (fselect_ncolumn > 1 &&
-      fselect_index % fselect_ncolumn > 0)
+  if (fselect_ncolumn > 1 && fselect_index % fselect_ncolumn > 0)
     fselect_index--;
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
   shell->keymap = key_func_fselect;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_right (struct shell *shell)
 {
   if (fselect_ncolumn > 1 &&
@@ -355,9 +355,10 @@ fselect_keyfunc_right (struct shell *shell)
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
   shell->keymap = key_func_fselect;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_up (struct shell *shell)
 {
   if (fselect_index - fselect_ncolumn >= 0)
@@ -366,9 +367,10 @@ fselect_keyfunc_up (struct shell *shell)
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
   shell->keymap = key_func_fselect;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_down (struct shell *shell)
 {
   if (fselect_index + fselect_ncolumn < fselect_nentry)
@@ -377,17 +379,19 @@ fselect_keyfunc_down (struct shell *shell)
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
   shell->keymap = key_func_fselect;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_none (struct shell *shell)
 {
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_leftmost (struct shell *shell)
 {
   int leftmost;
@@ -396,9 +400,10 @@ fselect_keyfunc_leftmost (struct shell *shell)
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_rightmost (struct shell *shell)
 {
   int rightmost;
@@ -410,36 +415,41 @@ fselect_keyfunc_rightmost (struct shell *shell)
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_first (struct shell *shell)
 {
   fselect_index = 0;
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc_end (struct shell *shell)
 {
   fselect_index = fselect_nentry - 1;
   shell_refresh (shell);
   fprintf (shell->terminal, "\n");
   fselect_ls_candidate (shell);
+  return 0;
 }
 
-void
+int
 fselect_keyfunc2_start (struct shell *shell)
 {
   shell->keymap = key_func_fselect2;
+  return 0;
 }
 
-void
+int
 fselect_keyfunc3_start (struct shell *shell)
 {
   shell->keymap = key_func_fselect3;
+  return 0;
 }
 
 void
@@ -450,25 +460,25 @@ shell_fselect_init ()
   for (i = 0; i < 256; i++)
     key_func_fselect[i] = fselect_keyfunc_none;
 
-  key_func_fselect[CONTROL('A')] = fselect_keyfunc_leftmost;
-  key_func_fselect[CONTROL('E')] = fselect_keyfunc_rightmost;
-  key_func_fselect[CONTROL('F')] = fselect_keyfunc_right;
-  key_func_fselect[CONTROL('B')] = fselect_keyfunc_left;
-  key_func_fselect[CONTROL('J')] = fselect_keyfunc_enter;
-  key_func_fselect[CONTROL('M')] = fselect_keyfunc_enter;
-  key_func_fselect[CONTROL('N')] = fselect_keyfunc_down;
-  key_func_fselect[CONTROL('P')] = fselect_keyfunc_up;
+  key_func_fselect[CONTROL ('A')] = fselect_keyfunc_leftmost;
+  key_func_fselect[CONTROL ('E')] = fselect_keyfunc_rightmost;
+  key_func_fselect[CONTROL ('F')] = fselect_keyfunc_right;
+  key_func_fselect[CONTROL ('B')] = fselect_keyfunc_left;
+  key_func_fselect[CONTROL ('J')] = fselect_keyfunc_enter;
+  key_func_fselect[CONTROL ('M')] = fselect_keyfunc_enter;
+  key_func_fselect[CONTROL ('N')] = fselect_keyfunc_down;
+  key_func_fselect[CONTROL ('P')] = fselect_keyfunc_up;
 
-  //key_func_fselect['0'] = fselect_keyfunc_0;
-  //key_func_fselect['1'] = fselect_keyfunc_1;
-  //key_func_fselect['2'] = fselect_keyfunc_2;
-  //key_func_fselect['3'] = fselect_keyfunc_3;
-  //key_func_fselect['4'] = fselect_keyfunc_4;
-  //key_func_fselect['5'] = fselect_keyfunc_5;
-  //key_func_fselect['6'] = fselect_keyfunc_6;
-  //key_func_fselect['7'] = fselect_keyfunc_7;
-  //key_func_fselect['8'] = fselect_keyfunc_8;
-  //key_func_fselect['9'] = fselect_keyfunc_9;
+  // key_func_fselect['0'] = fselect_keyfunc_0;
+  // key_func_fselect['1'] = fselect_keyfunc_1;
+  // key_func_fselect['2'] = fselect_keyfunc_2;
+  // key_func_fselect['3'] = fselect_keyfunc_3;
+  // key_func_fselect['4'] = fselect_keyfunc_4;
+  // key_func_fselect['5'] = fselect_keyfunc_5;
+  // key_func_fselect['6'] = fselect_keyfunc_6;
+  // key_func_fselect['7'] = fselect_keyfunc_7;
+  // key_func_fselect['8'] = fselect_keyfunc_8;
+  // key_func_fselect['9'] = fselect_keyfunc_9;
 
   key_func_fselect['<'] = fselect_keyfunc_first;
   key_func_fselect['>'] = fselect_keyfunc_end;
@@ -479,7 +489,7 @@ shell_fselect_init ()
   key_func_fselect['h'] = fselect_keyfunc_left;
 
   key_func_fselect['q'] = fselect_keyfunc_quit;
-  key_func_fselect[CONTROL('[')] = fselect_keyfunc2_start;
+  key_func_fselect[CONTROL ('[')] = fselect_keyfunc2_start;
 
   memset (key_func_fselect2, 0, sizeof (key_func_fselect2));
   for (i = 0; i < 256; i++)
@@ -494,4 +504,3 @@ shell_fselect_init ()
   key_func_fselect3['C'] = fselect_keyfunc_right;
   key_func_fselect3['D'] = fselect_keyfunc_left;
 }
-

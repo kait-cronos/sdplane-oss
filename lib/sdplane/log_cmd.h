@@ -3,4 +3,4 @@
 
 void log_cmd_init (struct command_set *cmdset);
 
-#endif __LOG_CMD_H__
+#endif /*__LOG_CMD_H__*/
