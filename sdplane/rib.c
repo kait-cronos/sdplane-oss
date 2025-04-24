@@ -7,15 +7,15 @@
 #include <rte_ether.h>
 #include <rte_malloc.h>
 
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/debug.h>
+#include <sdplane/debug_cmd.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "rib_manager.h"
@@ -25,6 +25,8 @@
 #include "l2fwd_export.h"
 
 #include "internal_message.h"
+
+static __thread struct rib *rib = NULL;
 
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
@@ -44,6 +46,7 @@ CLI_COMMAND2 (show_rib,
   if (! rib)
     return;
 
+#if 0
   nb_ports = rte_eth_dev_count_avail ();
 
   fprintf (shell->terminal, "rib: ver: %llu%s", rib->ver, shell->NL);
@@ -68,6 +71,7 @@ CLI_COMMAND2 (show_rib,
                    shell->NL);
         }
     }
+#endif
 
   if (! rib->rib_info)
     {
@@ -75,8 +79,8 @@ CLI_COMMAND2 (show_rib,
       return;
     }
 
-  fprintf (shell->terminal, "rib_info: ver: %lu%s",
-           rib->rib_info->ver, shell->NL);
+  fprintf (shell->terminal, "rib_info: ver: %lu (%p)%s",
+           rib->rib_info->ver, rib->rib_info, shell->NL);
 
   fprintf (shell->terminal, "rib_info: tapif_size: %d%s",
            rib->rib_info->tapif_size, shell->NL);
@@ -113,10 +117,16 @@ CLI_COMMAND2 (show_rib,
       struct port_conf *port;
       port = &rib->rib_info->port[i];
       fprintf (shell->terminal, "rib_info: port[%d]: "
+             "nb_rxd: %hu nb_txd: %hu%s",
+             i, port->nb_rxd, port->nb_txd, shell->NL);
+      fprintf (shell->terminal, "rib_info: port[%d]: "
              "link: speed: %lu duplex: %d autoneg: %d status: %d%s",
              i, port->link.link_speed, port->link.link_duplex,
              port->link.link_autoneg, port->link.link_status,
              shell->NL);
+      fprintf (shell->terminal, "rib_info: port[%d]: nrxq: %d ntxq: %d%s",
+               i, port->dev_info.nb_rx_queues, port->dev_info.nb_tx_queues,
+               shell->NL);
     }
 
   fprintf (shell->terminal, "rib_info: lcore_size: %d%s",

@@ -17,16 +17,16 @@ AC_CHECK_LIB([lthread], [lthread_create], ,
 AC_CHECK_LIB([urcu-qsbr], [urcu_qsbr_quiescent_state], ,
              [AC_MSG_ERROR([urcu-qsbr library not found.])])
 
-AC_ARG_WITH([zcmdsh], [AS_HELP_STRING([--with-zcmdsh=DIR], [zcmdsh libdir (/usr/lib)])], [
-        zcmdshdir="$withval"
+AC_ARG_WITH([libsdplane], [AS_HELP_STRING([--with-libsdplane=DIR], [libsdplane libdir (/usr/lib)])], [
+        libsdplanedir="$withval"
         LDLFAGS="$LDFLAGS -L$withval"
 ], [
-        zcmdshdir="/usr/lib"
+        libsdplanedir="/usr/lib"
 ])
-AC_SUBST([zcmdshdir], [$zcmdshdir])
+AC_SUBST([libsdplanedir], [$libsdplanedir])
 
 # FIXME: Replace `main' with a function in `-lzcmdsh':
-AC_CHECK_LIB([zcmdsh], [main])
+AC_CHECK_LIB([sdplane], [main])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h locale.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/ioctl.h sys/socket.h unistd.h])

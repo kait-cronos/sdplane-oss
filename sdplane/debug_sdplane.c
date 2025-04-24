@@ -4,17 +4,17 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <zcmdsh/flag.h>
-#include <zcmdsh/debug.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
+#include <sdplane/flag.h>
+#include <sdplane/debug.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
 
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_zcmdsh.h>
-#include <zcmdsh/debug_backtrace.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
+#include <sdplane/debug_backtrace.h>
 
-#include <zcmdsh/debug_cmd.h>
+#include <sdplane/debug_cmd.h>
 
 #include "debug_sdplane.h"
 
@@ -44,6 +44,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_RIB_CHECK, "rib-check" },
   { DEBUG_SDPLANE_IMESSAGE, "internal-message" },
   { DEBUG_SDPLANE_NETTLP, "nettlp" },
+  { DEBUG_SDPLANE_NETDEVICE, "netdevice" },
 };
 
 struct command_header debug_sdplane_cmd;
@@ -54,7 +55,7 @@ char debug_sdplane_cmdstr[128 * 16];
 /* assume 128 debug items of max-helpstr-len: 64 */
 char debug_sdplane_helpstr[128 * 64];
 
-void
+int
 debug_sdplane_func (void *context, int argc, char **argv)
 {
   struct shell *shell = (struct shell *) context;
@@ -93,7 +94,7 @@ debug_sdplane_func (void *context, int argc, char **argv)
           fprintf (shell->terminal, "debug: sdplane: enable all.%s",
                    shell->NL);
         }
-      return;
+      return 0;
     }
 
   for (i = 0; i < debug_type_size; i++)
@@ -114,6 +115,7 @@ debug_sdplane_func (void *context, int argc, char **argv)
             }
         }
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_debug_sdplane, "show debugging sdplane", SHOW_HELP,
@@ -134,6 +136,7 @@ CLI_COMMAND2 (show_debug_sdplane, "show debugging sdplane", SHOW_HELP,
                : "off"),
           shell->NL);
     }
+  return 0;
 }
 
 void

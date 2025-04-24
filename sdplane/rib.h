@@ -24,7 +24,10 @@ struct vswitch_conf
 
 struct port_conf
 {
+  uint16_t nb_rxd;
+  uint16_t nb_txd;
   struct rte_eth_link link;
+  struct rte_eth_dev_info dev_info;
 };
 
 #include "queue_config.h"

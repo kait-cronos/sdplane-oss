@@ -6,11 +6,11 @@
 
 #include <rte_common.h>
 
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
 
 #include "l3fwd.h"
 
@@ -52,9 +52,9 @@ main (int argc, char **argv)
   sdplane_init ();
 
   lthread_create (&lt, (lthread_func) lthread_main, NULL);
-  thread_register (-1, lt, lthread_main, "lthread_main", NULL);
+  thread_register (-1, lt, (lthread_func) lthread_main, "lthread_main", NULL);
   lthread_run ();
 
-  l3fwd_terminate (argc, argv);
+  //l3fwd_terminate (argc, argv);
   return EXIT_SUCCESS;
 }

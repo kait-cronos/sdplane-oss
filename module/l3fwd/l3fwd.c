@@ -50,7 +50,7 @@
 #include "l3fwd_event.h"
 #include "l3fwd_route.h"
 
-#include <zcmdsh/command.h>
+#include <sdplane/command.h>
 #include "sdplane.h"
 
 #define MAX_TX_QUEUE_PER_PORT RTE_MAX_LCORE

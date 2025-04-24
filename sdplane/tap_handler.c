@@ -10,17 +10,17 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/termio.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/debug_cmd.h>
+#include <sdplane/debug.h>
+#include <sdplane/termio.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/debug_cmd.h>
 
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "l3fwd.h"
@@ -37,15 +37,19 @@
 
 #include "tap.h"
 
-static __thread struct rib *rib;
+#include "log_packet.h"
 
-int peek_fd = -1;
+int capture_fd = -1;
+char capture_ifname[64] = { 0 };
+int capture_if_persistent = 0;
+
 int port_fd[RTE_MAX_ETHPORTS];
 
 struct vswitch vswitch0;
 struct fdb_entry fdb[FDB_SIZE];
 
 static __thread uint64_t loop_counter = 0;
+static __thread struct rib *rib = NULL;
 
 static inline __attribute__ ((always_inline)) void
 vswitch_port_update ()
@@ -110,14 +114,13 @@ vswitch_port_update ()
 
   for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
     {
-      struct sdplane_queue_conf *sdplane_qconf;
-
-      sdplane_qconf = &rib->qconf[lcore_id];
-      for (i = 0; i < sdplane_qconf->nrxq; i++)
+      struct lcore_qconf *lcore_qconf;
+      lcore_qconf = &rib->rib_info->lcore_qconf[lcore_id];
+      for (i = 0; i < lcore_qconf->nrxq; i++)
         {
           uint16_t portid, queueid;
-          portid = sdplane_qconf->rx_queue_list[i].port_id;
-          queueid = sdplane_qconf->rx_queue_list[i].queue_id;
+          portid = lcore_qconf->rx_queue_list[i].port_id;
+          queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
           tap_ring_up = ring_up[portid][queueid];
           tap_ring_down = ring_dn[portid][queueid];
@@ -164,46 +167,6 @@ vswitch_port_update ()
                          i, vswport->id, vswport->type, vswport->name,
                          vswport->sockfd, vswport->lcore_id,
                          vswport->ring[0], vswport->ring[1]);
-    }
-}
-
-static inline __attribute__ ((always_inline)) void
-tap_handler_log_packet (struct rte_mbuf *m)
-{
-  /* analyze packet */
-  struct rte_ether_hdr *eth;
-  struct rte_ipv4_hdr *ipv4;
-  struct rte_ipv6_hdr *ipv6;
-  char eth_dst[32];
-  char eth_src[32];
-  unsigned short eth_type;
-  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  rte_ether_format_addr (eth_dst, sizeof (eth_dst),
-                         &eth->dst_addr);
-  rte_ether_format_addr (eth_src, sizeof (eth_src),
-                         &eth->src_addr);
-  eth_type = rte_be_to_cpu_16 (eth->ether_type);
-
-  if (RTE_ETH_IS_IPV4_HDR (m->packet_type))
-    {
-      ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
-      DEBUG_SDPLANE_LOG (PACKET, "m: %p ether[%#hx]: %s -> %s "
-                         "ipv4: len: %d",
-                         m, eth_type, eth_src, eth_dst,
-                         rte_be_to_cpu_16 (ipv4->total_length));
-    }
-  else if (RTE_ETH_IS_IPV6_HDR (m->packet_type))
-    {
-      ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
-      DEBUG_SDPLANE_LOG (PACKET, "m: %p ether[%#hx]: %s -> %s "
-                         "ipv6: len: %d",
-                         m, eth_type, eth_src, eth_dst,
-                         rte_be_to_cpu_16 (ipv6->payload_len));
-    }
-  else
-    {
-      DEBUG_SDPLANE_LOG (PACKET, "m: %p ether[%#hx]: %s -> %s",
-                         m, eth_type, eth_src, eth_dst);
     }
 }
 
@@ -258,10 +221,10 @@ tap_handler_write_peek (struct rte_mbuf *m)
   data_len = rte_pktmbuf_data_len (m);
   pkt = rte_pktmbuf_mtod (m, char *);
 
-  /* write to peek0 for packet capture. */
-  if (peek_fd >= 0)
+  /* write to capture_fd for packet capture. */
+  if (capture_fd >= 0)
     {
-      ret = write (peek_fd, pkt, data_len);
+      ret = write (capture_fd, pkt, data_len);
       if (ret < 0)
         DEBUG_SDPLANE_LOG (TAPHANDLER,
                            "warning: write () failed: %s",
@@ -269,7 +232,7 @@ tap_handler_write_peek (struct rte_mbuf *m)
       else
         DEBUG_SDPLANE_LOG (
             TAPHANDLER,
-            "packet [%d/%d] (in_port: %d) written to peek0.",
+            "packet [%d/%d] (in_port: %d) written to capture I/F.",
             data_len, pkt_len, m->port);
     }
 }
@@ -382,7 +345,8 @@ tap_handler_handle_packet_up ()
 
           DEBUG_SDPLANE_LOG (PACKET, "m: %p received from port: %d queue: %d",
                              m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
-          tap_handler_log_packet (m);
+          log_packet (m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
+
           tap_handler_register_fdb (m);
           tap_handler_write_peek (m);
           tap_handler_write_port_all (m);
@@ -504,10 +468,13 @@ tap_handler (__rte_unused void *dummy)
   DEBUG_SDPLANE_LOG (TAPHANDLER, "start thread on lcore[%d].",
                      rte_lcore_id ());
 
-  snprintf (port_name, sizeof (port_name), "peek0");
-  peek_fd = tap_open (port_name);
-  tap_admin_up (port_name);
-  DEBUG_SDPLANE_LOG (TAPHANDLER, "create %s and make it up.", port_name);
+  if (! strlen (capture_ifname))
+    snprintf (capture_ifname, sizeof (capture_ifname), "peek0");
+  capture_fd = tap_open (capture_ifname);
+  if (capture_if_persistent)
+    ioctl (capture_fd, TUNSETPERSIST, 1);
+  tap_admin_up (capture_ifname);
+  DEBUG_SDPLANE_LOG (TAPHANDLER, "create %s and make it up.", capture_ifname);
 
   memset (&vswitch0, 0, sizeof (vswitch));
   vswitch = &vswitch0;
@@ -570,10 +537,10 @@ tap_handler (__rte_unused void *dummy)
 #endif /*HAVE_LIBURCU_QSBR*/
 
       uint64_t rib_ver;
-      if (rib && rib_ver < rib->ver)
+      if (rib && rib->rib_info && rib_ver < rib->rib_info->ver)
         {
           vswitch_port_update ();
-          rib_ver = rib->ver;
+          rib_ver = rib->rib_info->ver;
         }
 
       tap_handler_handle_packet_up ();
@@ -587,8 +554,8 @@ tap_handler (__rte_unused void *dummy)
       loop_counter++;
     }
 
-  close (peek_fd);
-  peek_fd = -1;
+  close (capture_fd);
+  capture_fd = -1;
 
   printf ("%s on lcore[%d]: finished.\n", __func__, rte_lcore_id ());
 

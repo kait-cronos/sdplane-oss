@@ -1,11 +1,15 @@
 #ifndef __TAP_HANDLER_H__
 #define __TAP_HANDLER_H__
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/command.h>
+#include <sdplane/debug.h>
+#include <sdplane/command.h>
 
 #include "sdplane.h"
 #include "rib_manager.h"
+
+extern int capture_fd;
+extern char capture_ifname[64];
+extern int capture_if_persistent;
 
 static inline __attribute__ ((always_inline)) void
 l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)

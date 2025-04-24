@@ -6,11 +6,11 @@
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 
-#include <zcmdsh/log.h>
-#include <zcmdsh/debug.h>
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/log.h>
+#include <sdplane/debug.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "thread_info.h"
@@ -55,6 +55,9 @@ stat_collector (__rte_unused void *dummy)
 {
   int i, port_id;
   uint16_t nb_ports;
+
+  printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
+  DEBUG_SDPLANE_LOG (STAT_COLLECTOR, "%s: started.", __func__);
 
   int thread_id;
   thread_id = thread_lookup (stat_collector);

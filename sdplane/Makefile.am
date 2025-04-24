@@ -24,9 +24,10 @@ sdplane_SOURCES = \
         main.c lthread_main.c sdplane.h sdplane.c debug_sdplane.c \
         console_shell.c l2_repeater.c \
         sdplane_version.c thread_info.c queue_config.c rib_manager.c \
-        internal_message.c rib.c nettlp.c
+        internal_message.c rib.c nettlp.c nettlp_support.c tap_cmd.c \
+        dpdk_devbind.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR)
-sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lzcmdsh -lurcu-qsbr
+sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lsdplane -lurcu-qsbr
 
 FORCE:
 .PHONY: FORCE clean-version

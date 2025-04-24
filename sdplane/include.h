@@ -24,6 +24,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <poll.h>
+#include <ctype.h>
 
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>

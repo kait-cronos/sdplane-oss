@@ -1,0 +1,74 @@
+
+How to run nettlp.
+2025/02/06 (Thu)
+
+* DPDK config:
+
+Hugepage 設定:
+echo 256 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages
+
+* Prerequisites
+
+lthread:
+  $ git clone https://github.com/yasuhironet/lthread.git
+  $ cd lthread
+  $ cmake .
+  $ make
+  # make install
+
+liburcu:
+  # apt install liburcu-dev
+
+zcmdsh:
+  $ wget http://www.yasuhironet.net/download/zcmdsh_0.3.36-32_amd64.deb
+  # apt install ./zcmdsh_0.3.36-32_amd64.deb
+
+************
+* SDPLANE
+************
+
+* Source
+
+$ git clone git@github.com:yasuhironet/soft-dplane.git
+$ cd soft-dplane/
+$ git checkout -b devel origin/devel
+
+repo = /home/yasu/soft-dplane
+
+NetTLP機能は以下で実装。
+$repo/sdplane/nettlp.[ch]
+
+コンフィグの例:
+# mkdir /etc/sdplane
+# cp sdplane-nettlp.conf.sample /etc/sdplane/sdplane.conf
+
+$repo/etc/sdplane-nettlp.conf.sample
+（/etc/sdplane/sdplane.conf にコピーする）
+
+* Compile
+cd $repo; make distclean
+cd $repo/build; make distclean
+
+cd $repo
+sh autogen.sh
+mkdir build
+cd build
+CFLAGS="-g -O0" sh ../configure
+make
+
+* Run
+% cd $repo/build
+% sudo -s
+# gdb ./sdplane/sdplane
+console>
+
+* telnet
+% telnet localhost 9882
+vty[0]>
+
+* command
+vty[0]> show nettlp
+
+vty[0]> nettlp-send dma-write
+
+

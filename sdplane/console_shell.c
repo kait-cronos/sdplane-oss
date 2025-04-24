@@ -33,20 +33,20 @@
 #include <sys/ioctl.h>
 #include <lthread.h>
 
-#include <zcmdsh/log.h>
-#include <zcmdsh/debug.h>
-#include <zcmdsh/termio.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/shell_keyfunc.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/log_cmd.h>
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_cmd.h>
-// #include <zcmdsh/shell_fselect.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/log.h>
+#include <sdplane/debug.h>
+#include <sdplane/termio.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/shell_keyfunc.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/log_cmd.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_cmd.h>
+// #include <sdplane/shell_fselect.h>
+#include <sdplane/debug_zcmdsh.h>
 
 #include "l3fwd.h"
 #include "l3fwd_event.h"
@@ -66,6 +66,8 @@
 
 extern int lthread_core;
 
+void lthread_cancel_all ();
+
 CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -75,8 +77,11 @@ CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
   // shell_close (shell);
 
   int nb_lcores = rte_lcore_count ();
-  for (int lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
+  int lcore_id;
+  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
     stop_lcore (shell, lcore_id);
+
+  lthread_cancel_all ();
 }
 
 bool reboot = false;

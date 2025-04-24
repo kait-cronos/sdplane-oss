@@ -28,9 +28,21 @@
 #define DEBUG_SDPLANE_RIB_CHECK      (1ULL << 22)
 #define DEBUG_SDPLANE_IMESSAGE       (1ULL << 23)
 #define DEBUG_SDPLANE_NETTLP         (1ULL << 24)
+#define DEBUG_SDPLANE_NETDEVICE      (1ULL << 25)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)
+
+#define DEBUG_LOG_FLAG(cate, flag, format, ...)                               \
+  do                                                                          \
+    {                                                                         \
+      if (FLAG_CHECK (DEBUG_CONFIG (cate), (flag)))                           \
+        DEBUG_LOG_MSG (format, ##__VA_ARGS__);                                \
+    }                                                                         \
+  while (0)
+
+#define DEBUG_SDPLANE_FLAG(flag, format, ...)                                  \
+  DEBUG_LOG_FLAG (SDPLANE, flag, format, ##__VA_ARGS__)
 
 EXTERN_COMMAND (debug_sdplane);
 EXTERN_COMMAND (show_debug_sdplane);

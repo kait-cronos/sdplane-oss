@@ -1,15 +1,15 @@
 #include "include.h"
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/log_cmd.h>
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/debug.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/log_cmd.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_cmd.h>
+#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "internal_message.h"
@@ -23,11 +23,11 @@ internal_msg_body (struct internal_msg_header *msgp)
 }
 
 struct internal_msg_header *
-internal_msg_create (uint16_t type, void *contentp, uint16_t content_length)
+internal_msg_create (uint16_t type, void *contentp, uint32_t content_length)
 {
   void *msgp;
   struct internal_msg_header *msg_header;
-  uint16_t length;
+  uint32_t length;
   void *msg_content;
 
   length = sizeof (struct internal_msg_header) + content_length;
@@ -67,6 +67,7 @@ internal_msg_send_to (struct rte_ring *ring,
                  "ring-queue: NULL.%s", msgp, shell->NL);
       DEBUG_SDPLANE_LOG (IMESSAGE, "can't send message %p. "
                  "ring-queue: NULL", msgp);
+      return -1;
     }
   return 0;
 }

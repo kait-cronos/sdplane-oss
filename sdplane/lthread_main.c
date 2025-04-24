@@ -33,15 +33,15 @@
 #include <sys/ioctl.h>
 #include <lthread.h>
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/termio.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/debug_cmd.h>
-// #include <zcmdsh/shell_fselect.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/debug.h>
+#include <sdplane/termio.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/debug_cmd.h>
+// #include <sdplane/shell_fselect.h>
+#include <sdplane/debug_zcmdsh.h>
 
 #include "l3fwd.h"
 #include "l3fwd_event.h"
@@ -81,6 +81,7 @@ CLI_COMMAND2 (set_worker_lthread_stat_collector,
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
   thread_register (lthread_core, lt, (lthread_func) stat_collector, "stat_collector", NULL);
   lthread_detach2 (lt);
+  return 0;
 }
 
 CLI_COMMAND2 (set_worker_lthread_rib_manager,
@@ -97,6 +98,7 @@ CLI_COMMAND2 (set_worker_lthread_rib_manager,
   lthread_create (&lt, (lthread_func) rib_manager, NULL);
   thread_register (lthread_core, lt, (lthread_func) rib_manager, "rib_manager", NULL);
   lthread_detach2 (lt);
+  return 0;
 }
 
 void
@@ -143,10 +145,21 @@ lthread_main (__rte_unused void *dummy)
   thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
   lthread_detach2 (lt);
 
+#if 0
   lthread_create (&lt, (lthread_func) startup_config, NULL);
   thread_register (lthread_core, lt, (lthread_func) startup_config,
                    "startup_config", NULL);
   lthread_join (lt, NULL, 0);
+#else
+  int ret;
+  ret = startup_config (NULL);
+  if (ret < 0)
+    {
+      printf ("%s[%d]: %s: error in startup_config.\n",
+              __FILE__, __LINE__, __func__);
+      exit (-1);
+    }
+#endif
 
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   thread_register (lthread_core, lt, console_shell, "console_shell", NULL);

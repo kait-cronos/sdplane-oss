@@ -3,7 +3,7 @@
 
 #include <rte_ether.h>
 #include <rte_ethdev.h>
-#include <zcmdsh/shell.h>
+#include <sdplane/shell.h>
 
 #define L3FWD_ARGV_MAX 16
 extern char *l3fwd_argv[L3FWD_ARGV_MAX];

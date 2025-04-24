@@ -2,9 +2,9 @@
 
 #include <lthread.h>
 
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
 
 #include <rte_rwlock.h>
 
@@ -212,5 +212,20 @@ thread_info_init ()
 {
   memset (threads, 0, sizeof (threads));
   rte_rwlock_init (&thread_info_lock);
+}
+
+void
+lthread_cancel_all ()
+{
+  int i;
+  struct thread_info *tinfo;
+  rte_rwlock_read_lock (&thread_info_lock);
+  for (i = 0; i < thread_info_size; i++)
+    {
+      tinfo = &threads[i];
+      if (tinfo->lthread)
+        lthread_cancel (tinfo->lthread);
+    }
+  rte_rwlock_read_unlock (&thread_info_lock);
 }
 

@@ -5,16 +5,18 @@
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/termio.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_zcmdsh.h>
-// #include <zcmdsh/shell_fselect.h>
-#include <zcmdsh/log_cmd.h>
+#include <sdplane/debug.h>
+#include <sdplane/termio.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/debug_cmd.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
+// #include <sdplane/shell_fselect.h>
+#include <sdplane/log_cmd.h>
 
 #include "l3fwd.h"
 #include "l3fwd_cmd.h"
@@ -30,6 +32,7 @@ startup_config (__rte_unused void *dummy)
   shell = command_shell_create ();
   shell_set_prompt (shell, "startup-config> ");
   shell->pager = false;
+  FLAG_UNSET (shell->flag, SHELL_FLAG_INTERACTIVE);
 
   // INSTALL_COMMAND2 (shell->cmdset, show_worker);
   INSTALL_COMMAND2 (shell->cmdset, set_worker);
@@ -57,6 +60,7 @@ startup_config (__rte_unused void *dummy)
   printf ("%s[%d]: %s: opening %s.\n", __FILE__, __LINE__, __func__,
           config_file);
   int fd;
+  int ret = 0;
   fd = open (config_file, O_RDONLY);
   if (fd >= 0)
     {
@@ -65,16 +69,24 @@ startup_config (__rte_unused void *dummy)
         {
           lthread_sleep (10); // yield.
 
-          shell_read_nowait (shell);
+          ret = shell_read_nowait (shell);
+	  if (ret < 0)
+            {
+              FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
+              DEBUG_SDPLANE_LOG (RIB, "shell_read_nowait: %d", ret);
+              printf ("shell_read_nowait: %d\n", ret);
+            }
         }
     }
   else
     printf ("%s[%d]: %s: opening %s: failed: %s.\n", __FILE__, __LINE__,
             __func__, config_file, strerror (errno));
 
-  // printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+  printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
   fflush (stdout);
 
   // termio_finish ();
+  if (ret < 0)
+    return ret;
   return 0;
 }

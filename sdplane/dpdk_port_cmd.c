@@ -4,13 +4,18 @@
 #include <rte_bus_pci.h>
 #include <rte_malloc.h>
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/termio.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/debug_cmd.h>
+#include <sdplane/debug.h>
+#include <sdplane/termio.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/debug_cmd.h>
+
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
+#include "debug_sdplane.h"
 
 #include "l3fwd.h"
 #include "l2fwd_export.h"
@@ -20,6 +25,9 @@
 #include "tap_handler.h"
 
 #include "snprintf_flags.h"
+
+#include "rib.h"
+#include "internal_message.h"
 
 struct flag_name link_speeds[] = {
   { "Fix", RTE_ETH_LINK_SPEED_FIXED },
@@ -118,6 +126,7 @@ CLI_COMMAND2 (start_stop_port, "(start|stop|reset) port (|<0-16>|all)",
         ret = rte_eth_dev_reset (port_id);
       printf ("rte_eth_dev_%s (): ret: %d port: %u\n", argv[0], ret, port_id);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
@@ -265,6 +274,7 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
             }
         }
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_port_statistics,
@@ -325,6 +335,7 @@ CLI_COMMAND2 (show_port_statistics,
         fprintf (t, "%16s %'8lu %'8lu%s", name, stats->ibytes, stats->obytes,
                  shell->NL);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_port_promiscuous, "show port (<0-16>|all) promiscuous",
@@ -354,6 +365,7 @@ CLI_COMMAND2 (show_port_promiscuous, "show port (<0-16>|all) promiscuous",
         fprintf (shell->terminal, "port[%d]: promiscuous: disabled.%s",
                  port_id, shell->NL);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_port_flowcontrol, "show port (<0-16>|all) flowcontrol",
@@ -414,6 +426,7 @@ CLI_COMMAND2 (show_port_flowcontrol, "show port (<0-16>|all) flowcontrol",
       fprintf (shell->terminal, "forward mac control frames: %s%s",
                (fc_conf.mac_ctrl_frame_fwd ? "on" : "off"), shell->NL);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (set_port_promiscuous,
@@ -441,6 +454,7 @@ CLI_COMMAND2 (set_port_promiscuous,
       if (ret < 0)
         fprintf (shell->terminal, "set promiscuous error: ret: %d\n", ret);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (
@@ -543,6 +557,7 @@ CLI_COMMAND2 (
       ret = rte_eth_dev_flow_ctrl_set (port_id, &fc_conf);
       fprintf (shell->terminal, "set flow_ctrl error: ret: %d\n", ret);
     }
+  return 0;
 }
 
 extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
@@ -605,7 +620,7 @@ CLI_COMMAND2 (set_port_dev_configure,
       if (ret < 0)
         {
           fprintf (shell->terminal,
-                   "rte_eth_dev_info_get(): port: %d failed: %d%s",
+                   "rte_eth_dev_configure(): port: %d failed: %d%s",
                    port_id, ret, shell->NL);
         }
 
@@ -644,6 +659,8 @@ CLI_COMMAND2 (set_port_dev_configure,
           if (tx_buffer_per_q[port_id][i])
             continue;
 
+	  DEBUG_SDPLANE_LOG (L2_REPEATER, "tx_buffer_init: port: %d queue: %d",
+			  port_id, i);
           tx_buffer_per_q[port_id][i] =
             rte_zmalloc_socket ("tx_buffer",
                                 RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
@@ -651,7 +668,104 @@ CLI_COMMAND2 (set_port_dev_configure,
           rte_eth_tx_buffer_init (tx_buffer_per_q[port_id][i], MAX_PKT_BURST);
         }
     }
+  return 0;
 }
+
+CLI_COMMAND2 (set_port_txrx_desc,
+              "set port (<0-16>|all) (nrxdesc|ntxdesc) <0-16384>",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP,
+              ALL_HELP,
+              "set the number of rx descriptor for the port\n",
+              "set the number of tx descriptor for the port\n",
+              "Specify the descriptor number.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+  bool rx_spec, tx_spec;
+  uint16_t nb_rx_desc, nb_tx_desc;
+  uint16_t desc_val;
+  struct rib *rib;
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_read_lock ();
+  rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  rx_spec = false;
+  if (! strcmp (argv[3], "nrxdesc"))
+    rx_spec = true;
+  tx_spec = false;
+  if (! strcmp (argv[3], "ntxdesc"))
+    tx_spec = true;
+
+  desc_val = strtol (argv[4], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      nb_rx_desc = RX_DESC_DEFAULT;
+      if (rib && rib->rib_info && rib->rib_info->port[port_id].nb_rxd)
+        nb_rx_desc = rib->rib_info->port[port_id].nb_rxd;
+      if (rx_spec)
+        nb_rx_desc = desc_val;
+
+      nb_tx_desc = TX_DESC_DEFAULT;
+      if (rib && rib->rib_info && rib->rib_info->port[port_id].nb_txd)
+        nb_tx_desc = rib->rib_info->port[port_id].nb_txd;
+      if (tx_spec)
+        nb_tx_desc = desc_val;
+
+      fprintf (shell->terminal,
+               "port: %d nb_rxd: %hu nb_txd: %hu%s",
+               port_id, nb_rx_desc, nb_tx_desc, shell->NL);
+
+      ret = rte_eth_dev_adjust_nb_rx_tx_desc (port_id,
+                                              &nb_rx_desc, &nb_tx_desc);
+      if (ret < 0)
+        {
+          fprintf (shell->terminal,
+                   "rte_eth_dev_adjust_nb_rx_tx_desc(): error: ret: %d%s",
+                   ret, shell->NL);
+          continue;
+        }
+      else
+        {
+          fprintf (shell->terminal,
+                   "rte_eth_dev_adjust_nb_rx_tx_desc(): success: ret: %d%s",
+                   ret, shell->NL);
+        }
+
+      void *msgp;
+      struct internal_msg_txrx_desc txrx_desc;
+      txrx_desc.portid = port_id;
+      txrx_desc.nb_rxd = nb_rx_desc;
+      txrx_desc.nb_txd = nb_tx_desc;
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC,
+                                  &txrx_desc, sizeof (txrx_desc));
+      internal_msg_send_to (msg_queue_rib, msgp, shell);
+
+      fprintf (shell->terminal,
+               "send internal msg: %p%s", msgp, shell->NL);
+    }
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_read_unlock ();
+  urcu_qsbr_quiescent_state ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
+  return 0;
+}
+
 
 void
 dpdk_port_cmd_init (struct command_set *cmdset)
@@ -664,4 +778,5 @@ dpdk_port_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_port_promiscuous);
   INSTALL_COMMAND2 (cmdset, set_port_flowcontrol);
   INSTALL_COMMAND2 (cmdset, set_port_dev_configure);
+  INSTALL_COMMAND2 (cmdset, set_port_txrx_desc);
 }

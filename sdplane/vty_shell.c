@@ -9,19 +9,19 @@
 #include <rte_launch.h>
 #include <rte_ether.h>
 
-#include <zcmdsh/shell.h>
-#include <zcmdsh/shell_keyfunc.h>
-#include <zcmdsh/shell_telnet.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/debug.h>
-#include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/log.h>
-#include <zcmdsh/log_cmd.h>
+#include <sdplane/shell.h>
+#include <sdplane/shell_keyfunc.h>
+#include <sdplane/shell_telnet.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/debug.h>
+#include <sdplane/debug_cmd.h>
+#include <sdplane/log.h>
+#include <sdplane/log_cmd.h>
 
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "sdplane.h"
@@ -34,7 +34,7 @@
 
 #include "sdplane_version.h"
 
-void
+int
 shell_keyfunc_clear_terminal (struct shell *shell)
 {
   const char clr[] = { 27, '[', '2', 'J', '\0' };
@@ -43,16 +43,22 @@ shell_keyfunc_clear_terminal (struct shell *shell)
   fprintf (shell->terminal, "%s%s", clr, topLeft);
   fflush (shell->terminal);
   shell_refresh (shell);
+  return 0;
 }
 
 CLI_COMMAND2 (clear_cmd, "clear", CLEAR_HELP)
 {
   struct shell *shell = (struct shell *) context;
   shell_keyfunc_clear_terminal (shell);
+  return 0;
 }
 
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
+
+uint64_t loop_vty_shell = 0;
+
+static __thread struct rib *rib = NULL;
 
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -115,6 +121,7 @@ CLI_COMMAND2 (vty_exit_cmd, "(exit|quit|logout)", "exit\n", "quite\n",
   struct shell *shell = (struct shell *) context;
   fprintf (shell->terminal, "vty exit !%s", shell->NL);
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
+  return 0;
 }
 
 CLI_COMMAND2 (shutdown_cmd, "shutdown", "shutdown\n")
@@ -123,9 +130,8 @@ CLI_COMMAND2 (shutdown_cmd, "shutdown", "shutdown\n")
   fprintf (shell->terminal, "shutdown !%s", shell->NL);
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
   force_quit = true;
+  return 0;
 }
-
-uint64_t loop_vty_shell = 0;
 
 void
 vty_shell (void *arg)
@@ -218,6 +224,9 @@ vty_shell (void *arg)
         shell_read_nowait (shell);
 
 #if HAVE_LIBURCU_QSBR
+      /* we define rcu_read_lock does not survibe between two
+      shell command execution. */
+      /* for the safety, we report to rcu system a quiescent state. */
       urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
 

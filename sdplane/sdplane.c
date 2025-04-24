@@ -3,13 +3,13 @@
 #include <rte_ethdev.h>
 #include <rte_bus_pci.h>
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/termio.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/debug_cmd.h>
+#include <sdplane/debug.h>
+#include <sdplane/termio.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/debug_cmd.h>
 
 #include "l3fwd.h"
 #include "l2fwd_export.h"
@@ -25,6 +25,7 @@
 #include "queue_config.h"
 
 #include "rib.h"
+#include "tap_cmd.h"
 
 CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 {
@@ -205,15 +206,21 @@ CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
   FILE *t = shell->terminal;
   int sec;
   sec = strtol (argv[1], NULL, 0);
-  while (sec > 0)
+  if (sec > 0)
     {
-      fprintf (t, " %d", sec);
-      fflush (t);
-      sleep (1);
-      sec--;
+      while (sec > 0)
+        {
+          fprintf (t, " %d", sec);
+          fflush (t);
+          lthread_sleep (1000);
+          sec--;
+        }
     }
+  else
+    lthread_sleep (0);
   fprintf (t, " 0.%s", shell->NL);
   fflush (t);
+  return 0;
 }
 
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
@@ -239,6 +246,8 @@ sdplane_cmd_init (struct command_set *cmdset)
   thread_info_cmd_init (cmdset);
   queue_config_cmd_init (cmdset);
   lthread_cmd_init (cmdset);
+  tap_cmd_init (cmdset);
+  dpdk_devbind_cmd_init (cmdset);
 
   nettlp_cmd_init (cmdset);
 }

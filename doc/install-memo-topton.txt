@@ -1,7 +1,7 @@
 
-(ver. 15: 2024/10/16 22:41)
-zcmdsh_0.3.19-1_amd64.deb
-sdplane_0.0.9e-1_amd64.deb
+(ver. 19: 2025/03/20 23:31)
+zcmdsh_0.3.36-32_amd64.deb
+sdplane_0.1.1-96_amd64.deb
 
 - passwd 生成方法:
 $ pwgen -cnB 12 1
@@ -143,6 +143,8 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   # apt install libnuma-dev
   # apt install pkgconf
 
+  # apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
+
 * DPDK 23.11.1 を install
   $ wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
   $ tar vxJf dpdk-23.11.1.tar.xz
@@ -164,12 +166,12 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   # update-grub
 
 * zcmdsh の install
-  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.24-1_amd64.deb
-  # apt install ./zcmdsh_0.3.24-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.36-32_amd64.deb
+  # apt install ./zcmdsh_0.3.36-32_amd64.deb
 
 * sdplane の install
-  $ wget https://www.yasuhironet.net/download/sdplane_0.0.9g-1_amd64.deb
-  # apt install ./sdplane_0.0.9g-1_amd64.deb
+  $ wget https://www.yasuhironet.net/download/sdplane_0.1.1-96_amd64.deb
+  # apt install ./sdplane_0.1.1-96_amd64.deb
 
 * netplan config install:
   # rm -f /etc/netplan/*.yaml
@@ -245,6 +247,13 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
     Hugepagesize:       2048 kB
     Hugetlb:         3145728 kB
 
+* NIC を DPDK に attach
+  $ sudo modprobe vfio-pci
+  $ sudo dpdk-devbind.py -b vfio-pci 01:00.0 01:00.1 03:00.0
+
+* sdplane の再起動
+  $ sudo systemctl start sdplane
+
 * sdplaneの起動を確認
   $ systemctl status sdplane
 
@@ -257,6 +266,9 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   sdplane version: 0.0.9e
   signature: partaker x86_64 enp1s0: 00:e0:67:30:d9:ba
   vty[1]> 
+
+* もし疎通性が取れなかったら、以下を実行してみてください。
+  vty[1]> update port status
 
 ***********************
 * 検収作業
@@ -278,5 +290,11 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   systemctl disable tailscaled
 
 以上で完了です。
+
+
+***********************
+* 温度・消費電力監視
+***********************
+sudo turbostat --Summary --quiet --show Busy%,Avg_MHz,PkgTmp,PkgWatt --interval 10
 
 

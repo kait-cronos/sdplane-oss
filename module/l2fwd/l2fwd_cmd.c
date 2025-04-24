@@ -38,13 +38,13 @@
 #include <rte_cpuflags.h>
 #include <rte_ethdev.h>
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/termio.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/debug_cmd.h>
+#include <sdplane/debug.h>
+#include <sdplane/termio.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/debug_cmd.h>
 
 #include "l2fwd_export.h"
 #include "l2fwd_cmd.h"
@@ -62,6 +62,7 @@ DEFINE_COMMAND (set_l2fwd_vars_mask,
   uint32_t mask;
   mask = strtoul (argv[3], NULL, 0);
   l2fwd_enabled_port_mask = mask;
+  return 0;
 }
 
 DEFINE_COMMAND (set_l2fwd_vars_integer,
@@ -75,6 +76,7 @@ DEFINE_COMMAND (set_l2fwd_vars_integer,
   uint32_t val;
   val = strtoul (argv[3], NULL, 0);
   l2fwd_rx_queue_per_lcore = val;
+  return 0;
 }
 
 DEFINE_COMMAND (show_l2fwd_vars,
@@ -101,6 +103,7 @@ DEFINE_COMMAND (show_l2fwd_vars,
   if (brief || all || ! strcmp (argv[3], "l2fwd_enabled_port_mask"))
     fprintf (shell->terminal, "l2fwd_rx_queue_per_lcore = %d%s",
              l2fwd_rx_queue_per_lcore, shell->NL);
+  return 0;
 }
 
 DEFINE_COMMAND (show_l2fwd_all,
@@ -123,6 +126,7 @@ DEFINE_COMMAND (show_l2fwd_all,
   fprintf (shell->terminal, "l2fwd_rx_queue_per_lcore = %d%s",
            l2fwd_rx_queue_per_lcore, shell->NL);
   show_l2fwd_lcore_by_mask (shell, true, true, 0);
+  return 0;
 }
 
 void
@@ -189,6 +193,7 @@ DEFINE_COMMAND (show_l2fwd_lcore,
     }
 
   show_l2fwd_lcore_by_mask (shell, brief, all, mask);
+  return 0;
 }
 
 DEFINE_COMMAND (show_l2fwd_stats,
@@ -200,6 +205,7 @@ DEFINE_COMMAND (show_l2fwd_stats,
 {
   struct shell *shell = (struct shell *) context;
   print_stats ();
+  return 0;
 }
 
 DEFINE_COMMAND (l2fwd_init,
@@ -209,6 +215,7 @@ DEFINE_COMMAND (l2fwd_init,
 {
   struct shell *shell = (struct shell *) context;
   l2fwd_init (0, NULL);
+  return 0;
 }
 
 void

@@ -3,17 +3,17 @@
 #include <rte_ethdev.h>
 #include <rte_bus_pci.h>
 
-#include <zcmdsh/debug.h>
-#include <zcmdsh/termio.h>
-#include <zcmdsh/vector.h>
-#include <zcmdsh/shell.h>
-#include <zcmdsh/command.h>
-#include <zcmdsh/command_shell.h>
-#include <zcmdsh/log_cmd.h>
-#include <zcmdsh/debug_log.h>
-#include <zcmdsh/debug_category.h>
-#include <zcmdsh/debug_cmd.h>
-#include <zcmdsh/debug_zcmdsh.h>
+#include <sdplane/debug.h>
+#include <sdplane/termio.h>
+#include <sdplane/vector.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+#include <sdplane/log_cmd.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_cmd.h>
+#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "l3fwd.h"
@@ -116,7 +116,7 @@ CLI_COMMAND2 (set_worker,
     {
       fprintf (shell->terminal, "cannot override lthread: lcore[%d].\n",
                lcore_id);
-      return;
+      return -1;
     }
 
   char *func_name;
@@ -154,6 +154,7 @@ CLI_COMMAND2 (set_worker,
   else
     fprintf (shell->terminal,
              "workers need to be restarted for changes to take effect.\n");
+  return 0;
 }
 
 CLI_COMMAND2 (start_stop_worker,
@@ -191,6 +192,7 @@ CLI_COMMAND2 (start_stop_worker,
           start_lcore (shell, lcore_id);
         }
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
@@ -217,6 +219,114 @@ CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
       fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s", lcore_name, flags,
                state, lcore_workers[lcore_id].func_name, shell->NL);
     }
+  return 0;
+}
+
+CLI_COMMAND2 (set_mempool,
+              "set mempool",
+              SET_HELP,
+              "mempool\n")
+{
+  struct shell *shell = (struct shell *) context;
+  unsigned int nb_lcores = 0;
+  uint16_t nb_ports;
+  unsigned int nb_mbufs;
+  uint16_t nb_rxd = 1024;
+  uint16_t nb_txd = 1024;
+
+  nb_lcores = 4;
+  nb_ports = rte_eth_dev_count_avail();
+
+#define MAX_PKT_BURST 32
+#define MEMPOOL_CACHE_SIZE 256
+  nb_mbufs = RTE_MAX(nb_ports * (nb_rxd + nb_txd + MAX_PKT_BURST +
+                     nb_lcores * MEMPOOL_CACHE_SIZE), 8192U);
+  fprintf (shell->terminal, "nb_mbufs: %u%s", nb_mbufs, shell->NL);
+
+  if (l2fwd_pktmbuf_pool != NULL)
+    rte_mempool_free (l2fwd_pktmbuf_pool);
+
+  l2fwd_pktmbuf_pool = rte_pktmbuf_pool_create("mbuf_pool", nb_mbufs,
+                MEMPOOL_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE,
+                rte_socket_id());
+  if (l2fwd_pktmbuf_pool == NULL)
+    {
+      fprintf (shell->terminal, "Cannot init mbuf pool.%s", shell->NL);
+      return -1;
+    }
+  return 0;
+}
+
+
+#define RTE_EAL_ARGV_MAX 8
+char *rte_eal_argv[RTE_EAL_ARGV_MAX];
+int rte_eal_argc = 0;
+
+CLI_COMMAND2 (set_rte_eal_argv,
+              "set rte_eal argv <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+              SET_HELP,
+              "set rte_eal related information.\n",
+              "set command-line arguments.\n",
+              "arbitrary word\n",
+              "arbitrary word\n",
+              "arbitrary word\n",
+              "arbitrary word\n",
+              "arbitrary word\n",
+              "arbitrary word\n"
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  int i;
+
+  if (argc - 3 >= RTE_EAL_ARGV_MAX - 3)
+    {
+      fprintf (shell->terminal, "too many arguments: %d.%s", argc, shell->NL);
+      return -1;
+    }
+
+  rte_eal_argc = 0;
+  memset (rte_eal_argv, 0, sizeof (rte_eal_argv));
+  rte_eal_argv[rte_eal_argc++] = "sdplane";
+
+  for (i = 3; i < argc; i++)
+    {
+      rte_eal_argv[rte_eal_argc++] = strdup (argv[i]);
+    }
+
+  for (i = 0; i < rte_eal_argc; i++)
+    fprintf (shell->terminal, "rte_eal_argv[%d]: %s%s",
+             i, rte_eal_argv[i], shell->NL);
+
+  return 0;
+}
+
+ALIAS_COMMAND (set_rte_eal_argv_2,
+              set_rte_eal_argv,
+              "set rte_eal argv <WORD> <WORD>",
+              SET_HELP
+              "set rte_eal related information.\n"
+              "set command-line arguments.\n"
+              "arbitrary word\n"
+              "arbitrary word\n");
+
+CLI_COMMAND2 (rte_eal_init,
+              "rte_eal_init",
+              "rte_eal_init command")
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  int i;
+  ret = rte_eal_init (rte_eal_argc, rte_eal_argv);
+  if (ret < 0)
+    {
+      fprintf (shell->terminal, "Invalid EAL parameters.%s", shell->NL);
+
+      for (i = 0; i < rte_eal_argc; i++)
+        fprintf (shell->terminal, "rte_eal_argv[%d]: %s%s",
+                 i, rte_eal_argv[i], shell->NL);
+      return -1;
+    }
+  return 0;
 }
 
 void
@@ -225,4 +335,8 @@ dpdk_lcore_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker);
   INSTALL_COMMAND2 (cmdset, start_stop_worker);
   INSTALL_COMMAND2 (cmdset, show_worker);
+  INSTALL_COMMAND2 (cmdset, set_mempool);
+  INSTALL_COMMAND2 (cmdset, set_rte_eal_argv);
+  INSTALL_COMMAND2 (cmdset, set_rte_eal_argv_2);
+  INSTALL_COMMAND2 (cmdset, rte_eal_init);
 }
