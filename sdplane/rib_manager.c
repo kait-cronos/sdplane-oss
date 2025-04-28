@@ -263,6 +263,9 @@ rib_check (struct rib *new)
 
           if (! tx_buffer_per_q[i][j])
             {
+	      DEBUG_SDPLANE_LOG (L2_REPEATER,
+			      "tx_buffer_init: port: %d queue: %d",
+			      i, j);
               tx_buffer_per_q[i][j] =
                 rte_zmalloc_socket ("tx_buffer",
                                 RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
