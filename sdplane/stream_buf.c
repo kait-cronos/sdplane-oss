@@ -81,17 +81,16 @@ stream_getl (struct stream_buf *s)
 
 void
 stream_get_at (unsigned long pos,
-               void *dst, struct stream_buf *s, size_t size,
+               void *dst, struct stream_buf *s, size_t size)
 {
   size_t len = size;
-  ENSURE_GET_LEN_AT(s, len, pos);
   if (len > s->size - pos)
     len = s->size - pos;
   memcpy (dst, s->data + pos, len);
 }
 
 uint8_t
-stream_getc_at (unsigned pos, struct stream_buf *s)
+stream_getc_at (unsigned long pos, struct stream_buf *s)
 {
   uint8_t c = 0;
   if (s->size - pos > 0)

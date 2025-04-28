@@ -4,7 +4,7 @@
 struct stream_buf
 {
   uint8_t *data;
-  unsinged long size;
+  unsigned long size;
 
   unsigned long putp; // put position.
   unsigned long getp; // get position.
