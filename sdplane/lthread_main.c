@@ -66,6 +66,7 @@ void vty_server (void *arg);
 
 int stat_collector (__rte_unused void *dummy);
 void rib_manager (void *arg);
+void netlink_thread (void *arg);
 
 CLI_COMMAND2 (set_worker_lthread_stat_collector,
               "set worker lthread stat-collector",
@@ -79,7 +80,8 @@ CLI_COMMAND2 (set_worker_lthread_stat_collector,
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
-  thread_register (lthread_core, lt, (lthread_func) stat_collector, "stat_collector", NULL);
+  thread_register (lthread_core, lt, (lthread_func) stat_collector,
+                   "stat_collector", NULL);
   lthread_detach2 (lt);
   return 0;
 }
@@ -96,7 +98,26 @@ CLI_COMMAND2 (set_worker_lthread_rib_manager,
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) rib_manager, NULL);
-  thread_register (lthread_core, lt, (lthread_func) rib_manager, "rib_manager", NULL);
+  thread_register (lthread_core, lt, (lthread_func) rib_manager,
+                   "rib_manager", NULL);
+  lthread_detach2 (lt);
+  return 0;
+}
+
+CLI_COMMAND2 (set_worker_lthread_netlink_thread,
+              "set worker lthread netlink-thread",
+              SET_HELP,
+              WORKER_HELP,
+              "lthread information\n",
+              "netlink-thread\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) netlink_thread, NULL);
+  thread_register (lthread_core, lt, (lthread_func) netlink_thread,
+                   "netlink_thread", NULL);
   lthread_detach2 (lt);
   return 0;
 }
@@ -106,6 +127,7 @@ lthread_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_stat_collector);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_rib_manager);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_netlink_thread);
 }
 
 int

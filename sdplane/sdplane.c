@@ -62,8 +62,9 @@ CLI_COMMAND2 (set_l3fwd_argv,
 
   if (argc - 2 >= L3FWD_ARGV_MAX - 2)
     {
-      fprintf (shell->terminal, "too many arguments: %d.\n", argc);
-      return;
+      fprintf (shell->terminal, "too many arguments: %d.%s",
+               argc, shell->NL);
+      return -1;
     }
 
   l3fwd_argc = 0;
@@ -77,6 +78,8 @@ CLI_COMMAND2 (set_l3fwd_argv,
 
   for (i = 0; i < l3fwd_argc; i++)
     fprintf (shell->terminal, "l3fwd_argv[%d]: %s\n", i, l3fwd_argv[i]);
+
+  return 0;
 }
 
 CLI_COMMAND2 (show_loop_count,
@@ -132,6 +135,7 @@ CLI_COMMAND2 (show_loop_count,
             }
         }
     }
+  return 0;
 }
 
 extern uint64_t rib_rcu_replace;
@@ -142,6 +146,7 @@ CLI_COMMAND2 (show_rcu, "show rcu",
   FILE *t = shell->terminal;
   fprintf (t, "rib_rcu_replace: %'lu%s",
            rib_rcu_replace, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (show_fdb, "show fdb",
@@ -158,6 +163,7 @@ CLI_COMMAND2 (show_fdb, "show fdb",
         fprintf (t, "fdb[%d]: %s port %d%s",
                  i, buf, fdb[i].port, shell->NL);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (show_vswitch,
@@ -196,6 +202,7 @@ CLI_COMMAND2 (show_vswitch,
                vport->ring[TAPDIR_UP], vport->ring[TAPDIR_DOWN],
                shell->NL);
     }
+  return 0;
 }
 
 CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
