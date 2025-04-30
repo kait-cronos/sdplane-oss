@@ -166,6 +166,7 @@ CLI_COMMAND2 (show_thread_cmd,
       fprintf (shell->terminal, "%s%s", buf, shell->NL);
     }
   rte_rwlock_read_unlock (&thread_info_lock);
+  return 0;
 }
 
 CLI_COMMAND2 (show_thread_counter,
@@ -198,6 +199,7 @@ CLI_COMMAND2 (show_thread_counter,
       fprintf (shell->terminal, "%s%s", buf, shell->NL);
     }
   rte_rwlock_read_unlock (&thread_info_lock);
+  return 0;
 }
 
 int

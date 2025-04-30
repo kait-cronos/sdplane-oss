@@ -1,5 +1,5 @@
 
-AM_CFLAGS = -g -O0
+AM_CFLAGS = -Wno-format-truncation
 
 COMMON_DIR = $(top_srcdir)/module/common
 SDPLANE_DIR = $(top_srcdir)/sdplane
@@ -25,8 +25,8 @@ sdplane_SOURCES = \
         console_shell.c l2_repeater.c \
         sdplane_version.c thread_info.c queue_config.c rib_manager.c \
         internal_message.c rib.c nettlp.c nettlp_support.c tap_cmd.c \
-        dpdk_devbind.c
-sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR)
+        dpdk_devbind.c netlink_thread.c stream_buf.c
+sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
 sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lsdplane -lurcu-qsbr
 
 FORCE:

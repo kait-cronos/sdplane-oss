@@ -2,11 +2,15 @@ sdplane (0.1.1-129) UNRELEASED; urgency=low
 
   * release. update changelog.
   * sdplane l2_repeater #queues=1 hard-coding, for the use in VM.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 22 Apr 2025 20:34:07 +0900
+
+sdplane (0.1.1-128) UNRELEASED; urgency=low
+
+  * release. update changelog.
   * fix sleep cmd.
   * Merge branch 'devel' of github.com:yasuhironet/sdplane into devel
   * update changelog for v0.1.1-123.
-  * update changelog for v0.1.1-123.
-  * update changelog for v0.1.1-122.
   * debug lthread on VM.
   * stop depending on the l3fwd/l2fwd init functions.
   * fix command return values.
