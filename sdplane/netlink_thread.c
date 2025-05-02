@@ -50,6 +50,7 @@ netlink_socket (struct netlink_sock *nlsock, unsigned long groups)
       return -1;
     }
 
+#if 1
   ret = fcntl (sockfd, F_SETFL, O_NONBLOCK);
   if (ret < 0)
     {
@@ -58,6 +59,7 @@ netlink_socket (struct netlink_sock *nlsock, unsigned long groups)
       close (sockfd);
       return -1;
     }
+#endif
 
   memset (&snl, 0, sizeof (snl));
   snl.nl_family = AF_NETLINK;
@@ -123,6 +125,13 @@ netlink_request (int family, int type, struct netlink_sock *nlsock)
       DEBUG_SDPLANE_LOG (NETLINK, "%s sendto failed: %s.",
                          nlsock->name, strerror (errno));
       return -1;
+    }
+  else
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "%s: sent: "
+                         "family: %d type: %d pid: %d seq: %d.",
+                         nlsock->name, family, type,
+                         req.nlh.nlmsg_pid, req.nlh.nlmsg_seq);
     }
 
   return 0;
@@ -200,6 +209,8 @@ netlink_read (struct netlink_sock *nlsock)
   struct sockaddr_nl snl;
   struct msghdr msg;
 
+  bool netlink_read_done = false;
+
   iov[0].iov_base = (void *) buf;
   iov[0].iov_len = sizeof (buf);
   msg.msg_name = (void *) &snl;
@@ -223,7 +234,13 @@ netlink_read (struct netlink_sock *nlsock)
           if (errno == EINTR)
             continue;
           if (errno == EWOULDBLOCK || errno == EAGAIN)
-            break;
+            {
+#if 0
+              DEBUG_SDPLANE_LOG (NETLINK, "%s: read end: recvmsg(): ret: %d %s",
+                             nlsock->name, ret, strerror (errno));
+#endif
+              break;
+            }
           DEBUG_SDPLANE_LOG (NETLINK, "%s: recvmsg(): ret: %d error: %s",
                              nlsock->name, ret, strerror (errno));
           continue;
@@ -265,10 +282,55 @@ netlink_read (struct netlink_sock *nlsock)
             case NLMSG_ERROR:
               netlink_read_nlmsg_error (nlsock, h);
               break;
+            case NLMSG_DONE:
+              netlink_read_done = true;
+              break;
             default:
               break;
             }
         }
+
+      if (netlink_read_done)
+        break;
+    }
+
+  return retval;
+}
+
+int
+netlink_read_block (struct netlink_sock *nlsock)
+{
+  int ret;
+  int flags;
+  int retval;
+
+  ret = fcntl (nlsock->sockfd, F_GETFL, 0);
+  if (ret < 0)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "fcntl(): F_GETFL failed: %s.",
+                         strerror (errno));
+      return -1;
+    }
+
+  flags = ret;
+  flags &= ~O_NONBLOCK;
+
+  ret = fcntl (nlsock->sockfd, F_SETFL, flags);
+  if (ret < 0)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "fcntl(): F_SETFL failed: %s.",
+                         strerror (errno));
+      return -1;
+    }
+
+  retval = netlink_read (nlsock);
+
+  flags |= O_NONBLOCK;
+  ret = fcntl (nlsock->sockfd, F_SETFL, flags);
+  if (ret < 0)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "fcntl(): F_SETFL failed: %s.",
+                         strerror (errno));
     }
 
   return retval;
@@ -307,10 +369,19 @@ netlink_thread (void *arg)
   } while (0)
 
   NETLINK_REQUEST_CMD (AF_PACKET, RTM_GETLINK, &netlink_cmd);
+  netlink_read_block (&netlink_cmd);
+
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETADDR, &netlink_cmd);
+  netlink_read_block (&netlink_cmd);
+
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETROUTE, &netlink_cmd);
+  netlink_read_block (&netlink_cmd);
+
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETADDR, &netlink_cmd);
+  netlink_read_block (&netlink_cmd);
+
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETROUTE, &netlink_cmd);
+  netlink_read_block (&netlink_cmd);
 
   while (! force_quit && ! force_stop[lthread_core])
     {
