@@ -230,11 +230,32 @@ CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
   return 0;
 }
 
+CLI_COMMAND2 (show_mempool, "show mempool",
+              SHOW_HELP,
+              "show mempool.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  struct rte_mempool *mp;
+  unsigned int count;
+  int is_full;
+
+  mp = l2fwd_pktmbuf_pool;
+  count = rte_mempool_avail_count (mp);
+  is_full = rte_mempool_full (mp);
+
+  fprintf (t, "mempool: count: %u is_full: %d%s",
+           count, is_full, shell->NL);
+
+  return 0;
+}
+
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
 void lthread_cmd_init (struct command_set *cmdset);
 void queue_config_cmd_init (struct command_set *cmdset);
 void nettlp_cmd_init (struct command_set *cmdset);
+void dpdk_devbind_cmd_init (struct command_set *cmdset);
 
 void
 sdplane_cmd_init (struct command_set *cmdset)
@@ -250,6 +271,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, sleep_cmd);
+  INSTALL_COMMAND2 (cmdset, show_mempool);
   thread_info_cmd_init (cmdset);
   queue_config_cmd_init (cmdset);
   lthread_cmd_init (cmdset);
