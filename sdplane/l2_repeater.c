@@ -146,15 +146,15 @@ l2_repeater_tx_flush ()
       buffer = tx_buffer_per_q[tx_portid][tx_queueid];
       sent = 0;
       if (buffer)
-	{
+        {
           sent = rte_eth_tx_buffer_flush (tx_portid, tx_queueid, buffer);
 #if 1
-	  if (sent || buffer->length)
+          if (sent || buffer->length)
           DEBUG_SDPLANE_LOG (L2_REPEATER,
                              "lcore[%d]: port %d queue %d flush: sent: %d buffer->length: %d",
                              lcore_id, tx_portid, tx_queueid, sent, buffer->length);
 #endif
-	}
+        }
       if (sent)
         {
           port_statistics[tx_portid].tx += sent;
@@ -182,45 +182,11 @@ l2_repeater_rx_burst ()
       portid = lcore_qconf->rx_queue_list[i].port_id;
       queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
-
-#if 0
-      //if (nb_rx_burst & 0xfff8  == 0)
-      DEBUG_SDPLANE_LOG (L2_REPEATER,
-                         "lcore[%d]: rx_burst: port: %d queue: %d nrxq: %d",
-                         lcore_id, portid, queueid, lcore_qconf->nrxq);
-#endif
-
       nb_rx = 0;
-      //if (queueid < rib->rib_info->port[portid].dev_info.nb_rx_queues)
         {
         nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
-	nb_rx_burst++;
-#if 0
-	if (nb_rx_burst % 100000 == 0)
-        DEBUG_SDPLANE_LOG (L2_REPEATER,
-                         "lcore[%d]: rx_burst: port: %d queue: %d nb_rx_burst: %u",
-                         lcore_id, portid, queueid, nb_rx_burst);
-#endif
-	}
-#if 0
-      else
-        {
-        DEBUG_SDPLANE_LOG (L2_REPEATER,
-                         "lcore[%d]: rx_burst: port: %d queue: %d out of nb_rxq: %d",
-                         lcore_id, portid, queueid,
-                         rib->rib_info->port[portid].dev_info.nb_rx_queues);
+        nb_rx_burst++;
         }
-#endif
-
-#if 0
-#if 0
-      if ((((nb_rx_burst - (nb_rx_burst & 0x7)) % 1000000) == 0) ||
-          nb_rx)
-#endif
-      DEBUG_SDPLANE_LOG (L2_REPEATER,
-                         "lcore[%d]: rx_burst: port: %d queue: %d nb_rx: %d",
-                         lcore_id, portid, queueid, nb_rx);
-#endif
 
       if (unlikely (nb_rx == 0))
         continue;
@@ -325,7 +291,7 @@ l2_repeater (__rte_unused void *dummy)
 #if 0
       if (loop_counter % 1000000 == 0)
       DEBUG_SDPLANE_LOG (L2_REPEATER, "diff: %lu drain: %lu",
-		         diff_tsc, drain_tsc);
+                         diff_tsc, drain_tsc);
 #endif
       if (unlikely (diff_tsc > drain_tsc))
         {
