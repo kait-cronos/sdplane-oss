@@ -71,7 +71,7 @@ l2_repeater_tap_up (struct rte_mbuf *m, unsigned portid, unsigned queueid)
 }
 
 static inline __attribute__ ((always_inline)) void
-l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
+l2_repeat (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
 {
   struct rte_eth_dev_tx_buffer *buffer;
   uint16_t nb_ports;
@@ -86,8 +86,7 @@ l2_repeat (struct rte_mbuf *m, unsigned rx_portid)
                      lcore_id, m, rx_portid);
 #endif
 
-  //tx_queueid = lcore_id;
-  tx_queueid = 0;
+  tx_queueid = lcore_id;
 
   nb_ports = rte_eth_dev_count_avail ();
   for (tx_portid = 0; tx_portid < nb_ports; tx_portid++)
@@ -137,8 +136,7 @@ l2_repeater_tx_flush ()
   int sent;
   uint16_t tx_queueid;
 
-  //tx_queueid = lcore_id;
-  tx_queueid = 0;
+  tx_queueid = lcore_id;
 
   nb_ports = rte_eth_dev_count_avail ();
   for (tx_portid = 0; tx_portid < nb_ports; tx_portid++)
@@ -148,12 +146,13 @@ l2_repeater_tx_flush ()
       if (buffer)
         {
           sent = rte_eth_tx_buffer_flush (tx_portid, tx_queueid, buffer);
-#if 1
+
           if (sent || buffer->length)
-          DEBUG_SDPLANE_LOG (L2_REPEATER,
-                             "lcore[%d]: port %d queue %d flush: sent: %d buffer->length: %d",
-                             lcore_id, tx_portid, tx_queueid, sent, buffer->length);
-#endif
+            DEBUG_SDPLANE_LOG (L2_REPEATER,
+                               "lcore[%d]: port %d queue %d flush: "
+                               "sent: %d buffer->length: %d",
+                               lcore_id, tx_portid, tx_queueid,
+                               sent, buffer->length);
         }
       if (sent)
         {
@@ -182,11 +181,8 @@ l2_repeater_rx_burst ()
       portid = lcore_qconf->rx_queue_list[i].port_id;
       queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
-      nb_rx = 0;
-        {
-        nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
-        nb_rx_burst++;
-        }
+      nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
+      nb_rx_burst++;
 
       if (unlikely (nb_rx == 0))
         continue;
@@ -199,8 +195,7 @@ l2_repeater_rx_burst ()
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
           l2_repeater_tap_up (m, portid, queueid);
-
-          l2_repeat (m, portid);
+          l2_repeat (m, portid, queueid);
         }
     }
 }
@@ -214,8 +209,7 @@ l2_repeater_tx_burst ()
   uint16_t portid, queueid;
   uint16_t tx_queueid;
 
-  //tx_queueid = lcore_id;
-  tx_queueid = 0;
+  tx_queueid = lcore_id;
 
   if (unlikely (! rib || ! rib->rib_info))
     return;
@@ -234,10 +228,10 @@ l2_repeater_tx_burst ()
       if (unlikely (nb_rx == 0))
         continue;
 
-      rte_eth_tx_burst (portid, lcore_id, pkts_burst, nb_rx);
+      rte_eth_tx_burst (portid, tx_queueid, pkts_burst, nb_rx);
       DEBUG_SDPLANE_LOG (L2_REPEATER,
                          "lcore[%d]: tx_burst: port: %d queue: %d pkts: %d",
-                         lcore_id, portid, queueid, nb_rx);
+                         lcore_id, portid, tx_queueid, nb_rx);
     }
 }
 
