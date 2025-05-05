@@ -1,0 +1,13 @@
+
+* document: create a pptx file explaining the architecture design.
+* issues (pls create a git-hub issue.)
+  + bug: memleak in mempool.
+  + bug: shell command-line double-space completion bug.
+  + test: performance benchmark.
+  + to-be-implemented: vlan.
+  + to-be-implemented: router-if.
+  + to-be-implemented: capture-if.
+  + to-be-implemented: pktgen.
+  + to-be-implemented: netlink read iflink / rtmnewaddr / ...
+
+
