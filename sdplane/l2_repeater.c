@@ -62,12 +62,12 @@ l2_repeater_tap_up (struct rte_mbuf *m, unsigned portid, unsigned queueid)
       DEBUG_SDPLANE_LOG (L2_REPEATER,
                          "lcore[%d]: m: %p port %d queue %d to ring: ENOBUFS: %d",
                          lcore_id, m, portid, queueid, ret);
-      else
-      DEBUG_SDPLANE_LOG (L2_REPEATER,
-                         "lcore[%d]: m: %p port %d queue %d to ring: %d",
-                         lcore_id, m, portid, queueid, ret);
       rte_pktmbuf_free (c);
     }
+  else
+    DEBUG_SDPLANE_LOG (L2_REPEATER,
+                       "lcore[%d]: m: %p port %d queue %d to ring: %d",
+                       lcore_id, m, portid, queueid, ret);
 }
 
 static inline __attribute__ ((always_inline)) void

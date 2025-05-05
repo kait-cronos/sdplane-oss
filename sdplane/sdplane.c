@@ -244,8 +244,8 @@ CLI_COMMAND2 (show_mempool, "show mempool",
   count = rte_mempool_avail_count (mp);
   is_full = rte_mempool_full (mp);
 
-  fprintf (t, "mempool: count: %u is_full: %d%s",
-           count, is_full, shell->NL);
+  fprintf (t, "mempool: size: %u count: %u is_full: %d%s",
+           mp->size, count, is_full, shell->NL);
 
   return 0;
 }
