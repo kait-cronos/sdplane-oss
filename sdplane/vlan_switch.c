@@ -195,6 +195,53 @@ vlan_switch_run (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
   rte_pktmbuf_free (m);
 }
 
+static inline __attribute__ ((always_inline)) void
+vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
+{
+  struct rte_ether_hdr *eth_hdr;
+  struct port_conf *port_config;
+  uint16_t eth_type;
+  struct vswitch_link *vswitch_link = NULL;
+  int i;
+
+  port_config = &rib->rib_info->port[rx_portid];
+  eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  eth_type = rte_be_to_cpu_16 (eth_hdr->ether_type);
+  if (eth_type == RTE_ETHER_TYPE_VLAN)
+    {
+      uint16_t vlan_id;
+      struct rte_vlan_hdr *vlan_hdr;
+      vlan_hdr = (struct rte_vlan_hdr *)(eth_hdr + 1);
+      vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_hdr->vlan_tci));
+      for (i = 0; i < port_config->vlan_size; i++)
+        {
+          struct vswitch_link *link = &port_config->vlan_link[i];
+          if (link->vlan_id == vlan_id)
+            {
+              vswitch_link = link;
+              DEBUG_SDPLANE_LOG (VLAN_SWITCH, "m: %p vlan: %u", m, vlan_id);
+            }
+        }
+    }
+  else
+    {
+      vswitch_link = &port_config->switch_link;
+      DEBUG_SDPLANE_LOG (VLAN_SWITCH, "m: %p untag: vswitch: %u",
+                         m, vswitch_link->vswitch_id);
+    }
+
+  if (! vswitch_link)
+    return;
+  if (vswitch_link->vswitch_id < 0 ||
+      rib->rib_info->vswitch_size <= vswitch_link->vswitch_id)
+    return;
+
+  struct vswitch_conf *vswitch;
+  vswitch = &rib->rib_info->vswitch[vswitch_link->vswitch_id];
+
+  return;
+}
+
 //__thread uint32_t nb_rx_burst = 0;
 
 static inline __attribute__ ((always_inline)) void
@@ -227,6 +274,8 @@ vlan_switch_rx_burst ()
         {
           m = pkts_burst[j];
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
+
+          vlan_switch_select (m, portid, queueid);
 
           vlan_switch_tap_up (m, portid, queueid);
           vlan_switch_run (m, portid, queueid);

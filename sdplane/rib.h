@@ -36,6 +36,7 @@ struct vswitch_conf
 
 struct vswitch_link
 {
+  uint16_t vlan_id;
   uint16_t vswitch_id;
   uint16_t vswitch_port;
 };
