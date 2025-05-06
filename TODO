@@ -1,13 +1,16 @@
 
 * document: create a pptx file explaining the architecture design.
 * issues (pls create a git-hub issue.)
+  + learning: DEBUG_SDPLANE_LOG().
+  + learning: lthread/pthread schedule.
+  + learning: DPDK, netlink, SRv6, ....
   + bug: memleak in mempool.
   + bug: shell command-line double-space completion bug.
+  + bug: dpkg locale setting (%'d: thousands'  grouping  character).
   + test: performance benchmark.
   + to-be-implemented: vlan.
   + to-be-implemented: router-if.
   + to-be-implemented: capture-if.
   + to-be-implemented: pktgen.
   + to-be-implemented: netlink read iflink / rtmnewaddr / ...
-
 
