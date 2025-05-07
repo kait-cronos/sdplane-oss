@@ -35,9 +35,12 @@ CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 }
 
 CLI_COMMAND2 (set_locale,
-              //"set locale (LC_ALL|LC_NUMERIC) (C|C.utf8|en_US.utf8|POSIX)",
-              "set locale (C|C.utf8|en_US.utf8|POSIX)", SET_HELP,
-              "locale information\n", "C\n", "C.utf8\n", "en_US.utf8\n",
+              "set locale (C|C.utf8|en_US.utf8|POSIX)",
+	      SET_HELP,
+              "locale information\n",
+	      "C\n",
+	      "C.utf8\n",
+	      "en_US.utf8\n",
               "POSIX")
 {
   struct shell *shell = (struct shell *) context;
@@ -271,6 +274,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, sleep_cmd);
+  INSTALL_COMMAND2 (cmdset, set_locale);
   INSTALL_COMMAND2 (cmdset, show_mempool);
   thread_info_cmd_init (cmdset);
   queue_config_cmd_init (cmdset);
