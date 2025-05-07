@@ -1,3 +1,10 @@
+sdplane (0.1.2-27) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * support DPDK-23.11 by defining RTE_VLAN_TCI_ID().
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Wed, 7 May 2025 17:32:54 +0900
+
 sdplane (0.1.2-25) UNRELEASED; urgency=low
 
   * release. update changelog.
