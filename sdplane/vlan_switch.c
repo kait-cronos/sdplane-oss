@@ -212,6 +212,9 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
       uint16_t vlan_id;
       struct rte_vlan_hdr *vlan_hdr;
       vlan_hdr = (struct rte_vlan_hdr *)(eth_hdr + 1);
+#ifndef RTE_VLAN_TCI_ID
+#define RTE_VLAN_TCI_ID(vlan_tci) ((vlan_tci) & 0x0fff)
+#endif
       vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_hdr->vlan_tci));
       for (i = 0; i < port_config->vlan_size; i++)
         {
