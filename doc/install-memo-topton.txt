@@ -169,7 +169,9 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   $ git clone http://dpdk.org/git/dpdk-kmods
   $ cd dpdk-kmods/linux/igb_uio
   $ make
-  # insmod ./igb_uio.ko
+  # mkdir -p /lib/modules/`uname -r`/extra/dpdk/
+  # cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
+  # echo igb_uio > /etc/modules-load.d/igb_uio.conf
 
 * Hugepage メモリ設定
   (2MB hugepage を1500, 1GbE x 2 で必要。NICによってもっと必要かも。)
