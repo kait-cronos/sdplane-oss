@@ -82,6 +82,7 @@ CLI_COMMAND2 (show_rib,
   fprintf (shell->terminal, "rib_info: ver: %lu (%p)%s",
            rib->rib_info->ver, rib->rib_info, shell->NL);
 
+#if 0
   fprintf (shell->terminal, "rib_info: tapif_size: %d%s",
            rib->rib_info->tapif_size, shell->NL);
   for (i = 0; i < rib->rib_info->tapif_size; i++)
@@ -91,6 +92,7 @@ CLI_COMMAND2 (show_rib,
       fprintf (shell->terminal, "rib_info: tapif[%d]: sockfd: %d%s",
                i, tapconf->sockfd, shell->NL);
     }
+#endif
 
   fprintf (shell->terminal, "rib_info: vswitch_size: %d%s",
            rib->rib_info->vswitch_size, shell->NL);
