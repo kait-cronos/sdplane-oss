@@ -416,7 +416,7 @@ pktgen_lua_dofile(void *ld, const char *filename)
  * SEE ALSO:
  */
 int
-main(int argc, char **argv)
+_pktgen_main(int argc, char **argv)
 {
     uint32_t i;
     int32_t ret;

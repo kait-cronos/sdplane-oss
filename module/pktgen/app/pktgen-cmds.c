@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include <sys/stat.h>
+#include <pcap/pcap.h>
 
 #include <lua_config.h>
 
@@ -20,10 +21,10 @@
 #include <pg_delay.h>
 
 #include <rte_net.h>
-#if defined(RTE_LIBRTE_PMD_BOND) || defined(RTE_NET_BOND)
+//#if defined(RTE_LIBRTE_PMD_BOND) || defined(RTE_NET_BOND)
 #include <rte_eth_bond.h>
 #include <rte_eth_bond_8023ad.h>
-#endif
+//#endif
 
 static char hash_line[] = "#######################################################################";
 #define _cp(s) (strcmp(str, s) == 0)
@@ -1118,8 +1119,10 @@ pktgen_force_update(void)
 {
     pktgen.flags |= UPDATE_DISPLAY_FLAG;
 
+#if 0
     if (!scrn_is_paused())
         pktgen_page_display();
+#endif
 }
 
 /**

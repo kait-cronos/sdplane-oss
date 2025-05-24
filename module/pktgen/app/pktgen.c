@@ -1130,11 +1130,13 @@ pktgen_main_receive(port_info_t *info, uint8_t lid, struct rte_mbuf **pkts_burst
     if (unlikely(info->dump_count > 0))
         pktgen_packet_dump_bulk(pkts_burst, nb_rx, pid);
 
+#if 0
     if (unlikely(pktgen_tst_port_flags(info, CAPTURE_PKTS))) {
         capture = &pktgen.capture[pktgen.core_info[lid].s.socket_id];
         if (unlikely(capture->port == pid))
             pktgen_packet_capture_bulk(pkts_burst, nb_rx, capture);
     }
+#endif
 
     rte_pktmbuf_free_bulk(pkts_burst, nb_rx);
 }
@@ -1478,6 +1480,7 @@ pktgen_launch_one_lcore(void *arg __rte_unused)
     return 0;
 }
 
+#if 0
 static void
 _page_display(void)
 {
@@ -1556,6 +1559,8 @@ pktgen_page_display(void)
     pktgen_print_packet_dump();
 }
 
+#endif
+
 static struct rte_timer update_stats_timer;
 static struct rte_timer update_display_timer;
 
@@ -1568,7 +1573,7 @@ stats_cb(__rte_unused struct rte_timer *tim, __rte_unused void *arg)
 static void
 display_cb(__rte_unused struct rte_timer *tim, __rte_unused void *arg)
 {
-    pktgen_page_display();
+    //pktgen_page_display();
 }
 
 /**
