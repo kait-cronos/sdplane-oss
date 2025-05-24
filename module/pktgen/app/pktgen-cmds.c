@@ -1091,6 +1091,7 @@ pktgen_update_display(void)
 void
 pktgen_clear_display(void)
 {
+#if 0
     if (!scrn_is_paused()) {
         scrn_pause();
 
@@ -1103,6 +1104,7 @@ pktgen_clear_display(void)
 
         pktgen_page_display();
     }
+#endif
 }
 
 /**
