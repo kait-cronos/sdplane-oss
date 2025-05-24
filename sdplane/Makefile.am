@@ -42,6 +42,8 @@ sdplane_SOURCES = \
         $(PKTGEN_MODULE_DIR)/app/pktgen-port-cfg.c \
         $(PKTGEN_MODULE_DIR)/app/pktgen-stats.c \
         $(PKTGEN_MODULE_DIR)/app/pktgen-cpu.c \
+        $(PKTGEN_MODULE_DIR)/app/pktgen-cfg.c \
+        $(PKTGEN_MODULE_DIR)/app/pktgen-seq.c \
         $(PKTGEN_MODULE_DIR)/app/cli-functions.c \
         $(PKTGEN_MODULE_DIR)/lib/cli/cli.c \
         $(PKTGEN_MODULE_DIR)/lib/cli/cli_env.c \
