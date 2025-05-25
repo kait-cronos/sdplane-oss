@@ -85,6 +85,143 @@ CLI_COMMAND2 (set_l3fwd_argv,
   return 0;
 }
 
+#define ARGV_LIST_MAX 8
+#define ARGV_LIST_ARGV_MAX 32
+char *argv_list[ARGV_LIST_MAX][ARGV_LIST_ARGV_MAX];
+int argv_list_argc[ARGV_LIST_MAX];
+
+CLI_COMMAND2 (set_argv_list_1,
+              "set argv-list <0-7> <WORD>",
+              SET_HELP,
+              "set argv-list.\n",
+              "specify argv-list index.\n",
+              "set command-line arguments.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i;
+
+  if (argc >= ARGV_LIST_ARGV_MAX)
+    {
+      fprintf (shell->terminal, "too many arguments: %d.%s",
+               argc, shell->NL);
+      return -1;
+    }
+
+  int index;
+  index = strtol (argv[2], NULL, 0);
+
+  int *argcp = &argv_list_argc[index];
+  char **argvp = argv_list[index];
+
+  for (i = 0; i < ARGV_LIST_ARGV_MAX; i++)
+    {
+      if (argvp[i])
+        free (argvp[i]);
+      argvp[i] = NULL;
+    }
+
+  *argcp = 0;
+  for (i = 3; i < argc; i++)
+    {
+      argvp[(*argcp)++] = strdup (argv[i]);
+    }
+
+  for (i = 0; i < *argcp; i++)
+    fprintf (shell->terminal, "argv_list[%d][%d]: %s\n",
+             index, i, argv_list[index][i]);
+
+  return 0;
+}
+
+ALIAS_COMMAND (set_argv_list_2,
+              set_argv_list_1,
+              "set argv-list <0-7> <WORD> <WORD>",
+              SET_HELP
+              "set argv-list.\n"
+              "specify argv-list index.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              );
+
+ALIAS_COMMAND (set_argv_list_8,
+              set_argv_list_1,
+              "set argv-list <0-7> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+              SET_HELP
+              "set argv-list.\n"
+              "specify argv-list index.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              );
+
+ALIAS_COMMAND (set_argv_list_23,
+              set_argv_list_1,
+              "set argv-list <0-7> "
+              "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+              "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+              "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+              SET_HELP
+              "set argv-list.\n"
+              "specify argv-list index.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              );
+
+CLI_COMMAND2 (show_argv_list,
+              "show argv-list (|<0-7>)",
+              SHOW_HELP,
+              "show argv-list.\n",
+              "specify argv-list index.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i, j;
+
+  int index = -1;
+  if (argc > 2)
+    index = strtol (argv[2], NULL, 0);
+
+  for (i = 0; i < ARGV_LIST_MAX; i++)
+    {
+      int *argcp = &argv_list_argc[i];
+      char **argvp = argv_list[i];
+
+      if (index >= 0 && i != index)
+        continue;
+      for (j = 0; j < *argcp; j++)
+        fprintf (shell->terminal, "argv_list[%d][%d]: %s\n",
+                 i, j, argv_list[i][j]);
+    }
+
+  return 0;
+}
+
+
 CLI_COMMAND2 (show_loop_count,
               "show loop-count (console|vty-shell|l2fwd) (pps|total)",
               SHOW_HELP, "loop count\n", "console shell\n", "vty shell\n",
@@ -259,6 +396,7 @@ void lthread_cmd_init (struct command_set *cmdset);
 void queue_config_cmd_init (struct command_set *cmdset);
 void nettlp_cmd_init (struct command_set *cmdset);
 void dpdk_devbind_cmd_init (struct command_set *cmdset);
+void pktgen_cmd_init (struct command_set *cmdset);
 
 void
 sdplane_cmd_init (struct command_set *cmdset)
@@ -267,6 +405,12 @@ sdplane_cmd_init (struct command_set *cmdset)
   dpdk_lcore_cmd_init (cmdset);
   dpdk_port_cmd_init (cmdset);
   INSTALL_COMMAND2 (cmdset, set_l3fwd_argv);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_1);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_2);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_8);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_23);
+  INSTALL_COMMAND2 (cmdset, show_argv_list);
+
   INSTALL_COMMAND2 (cmdset, show_loop_count);
   INSTALL_COMMAND2 (cmdset, show_version);
   INSTALL_COMMAND2 (cmdset, show_rcu);
@@ -281,6 +425,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   lthread_cmd_init (cmdset);
   tap_cmd_init (cmdset);
   dpdk_devbind_cmd_init (cmdset);
+  pktgen_cmd_init (cmdset);
 
   nettlp_cmd_init (cmdset);
 }

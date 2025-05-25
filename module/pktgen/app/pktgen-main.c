@@ -416,13 +416,14 @@ pktgen_lua_dofile(void *ld, const char *filename)
  * SEE ALSO:
  */
 int
-_pktgen_main(int argc, char **argv)
+_pktgen_main_init(int argc, char **argv)
 {
     uint32_t i;
     int32_t ret;
     struct sigaction sa;
     sigset_t set;
 
+#if 0
     setlocale(LC_ALL, "");
 
     sa.sa_handler = sig_handler;
@@ -443,6 +444,7 @@ _pktgen_main(int argc, char **argv)
 
     scrn_setw(1);     /* Reset the window size, from possible crash run. */
     scrn_pos(100, 1); /* Move the cursor to the bottom of the screen again */
+#endif
 
     print_copyright(PKTGEN_VER_PREFIX, PKTGEN_VER_CREATED_BY);
     fflush(stdout);
@@ -537,6 +539,7 @@ _pktgen_main(int argc, char **argv)
         pktgen_log_info("=== Display processing on lcore %d", rte_lcore_id());
     }
 
+#if 0
     /* launch per-lcore init on every lcore except initial and initial + 1 lcores */
     ret = rte_eal_mp_remote_launch(pktgen_launch_one_lcore, NULL, SKIP_MAIN);
     if (ret != 0)
@@ -603,6 +606,7 @@ _pktgen_main(int argc, char **argv)
 
     cli_destroy();
     scrn_destroy();
+#endif
     return 0;
 }
 
