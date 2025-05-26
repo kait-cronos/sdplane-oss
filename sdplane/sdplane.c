@@ -35,9 +35,12 @@ CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 }
 
 CLI_COMMAND2 (set_locale,
-              //"set locale (LC_ALL|LC_NUMERIC) (C|C.utf8|en_US.utf8|POSIX)",
-              "set locale (C|C.utf8|en_US.utf8|POSIX)", SET_HELP,
-              "locale information\n", "C\n", "C.utf8\n", "en_US.utf8\n",
+              "set locale (C|C.utf8|en_US.utf8|POSIX)",
+	      SET_HELP,
+              "locale information\n",
+	      "C\n",
+	      "C.utf8\n",
+	      "en_US.utf8\n",
               "POSIX")
 {
   struct shell *shell = (struct shell *) context;
@@ -81,6 +84,143 @@ CLI_COMMAND2 (set_l3fwd_argv,
 
   return 0;
 }
+
+#define ARGV_LIST_MAX 8
+#define ARGV_LIST_ARGV_MAX 32
+char *argv_list[ARGV_LIST_MAX][ARGV_LIST_ARGV_MAX];
+int argv_list_argc[ARGV_LIST_MAX];
+
+CLI_COMMAND2 (set_argv_list_1,
+              "set argv-list <0-7> <WORD>",
+              SET_HELP,
+              "set argv-list.\n",
+              "specify argv-list index.\n",
+              "set command-line arguments.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i;
+
+  if (argc >= ARGV_LIST_ARGV_MAX)
+    {
+      fprintf (shell->terminal, "too many arguments: %d.%s",
+               argc, shell->NL);
+      return -1;
+    }
+
+  int index;
+  index = strtol (argv[2], NULL, 0);
+
+  int *argcp = &argv_list_argc[index];
+  char **argvp = argv_list[index];
+
+  for (i = 0; i < ARGV_LIST_ARGV_MAX; i++)
+    {
+      if (argvp[i])
+        free (argvp[i]);
+      argvp[i] = NULL;
+    }
+
+  *argcp = 0;
+  for (i = 3; i < argc; i++)
+    {
+      argvp[(*argcp)++] = strdup (argv[i]);
+    }
+
+  for (i = 0; i < *argcp; i++)
+    fprintf (shell->terminal, "argv_list[%d][%d]: %s\n",
+             index, i, argv_list[index][i]);
+
+  return 0;
+}
+
+ALIAS_COMMAND (set_argv_list_2,
+              set_argv_list_1,
+              "set argv-list <0-7> <WORD> <WORD>",
+              SET_HELP
+              "set argv-list.\n"
+              "specify argv-list index.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              );
+
+ALIAS_COMMAND (set_argv_list_8,
+              set_argv_list_1,
+              "set argv-list <0-7> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+              SET_HELP
+              "set argv-list.\n"
+              "specify argv-list index.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              );
+
+ALIAS_COMMAND (set_argv_list_23,
+              set_argv_list_1,
+              "set argv-list <0-7> "
+              "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+              "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+              "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+              SET_HELP
+              "set argv-list.\n"
+              "specify argv-list index.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              "set command-line arguments.\n"
+              );
+
+CLI_COMMAND2 (show_argv_list,
+              "show argv-list (|<0-7>)",
+              SHOW_HELP,
+              "show argv-list.\n",
+              "specify argv-list index.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i, j;
+
+  int index = -1;
+  if (argc > 2)
+    index = strtol (argv[2], NULL, 0);
+
+  for (i = 0; i < ARGV_LIST_MAX; i++)
+    {
+      int *argcp = &argv_list_argc[i];
+      char **argvp = argv_list[i];
+
+      if (index >= 0 && i != index)
+        continue;
+      for (j = 0; j < *argcp; j++)
+        fprintf (shell->terminal, "argv_list[%d][%d]: %s\n",
+                 i, j, argv_list[i][j]);
+    }
+
+  return 0;
+}
+
 
 CLI_COMMAND2 (show_loop_count,
               "show loop-count (console|vty-shell|l2fwd) (pps|total)",
@@ -230,11 +370,33 @@ CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
   return 0;
 }
 
+CLI_COMMAND2 (show_mempool, "show mempool",
+              SHOW_HELP,
+              "show mempool.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  struct rte_mempool *mp;
+  unsigned int count;
+  int is_full;
+
+  mp = l2fwd_pktmbuf_pool;
+  count = rte_mempool_avail_count (mp);
+  is_full = rte_mempool_full (mp);
+
+  fprintf (t, "mempool: size: %u count: %u is_full: %d%s",
+           mp->size, count, is_full, shell->NL);
+
+  return 0;
+}
+
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
 void lthread_cmd_init (struct command_set *cmdset);
 void queue_config_cmd_init (struct command_set *cmdset);
 void nettlp_cmd_init (struct command_set *cmdset);
+void dpdk_devbind_cmd_init (struct command_set *cmdset);
+void pktgen_cmd_init (struct command_set *cmdset);
 
 void
 sdplane_cmd_init (struct command_set *cmdset)
@@ -243,6 +405,12 @@ sdplane_cmd_init (struct command_set *cmdset)
   dpdk_lcore_cmd_init (cmdset);
   dpdk_port_cmd_init (cmdset);
   INSTALL_COMMAND2 (cmdset, set_l3fwd_argv);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_1);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_2);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_8);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_23);
+  INSTALL_COMMAND2 (cmdset, show_argv_list);
+
   INSTALL_COMMAND2 (cmdset, show_loop_count);
   INSTALL_COMMAND2 (cmdset, show_version);
   INSTALL_COMMAND2 (cmdset, show_rcu);
@@ -250,11 +418,14 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, sleep_cmd);
+  INSTALL_COMMAND2 (cmdset, set_locale);
+  INSTALL_COMMAND2 (cmdset, show_mempool);
   thread_info_cmd_init (cmdset);
   queue_config_cmd_init (cmdset);
   lthread_cmd_init (cmdset);
   tap_cmd_init (cmdset);
   dpdk_devbind_cmd_init (cmdset);
+  pktgen_cmd_init (cmdset);
 
   nettlp_cmd_init (cmdset);
 }

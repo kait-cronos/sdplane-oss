@@ -1,25 +1,45 @@
 #ifndef __RIB_H__
 #define __RIB_H__
 
-#define MAX_TAPIF_PORTS 16
+#define MAX_TAP_IF 8
+#define MAX_ROUTER_IF 8
 #define MAX_VSWITCH_PORTS 4
 #define MAX_VSWITCH_ID 4
+#define MAX_VSWITCH_LINK 32
+#define MAX_VLAN_PER_PORT 4
+#define MAX_ETH_PORTS 8
 
-struct tapif_conf
+struct router_if
 {
-  int sockfd;
+  int sockfd; //tap sockfd.
+  uint16_t tap_ring_id;
+
+  struct in_addr ipv4_addr;
+  struct in6_addr ipv6_addr;
 };
 
-struct switch_port
+struct capture_if
 {
-  uint8_t type; // dpdk or tapif
-  uint8_t portid;
+  int sockfd; //tap sockfd.
+  uint16_t tap_ring_id;
+};
+
+struct vswitch_link
+{
+  uint16_t port_id;
+  //uint16_t queue_id; //queue_id of rx_queue.
+  uint16_t vlan_id;
+  uint16_t tag_id; //0 indicates untag. tag_id != vlan_id is tag-modify.
+  uint16_t vswitch_id;
+  uint16_t vswitch_port;
 };
 
 struct vswitch_conf
 {
-  uint16_t port_size;
-  struct switch_port port[MAX_VSWITCH_PORTS];
+  uint16_t vswitch_port_size;
+  struct vswitch_link vswitch_port[MAX_VSWITCH_PORTS];
+  struct router_if router_if;
+  struct capture_if capture_if;
 };
 
 struct port_conf
@@ -28,6 +48,11 @@ struct port_conf
   uint16_t nb_txd;
   struct rte_eth_link link;
   struct rte_eth_dev_info dev_info;
+
+  /* vlan support. */
+  uint16_t vlan_size; //configured vlan size.
+  uint16_t vswitch_link_id_of_vlan[MAX_VLAN_PER_PORT];
+  uint16_t vswitch_link_id_of_native_vlan;
 };
 
 #include "queue_config.h"
@@ -42,11 +67,12 @@ struct rib_info {
   uint32_t ver;
   uint8_t tapif_size;
   uint8_t vswitch_size;
+  uint8_t vswitch_link_size;
   uint8_t port_size;
   uint8_t lcore_size;
-  struct tapif_conf tapif[MAX_TAPIF_PORTS];
   struct vswitch_conf vswitch[MAX_VSWITCH_ID];
-  struct port_conf port[RTE_MAX_ETHPORTS];
+  struct vswitch_link vswitch_link[MAX_VSWITCH_LINK];
+  struct port_conf port[MAX_ETH_PORTS];
   struct lcore_qconf lcore_qconf[RTE_MAX_LCORE];
 } __rte_cache_aligned;
 
