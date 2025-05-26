@@ -109,7 +109,6 @@ console_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
 
   INSTALL_COMMAND2 (shell->cmdset, show_worker);
-  INSTALL_COMMAND2 (shell->cmdset, set_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
 
   INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);

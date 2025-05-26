@@ -35,7 +35,6 @@ startup_config (__rte_unused void *dummy)
   FLAG_UNSET (shell->flag, SHELL_FLAG_INTERACTIVE);
 
   // INSTALL_COMMAND2 (shell->cmdset, show_worker);
-  INSTALL_COMMAND2 (shell->cmdset, set_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
 
   INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);
