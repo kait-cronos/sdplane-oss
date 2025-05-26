@@ -216,6 +216,8 @@ rib_check (struct rib *new)
   DEBUG_SDPLANE_LOG (RIB, "max_lcore: %d, ntxq: %d", max_lcore, ntxq);
   int nb_ports;
   nb_ports = rte_eth_dev_count_avail ();
+  if (nb_ports > MAX_ETH_PORTS)
+    nb_ports = MAX_ETH_PORTS;
   for (i = 0; i < nb_ports; i++)
     {
       int nrxq;

@@ -1,3 +1,51 @@
+sdplane (0.1.2-28) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Wed, 7 May 2025 17:33:58 +0900
+
+sdplane (0.1.2-27) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * support DPDK-23.11 by defining RTE_VLAN_TCI_ID().
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Wed, 7 May 2025 17:32:54 +0900
+
+sdplane (0.1.2-25) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu@yasuhironet.net>  Wed, 7 May 2025 17:18:01 +0900
+
+sdplane (0.1.2-24) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * install igb_uio.
+  * set locale.
+  * vswitch_link design for vlan support.
+  * vlan-id check.
+  * sync TODO.
+  * TODO.
+  * vlan-switch thread.
+  * finalize l2_repeater.
+  * extend rib to support vlan.
+  * fix hard-coding tx_queueid 0.
+  * only format.
+  * show_mempool.
+  * netlink_read_block(). read and wait each time after netlink_request().
+  * Merge branch 'devel'
+  * reading framework in netlink-thread.
+  * netlink_socket ().
+  * stream_buf.c compiled okay.
+  * netlink-thread.
+  * stream_buf.[ch]
+  * Merge branch 'devel' of github.com:yasuhironet/sdplane into devel
+  * Merge branch 'devel'
+  * test commit.
+  * update changelog for v0.1.1-128.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 7 May 2025 08:02:34 +0000
+
 sdplane (0.1.1-129) UNRELEASED; urgency=low
 
   * release. update changelog.

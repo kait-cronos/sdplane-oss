@@ -30,6 +30,7 @@
 #define DEBUG_SDPLANE_NETTLP         (1ULL << 24)
 #define DEBUG_SDPLANE_NETDEVICE      (1ULL << 25)
 #define DEBUG_SDPLANE_NETLINK        (1ULL << 26)
+#define DEBUG_SDPLANE_VLAN_SWITCH    (1ULL << 27)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)

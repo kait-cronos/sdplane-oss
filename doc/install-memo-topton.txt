@@ -111,6 +111,10 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
 * timezone 設定
   # timedatectl set-timezone Asia/Tokyo
 
+* locale
+  # locale-gen en_US.UTF-8
+  # update-locale LANG=en_US.utf8 LC_ALL=en_US.utf8
+
 * apt install
   - etckeeper
   - tig
@@ -158,6 +162,16 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   確認:
   $ pkg-config --modversion libdpdk
   23.11.1
+
+* igb_uio の install
+  $ sudo apt-get install -y dpdk-igb-uio-dkms
+     or
+  $ git clone http://dpdk.org/git/dpdk-kmods
+  $ cd dpdk-kmods/linux/igb_uio
+  $ make
+  # mkdir -p /lib/modules/`uname -r`/extra/dpdk/
+  # cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
+  # echo igb_uio > /etc/modules-load.d/igb_uio.conf
 
 * Hugepage メモリ設定
   (2MB hugepage を1500, 1GbE x 2 で必要。NICによってもっと必要かも。)

@@ -20,6 +20,7 @@ CLI_COMMAND2 (set_tap_capture_ifname,
   memset (capture_ifname, 0, sizeof (capture_ifname));
   snprintf (capture_ifname, sizeof (capture_ifname),
             "%s", argv[4]);
+  return 0;
 }
 
 CLI_COMMAND2 (set_tap_capture_persistent,
@@ -34,6 +35,7 @@ CLI_COMMAND2 (set_tap_capture_persistent,
 {
   struct shell *shell = (struct shell *) context;
   capture_if_persistent = 1;
+  return 0;
 }
 
 void

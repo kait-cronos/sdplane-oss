@@ -44,7 +44,7 @@ CLI_COMMAND2 (show_rib,
   rib = rcu_dereference (rcu_global_ptr_rib);
 
   if (! rib)
-    return;
+    return 0;
 
 #if 0
   nb_ports = rte_eth_dev_count_avail ();
@@ -76,21 +76,23 @@ CLI_COMMAND2 (show_rib,
   if (! rib->rib_info)
     {
       fprintf (shell->terminal, "no rib-info.%s", shell->NL);
-      return;
+      return 0;
     }
 
   fprintf (shell->terminal, "rib_info: ver: %lu (%p)%s",
            rib->rib_info->ver, rib->rib_info, shell->NL);
 
+#if 0
   fprintf (shell->terminal, "rib_info: tapif_size: %d%s",
            rib->rib_info->tapif_size, shell->NL);
   for (i = 0; i < rib->rib_info->tapif_size; i++)
     {
-      struct tapif_conf *tapconf;
-      tapconf = &rib->rib_info->tapif[i];
+      struct tap_if_conf *tapconf;
+      tapconf = &rib->rib_info->tap_if[i];
       fprintf (shell->terminal, "rib_info: tapif[%d]: sockfd: %d%s",
                i, tapconf->sockfd, shell->NL);
     }
+#endif
 
   fprintf (shell->terminal, "rib_info: vswitch_size: %d%s",
            rib->rib_info->vswitch_size, shell->NL);
@@ -99,14 +101,14 @@ CLI_COMMAND2 (show_rib,
       struct vswitch_conf *vswitch;
       vswitch = &rib->rib_info->vswitch[i];
       fprintf (shell->terminal, "rib_info: vswitch[%d]: port_size: %d%s",
-               i, vswitch->port_size, shell->NL);
-      for (j = 0; j < vswitch->port_size; j++)
+               i, vswitch->vswitch_port_size, shell->NL);
+      for (j = 0; j < vswitch->vswitch_port_size; j++)
         {
-          struct switch_port *port;
-          port = &vswitch->port[j];
+          struct vswitch_link *link;
+          link = &vswitch->vswitch_port[j];
           fprintf (shell->terminal,
-                   "rib_info: vswitch[%d]: port[%d]: type: %d portid: %d%s",
-                   i, j, port->type, port->portid, shell->NL);
+                   "rib_info: vswitch[%d]: port[%d]: port_id: %u vlan: %u%s",
+                   i, j, link->port_id, link->vlan_id, shell->NL);
         }
     }
 
@@ -147,5 +149,7 @@ CLI_COMMAND2 (show_rib,
                    shell->NL);
         }
     }
+
+  return 0;
 }
 
