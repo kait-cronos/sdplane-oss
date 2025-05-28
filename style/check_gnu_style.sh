@@ -13,6 +13,8 @@ clangformat=clang-format
 IGNORE_PATHS=""
 
 check () {
+    local needs_update=0
+
     if [ $# -eq 0 ]; then
         while IFS= read -r -d '' file
         do
@@ -22,6 +24,7 @@ check () {
                 $diffcmd -q "$file" - > /dev/null
             if [[ $? -eq 1 ]]; then
                 echo "$file needs to be fixed by update.";
+                needs_update=1
             fi
         done <   <(find . -name '*.[ch]' -print0)
     else
@@ -30,9 +33,14 @@ check () {
                 $diffcmd -q "$file" - > /dev/null
             if [[ $? -eq 1 ]]; then
                 echo "$file needs to be fixed by update.";
+                needs_update=1
             fi
         done
-     fi
+    fi
+
+    if [[ $needs_update -eq 1 ]]; then
+        exit 1;
+    fi
 }
 
 diff () {
