@@ -55,7 +55,7 @@ jobs:
         run: |
           cd ${HOME}
           wget https://fast.dpdk.org/rel/dpdk-${DPDK_VERSION}.tar.xz
-          tar -xvJf dpdk-23.11.1.tar.xz
+          tar -xvJf dpdk-${DPDK_VERSION}.tar.xz
           cd dpdk-stable-${DPDK_VERSION}
           meson setup build
           cd build
