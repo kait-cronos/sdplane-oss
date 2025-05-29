@@ -82,6 +82,7 @@ update () {
                 cat "$file".bak | $clangformat | \
                     awk -f $fixdefun > "$file"
                 echo "$file has been fixed by update.";
+                rm "$file".bak
             fi
         done <   <(find . -name '*.[ch]' -print0)
      else
@@ -93,6 +94,7 @@ update () {
                 cat "$file".bak | $clangformat | \
                     awk -f $fixdefun > "$file"
                 echo "$file has been fixed by update.";
+                rm "$file".bak
             fi
         done
      fi
