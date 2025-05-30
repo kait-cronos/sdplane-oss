@@ -113,7 +113,7 @@ CLI_COMMAND2 (set_worker,
     func = nettlp_thread;
   else if (! strcmp (argv[4], "vlan-switch"))
     func = vlan_switch;
-  else /* if (! strcmp (argv[4], "l3fwd")) */
+  else if (! strcmp (argv[4], "l3fwd-lpm"))
     func = lpm_main_loop;
 
   if (lcore_workers[lcore_id].func == lthread_main)

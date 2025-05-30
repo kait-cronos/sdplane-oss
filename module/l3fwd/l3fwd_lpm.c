@@ -33,6 +33,23 @@
 
 #include "lpm_route_parse.c"
 
+#if HAVE_LIBURCU_QSBR
+#include <urcu/urcu-qsbr.h>
+#endif /*HAVE_LIBURCU_QSBR*/
+
+#include "tap_handler.h"
+#include "rte_override.h"
+
+#include <sdplane/debug.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
+#include <sdplane/debug_cmd.h>
+#include "debug_sdplane.h"
+#include "stat_collector.h"
+
+#include "thread_info.h"
+
 #define IPV4_L3FWD_LPM_MAX_RULES         1024
 #define IPV4_L3FWD_LPM_NUMBER_TBL8S (1 << 8)
 #define IPV6_L3FWD_LPM_MAX_RULES         1024
@@ -40,6 +57,10 @@
 
 static struct rte_lpm *ipv4_l3fwd_lpm_lookup_struct[NB_SOCKETS];
 static struct rte_lpm6 *ipv6_l3fwd_lpm_lookup_struct[NB_SOCKETS];
+
+extern volatile bool force_quit;
+
+static __thread uint64_t loop_counter = 0;
 
 /* Performing LPM-based lookups. 8< */
 static inline uint16_t
@@ -62,7 +83,7 @@ lpm_get_ipv6_dst_port(const struct rte_ipv6_hdr *ipv6_hdr,
 		      uint16_t portid,
 		      struct rte_lpm6 *ipv6_l3fwd_lookup_struct)
 {
-	const uint8_t *dst_ip = &ipv6_hdr->dst_addr;
+	const uint8_t *dst_ip = ipv6_hdr->dst_addr;
 	uint32_t next_hop;
 
 	if (rte_lpm6_lookup(ipv6_l3fwd_lookup_struct, dst_ip, &next_hop) == 0)
@@ -122,7 +143,7 @@ lpm_get_dst_port_with_ipv4(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
 
 		return (uint16_t) ((rte_lpm6_lookup(qconf->ipv6_lookup_struct,
-				&ipv6_hdr->dst_addr, &next_hop) == 0)
+				ipv6_hdr->dst_addr, &next_hop) == 0)
 				? next_hop : portid);
 
 	}
@@ -178,7 +199,16 @@ lpm_main_loop(__rte_unused void *dummy)
 	cur_tsc = rte_rdtsc();
 	prev_tsc = cur_tsc;
 
-	while (!force_quit) {
+	int thread_id;
+  	thread_id = thread_lookup_by_lcore (lpm_main_loop, lcore_id);
+  	thread_register_loop_counter (thread_id, &loop_counter);
+
+#if HAVE_LIBURCU_QSBR
+    urcu_qsbr_register_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
+	while (!force_quit && !force_stop[lcore_id]) {
+		loop_counter++;
 
 		/*
 		 * TX burst queue drain
@@ -221,8 +251,17 @@ lpm_main_loop(__rte_unused void *dummy)
 		}
 
 		cur_tsc = rte_rdtsc();
+
+#if HAVE_LIBURCU_QSBR
+        urcu_qsbr_read_lock ();
+        urcu_qsbr_read_unlock ();
+        urcu_qsbr_quiescent_state ();
+#endif /*HAVE_LIBURCU_QSBR*/
 	}
 
+#if HAVE_LIBURCU_QSBR
+    urcu_qsbr_unregister_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
 	return 0;
 }
 

@@ -61,11 +61,14 @@
 uint16_t nb_rxd = RX_DESC_DEFAULT;
 uint16_t nb_txd = TX_DESC_DEFAULT;
 
+#if 0
 /**< Ports set in promiscuous mode off by default. */
-static int promiscuous_on;
+int promiscuous_on;
+#endif
 
 /* Select Longest-Prefix, Exact match, Forwarding Information Base or Access
  * Control. */
+#if 0
 enum L3FWD_LOOKUP_MODE
 {
   L3FWD_LOOKUP_DEFAULT,
@@ -74,7 +77,8 @@ enum L3FWD_LOOKUP_MODE
   L3FWD_LOOKUP_FIB,
   L3FWD_LOOKUP_ACL
 };
-static enum L3FWD_LOOKUP_MODE lookup_mode;
+#endif
+enum L3FWD_LOOKUP_MODE lookup_mode;
 
 /* Global variables. */
 static int numa_on = 1;      /**< NUMA is enabled by default. */
@@ -496,7 +500,7 @@ parse_portmask (const char *portmask)
   return pm;
 }
 
-static int
+int
 parse_config (const char *q_arg)
 {
   char s[256];
@@ -554,7 +558,7 @@ parse_config (const char *q_arg)
   return 0;
 }
 
-static void
+void
 parse_eth_dest (const char *optarg)
 {
   uint16_t portid;
@@ -576,6 +580,9 @@ parse_eth_dest (const char *optarg)
   for (c = 0; c < 6; c++)
     dest[c] = peer_addr[c];
   *(uint64_t *) (val_eth + portid) = dest_eth_addr[portid];
+  printf("Destination MAC address for port %d: "
+         RTE_ETHER_ADDR_PRT_FMT "\n", portid,
+         RTE_ETHER_ADDR_BYTES ((struct rte_ether_addr *)&dest_eth_addr[portid]));
 }
 
 static void
@@ -656,7 +663,7 @@ parse_event_eth_rx_queues (const char *eth_rx_queues)
 }
 #endif
 
-static int
+int
 parse_lookup (const char *optarg)
 {
   if (! strcmp (optarg, "em"))
@@ -1574,7 +1581,7 @@ argv_save (int argc, char **argv)
 }
 
 int
-l3fwd_init (int argc, char **argv, char **envp)
+l3fwd_init (int argc, char **argv)
 {
 #ifdef RTE_LIB_EVENTDEV
   struct l3fwd_event_resources *evt_rsrc;
@@ -1586,9 +1593,10 @@ l3fwd_init (int argc, char **argv, char **envp)
   uint8_t queue;
   int ret;
 
-  argv_save (argc, argv);
+  // argv_save (argc, argv);
   //soft_dplane_init ();
 
+#if 0
   /* init EAL */
   ret = rte_eal_init (argc, argv);
   if (ret < 0)
@@ -1615,6 +1623,7 @@ l3fwd_init (int argc, char **argv, char **envp)
   ret = parse_args (argc, argv);
   if (ret < 0)
     rte_exit (EXIT_FAILURE, "Invalid L3FWD parameters\n");
+#endif
 
   /* Setup function pointers for lookup method. */
   setup_l3fwd_lookup_tables ();
@@ -1622,6 +1631,7 @@ l3fwd_init (int argc, char **argv, char **envp)
   /* Add the config file rules */
   l3fwd_lkp.read_config_files ();
 
+#if 0
 #ifdef RTE_LIB_EVENTDEV
   evt_rsrc->per_port_pool = per_port_pool;
   evt_rsrc->pkt_pool = pktmbuf_pool;
@@ -1641,7 +1651,9 @@ l3fwd_init (int argc, char **argv, char **envp)
     }
   else
 #endif
-    l3fwd_poll_resource_setup ();
+#endif
+
+  l3fwd_poll_resource_setup ();
 
   /* start ports */
   RTE_ETH_FOREACH_DEV (portid)
