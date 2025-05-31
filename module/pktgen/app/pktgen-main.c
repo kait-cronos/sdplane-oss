@@ -235,7 +235,7 @@ pktgen_parse_args(int argc, char **argv)
             break;
 
         case 'f': /* Command file or Lua script. */
-            //cli_add_cmdfile(optarg);
+            cli_add_cmdfile(optarg);
             break;
 
         case 'l': /* Log file */
@@ -484,7 +484,6 @@ _pktgen_main_init(int argc, char **argv)
     if (pktgen_dynfield_offset < 0)
         rte_exit(EXIT_FAILURE, "Cannot register mbuf field\n");
 
-#if 0
     if (pktgen_cli_create()) {
         cli_destroy();
         scrn_destroy();
@@ -501,7 +500,6 @@ _pktgen_main_init(int argc, char **argv)
     }
     cli_set_lua_callback(pktgen_lua_dofile);
     cli_set_user_state(pktgen.ld);
-#endif
 #endif
 
     /* parse application arguments (after the EAL ones) */
@@ -523,9 +521,7 @@ _pktgen_main_init(int argc, char **argv)
 
     pktgen.hz = pktgen_get_timer_hz(); /* Get the starting HZ value. */
 
-#if 0
     scrn_create_with_defaults(pktgen.flags & ENABLE_THEME_FLAG);
-#endif
 
     rte_delay_us_sleep(100 * 1000); /* Wait a bit for things to settle. */
 

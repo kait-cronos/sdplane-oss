@@ -46,32 +46,10 @@ CLI_COMMAND2 (show_pktgen,
   return 0;
 }
 
-int _pktgen_main_init(int argc, char **argv);
-
-CLI_COMMAND2 (pktgen_init,
-              "pktgen init argv-list <0-7>",
-              "pktgen\n",
-              "init\n",
-              "specify argv-list\n",
-              "specify argv-list number\n")
-{
-  struct shell *shell = (struct shell *) context;
-
-  int index;
-  index = strtol (argv[3], NULL, 0);
-
-  int *argcp = &argv_list_argc[index];
-  char **argvp = argv_list[index];
-
-  _pktgen_main_init (*argcp, argvp);
-  return 0;
-}
-
 void
 pktgen_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, show_pktgen);
-  INSTALL_COMMAND2 (cmdset, pktgen_init);
 }
 
 
