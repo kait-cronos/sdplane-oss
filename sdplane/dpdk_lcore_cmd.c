@@ -51,8 +51,12 @@ start_lcore (struct shell *shell, int lcore_id)
       return;
     }
 
-  thread_register (lcore_id, NULL, (lthread_func) lcore_workers[lcore_id].func,
-                   lcore_workers[lcore_id].func_name, NULL);
+  int ret;
+  ret = thread_lookup_by_lcore (lcore_workers[lcore_id].func, lcore_id);
+  if (ret < 0)
+    thread_register (lcore_id, NULL,
+                     (lthread_func) lcore_workers[lcore_id].func,
+                     lcore_workers[lcore_id].func_name, NULL);
 
   rte_eal_remote_launch (lcore_workers[lcore_id].func,
                          lcore_workers[lcore_id].arg, lcore_id);

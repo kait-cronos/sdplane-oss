@@ -85,8 +85,6 @@ CLI_COMMAND2 (set_locale,
 //   return 0;
 // }
 
-#define ARGV_LIST_MAX 8
-#define ARGV_LIST_ARGV_MAX 32
 char *argv_list[ARGV_LIST_MAX][ARGV_LIST_ARGV_MAX];
 int argv_list_argc[ARGV_LIST_MAX];
 
