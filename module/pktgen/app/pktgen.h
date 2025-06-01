@@ -103,69 +103,80 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #define MAX_MATRIX_ENTRIES 128
 #define MAX_STRING         256
-#define Million            (uint64_t)(1000000UL)
-#define Billion            (uint64_t)(1000000000UL)
+#define Million            (uint64_t) (1000000UL)
+#define Billion            (uint64_t) (1000000000UL)
 
-#define iBitsTotal(_x) (uint64_t)(((_x.ipackets * PKT_OVERHEAD_SIZE) + _x.ibytes) * 8)
-#define oBitsTotal(_x) (uint64_t)(((_x.opackets * PKT_OVERHEAD_SIZE) + _x.obytes) * 8)
+#define iBitsTotal(_x)                                                        \
+  (uint64_t) (((_x.ipackets * PKT_OVERHEAD_SIZE) + _x.ibytes) * 8)
+#define oBitsTotal(_x)                                                        \
+  (uint64_t) (((_x.opackets * PKT_OVERHEAD_SIZE) + _x.obytes) * 8)
 
-#define _do(_exp) \
-    do {          \
-        _exp;     \
-    } while ((0))
+#define _do(_exp)                                                             \
+  do                                                                          \
+    {                                                                         \
+      _exp;                                                                   \
+    }                                                                         \
+  while ((0))
 
 #ifndef RTE_ETH_FOREACH_DEV
 #define RTE_ETH_FOREACH_DEV(p) for (_p = 0; _p < pktgen.nb_ports; _p++)
 #endif
 
-#define forall_ports(_action)          \
-    do {                               \
-        uint16_t pid;                  \
-                                       \
-        RTE_ETH_FOREACH_DEV(pid)       \
-        {                              \
-            port_info_t *info;         \
-                                       \
-            info = &pktgen.info[pid];  \
-            if (info->seq_pkt == NULL) \
-                continue;              \
-            _action;                   \
-        }                              \
-    } while ((0))
+#define forall_ports(_action)                                                 \
+  do                                                                          \
+    {                                                                         \
+      uint16_t pid;                                                           \
+                                                                              \
+      RTE_ETH_FOREACH_DEV (pid)                                               \
+      {                                                                       \
+        port_info_t *info;                                                    \
+                                                                              \
+        info = &pktgen.info[pid];                                             \
+        if (info->seq_pkt == NULL)                                            \
+          continue;                                                           \
+        _action;                                                              \
+      }                                                                       \
+    }                                                                         \
+  while ((0))
 
-#define foreach_port(_portlist, _action)                  \
-    do {                                                  \
-        uint64_t *_pl = (uint64_t *)&_portlist;           \
-        uint16_t pid, idx, bit;                           \
-                                                          \
-        RTE_ETH_FOREACH_DEV(pid)                          \
-        {                                                 \
-            port_info_t *info;                            \
-                                                          \
-            idx = (pid / (sizeof(uint64_t) * 8));         \
-            bit = (pid - (idx * (sizeof(uint64_t) * 8))); \
-            if ((_pl[idx] & (1LL << bit)) == 0)           \
-                continue;                                 \
-            info = &pktgen.info[pid];                     \
-            if (info->seq_pkt == NULL)                    \
-                continue;                                 \
-            _action;                                      \
-        }                                                 \
-    } while ((0))
+#define foreach_port(_portlist, _action)                                      \
+  do                                                                          \
+    {                                                                         \
+      uint64_t *_pl = (uint64_t *) &_portlist;                                \
+      uint16_t pid, idx, bit;                                                 \
+                                                                              \
+      RTE_ETH_FOREACH_DEV (pid)                                               \
+      {                                                                       \
+        port_info_t *info;                                                    \
+                                                                              \
+        idx = (pid / (sizeof (uint64_t) * 8));                                \
+        bit = (pid - (idx * (sizeof (uint64_t) * 8)));                        \
+        if ((_pl[idx] & (1LL << bit)) == 0)                                   \
+          continue;                                                           \
+        info = &pktgen.info[pid];                                             \
+        if (info->seq_pkt == NULL)                                            \
+          continue;                                                           \
+        _action;                                                              \
+      }                                                                       \
+    }                                                                         \
+  while ((0))
 
-typedef enum {
+  typedef enum
+  {
     PACKET_CONSUMED = 0,
-    UNKNOWN_PACKET  = 0xEEEE,
-    DROP_PACKET     = 0xFFFE,
-    FREE_PACKET     = 0xFFFF
-} pktType_e;
+    UNKNOWN_PACKET = 0xEEEE,
+    DROP_PACKET = 0xFFFE,
+    FREE_PACKET = 0xFFFF
+  } pktType_e;
 
-enum {
+  enum
+  {
     MAX_SCRN_ROWS = 44,
     MAX_SCRN_COLS = 132,
 
@@ -176,62 +187,62 @@ enum {
     /* Row locations for start of data */
     PORT_STATE_ROWS = 1,
     LINK_STATE_ROWS = 6,
-    PKT_SIZE_ROWS   = 10,
+    PKT_SIZE_ROWS = 10,
     PKT_TOTALS_ROWS = 7,
-    IP_ADDR_ROWS    = 12,
+    IP_ADDR_ROWS = 12,
 
     PORT_STATE_ROW = 2,
     LINK_STATE_ROW = (PORT_STATE_ROW + PORT_STATE_ROWS),
-    PKT_SIZE_ROW   = (LINK_STATE_ROW + LINK_STATE_ROWS),
+    PKT_SIZE_ROW = (LINK_STATE_ROW + LINK_STATE_ROWS),
     PKT_TOTALS_ROW = (PKT_SIZE_ROW + PKT_SIZE_ROWS),
-    IP_ADDR_ROW    = (PKT_TOTALS_ROW + PKT_TOTALS_ROWS),
+    IP_ADDR_ROW = (PKT_TOTALS_ROW + PKT_TOTALS_ROWS),
 
-    DEFAULT_NETMASK        = 0xFFFFFF00,
-    DEFAULT_IP_ADDR        = (192 << 24) | (168 << 16),
-    DEFAULT_TX_COUNT       = 0, /* Forever */
-    DEFAULT_TX_RATE        = 100,
-    DEFAULT_PRIME_COUNT    = 1,
-    DEFAULT_SRC_PORT       = 1234,
-    DEFAULT_DST_PORT       = 5678,
-    DEFAULT_TTL            = 64,
+    DEFAULT_NETMASK = 0xFFFFFF00,
+    DEFAULT_IP_ADDR = (192 << 24) | (168 << 16),
+    DEFAULT_TX_COUNT = 0, /* Forever */
+    DEFAULT_TX_RATE = 100,
+    DEFAULT_PRIME_COUNT = 1,
+    DEFAULT_SRC_PORT = 1234,
+    DEFAULT_DST_PORT = 5678,
+    DEFAULT_TTL = 64,
     DEFAULT_TCP_SEQ_NUMBER = 0x12378,
-    MAX_TCP_SEQ_NUMBER     = UINT32_MAX / 8,
+    MAX_TCP_SEQ_NUMBER = UINT32_MAX / 8,
     DEFAULT_TCP_ACK_NUMBER = 0x12390,
-    MAX_TCP_ACK_NUMBER     = UINT32_MAX / 8,
-    DEFAULT_TCP_FLAGS      = ACK_FLAG,
-    DEFAULT_WND_SIZE       = 8192,
-    MIN_VLAN_ID            = 1,
-    MAX_VLAN_ID            = 4095,
-    DEFAULT_VLAN_ID        = MIN_VLAN_ID,
-    MIN_COS                = 0,
-    MAX_COS                = 7,
-    DEFAULT_COS            = MIN_COS,
-    MIN_TOS                = 0,
-    MAX_TOS                = 255,
-    DEFAULT_TOS            = MIN_TOS,
-    MAX_ETHER_TYPE_SIZE    = 0x600,
-    OVERHEAD_FUDGE_VALUE   = 50,
+    MAX_TCP_ACK_NUMBER = UINT32_MAX / 8,
+    DEFAULT_TCP_FLAGS = ACK_FLAG,
+    DEFAULT_WND_SIZE = 8192,
+    MIN_VLAN_ID = 1,
+    MAX_VLAN_ID = 4095,
+    DEFAULT_VLAN_ID = MIN_VLAN_ID,
+    MIN_COS = 0,
+    MAX_COS = 7,
+    DEFAULT_COS = MIN_COS,
+    MIN_TOS = 0,
+    MAX_TOS = 255,
+    DEFAULT_TOS = MIN_TOS,
+    MAX_ETHER_TYPE_SIZE = 0x600,
+    OVERHEAD_FUDGE_VALUE = 50,
 
     DEFAULT_PORTS_PER_PAGE = 4,
-    VLAN_TAG_SIZE          = 4,
-    MAX_PRIME_COUNT        = 4,
+    VLAN_TAG_SIZE = 4,
+    MAX_PRIME_COUNT = 4,
 
     NUM_SEQ_PKTS = 16, /* Number of buffers to support in sequence */
 
-    FIRST_SEQ_PKT  = 0,
-    SINGLE_PKT     = (FIRST_SEQ_PKT + NUM_SEQ_PKTS), /* 16 */
-    PING_PKT       = (SINGLE_PKT + 1),               /* 17 */
-    RANGE_PKT      = (PING_PKT + 1),                 /* 18 */
-    DUMP_PKT       = (RANGE_PKT + 1),                /* 19 */
-    RATE_PKT       = (DUMP_PKT + 1),                 /* 20 */
-    LATENCY_PKT    = (RATE_PKT + 1),                 /* 21 */
+    FIRST_SEQ_PKT = 0,
+    SINGLE_PKT = (FIRST_SEQ_PKT + NUM_SEQ_PKTS), /* 16 */
+    PING_PKT = (SINGLE_PKT + 1),                 /* 17 */
+    RANGE_PKT = (PING_PKT + 1),                  /* 18 */
+    DUMP_PKT = (RANGE_PKT + 1),                  /* 19 */
+    RATE_PKT = (DUMP_PKT + 1),                   /* 20 */
+    LATENCY_PKT = (RATE_PKT + 1),                /* 21 */
     NUM_TOTAL_PKTS = (LATENCY_PKT + 1),
 
-    INTER_FRAME_GAP       = 12, /**< in bytes */
+    INTER_FRAME_GAP = 12, /**< in bytes */
     START_FRAME_DELIMITER = 1,
-    PKT_PREAMBLE_SIZE     = 7, /**< in bytes */
-    PKT_OVERHEAD_SIZE =
-        (INTER_FRAME_GAP + START_FRAME_DELIMITER + PKT_PREAMBLE_SIZE /* + RTE_ETHER_CRC_LEN*/),
+    PKT_PREAMBLE_SIZE = 7, /**< in bytes */
+    PKT_OVERHEAD_SIZE = (INTER_FRAME_GAP + START_FRAME_DELIMITER +
+                         PKT_PREAMBLE_SIZE /* + RTE_ETHER_CRC_LEN*/),
 
     MIN_v6_PKT_SIZE = (78 - RTE_ETHER_CRC_LEN),
 
@@ -241,21 +252,23 @@ enum {
     PCAP_PAGE_SIZE = 25, /**< Size of the PCAP display page */
 
     SOCKET0 = 0 /**< Socket ID value for allocation */
-};
+  };
 
 #define MIN_PKT_SIZE (pktgen.eth_min_pkt - RTE_ETHER_CRC_LEN)
 #define MAX_PKT_SIZE (pktgen.eth_max_pkt - RTE_ETHER_CRC_LEN)
 
-typedef struct rte_mbuf rte_mbuf_t;
+  typedef struct rte_mbuf rte_mbuf_t;
 
-typedef union {
+  typedef union
+  {
     struct rte_ether_addr addr;
     uint64_t u64;
-} ethaddr_t;
+  } ethaddr_t;
 
 #define MAX_PORT_DESC_SIZE 132
-/* Ethernet addresses of ports */
-typedef struct pktgen_s {
+  /* Ethernet addresses of ports */
+  typedef struct pktgen_s
+  {
     struct cmdline *cl; /**< Command Line information pointer */
 #ifdef LUA_ENABLED
     luaData_t *ld;      /**< General Lua Data pointer */
@@ -287,7 +300,7 @@ typedef struct pktgen_s {
     uint64_t page_timeout;     /**< Timeout for page update */
     uint64_t stats_timeout;    /**< Timeout for stats update */
 
-    int (*callout)(void *callout_arg);
+    int (*callout) (void *callout_arg);
     void *callout_arg;
 
     struct rte_pci_addr blocklist[RTE_MAX_ETHPORTS];
@@ -316,246 +329,273 @@ typedef struct pktgen_s {
     int32_t argc;            /**< Number of arguments */
     char *argv[64];          /**< Argument list */
 
-    capture_t capture[RTE_MAX_NUMA_NODES]; /**< Packet capture, 1 struct per socket */
+    capture_t capture[RTE_MAX_NUMA_NODES]; /**< Packet capture, 1 struct per
+                                              socket */
     uint8_t is_gui_running;
     volatile uint8_t timer_running;
-} pktgen_t;
+  } pktgen_t;
 
-enum {                                     /* Queue flags */
-       CLEAR_FAST_ALLOC_FLAG = 0x00000001, /**< Clear the TX fast alloc flag */
-       DO_TX_FLUSH = 0x00000002 /**< Do a TX Flush by sending all of the pkts in the queue */
-};
+  enum
+  {                                     /* Queue flags */
+    CLEAR_FAST_ALLOC_FLAG = 0x00000001, /**< Clear the TX fast alloc flag */
+    DO_TX_FLUSH = 0x00000002 /**< Do a TX Flush by sending all of the pkts in
+                                the queue */
+  };
 
-enum {                                     /* Pktgen flags bits */
-       PRINT_LABELS_FLAG      = (1 << 0),  /**< Print constant labels on stats display */
-       MAC_FROM_ARP_FLAG      = (1 << 1),  /**< Configure the SRC MAC from a ARP request */
-       PROMISCUOUS_ON_FLAG    = (1 << 2),  /**< Enable promiscuous mode */
-       NUMA_SUPPORT_FLAG      = (1 << 3),  /**< Enable NUMA support */
-       IS_SERVER_FLAG         = (1 << 4),  /**< Pktgen is a Server */
-       ENABLE_GUI_FLAG        = (1 << 5),  /**< GUI support is enabled */
-       LUA_SHELL_FLAG         = (1 << 6),  /**< Enable Lua Shell */
-       TX_DEBUG_FLAG          = (1 << 7),  /**< TX Debug output */
-       Not_USED               = (1 << 8),  /**< Not Used */
-       FAKE_PORTS_FLAG        = (1 << 9),  /**< Fake ports enabled */
-       BLINK_PORTS_FLAG       = (1 << 10), /**< Blink the port leds */
-       ENABLE_THEME_FLAG      = (1 << 11), /**< Enable theme or color support */
-       CLOCK_GETTIME_FLAG     = (1 << 12), /**< Enable clock_gettime() instead of rdtsc() */
-       JUMBO_PKTS_FLAG        = (1 << 13), /**< Enable Jumbo frames */
-       RESERVED_14            = (1 << 14),
-       RESERVED_15            = (1 << 15),
-       CONFIG_PAGE_FLAG       = (1 << 16), /**< Display the configure page */
-       SEQUENCE_PAGE_FLAG     = (1 << 17), /**< Display the Packet sequence page */
-       RANGE_PAGE_FLAG        = (1 << 18), /**< Display the range page */
-       PCAP_PAGE_FLAG         = (1 << 19), /**< Display the PCAP page */
-       CPU_PAGE_FLAG          = (1 << 20), /**< Display the PCAP page */
-       RND_BITFIELD_PAGE_FLAG = (1 << 21), /**< Display the random bitfield page */
-       LOG_PAGE_FLAG          = (1 << 22), /**< Display the message log page */
-       LATENCY_PAGE_FLAG      = (1 << 23), /**< Display latency page */
-       STATS_PAGE_FLAG        = (1 << 24), /**< Display the physical port stats */
-       XSTATS_PAGE_FLAG       = (1 << 25), /**< Display the physical port stats */
-       RATE_PAGE_FLAG         = (1 << 26), /**< Display the Rate Pacing stats */
-       RESERVED_27            = (1 << 27),
-       RESERVED_28            = (1 << 28),
-       RESERVED_29            = (1 << 29),
-       RESERVED_30            = (1 << 30),
-       UPDATE_DISPLAY_FLAG    = (1 << 31)
-};
+  enum
+  { /* Pktgen flags bits */
+    PRINT_LABELS_FLAG =
+        (1 << 0), /**< Print constant labels on stats display */
+    MAC_FROM_ARP_FLAG =
+        (1 << 1), /**< Configure the SRC MAC from a ARP request */
+    PROMISCUOUS_ON_FLAG = (1 << 2), /**< Enable promiscuous mode */
+    NUMA_SUPPORT_FLAG = (1 << 3),   /**< Enable NUMA support */
+    IS_SERVER_FLAG = (1 << 4),      /**< Pktgen is a Server */
+    ENABLE_GUI_FLAG = (1 << 5),     /**< GUI support is enabled */
+    LUA_SHELL_FLAG = (1 << 6),      /**< Enable Lua Shell */
+    TX_DEBUG_FLAG = (1 << 7),       /**< TX Debug output */
+    Not_USED = (1 << 8),            /**< Not Used */
+    FAKE_PORTS_FLAG = (1 << 9),     /**< Fake ports enabled */
+    BLINK_PORTS_FLAG = (1 << 10),   /**< Blink the port leds */
+    ENABLE_THEME_FLAG = (1 << 11),  /**< Enable theme or color support */
+    CLOCK_GETTIME_FLAG =
+        (1 << 12), /**< Enable clock_gettime() instead of rdtsc() */
+    JUMBO_PKTS_FLAG = (1 << 13), /**< Enable Jumbo frames */
+    RESERVED_14 = (1 << 14),
+    RESERVED_15 = (1 << 15),
+    CONFIG_PAGE_FLAG = (1 << 16),   /**< Display the configure page */
+    SEQUENCE_PAGE_FLAG = (1 << 17), /**< Display the Packet sequence page */
+    RANGE_PAGE_FLAG = (1 << 18),    /**< Display the range page */
+    PCAP_PAGE_FLAG = (1 << 19),     /**< Display the PCAP page */
+    CPU_PAGE_FLAG = (1 << 20),      /**< Display the PCAP page */
+    RND_BITFIELD_PAGE_FLAG =
+        (1 << 21),                 /**< Display the random bitfield page */
+    LOG_PAGE_FLAG = (1 << 22),     /**< Display the message log page */
+    LATENCY_PAGE_FLAG = (1 << 23), /**< Display latency page */
+    STATS_PAGE_FLAG = (1 << 24),   /**< Display the physical port stats */
+    XSTATS_PAGE_FLAG = (1 << 25),  /**< Display the physical port stats */
+    RATE_PAGE_FLAG = (1 << 26),    /**< Display the Rate Pacing stats */
+    RESERVED_27 = (1 << 27),
+    RESERVED_28 = (1 << 28),
+    RESERVED_29 = (1 << 29),
+    RESERVED_30 = (1 << 30),
+    UPDATE_DISPLAY_FLAG = (1 << 31)
+  };
 
 #define UPDATE_DISPLAY_TICK_INTERVAL 4 /* check stats rate per second */
 #define UPDATE_DISPLAY_TICK_RATE     (pktgen.hz / UPDATE_DISPLAY_TICK_INTERVAL)
 
-#define PAGE_MASK_BITS                                                                          \
-    (CONFIG_PAGE_FLAG | SEQUENCE_PAGE_FLAG | RANGE_PAGE_FLAG | PCAP_PAGE_FLAG | CPU_PAGE_FLAG | \
-     RND_BITFIELD_PAGE_FLAG | LOG_PAGE_FLAG | LATENCY_PAGE_FLAG | XSTATS_PAGE_FLAG |            \
-     STATS_PAGE_FLAG | RATE_PAGE_FLAG)
+#define PAGE_MASK_BITS                                                        \
+  (CONFIG_PAGE_FLAG | SEQUENCE_PAGE_FLAG | RANGE_PAGE_FLAG | PCAP_PAGE_FLAG | \
+   CPU_PAGE_FLAG | RND_BITFIELD_PAGE_FLAG | LOG_PAGE_FLAG |                   \
+   LATENCY_PAGE_FLAG | XSTATS_PAGE_FLAG | STATS_PAGE_FLAG | RATE_PAGE_FLAG)
 
-extern pktgen_t pktgen;
+  extern pktgen_t pktgen;
 
-void pktgen_page_display(void);
+  void pktgen_page_display (void);
 
-void pktgen_packet_ctor(port_info_t *info, int32_t seq_idx, int32_t type);
-void pktgen_packet_rate(port_info_t *info);
+  void pktgen_packet_ctor (port_info_t *info, int32_t seq_idx, int32_t type);
+  void pktgen_packet_rate (port_info_t *info);
 
-int pktgen_find_matching_ipsrc(port_info_t *info, uint32_t addr);
-int pktgen_find_matching_ipdst(port_info_t *info, uint32_t addr);
+  int pktgen_find_matching_ipsrc (port_info_t *info, uint32_t addr);
+  int pktgen_find_matching_ipdst (port_info_t *info, uint32_t addr);
 
-int pktgen_launch_one_lcore(void *arg);
-uint64_t pktgen_wire_size(port_info_t *info);
-void pktgen_input_start(void);
-void stat_timer_dump(void);
-void stat_timer_clear(void);
-void pktgen_timer_setup(void);
-double next_poisson_time(double rateParameter);
+  int pktgen_launch_one_lcore (void *arg);
+  uint64_t pktgen_wire_size (port_info_t *info);
+  void pktgen_input_start (void);
+  void stat_timer_dump (void);
+  void stat_timer_clear (void);
+  void pktgen_timer_setup (void);
+  double next_poisson_time (double rateParameter);
 
-static inline uint64_t
-pktgen_get_time(void)
-{
-    if (pktgen.flags & CLOCK_GETTIME_FLAG) {
+  static inline uint64_t
+  pktgen_get_time (void)
+  {
+    if (pktgen.flags & CLOCK_GETTIME_FLAG)
+      {
         struct timespec tp;
 
-        if (clock_gettime(CLOCK_REALTIME, &tp) < 0)
-            return rte_rdtsc_precise();
+        if (clock_gettime (CLOCK_REALTIME, &tp) < 0)
+          return rte_rdtsc_precise ();
 
-        return rte_timespec_to_ns(&tp);
-    } else
-        return rte_rdtsc_precise();
-}
+        return rte_timespec_to_ns (&tp);
+      }
+    else
+      return rte_rdtsc_precise ();
+  }
 
-static inline uint64_t
-pktgen_get_timer_hz(void)
-{
-    if (pktgen.flags & CLOCK_GETTIME_FLAG) {
-        struct timespec tp = {.tv_nsec = 0, .tv_sec = 1};
-        return rte_timespec_to_ns(&tp);
-    } else
-        return rte_get_timer_hz();
-}
+  static inline uint64_t
+  pktgen_get_timer_hz (void)
+  {
+    if (pktgen.flags & CLOCK_GETTIME_FLAG)
+      {
+        struct timespec tp = { .tv_nsec = 0, .tv_sec = 1 };
+        return rte_timespec_to_ns (&tp);
+      }
+    else
+      return rte_get_timer_hz ();
+  }
 
-typedef struct {
+  typedef struct
+  {
     uint32_t magic;
     uint32_t index;
     uint64_t timestamp;
-} tstamp_t;
+  } tstamp_t;
 
 #define TSTAMP_MAGIC 0xf00dcafe
 
-static __inline__ void
-pktgen_set_port_flags(port_info_t *info, uint32_t flags)
-{
+  static __inline__ void
+  pktgen_set_port_flags (port_info_t *info, uint32_t flags)
+  {
     uint32_t val;
 
     do
-        val = rte_atomic32_read(&info->port_flags);
-    while (rte_atomic32_cmpset((volatile uint32_t *)&info->port_flags.cnt, val, (val | flags)) ==
-           0);
-}
+      val = rte_atomic32_read (&info->port_flags);
+    while (rte_atomic32_cmpset ((volatile uint32_t *) &info->port_flags.cnt,
+                                val, (val | flags)) == 0);
+  }
 
-static __inline__ void
-pktgen_clr_port_flags(port_info_t *info, uint32_t flags)
-{
+  static __inline__ void
+  pktgen_clr_port_flags (port_info_t *info, uint32_t flags)
+  {
     uint32_t val;
 
     do
-        val = rte_atomic32_read(&info->port_flags);
-    while (rte_atomic32_cmpset((volatile uint32_t *)&info->port_flags.cnt, val, (val & ~flags)) ==
-           0);
-}
+      val = rte_atomic32_read (&info->port_flags);
+    while (rte_atomic32_cmpset ((volatile uint32_t *) &info->port_flags.cnt,
+                                val, (val & ~flags)) == 0);
+  }
 
-static __inline__ int
-pktgen_tst_port_flags(port_info_t *info, uint32_t flags)
-{
-    if (rte_atomic32_read(&info->port_flags) & flags)
-        return 1;
+  static __inline__ int
+  pktgen_tst_port_flags (port_info_t *info, uint32_t flags)
+  {
+    if (rte_atomic32_read (&info->port_flags) & flags)
+      return 1;
     return 0;
-}
+  }
 
-static __inline__ void
-pktgen_set_q_flags(port_info_t *info, uint8_t q, uint32_t flags)
-{
+  static __inline__ void
+  pktgen_set_q_flags (port_info_t *info, uint8_t q, uint32_t flags)
+  {
     uint32_t val;
 
     do
-        val = rte_atomic32_read(&info->q[q].flags);
-    while (rte_atomic32_cmpset((volatile uint32_t *)&info->q[q].flags.cnt, val, (val | flags)) ==
-           0);
-}
+      val = rte_atomic32_read (&info->q[q].flags);
+    while (rte_atomic32_cmpset ((volatile uint32_t *) &info->q[q].flags.cnt,
+                                val, (val | flags)) == 0);
+  }
 
-static __inline__ void
-pktgen_clr_q_flags(port_info_t *info, uint8_t q, uint32_t flags)
-{
+  static __inline__ void
+  pktgen_clr_q_flags (port_info_t *info, uint8_t q, uint32_t flags)
+  {
     uint32_t val;
 
     do
-        val = rte_atomic32_read(&info->q[q].flags);
-    while (rte_atomic32_cmpset((volatile uint32_t *)&info->q[q].flags.cnt, val, (val & ~flags)) ==
-           0);
-}
+      val = rte_atomic32_read (&info->q[q].flags);
+    while (rte_atomic32_cmpset ((volatile uint32_t *) &info->q[q].flags.cnt,
+                                val, (val & ~flags)) == 0);
+  }
 
-static __inline__ int
-pktgen_tst_q_flags(port_info_t *info, uint8_t q, uint32_t flags)
-{
-    if (rte_atomic32_read(&info->q[q].flags) & flags)
-        return 1;
+  static __inline__ int
+  pktgen_tst_q_flags (port_info_t *info, uint8_t q, uint32_t flags)
+  {
+    if (rte_atomic32_read (&info->q[q].flags) & flags)
+      return 1;
     return 0;
-}
+  }
 
-/* onOff values */
-enum { DISABLE_STATE = 0, ENABLE_STATE = 1 };
+  /* onOff values */
+  enum
+  {
+    DISABLE_STATE = 0,
+    ENABLE_STATE = 1
+  };
 
-static __inline__ uint32_t
-estate(const char *state)
-{
-    return (!strcasecmp(state, "on") || !strcasecmp(state, "enable") || !strcasecmp(state, "start"))
+  static __inline__ uint32_t
+  estate (const char *state)
+  {
+    return (! strcasecmp (state, "on") || ! strcasecmp (state, "enable") ||
+            ! strcasecmp (state, "start"))
                ? ENABLE_STATE
                : DISABLE_STATE;
-}
+  }
 
-/* LatSampler types */
-enum { LATSAMPLER_UNSPEC, LATSAMPLER_SIMPLE, LATSAMPLER_POISSON };
+  /* LatSampler types */
+  enum
+  {
+    LATSAMPLER_UNSPEC,
+    LATSAMPLER_SIMPLE,
+    LATSAMPLER_POISSON
+  };
 
-/**
- * Function returning string of version number: "- Version:x.y.x (DPDK-x.y.z)"
- * @return
- *     string
- */
-static inline const char *
-pktgen_version(void)
-{
+  /**
+   * Function returning string of version number: "- Version:x.y.x
+   * (DPDK-x.y.z)"
+   * @return
+   *     string
+   */
+  static inline const char *
+  pktgen_version (void)
+  {
     static char pkt_version[64];
 
     if (pkt_version[0] != 0)
-        return pkt_version;
+      return pkt_version;
 
-    snprintf(pkt_version, sizeof(pkt_version), "%s (%s)", PKTGEN_VERSION, rte_version());
+    snprintf (pkt_version, sizeof (pkt_version), "%s (%s)", PKTGEN_VERSION,
+              rte_version ());
     return pkt_version;
-}
+  }
 
-static __inline__ char *
-strdupf(char *str, const char *new)
-{
+  static __inline__ char *
+  strdupf (char *str, const char *new)
+  {
     if (str)
-        free(str);
-    return (new == NULL) ? NULL : strdup(new);
-}
+      free (str);
+    return (new == NULL) ? NULL : strdup (new);
+  }
 
-/**
- *
- * do_command - Internal function to execute a shell command and grab the output.
- *
- * DESCRIPTION
- * Internal function to execute a shell command and grab the output from the
- * command.
- *
- * RETURNS: Nubmer of lines read.
- *
- * SEE ALSO:
- */
+  /**
+   *
+   * do_command - Internal function to execute a shell command and grab the
+   * output.
+   *
+   * DESCRIPTION
+   * Internal function to execute a shell command and grab the output from the
+   * command.
+   *
+   * RETURNS: Nubmer of lines read.
+   *
+   * SEE ALSO:
+   */
 
-static __inline__ int
-do_command(const char *cmd, int (*display)(char *, int))
-{
+  static __inline__ int
+  do_command (const char *cmd, int (*display) (char *, int))
+  {
     FILE *f;
     int i;
-    char *line       = NULL;
+    char *line = NULL;
     size_t line_size = 0;
 
-    f = popen(cmd, "r");
-    if (f == NULL) {
-        pktgen_log_error("Unable to run '%s' command", cmd);
+    f = popen (cmd, "r");
+    if (f == NULL)
+      {
+        pktgen_log_error ("Unable to run '%s' command", cmd);
         return -1;
-    }
+      }
 
     i = 0;
-    while (getline(&line, &line_size, f) > 0)
-        i = display(line, i);
+    while (getline (&line, &line_size, f) > 0)
+      i = display (line, i);
 
     if (f)
-        pclose(f);
+      pclose (f);
     if (line)
-        free(line);
+      free (line);
 
     return i;
-}
+  }
 
 #ifndef MEMPOOL_F_DMA
 #define MEMPOOL_F_DMA 0

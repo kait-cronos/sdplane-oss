@@ -15,26 +15,28 @@ extern GtkWidget *window;
 static GArray *packet_info = NULL;
 
 /* pktgen_port_stream data. Supporting multiple streams per port */
-pktgen_port_stream str_db[RTE_MAX_ETHPORTS][NUM_SEQ_PKTS + 1] = {{}};
+pktgen_port_stream str_db[RTE_MAX_ETHPORTS][NUM_SEQ_PKTS + 1] = { {} };
 
 /* Protocol fields */
-const char *pktgen_ethernet_fields[] = {"Destination MAC", "Source MAC", "Ether Type", "Vlan ID"};
+const char *pktgen_ethernet_fields[] = { "Destination MAC", "Source MAC",
+                                         "Ether Type", "Vlan ID" };
 
 const char *pktgen_ipv4_fields[] = {
-    "Version",
-    "IHL",
-    "DSCP/ECN",
-    "Total Length",
-    "Identification",
-    "Flags/Fragment Offset",
-    "Time to Live",
-    "Protocol",
-    "Header Checksum",
-    "Source IP Address",
-    "Destination IP Address",
+  "Version",
+  "IHL",
+  "DSCP/ECN",
+  "Total Length",
+  "Identification",
+  "Flags/Fragment Offset",
+  "Time to Live",
+  "Protocol",
+  "Header Checksum",
+  "Source IP Address",
+  "Destination IP Address",
 };
 
-const char *pktgen_udp_fields[] = {"Source port", "Destination port", "Length", "Checksum"};
+const char *pktgen_udp_fields[] = { "Source port", "Destination port",
+                                    "Length", "Checksum" };
 
 // clang-format off
 const char *pktgen_tcp_fields[] = {

@@ -10,10 +10,11 @@
 #define _CLI_COMMANDS_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-int pktgen_cli_create(void);
+  int pktgen_cli_create (void);
 
 #ifdef __cplusplus
 }

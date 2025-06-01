@@ -14,16 +14,17 @@
 #include "cli.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/**
- * Handle the tab key for auto complete (Internal)
- *
- * @return
- *   N/A
- */
-void cli_auto_complete(void);
+  /**
+   * Handle the tab key for auto complete (Internal)
+   *
+   * @return
+   *   N/A
+   */
+  void cli_auto_complete (void);
 
 #ifdef __cplusplus
 }

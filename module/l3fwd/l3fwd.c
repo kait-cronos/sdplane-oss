@@ -1587,7 +1587,7 @@ l3fwd_init (int argc, char **argv, char **envp)
   int ret;
 
   argv_save (argc, argv);
-  //soft_dplane_init ();
+  // soft_dplane_init ();
 
   /* init EAL */
   ret = rte_eal_init (argc, argv);
@@ -1688,7 +1688,7 @@ l3fwd_init (int argc, char **argv, char **envp)
         }
     }
 
-  //check_all_ports_link_status (enabled_port_mask);
+  // check_all_ports_link_status (enabled_port_mask);
 
   ret = 0;
 
@@ -1697,20 +1697,20 @@ l3fwd_init (int argc, char **argv, char **envp)
   rte_eal_mp_remote_launch (l3fwd_lkp.main_loop, NULL, CALL_MAIN);
 #else
   /* launch one lthread main. All other things are launched there. */
-  //rte_eal_remote_launch (lthread_main, NULL, 1);
-  //lthread_main (NULL);
+  // rte_eal_remote_launch (lthread_main, NULL, 1);
+  // lthread_main (NULL);
 #endif
 
   return ret;
 }
 
 int
-l3fwd_terminate (int argc, char**argv)
+l3fwd_terminate (int argc, char **argv)
 {
-  //struct lcore_conf *qconf;
+  // struct lcore_conf *qconf;
   uint16_t queueid, portid;
-  //unsigned int lcore_id;
-  //uint8_t queue;
+  // unsigned int lcore_id;
+  // uint8_t queue;
   int ret = 0;
 #ifdef RTE_LIB_EVENTDEV
   struct l3fwd_event_resources *evt_rsrc;

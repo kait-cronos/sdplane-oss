@@ -25,24 +25,25 @@
 #include "lua_utils.h"
 
 char *
-lua_strtrim(char *str)
+lua_strtrim (char *str)
 {
-    if (!str || !*str)
-        return str;
+  if (! str || ! *str)
+    return str;
 
-    /* trim white space characters at the front */
-    while (isspace(*str))
-        str++;
+  /* trim white space characters at the front */
+  while (isspace (*str))
+    str++;
 
-    /* Make sure the string is not empty */
-    if (*str) {
-        char *p = &str[strlen(str) - 1];
+  /* Make sure the string is not empty */
+  if (*str)
+    {
+      char *p = &str[strlen (str) - 1];
 
-        /* trim trailing white space characters */
-        while ((p >= str) && isspace(*p))
-            p--;
+      /* trim trailing white space characters */
+      while ((p >= str) && isspace (*p))
+        p--;
 
-        p[1] = '\0';
+      p[1] = '\0';
     }
-    return *str ? str : NULL;
+  return *str ? str : NULL;
 }

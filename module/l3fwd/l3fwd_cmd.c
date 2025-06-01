@@ -54,10 +54,9 @@
 
 #include "tap_handler.h"
 
-DEFINE_COMMAND (l3fwd_init,
-               "l3fwd init",
-               "l3fwd\n"
-               "init\n")
+DEFINE_COMMAND (l3fwd_init, "l3fwd init",
+                "l3fwd\n"
+                "init\n")
 {
   struct shell *shell = (struct shell *) context;
   int i;
@@ -71,4 +70,3 @@ l3fwd_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, l3fwd_init);
 }
-

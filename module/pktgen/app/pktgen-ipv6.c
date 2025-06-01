@@ -26,24 +26,26 @@
  */
 
 void
-pktgen_ipv6_ctor(pkt_seq_t *pkt, void *hdr)
+pktgen_ipv6_ctor (pkt_seq_t *pkt, void *hdr)
 {
-    struct rte_ipv6_hdr *ip = hdr;
-    uint16_t tlen;
+  struct rte_ipv6_hdr *ip = hdr;
+  uint16_t tlen;
 
-    /* IPv6 Header constructor */
-    memset(ip, 0, sizeof(struct rte_ipv6_hdr));
+  /* IPv6 Header constructor */
+  memset (ip, 0, sizeof (struct rte_ipv6_hdr));
 
-    ip->vtc_flow = htonl(IPv6_VERSION << 28);
-    ip->vtc_flow |= htonl(pkt->traffic_class << RTE_IPV6_HDR_TC_SHIFT);
-    tlen = pkt->pktSize - (pkt->ether_hdr_size + sizeof(struct rte_ipv6_hdr));
+  ip->vtc_flow = htonl (IPv6_VERSION << 28);
+  ip->vtc_flow |= htonl (pkt->traffic_class << RTE_IPV6_HDR_TC_SHIFT);
+  tlen = pkt->pktSize - (pkt->ether_hdr_size + sizeof (struct rte_ipv6_hdr));
 
-    ip->payload_len = htons(tlen);
-    ip->hop_limits  = pkt->hop_limits;
-    ip->proto       = pkt->ipProto;
+  ip->payload_len = htons (tlen);
+  ip->hop_limits = pkt->hop_limits;
+  ip->proto = pkt->ipProto;
 
-    rte_memcpy(&ip->dst_addr, pkt->ip_dst_addr.addr.ipv6.s6_addr, sizeof(struct in6_addr));
-    rte_memcpy(&ip->src_addr, pkt->ip_src_addr.addr.ipv6.s6_addr, sizeof(struct in6_addr));
+  rte_memcpy (&ip->dst_addr, pkt->ip_dst_addr.addr.ipv6.s6_addr,
+              sizeof (struct in6_addr));
+  rte_memcpy (&ip->src_addr, pkt->ip_src_addr.addr.ipv6.s6_addr,
+              sizeof (struct in6_addr));
 }
 
 /**
@@ -59,8 +61,9 @@ pktgen_ipv6_ctor(pkt_seq_t *pkt, void *hdr)
  */
 
 void
-pktgen_process_ping6(struct rte_mbuf *m __rte_unused, uint32_t pid __rte_unused,
-                     uint32_t qid __rte_unused, uint32_t vlan __rte_unused)
+pktgen_process_ping6 (struct rte_mbuf *m __rte_unused,
+                      uint32_t pid __rte_unused, uint32_t qid __rte_unused,
+                      uint32_t vlan __rte_unused)
 {
 #if 0 /* Broken needs to be updated to do IPv6 packets */
 	port_info_t     *info = &pktgen.info[pid];
@@ -74,7 +77,7 @@ pktgen_process_ping6(struct rte_mbuf *m __rte_unused, uint32_t pid __rte_unused,
 	/* Look for a ICMP echo requests, but only if enabled. */
 	if ( (rte_atomic32_read(&info->port_flags) & ICMP_ECHO_ENABLE_FLAG) &&
 	     (ip->next_header == PG_IPPROTO_ICMPV6) ) {
-#if !defined(RTE_ARCH_X86_64)
+#if ! defined(RTE_ARCH_X86_64)
 		struct rte_icmp_hdr *icmp =
 			(struct rte_icmp_hdr *)((uint32_t)ip + sizeof(struct rte_ipv4_hdr));
 #else

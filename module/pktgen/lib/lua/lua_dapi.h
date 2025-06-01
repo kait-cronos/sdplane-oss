@@ -17,14 +17,15 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef struct dapi dapi_t;
+  typedef struct dapi dapi_t;
 
 #define LUA_DAPI_LIBNAME "dapi"
 
-int luaopen_dapi(lua_State *L);
+  int luaopen_dapi (lua_State *L);
 
 #ifdef __cplusplus
 }

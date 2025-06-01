@@ -16,12 +16,13 @@
 #include <lauxlib.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #define LUA_VEC_LIBNAME "vec"
 
-int luaopen_vec(lua_State *L);
+  int luaopen_vec (lua_State *L);
 
 #ifdef __cplusplus
 }

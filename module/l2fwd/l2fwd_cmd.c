@@ -53,10 +53,9 @@
 
 DEFINE_COMMAND (set_l2fwd_vars_mask,
                 "set l2fwd l2fwd_enabled_port_mask <0x0-0xffffffff>",
-                SET_HELP
-                "l2fwd\n"
-                "l2fwd_enabled_port_mask\n"
-                "mask\n")
+                SET_HELP "l2fwd\n"
+                         "l2fwd_enabled_port_mask\n"
+                         "mask\n")
 {
   struct shell *shell = (struct shell *) context;
   uint32_t mask;
@@ -67,10 +66,9 @@ DEFINE_COMMAND (set_l2fwd_vars_mask,
 
 DEFINE_COMMAND (set_l2fwd_vars_integer,
                 "set l2fwd l2fwd_rx_queue_per_lcore <0-32764>",
-                SET_HELP
-                "l2fwd\n"
-                "l2fwd_rx_queue_per_lcore\n"
-                "integer\n")
+                SET_HELP "l2fwd\n"
+                         "l2fwd_rx_queue_per_lcore\n"
+                         "integer\n")
 {
   struct shell *shell = (struct shell *) context;
   uint32_t val;
@@ -82,13 +80,9 @@ DEFINE_COMMAND (set_l2fwd_vars_integer,
 DEFINE_COMMAND (show_l2fwd_vars,
                 "show l2fwd vars "
                 "(|all|l2fwd_enabled_port_mask|l2fwd_rx_queue_per_lcore)",
-                SHOW_HELP
-                "l2fwd\n"
-                VARS_HELP
-                ALL_HELP
-                "l2fwd_enabled_port_mask\n"
-                "l2fwd_rx_queue_per_lcore\n"
-               )
+                SHOW_HELP "l2fwd\n" VARS_HELP ALL_HELP
+                          "l2fwd_enabled_port_mask\n"
+                          "l2fwd_rx_queue_per_lcore\n")
 {
   struct shell *shell = (struct shell *) context;
   bool brief = false;
@@ -106,12 +100,8 @@ DEFINE_COMMAND (show_l2fwd_vars,
   return 0;
 }
 
-DEFINE_COMMAND (show_l2fwd_all,
-                "show l2fwd (|all)",
-                SHOW_HELP
-                "l2fwd\n"
-                ALL_HELP
-               )
+DEFINE_COMMAND (show_l2fwd_all, "show l2fwd (|all)",
+                SHOW_HELP "l2fwd\n" ALL_HELP)
 {
   struct shell *shell = (struct shell *) context;
   bool brief = false;
@@ -140,19 +130,19 @@ show_l2fwd_lcore_one (struct shell *shell, unsigned int rx_lcore_id)
   fprintf (shell->terminal, "l2fwd lcore[%d]: lcore_queue_conf:%s",
            rx_lcore_id, shell->NL);
 
-  fprintf (shell->terminal, "    n_rx_port: %d:%s", qconf->n_rx_port, shell->NL);
+  fprintf (shell->terminal, "    n_rx_port: %d:%s", qconf->n_rx_port,
+           shell->NL);
   for (i = 0; i < qconf->n_rx_port; i++)
     {
       portid = qconf->rx_port_list[i];
-      fprintf (shell->terminal,
-               "    rx_port_list[%d]: rxport %d txport: %d%s",
+      fprintf (shell->terminal, "    rx_port_list[%d]: rxport %d txport: %d%s",
                i, portid, l2fwd_dst_ports[portid], shell->NL);
     }
 }
 
 void
-show_l2fwd_lcore_by_mask (struct shell *shell,
-                          bool brief, bool all, uint64_t mask)
+show_l2fwd_lcore_by_mask (struct shell *shell, bool brief, bool all,
+                          uint64_t mask)
 {
   uint32_t nb_lcores;
   unsigned int rx_lcore_id;
@@ -167,14 +157,8 @@ show_l2fwd_lcore_by_mask (struct shell *shell,
     }
 }
 
-DEFINE_COMMAND (show_l2fwd_lcore,
-                "show l2fwd lcore (|<0-16>|all)",
-                SHOW_HELP
-                "l2fwd\n"
-                LCORE_HELP
-                LCORE_NUMBER_HELP
-                ALL_HELP
-               )
+DEFINE_COMMAND (show_l2fwd_lcore, "show l2fwd lcore (|<0-16>|all)",
+                SHOW_HELP "l2fwd\n" LCORE_HELP LCORE_NUMBER_HELP ALL_HELP)
 {
   struct shell *shell = (struct shell *) context;
   unsigned int lcore_spec = -1;
@@ -196,22 +180,18 @@ DEFINE_COMMAND (show_l2fwd_lcore,
   return 0;
 }
 
-DEFINE_COMMAND (show_l2fwd_stats,
-                "show l2fwd stats",
-                SHOW_HELP
-                "l2fwd\n"
-                "stats\n"
-               )
+DEFINE_COMMAND (show_l2fwd_stats, "show l2fwd stats",
+                SHOW_HELP "l2fwd\n"
+                          "stats\n")
 {
   struct shell *shell = (struct shell *) context;
   print_stats ();
   return 0;
 }
 
-DEFINE_COMMAND (l2fwd_init,
-               "l2fwd init",
-               "l2fwd\n"
-               "init\n")
+DEFINE_COMMAND (l2fwd_init, "l2fwd init",
+                "l2fwd\n"
+                "init\n")
 {
   struct shell *shell = (struct shell *) context;
   l2fwd_init (0, NULL);
@@ -230,4 +210,3 @@ l2fwd_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_l2fwd_vars_integer);
   INSTALL_COMMAND2 (cmdset, show_l2fwd_stats);
 }
-

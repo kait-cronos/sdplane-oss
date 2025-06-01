@@ -13,14 +13,15 @@
 #include <lauxlib.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #define LUA_PKTMBUF_LIBNAME "pktmbuf"
 
-typedef struct rte_mempool pktmbuf_t;
+  typedef struct rte_mempool pktmbuf_t;
 
-int luaopen_pktmbuf(lua_State *L);
+  int luaopen_pktmbuf (lua_State *L);
 
 #ifdef __cplusplus
 }

@@ -9,39 +9,40 @@
 #define _COPYRIGHT_INFO_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/**
- * Print out a copyright string
- *
- * @param appname
- *   The name of the application
- * @param created_by
- *   The created_by string
- */
-void print_copyright(const char *appname, const char *created_by);
+  /**
+   * Print out a copyright string
+   *
+   * @param appname
+   *   The name of the application
+   * @param created_by
+   *   The created_by string
+   */
+  void print_copyright (const char *appname, const char *created_by);
 
-/**
- * Function returning string for Copyright message.
- * @return
- *     string
- */
-const char *copyright_msg(void);
+  /**
+   * Function returning string for Copyright message.
+   * @return
+   *     string
+   */
+  const char *copyright_msg (void);
 
-/**
- * Function returning short string for Copyright message.
- * @return
- *     string
- */
-const char *copyright_msg_short(void);
+  /**
+   * Function returning short string for Copyright message.
+   * @return
+   *     string
+   */
+  const char *copyright_msg_short (void);
 
-/**
- * Function returning string for Copyright message.
- * @return
- *     string
- */
-const char *powered_by(void);
+  /**
+   * Function returning string for Copyright message.
+   * @return
+   *     string
+   */
+  const char *powered_by (void);
 
 #ifdef __cplusplus
 }

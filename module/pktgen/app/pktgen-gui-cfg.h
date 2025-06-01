@@ -94,8 +94,9 @@ const gchar *authors[] = {
 };
 // clang-format on
 
-#define GUI_VERSION         " Version 1.0.0 "
-#define COPYRIGHT_MSG       "Copyright(c) <2010-2023>, Intel Corporation. All rights reserved."
+#define GUI_VERSION " Version 1.0.0 "
+#define COPYRIGHT_MSG                                                         \
+  "Copyright(c) <2010-2023>, Intel Corporation. All rights reserved."
 #define POWERED_BY_DPDK     "GUI" GUI_VERSION "\n Powered by DPDK"
 #define PKTGEN_GUI_APP_NAME ("Pktgen GUI" GUI_VERSION)
 

@@ -137,9 +137,7 @@ thread_lookup_by_lcore (void *func, int lcore)
   return ret;
 }
 
-CLI_COMMAND2 (show_thread_cmd,
-              "show thread",
-              SHOW_HELP,
+CLI_COMMAND2 (show_thread_cmd, "show thread", SHOW_HELP,
               "thread information\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -149,19 +147,15 @@ CLI_COMMAND2 (show_thread_cmd,
   char buf[256];
 
   rte_rwlock_read_lock (&thread_info_lock);
-  fprintf (shell->terminal, "thread size: %d%s",
-           thread_info_size, shell->NL);
-  fprintf (shell->terminal,
-           "%-4s %-4s %-7s %-16s %-10s %-18s%s",
-           "id", "core", "type", "func", "loop/sec", "#loops", shell->NL);
+  fprintf (shell->terminal, "thread size: %d%s", thread_info_size, shell->NL);
+  fprintf (shell->terminal, "%-4s %-4s %-7s %-16s %-10s %-18s%s", "id", "core",
+           "type", "func", "loop/sec", "#loops", shell->NL);
   for (i = 0; i < thread_info_size; i++)
     {
       tinfo = &threads[i];
       tc = &thread_counters[i];
-      snprintf (buf, sizeof (buf),
-                "%-4d %-4d %-7s %-16s %'10lu %'18lu",
-                i, tinfo->lcore_id,
-                (tinfo->lthread ? "lthread" : "dpdk"),
+      snprintf (buf, sizeof (buf), "%-4d %-4d %-7s %-16s %'10lu %'18lu", i,
+                tinfo->lcore_id, (tinfo->lthread ? "lthread" : "dpdk"),
                 tinfo->name, tc->persec, tc->current);
       fprintf (shell->terminal, "%s%s", buf, shell->NL);
     }
@@ -169,11 +163,8 @@ CLI_COMMAND2 (show_thread_cmd,
   return 0;
 }
 
-CLI_COMMAND2 (show_thread_counter,
-              "show thread counter",
-              SHOW_HELP,
-              "thread information.\n",
-              "counter information.\n")
+CLI_COMMAND2 (show_thread_counter, "show thread counter", SHOW_HELP,
+              "thread information.\n", "counter information.\n")
 {
   struct shell *shell = (struct shell *) context;
   struct thread_info *tinfo;
@@ -182,19 +173,15 @@ CLI_COMMAND2 (show_thread_counter,
   char buf[256];
 
   rte_rwlock_read_lock (&thread_info_lock);
-  fprintf (shell->terminal, "thread size: %d%s",
-           thread_info_size, shell->NL);
-  fprintf (shell->terminal,
-           "%-4s %-4s %-7s %-16s %-10s %-18s%s",
-           "id", "core", "type", "func", "loop/sec", "#loops", shell->NL);
+  fprintf (shell->terminal, "thread size: %d%s", thread_info_size, shell->NL);
+  fprintf (shell->terminal, "%-4s %-4s %-7s %-16s %-10s %-18s%s", "id", "core",
+           "type", "func", "loop/sec", "#loops", shell->NL);
   for (i = 0; i < thread_info_size; i++)
     {
       tinfo = &threads[i];
       tc = &thread_counters[i];
-      snprintf (buf, sizeof (buf),
-                "%-4d %-4d %-7s %-16s %'10lu %'18lu",
-                i, tinfo->lcore_id,
-                (tinfo->lthread ? "lthread" : "dpdk"),
+      snprintf (buf, sizeof (buf), "%-4d %-4d %-7s %-16s %'10lu %'18lu", i,
+                tinfo->lcore_id, (tinfo->lthread ? "lthread" : "dpdk"),
                 tinfo->name, tc->persec, tc->current);
       fprintf (shell->terminal, "%s%s", buf, shell->NL);
     }
@@ -230,4 +217,3 @@ lthread_cancel_all ()
     }
   rte_rwlock_read_unlock (&thread_info_lock);
 }
-

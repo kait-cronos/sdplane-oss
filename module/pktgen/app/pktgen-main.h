@@ -13,30 +13,31 @@
 #include <stdio.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void pktgen_l2p_dump(void);
+  void pktgen_l2p_dump (void);
 
-void pktgen_interact(void);
+  void pktgen_interact (void);
 
-void *pktgen_get_lua(void);
+  void *pktgen_get_lua (void);
 
-void pktgen_stop_running(void);
+  void pktgen_stop_running (void);
 
-/**
- *
- * pktgen_get_lua - Get Lua state pointer.
- *
- * DESCRIPTION
- * Get the Lua state pointer value.
- *
- * RETURNS: Lua pointer
- *
- * SEE ALSO:
- */
+  /**
+   *
+   * pktgen_get_lua - Get Lua state pointer.
+   *
+   * DESCRIPTION
+   * Get the Lua state pointer value.
+   *
+   * RETURNS: Lua pointer
+   *
+   * SEE ALSO:
+   */
 
-void *pktgen_get_lua(void);
+  void *pktgen_get_lua (void);
 
 #ifdef __cplusplus
 }

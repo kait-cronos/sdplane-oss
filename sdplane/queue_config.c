@@ -27,8 +27,7 @@
 struct sdplane_queue_conf thread_qconf[RTE_MAX_LCORE];
 
 struct port_queue_conf *
-qconf_diff (struct sdplane_queue_conf *new,
-            struct sdplane_queue_conf *old)
+qconf_diff (struct sdplane_queue_conf *new, struct sdplane_queue_conf *old)
 {
   int i, j;
   struct port_queue_conf *p, *q;
@@ -38,19 +37,15 @@ qconf_diff (struct sdplane_queue_conf *new,
       for (j = 0; j < old->nrxq; j++)
         {
           q = &old->rx_queue_list[j];
-          if (p->port_id == q->port_id &&
-              p->queue_id == q->queue_id)
+          if (p->port_id == q->port_id && p->queue_id == q->queue_id)
             return p;
         }
     }
   return NULL;
 }
 
-CLI_COMMAND2 (update_port_link_status,
-              "update port link-status",
-              "update information\n",
-              PORT_HELP,
-              "link-status information\n")
+CLI_COMMAND2 (update_port_link_status, "update port link-status",
+              "update information\n", PORT_HELP, "link-status information\n")
 {
   struct shell *shell = (struct shell *) context;
 
@@ -73,11 +68,8 @@ CLI_COMMAND2 (update_port_link_status,
   internal_msg_send_to (msg_queue_rib, msgp, shell);
 }
 
-CLI_COMMAND2 (update_port_status,
-              "update port status",
-              "update information\n",
-              PORT_HELP,
-              "port status information\n")
+CLI_COMMAND2 (update_port_status, "update port status", "update information\n",
+              PORT_HELP, "port status information\n")
 {
   struct shell *shell = (struct shell *) context;
   void *msgp;
@@ -87,22 +79,17 @@ CLI_COMMAND2 (update_port_status,
 }
 
 CLI_COMMAND2 (set_thread_lcore_port_queue,
-              "set thread <0-128> port <0-128> queue <0-128>",
-              SET_HELP,
-              "thread-information\n",
-              "thread-id (lcore-id)\n",
-              PORT_HELP,
-              PORT_NUMBER_HELP,
-              QUEUE_HELP,
-              QUEUE_NUMBER_HELP)
+              "set thread <0-128> port <0-128> queue <0-128>", SET_HELP,
+              "thread-information\n", "thread-id (lcore-id)\n", PORT_HELP,
+              PORT_NUMBER_HELP, QUEUE_HELP, QUEUE_NUMBER_HELP)
 {
   struct shell *shell = (struct shell *) context;
   uint16_t lcore_id, port_id, queue_id;
   lcore_id = (uint16_t) strtol (argv[2], NULL, 0);
   port_id = (uint16_t) strtol (argv[4], NULL, 0);
   queue_id = (uint16_t) strtol (argv[6], NULL, 0);
-  fprintf (shell->terminal, "lcore: %d port: %d rx-queue: %d%s",
-           lcore_id, port_id, queue_id, shell->NL);
+  fprintf (shell->terminal, "lcore: %d port: %d rx-queue: %d%s", lcore_id,
+           port_id, queue_id, shell->NL);
 
   /* search existing */
   int i, j;
@@ -137,8 +124,7 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
     {
       port_qconf = &lcore_conf->rx_queue_list[j];
 
-      if (port_qconf->port_id == port_id &&
-          port_qconf->queue_id == queue_id)
+      if (port_qconf->port_id == port_id && port_qconf->queue_id == queue_id)
         {
           match = port_qconf;
         }
@@ -162,12 +148,11 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
       qconf = &thread_qconf[i];
       for (j = 0; j < qconf->nrxq; j++)
         {
-          fprintf (shell->terminal,
-                   "thread_qconf[%d]: lcore: %d rxq[%d/%d]: port: %d queue: %d%s",
-                   i, i, j, qconf->nrxq,
-                   qconf->rx_queue_list[j].port_id,
-                   qconf->rx_queue_list[j].queue_id,
-                   shell->NL);
+          fprintf (
+              shell->terminal,
+              "thread_qconf[%d]: lcore: %d rxq[%d/%d]: port: %d queue: %d%s",
+              i, i, j, qconf->nrxq, qconf->rx_queue_list[j].port_id,
+              qconf->rx_queue_list[j].queue_id, shell->NL);
         }
     }
 
@@ -178,8 +163,8 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF, thread_qconf,
                               sizeof (thread_qconf));
-  //msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF2, dummy,
-  //                            sizeof (dummy));
+  // msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF2, dummy,
+  //                             sizeof (dummy));
   ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
   if (ret < 0)
     {
@@ -189,11 +174,8 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
   return 0;
 }
 
-CLI_COMMAND2 (show_thread_qconf,
-              "show thread qconf",
-              SHOW_HELP,
-              "thread information.\n",
-              "queue configuration.\n")
+CLI_COMMAND2 (show_thread_qconf, "show thread qconf", SHOW_HELP,
+              "thread information.\n", "queue configuration.\n")
 {
   struct shell *shell = (struct shell *) context;
   int i, j;
@@ -215,29 +197,27 @@ CLI_COMMAND2 (show_thread_qconf,
             {
               struct port_queue_conf *rxq;
               rxq = &rib->rib_info->lcore_qconf[i].rx_queue_list[j];
-              fprintf (shell->terminal,
-                   "rib->rib_info: lcore: %d rxq[%d/%d]: port: %d queue: %d%s",
-                   i, j, nrxq,
-                   rxq->port_id, rxq->queue_id,
-                   shell->NL);
+              fprintf (
+                  shell->terminal,
+                  "rib->rib_info: lcore: %d rxq[%d/%d]: port: %d queue: %d%s",
+                  i, j, nrxq, rxq->port_id, rxq->queue_id, shell->NL);
             }
         }
     }
   else
     {
-  for (i = 0; i < RTE_MAX_LCORE; i++)
-    {
-      qconf = &thread_qconf[i];
-      for (j = 0; j < qconf->nrxq; j++)
+      for (i = 0; i < RTE_MAX_LCORE; i++)
         {
-          fprintf (shell->terminal,
-                   "thread_qconf[%d]: lcore: %d rxq[%d/%d]: port: %d queue: %d%s",
-                   i, i, j, qconf->nrxq,
-                   qconf->rx_queue_list[j].port_id,
-                   qconf->rx_queue_list[j].queue_id,
-                   shell->NL);
+          qconf = &thread_qconf[i];
+          for (j = 0; j < qconf->nrxq; j++)
+            {
+              fprintf (
+                  shell->terminal,
+                  "thread_qconf[%d]: lcore: %d rxq[%d/%d]: port: %d queue: %d%s",
+                  i, i, j, qconf->nrxq, qconf->rx_queue_list[j].port_id,
+                  qconf->rx_queue_list[j].queue_id, shell->NL);
+            }
         }
-    }
     }
 
 #if HAVE_LIBURCU_QSBR
@@ -255,4 +235,3 @@ queue_config_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_thread_lcore_port_queue);
   INSTALL_COMMAND2 (cmdset, show_thread_qconf);
 }
-

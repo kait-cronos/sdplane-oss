@@ -18,36 +18,37 @@
  * This mask is used as an index into prebuild array of pnum values.
  */
 static inline uint16_t *
-port_groupx4(uint16_t pn[FWDSTEP + 1], uint16_t *lp,
-	     __vector unsigned short dp1,
-	     __vector unsigned short dp2)
+port_groupx4 (uint16_t pn[FWDSTEP + 1], uint16_t *lp,
+              __vector unsigned short dp1, __vector unsigned short dp2)
 {
-	union {
-		uint16_t u16[FWDSTEP + 1];
-		uint64_t u64;
-	} *pnum = (void *)pn;
-	__vector unsigned long long result;
-	const __vector unsigned int perm_mask = {0x00204060, 0x80808080,
-						 0x80808080, 0x80808080};
-	int32_t v;
+  union
+  {
+    uint16_t u16[FWDSTEP + 1];
+    uint64_t u64;
+  } *pnum = (void *) pn;
+  __vector unsigned long long result;
+  const __vector unsigned int perm_mask = { 0x00204060, 0x80808080, 0x80808080,
+                                            0x80808080 };
+  int32_t v;
 
-	dp1 = (__vector unsigned short)vec_cmpeq(dp1, dp2);
-	dp1 = vec_mergeh(dp1, dp1);
-	result = (__vector unsigned long long)vec_vbpermq(
-		(__vector unsigned char)dp1, (__vector unsigned char)perm_mask);
+  dp1 = (__vector unsigned short) vec_cmpeq (dp1, dp2);
+  dp1 = vec_mergeh (dp1, dp1);
+  result = (__vector unsigned long long) vec_vbpermq (
+      (__vector unsigned char) dp1, (__vector unsigned char) perm_mask);
 
-	v = result[1];
-	/* update last port counter. */
-	lp[0] += gptbl[v].lpv;
+  v = result[1];
+  /* update last port counter. */
+  lp[0] += gptbl[v].lpv;
 
-	/* if dest port value has changed. */
-	if (v != GRPMSK) {
-		pnum->u64 = gptbl[v].pnum;
-		pnum->u16[FWDSTEP] = 1;
-		lp = pnum->u16 + gptbl[v].idx;
-	}
+  /* if dest port value has changed. */
+  if (v != GRPMSK)
+    {
+      pnum->u64 = gptbl[v].pnum;
+      pnum->u16[FWDSTEP] = 1;
+      lp = pnum->u16 + gptbl[v].idx;
+    }
 
-	return lp;
+  return lp;
 }
 
 #endif /* PORT_GROUP_H */

@@ -13,23 +13,25 @@
 #include "pktgen-seq.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/**
- *
- * pktgen_gtpu_hdr_ctor - GTP-U header constructor routine.
- *
- * DESCRIPTION
- * Construct the GTP-U header in a packer buffer.
- *
- * RETURNS: N/A
- *
- * SEE ALSO:
- */
+  /**
+   *
+   * pktgen_gtpu_hdr_ctor - GTP-U header constructor routine.
+   *
+   * DESCRIPTION
+   * Construct the GTP-U header in a packer buffer.
+   *
+   * RETURNS: N/A
+   *
+   * SEE ALSO:
+   */
 
-void pktgen_gtpu_hdr_ctor(pkt_seq_t *pkt, void *hdr, uint16_t ipProto, uint8_t flags,
-                          uint16_t seq_no, uint8_t npdu_no, uint8_t next_ext_hdr_type);
+  void pktgen_gtpu_hdr_ctor (pkt_seq_t *pkt, void *hdr, uint16_t ipProto,
+                             uint8_t flags, uint16_t seq_no, uint8_t npdu_no,
+                             uint8_t next_ext_hdr_type);
 
 #ifdef __cplusplus
 }

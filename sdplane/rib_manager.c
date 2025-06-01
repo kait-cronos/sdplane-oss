@@ -131,8 +131,8 @@ rib_check (struct rib *new)
   char ring_name[32];
   int j;
 
-  DEBUG_SDPLANE_LOG (RIB, "ver: %d rib: %p rib_info: %p.",
-                     new->rib_info->ver, new, new->rib_info);
+  DEBUG_SDPLANE_LOG (RIB, "ver: %d rib: %p rib_info: %p.", new->rib_info->ver,
+                     new, new->rib_info);
 
   struct rte_eth_rxconf rxq_conf;
   struct rte_eth_txconf txq_conf;
@@ -150,8 +150,9 @@ rib_check (struct rib *new)
           struct port_queue_conf *rxq;
           rxq = &lcore_qconf->rx_queue_list[i];
 
-          DEBUG_SDPLANE_LOG (RIB, "new rib: lcore: %d qconf[%d]: port: %d queue: %d",
-                         lcore, i, rxq->port_id, rxq->queue_id);
+          DEBUG_SDPLANE_LOG (
+              RIB, "new rib: lcore: %d qconf[%d]: port: %d queue: %d", lcore,
+              i, rxq->port_id, rxq->queue_id);
         }
     }
 
@@ -193,16 +194,17 @@ rib_check (struct rib *new)
     {
       struct port_queue_conf *rxq;
       rxq = &port_qconf[i];
-      DEBUG_SDPLANE_LOG (RIB, "port_qconf[%d]: port: %d queue: %d",
-                         i, rxq->port_id, rxq->queue_id);
+      DEBUG_SDPLANE_LOG (RIB, "port_qconf[%d]: port: %d queue: %d", i,
+                         rxq->port_id, rxq->queue_id);
       if (port_nrxq[rxq->port_id] == rxq->queue_id)
         {
           port_nrxq[rxq->port_id]++;
         }
       else
         {
-          DEBUG_SDPLANE_LOG (RIB, "unorderd port_qconf[%d]: port: %d queue: %d",
-                             i, rxq->port_id, rxq->queue_id);
+          DEBUG_SDPLANE_LOG (RIB,
+                             "unorderd port_qconf[%d]: port: %d queue: %d", i,
+                             rxq->port_id, rxq->queue_id);
           return -1;
         }
     }
@@ -227,8 +229,8 @@ rib_check (struct rib *new)
         port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
       else
         port_conf.txmode.offloads &= (~RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE);
-      DEBUG_SDPLANE_LOG (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d",
-                         i, nrxq, ntxq);
+      DEBUG_SDPLANE_LOG (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d", i,
+                         nrxq, ntxq);
       ret = rte_eth_dev_stop (i);
       ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
 
@@ -244,10 +246,9 @@ rib_check (struct rib *new)
 
       for (j = 0; j < nrxq; j++)
         {
-          ret = rte_eth_rx_queue_setup (i, j, nb_rxd,
-                                        rte_eth_dev_socket_id (i),
-                                        &rxq_conf,
-                                        l2fwd_pktmbuf_pool);
+          ret =
+              rte_eth_rx_queue_setup (i, j, nb_rxd, rte_eth_dev_socket_id (i),
+                                      &rxq_conf, l2fwd_pktmbuf_pool);
           DEBUG_SDPLANE_LOG (RIB, "port[%d]: rx_queue_setup: rxq: %d rxd: %d",
                              i, j, nb_rxd);
         }
@@ -258,20 +259,17 @@ rib_check (struct rib *new)
       for (j = 0; j < ntxq; j++)
         {
           ret = rte_eth_tx_queue_setup (i, j, nb_txd,
-                                        rte_eth_dev_socket_id (i),
-                                        &txq_conf);
+                                        rte_eth_dev_socket_id (i), &txq_conf);
           DEBUG_SDPLANE_LOG (RIB, "port[%d]: tx_queue_setup: txq: %d txd: %d",
                              i, j, nb_txd);
 
           if (! tx_buffer_per_q[i][j])
             {
-	      DEBUG_SDPLANE_LOG (L2_REPEATER,
-			      "tx_buffer_init: port: %d queue: %d",
-			      i, j);
-              tx_buffer_per_q[i][j] =
-                rte_zmalloc_socket ("tx_buffer",
-                                RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
-                                rte_eth_dev_socket_id (i));
+              DEBUG_SDPLANE_LOG (L2_REPEATER,
+                                 "tx_buffer_init: port: %d queue: %d", i, j);
+              tx_buffer_per_q[i][j] = rte_zmalloc_socket (
+                  "tx_buffer", RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
+                  rte_eth_dev_socket_id (i));
               rte_eth_tx_buffer_init (tx_buffer_per_q[i][j], MAX_PKT_BURST);
             }
         }
@@ -279,7 +277,7 @@ rib_check (struct rib *new)
       ret = rte_eth_dev_start (i);
     }
 
-  /* prepare rte_ring "ring_up/dn[][]" */
+    /* prepare rte_ring "ring_up/dn[][]" */
 #define RING_TO_TAP_SIZE 64
   for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++)
     {
@@ -293,12 +291,10 @@ rib_check (struct rib *new)
             {
               snprintf (ring_name, sizeof (ring_name), "ring_up[%d][%d]",
                         rxq->port_id, rxq->queue_id);
-              ring_up[rxq->port_id][rxq->queue_id] =
-                rte_ring_create (ring_name, RING_TO_TAP_SIZE,
-                                 rte_socket_id (),
-                                 (RING_F_SP_ENQ | RING_F_SC_DEQ));
-              DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p",
-                                 ring_name,
+              ring_up[rxq->port_id][rxq->queue_id] = rte_ring_create (
+                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
+                  (RING_F_SP_ENQ | RING_F_SC_DEQ));
+              DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  ring_up[rxq->port_id][rxq->queue_id]);
             }
 
@@ -306,12 +302,10 @@ rib_check (struct rib *new)
             {
               snprintf (ring_name, sizeof (ring_name), "ring_dn[%d][%d]",
                         rxq->port_id, rxq->queue_id);
-              ring_dn[rxq->port_id][rxq->queue_id] =
-                rte_ring_create (ring_name, RING_TO_TAP_SIZE,
-                                 rte_socket_id (),
-                                 (RING_F_SP_ENQ | RING_F_SC_DEQ));
-              DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p",
-                                 ring_name,
+              ring_dn[rxq->port_id][rxq->queue_id] = rte_ring_create (
+                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
+                  (RING_F_SP_ENQ | RING_F_SC_DEQ));
+              DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  ring_dn[rxq->port_id][rxq->queue_id]);
             }
         }
@@ -328,14 +322,14 @@ rib_replace (struct rib *new)
 
   /* assign new */
   rcu_assign_pointer (rcu_global_ptr_rib, new);
-  DEBUG_SDPLANE_LOG (RIB, "rib: replace: %'lu-th: "
+  DEBUG_SDPLANE_LOG (RIB,
+                     "rib: replace: %'lu-th: "
                      "rib: %p -> %p "
                      "rib_info: ver.%d (%p) -> ver.%d (%p)",
-                     rib_rcu_replace,
-                     old, new,
+                     rib_rcu_replace, old, new,
                      (old && old->rib_info ? old->rib_info->ver : -1),
                      (old ? old->rib_info : NULL),
-                     (new && new->rib_info ? new->rib_info->ver : -1),
+                     (new &&new->rib_info ? new->rib_info->ver : -1),
                      (new ? new->rib_info : NULL));
 
   /* reclaim old */
@@ -442,9 +436,11 @@ rib_manager_process_message (void *msgp)
                 {
                   char *src, *dst;
                   int len;
-                  dst = (char *) &new->rib_info->lcore_qconf[i].rx_queue_list[j];
+                  dst =
+                      (char *) &new->rib_info->lcore_qconf[i].rx_queue_list[j];
                   src = (char *) &msg_qconf->qconf[i].rx_queue_list[j];
-                  len = sizeof (new->rib_info->lcore_qconf[i].rx_queue_list[j]);
+                  len =
+                      sizeof (new->rib_info->lcore_qconf[i].rx_queue_list[j]);
                   memcpy (dst, src, len);
 #if 0
                   len = sizeof (struct port_queue_conf);
@@ -501,7 +497,7 @@ rib_manager_process_message (void *msgp)
       /* for qconf change, we need an intermittent state to avoid
          a conflict between different cores. */
       /* XXX, we can use smarter intermitent state. */
-      //struct rib *zero;
+      // struct rib *zero;
       zero = malloc (sizeof (struct rib));
       if (zero)
         {
@@ -563,7 +559,7 @@ rib_manager (void *arg)
 
   /* initialize */
   msg_queue_rib =
-    rte_ring_create ("msg_queue_rib", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+      rte_ring_create ("msg_queue_rib", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
 
   int thread_id;
   thread_id = thread_lookup (rib_manager);
@@ -572,7 +568,7 @@ rib_manager (void *arg)
   while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (100); // yield.
-      //DEBUG_SDPLANE_LOG (RIB, "%s: schedule.", __func__);
+      // DEBUG_SDPLANE_LOG (RIB, "%s: schedule.", __func__);
 
       msgp = internal_msg_recv (msg_queue_rib);
       if (msgp)

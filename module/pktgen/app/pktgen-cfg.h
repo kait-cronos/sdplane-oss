@@ -10,10 +10,11 @@
 #define _PKTGEN_CFG_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void pktgen_page_config(void);
+  void pktgen_page_config (void);
 
 #ifdef __cplusplus
 }

@@ -13,24 +13,25 @@
 #include "pktgen-seq.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #define VXLAN_PORT_ID 4789
 
-/**
- *
- * pktgen_udp_hdr_ctor - UDP header constructor routine.
- *
- * DESCRIPTION
- * Construct the UDP header in a packer buffer.
- *
- * RETURNS: Next header location
- *
- * SEE ALSO:
- */
+  /**
+   *
+   * pktgen_udp_hdr_ctor - UDP header constructor routine.
+   *
+   * DESCRIPTION
+   * Construct the UDP header in a packer buffer.
+   *
+   * RETURNS: Next header location
+   *
+   * SEE ALSO:
+   */
 
-void *pktgen_udp_hdr_ctor(pkt_seq_t *pkt, void *hdr, int type);
+  void *pktgen_udp_hdr_ctor (pkt_seq_t *pkt, void *hdr, int type);
 
 #ifdef __cplusplus
 }

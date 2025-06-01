@@ -6,7 +6,8 @@
 
 #include "rib.h"
 
-struct rib {
+struct rib
+{
 #if 0
   uint64_t ver;
   struct rte_eth_link link[RTE_MAX_ETHPORTS];

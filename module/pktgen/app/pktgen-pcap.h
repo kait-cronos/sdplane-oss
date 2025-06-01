@@ -11,14 +11,16 @@
 #include <pg_pcap.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-struct port_info_s;
+  struct port_info_s;
 
-int pktgen_pcap_parse(pcap_info_t *pcap, struct port_info_s *info, unsigned qid);
+  int pktgen_pcap_parse (pcap_info_t *pcap, struct port_info_s *info,
+                         unsigned qid);
 
-void pktgen_page_pcap(uint16_t pid);
+  void pktgen_page_pcap (uint16_t pid);
 
 #ifdef __cplusplus
 }

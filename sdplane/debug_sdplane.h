@@ -43,7 +43,7 @@
     }                                                                         \
   while (0)
 
-#define DEBUG_SDPLANE_FLAG(flag, format, ...)                                  \
+#define DEBUG_SDPLANE_FLAG(flag, format, ...)                                 \
   DEBUG_LOG_FLAG (SDPLANE, flag, format, ##__VA_ARGS__)
 
 EXTERN_COMMAND (debug_sdplane);
