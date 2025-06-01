@@ -9,8 +9,24 @@ echo $style
 diffcmd=`which diff`
 fixdefun=$style/fix-defun.awk
 clangformat=clang-format
+clangformat_version='18.1.3'
 
 IGNORE_PATHS=""
+
+check_clangformat_version() {
+    # check if clang-format is installed and its version with grep
+    if ! command -v $clangformat &> /dev/null; then
+        echo "clang-format is not installed. Please install it first."
+        exit 1
+    fi
+    local version=$(clang-format --version)
+    if ! grep -q "$clangformat_version" <<< "$version"; then
+        echo "clang-format version $clangformat_version is required, but found: $version"
+        echo "Please install clang-format of the specified version."
+        echo "Or please use check_gnu_style_docker.sh to run this script in a Docker container with the correct version."
+        exit 1
+    fi
+}
 
 check () {
     local needs_update=0
@@ -107,6 +123,8 @@ help () {
 
 subcommand=$1
 shift
+
+check_clangformat_version
 
 case $subcommand in
     check) check "$@" ;;
