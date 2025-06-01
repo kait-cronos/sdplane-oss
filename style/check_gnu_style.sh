@@ -14,7 +14,6 @@ clangformat_version='18.1.3'
 IGNORE_PATHS=""
 
 check_clangformat_version() {
-    # check if clang-format is installed and its version with grep
     if ! command -v $clangformat &> /dev/null; then
         echo "clang-format is not installed. Please install it first."
         exit 1
