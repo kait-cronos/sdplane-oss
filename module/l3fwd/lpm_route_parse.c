@@ -273,8 +273,6 @@ read_config_files_lpm(void)
 {
 	if (parm_config.rule_ipv4_name != NULL &&
 			parm_config.rule_ipv6_name != NULL) {
-		/*setup force ipv4_rule_file*/
-		parm_config.rule_ipv4_name = "/etc/sdplane/lpmV4.cfg";
 		/* ipv4 check */
 		route_num_v4 = lpm_add_rules(parm_config.rule_ipv4_name,
 					&route_base_v4, &lpm_parse_v4_rule);
@@ -282,9 +280,8 @@ read_config_files_lpm(void)
 			lpm_free_routes();
 			rte_exit(EXIT_FAILURE, "Failed to add IPv4 rules\n");
 		}
+		free((void *)parm_config.rule_ipv4_name);
 
-		/*setup force ipv6_rule_file*/
-		parm_config.rule_ipv6_name = "/etc/sdplane/lpmV6.cfg";
 		/* ipv6 check */
 		route_num_v6 = lpm_add_rules(parm_config.rule_ipv6_name,
 					&route_base_v6, &lpm_parse_v6_rule);
@@ -292,6 +289,7 @@ read_config_files_lpm(void)
 			lpm_free_routes();
 			rte_exit(EXIT_FAILURE, "Failed to add IPv6 rules\n");
 		}
+		free((void *)parm_config.rule_ipv6_name);
 	} else {
 		RTE_LOG(INFO, L3FWD, "Missing 1 or more rule files, using default instead\n");
 		if (lpm_add_default_v4_rules() < 0) {
