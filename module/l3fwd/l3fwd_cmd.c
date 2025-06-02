@@ -104,7 +104,6 @@ DEFINE_COMMAND (set_l3fwd_lookup_mode,
       fprintf (shell->terminal, "Invalid lookup mode: %s%s", argv[3], shell->NL);
       return -1;
     }
-  
   return 0;
 }
 
@@ -116,7 +115,7 @@ DEFINE_COMMAND (set_l3fwd_rule_ipv4,
                 "rule_name\n")
 {
   struct shell *shell = (struct shell *) context;
-  l3fwd_set_rule_ipv4_name (argv[3]);
+  l3fwd_set_rule_ipv4_name(strdup (argv[3]));
 
   return 0;
 }
@@ -129,7 +128,7 @@ DEFINE_COMMAND (set_l3fwd_rule_ipv6,
                 "rule_name\n")
 {
   struct shell *shell = (struct shell *) context;
-  l3fwd_set_rule_ipv6_name (argv[3]);
+  l3fwd_set_rule_ipv6_name (strdup (argv[3]));
 
   return 0;
 }
@@ -142,7 +141,7 @@ DEFINE_COMMAND (set_l3fwd_eth_dest,
                 "eth_dest (ex) 0,00:11:22:33:44:55)\n")
 {
   struct shell *shell = (struct shell *) context;
-  parse_eth_dest(argv[3]);
+  parse_eth_dest (argv[3]);
 
   return 0;
 }
