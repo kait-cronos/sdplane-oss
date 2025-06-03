@@ -1,0 +1,135 @@
+common/test_util.c[311]: run_test: started.
+EAL: Detected CPU lcores: 4
+EAL: Detected NUMA nodes: 1
+EAL: Detected shared linkage of DPDK
+EAL: Multi-process socket /var/run/dpdk/rte/mp_socket
+EAL: Selected IOVA mode 'PA'
+EAL: VFIO support initialized
+TELEMETRY: No legacy callbacks, legacy socket not created
+Created port 0 with rx_ring=0 and tx_ring=1-8
+Created port 1 with rx_ring=9 and tx_ring=10-17
+Created port 2 with rx_ring=18 and tx_ring=19-26
+Created port 3 with rx_ring=27 and tx_ring=28-35
+common/test_util.c[253]: apply_config: command set initialized.
+common/test_util.c[261]: apply_config: opening config/l2_repeater.conf.
+common/test_util.c[266]: apply_config: opened config/l2_repeater.conf.
+
+
+startup-config> log stdout
+
+startup-config> # debug sdplane tap-handler
+
+startup-config> # debug shell
+
+startup-config> # debug sdplane telnet-opt
+
+startup-config> 
+
+startup-config> set worker lthread stat-collector
+
+startup-config> set worker lthread rib-manager
+../sdplane/stat_collector.c[59]: stat_collector: started.
+../sdplane/rib_manager.c[1143]: rib_manager: started.
+
+startup-config> 
+
+startup-config> set mempool
+nb_mbufs: 12416
+
+startup-config> 
+
+startup-config> stop port all
+Device with port_id=0 already stopped
+rte_eth_dev_stop (): ret: 0 port: 0
+Device with port_id=1 already stopped
+rte_eth_dev_stop (): ret: 0 port: 1
+Device with port_id=2 already stopped
+rte_eth_dev_stop (): ret: 0 port: 2
+Device with port_id=3 already stopped
+rte_eth_dev_stop (): ret: 0 port: 3
+
+startup-config> set port all dev-configure 1 4
+
+startup-config> set port all nrxdesc 1024
+port: 0 nb_rxd: 1024 nb_txd: 1024
+rte_eth_dev_adjust_nb_rx_tx_desc(): success: ret: 0
+send internal msg: 0x5ebc15098960
+port: 1 nb_rxd: 1024 nb_txd: 1024
+rte_eth_dev_adjust_nb_rx_tx_desc(): success: ret: 0
+send internal msg: 0x5ebc15098450
+port: 2 nb_rxd: 1024 nb_txd: 1024
+rte_eth_dev_adjust_nb_rx_tx_desc(): success: ret: 0
+send internal msg: 0x5ebc1509abb0
+port: 3 nb_rxd: 1024 nb_txd: 1024
+rte_eth_dev_adjust_nb_rx_tx_desc(): success: ret: 0
+send internal msg: 0x5ebc1509aab0
+
+startup-config> set port all ntxdesc 1024
+port: 0 nb_rxd: 1024 nb_txd: 1024
+rte_eth_dev_adjust_nb_rx_tx_desc(): success: ret: 0
+send internal msg: 0x5ebc150bd090
+port: 1 nb_rxd: 1024 nb_txd: 1024
+rte_eth_dev_adjust_nb_rx_tx_desc(): success: ret: 0
+send internal msg: 0x5ebc150bd100
+port: 2 nb_rxd: 1024 nb_txd: 1024
+rte_eth_dev_adjust_nb_rx_tx_desc(): success: ret: 0
+send internal msg: 0x5ebc150bd120
+port: 3 nb_rxd: 1024 nb_txd: 1024
+rte_eth_dev_adjust_nb_rx_tx_desc(): success: ret: 0
+send internal msg: 0x5ebc150bd140
+
+startup-config> 
+
+startup-config> set worker lcore 1 l2-repeater
+worker set to lcore[1]: func: l2-repeater
+workers need to be restarted for changes to take effect.
+
+startup-config> set worker lcore 2 l2-repeater
+worker set to lcore[2]: func: l2-repeater
+workers need to be restarted for changes to take effect.
+
+startup-config> set thread 2 port 0 queue 0
+lcore: 2 port: 0 rx-queue: 0
+thread_qconf[2]: lcore: 2 rxq[0/1]: port: 0 queue: 0
+
+startup-config> set thread 2 port 1 queue 0
+lcore: 2 port: 1 rx-queue: 0
+thread_qconf[2]: lcore: 2 rxq[0/2]: port: 0 queue: 0
+thread_qconf[2]: lcore: 2 rxq[1/2]: port: 1 queue: 0
+
+startup-config> start port all
+rte_eth_dev_start (): ret: 0 port: 0
+rte_eth_dev_start (): ret: 0 port: 1
+rte_eth_dev_start (): ret: 0 port: 2
+rte_eth_dev_start (): ret: 0 port: 3
+
+startup-config> start worker lcore all
+starting worker on lcore: 0
+can't start a null worker on lcore: 0
+starting worker on lcore: 1
+started worker on lcore: 1
+starting worker on lcore: 2
+started worker on lcore: 2
+starting worker on lcore: 3
+can't start a null worker on lcore: 3
+
+startup-config> 
+
+startup-config> update port status
+
+startup-config> sleep 2
+ 2lcore 2 called rx_pkt_burst for not ready port 0
+0: /usr/local/lib/x86_64-linux-gnu/librte_eal.so.24 (rte_dump_stack+0x43) [73724109c093]
+1: /usr/local/lib/x86_64-linux-gnu/librte_ethdev.so.24 (7372411ad000+0xc121) [7372411b9121]
+2: ./build/test_l2_repeater (5ebbcd51d000+0x80ee1) [5ebbcd59dee1]
+3: /usr/local/lib/x86_64-linux-gnu/librte_eal.so.24 (737241064000+0x26155) [73724108a155]
+4: /usr/local/lib/x86_64-linux-gnu/librte_eal.so.24 (737241064000+0x397f0) [73724109d7f0]
+5: /lib/x86_64-linux-gnu/libc.so.6 (737240c00000+0x9caa4) [737240c9caa4]
+6: /lib/x86_64-linux-gnu/libc.so.6 (737240c00000+0x129c3c) [737240d29c3c]
+ 1 0.
+
+startup-config> 
+
+startup-config> !!!!! STOPPED DEV 0!!!!! STARTED DEV 0!!!!! STOPPED DEV 1!!!!! STARTED DEV 1!!!!! STOPPED DEV 2!!!!! STARTED DEV 2!!!!! STOPPED DEV 3!!!!! STARTED DEV 3!!!!! STOPPED DEV 0!!!!! STARTED DEV 0!!!!! STOPPED DEV 1!!!!! STARTED DEV 1!!!!! STOPPED DEV 2!!!!! STARTED DEV 2!!!!! STOPPED DEV 3!!!!! STARTED DEV 3common/test_util.c[288]: apply_config: terminating.
+../sdplane/rib_manager.c[1172]: rib_manager: terminating.
+../sdplane/stat_collector.c[140]: stat_collector: terminating.
