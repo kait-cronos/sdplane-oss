@@ -11,7 +11,7 @@ fixdefun=$style/fix-defun.awk
 clangformat=clang-format
 clangformat_version='18.1.3'
 
-IGNORE_PATHS=""
+IGNORE_PATHS="module/"
 
 check_clangformat_version() {
     if ! command -v $clangformat &> /dev/null; then
