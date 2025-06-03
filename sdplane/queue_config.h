@@ -1,7 +1,8 @@
 #ifndef __QUEUE_CONFIG_H__
 #define __QUEUE_CONFIG_H__
 
-struct port_queue_conf {
+struct port_queue_conf
+{
   uint16_t port_id;
   uint16_t queue_id;
 } __rte_cache_aligned;
@@ -11,7 +12,8 @@ struct port_queue_conf {
 #endif
 #define MAX_TX_QUEUE_PER_LCORE 1
 
-struct sdplane_queue_conf {
+struct sdplane_queue_conf
+{
   uint16_t nrxq;
   struct port_queue_conf rx_queue_list[MAX_RX_QUEUE_PER_LCORE];
 

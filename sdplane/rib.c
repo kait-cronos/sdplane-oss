@@ -32,10 +32,7 @@ static __thread struct rib *rib = NULL;
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
 
-CLI_COMMAND2 (show_rib,
-              "show rib",
-              SHOW_HELP,
-              "rib information\n")
+CLI_COMMAND2 (show_rib, "show rib", SHOW_HELP, "rib information\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib;
@@ -79,8 +76,8 @@ CLI_COMMAND2 (show_rib,
       return 0;
     }
 
-  fprintf (shell->terminal, "rib_info: ver: %lu (%p)%s",
-           rib->rib_info->ver, rib->rib_info, shell->NL);
+  fprintf (shell->terminal, "rib_info: ver: %lu (%p)%s", rib->rib_info->ver,
+           rib->rib_info, shell->NL);
 
 #if 0
   fprintf (shell->terminal, "rib_info: tapif_size: %d%s",
@@ -100,8 +97,8 @@ CLI_COMMAND2 (show_rib,
     {
       struct vswitch_conf *vswitch;
       vswitch = &rib->rib_info->vswitch[i];
-      fprintf (shell->terminal, "rib_info: vswitch[%d]: port_size: %d%s",
-               i, vswitch->vswitch_port_size, shell->NL);
+      fprintf (shell->terminal, "rib_info: vswitch[%d]: port_size: %d%s", i,
+               vswitch->vswitch_port_size, shell->NL);
       for (j = 0; j < vswitch->vswitch_port_size; j++)
         {
           struct vswitch_link *link;
@@ -118,16 +115,17 @@ CLI_COMMAND2 (show_rib,
     {
       struct port_conf *port;
       port = &rib->rib_info->port[i];
-      fprintf (shell->terminal, "rib_info: port[%d]: "
-             "nb_rxd: %hu nb_txd: %hu%s",
-             i, port->nb_rxd, port->nb_txd, shell->NL);
-      fprintf (shell->terminal, "rib_info: port[%d]: "
-             "link: speed: %lu duplex: %d autoneg: %d status: %d%s",
-             i, port->link.link_speed, port->link.link_duplex,
-             port->link.link_autoneg, port->link.link_status,
-             shell->NL);
-      fprintf (shell->terminal, "rib_info: port[%d]: nrxq: %d ntxq: %d%s",
-               i, port->dev_info.nb_rx_queues, port->dev_info.nb_tx_queues,
+      fprintf (shell->terminal,
+               "rib_info: port[%d]: "
+               "nb_rxd: %hu nb_txd: %hu%s",
+               i, port->nb_rxd, port->nb_txd, shell->NL);
+      fprintf (shell->terminal,
+               "rib_info: port[%d]: "
+               "link: speed: %lu duplex: %d autoneg: %d status: %d%s",
+               i, port->link.link_speed, port->link.link_duplex,
+               port->link.link_autoneg, port->link.link_status, shell->NL);
+      fprintf (shell->terminal, "rib_info: port[%d]: nrxq: %d ntxq: %d%s", i,
+               port->dev_info.nb_rx_queues, port->dev_info.nb_tx_queues,
                shell->NL);
     }
 
@@ -137,19 +135,18 @@ CLI_COMMAND2 (show_rib,
     {
       struct lcore_qconf *qconf;
       qconf = &rib->rib_info->lcore_qconf[i];
-      fprintf (shell->terminal, "rib_info: lcore[%d]: nrxq: %d%s",
-               i, qconf->nrxq, shell->NL);
+      fprintf (shell->terminal, "rib_info: lcore[%d]: nrxq: %d%s", i,
+               qconf->nrxq, shell->NL);
       for (j = 0; j < qconf->nrxq; j++)
         {
           struct port_queue_conf *rx_queue;
           rx_queue = &qconf->rx_queue_list[j];
-          fprintf (shell->terminal, "rib_info: lcore[%d]: rxq[%d]: "
+          fprintf (shell->terminal,
+                   "rib_info: lcore[%d]: rxq[%d]: "
                    "port_id: %d queue_id: %d%s",
-                   i, j, rx_queue->port_id, rx_queue->queue_id,
-                   shell->NL);
+                   i, j, rx_queue->port_id, rx_queue->queue_id, shell->NL);
         }
     }
 
   return 0;
 }
-

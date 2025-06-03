@@ -69,12 +69,8 @@ void rib_manager (void *arg);
 void netlink_thread (void *arg);
 
 CLI_COMMAND2 (set_worker_lthread_stat_collector,
-              "set worker lthread stat-collector",
-              SET_HELP,
-              WORKER_HELP,
-              "lthread information\n",
-              "stat-collector\n"
-              )
+              "set worker lthread stat-collector", SET_HELP, WORKER_HELP,
+              "lthread information\n", "stat-collector\n")
 {
   struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
@@ -86,31 +82,22 @@ CLI_COMMAND2 (set_worker_lthread_stat_collector,
   return 0;
 }
 
-CLI_COMMAND2 (set_worker_lthread_rib_manager,
-              "set worker lthread rib-manager",
-              SET_HELP,
-              WORKER_HELP,
-              "lthread information\n",
-              "rib-manager\n"
-              )
+CLI_COMMAND2 (set_worker_lthread_rib_manager, "set worker lthread rib-manager",
+              SET_HELP, WORKER_HELP, "lthread information\n", "rib-manager\n")
 {
   struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) rib_manager, NULL);
-  thread_register (lthread_core, lt, (lthread_func) rib_manager,
-                   "rib_manager", NULL);
+  thread_register (lthread_core, lt, (lthread_func) rib_manager, "rib_manager",
+                   NULL);
   lthread_detach2 (lt);
   return 0;
 }
 
 CLI_COMMAND2 (set_worker_lthread_netlink_thread,
-              "set worker lthread netlink-thread",
-              SET_HELP,
-              WORKER_HELP,
-              "lthread information\n",
-              "netlink-thread\n"
-              )
+              "set worker lthread netlink-thread", SET_HELP, WORKER_HELP,
+              "lthread information\n", "netlink-thread\n")
 {
   struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
@@ -177,8 +164,8 @@ lthread_main (__rte_unused void *dummy)
   ret = startup_config (NULL);
   if (ret < 0)
     {
-      printf ("%s[%d]: %s: error in startup_config.\n",
-              __FILE__, __LINE__, __func__);
+      printf ("%s[%d]: %s: error in startup_config.\n", __FILE__, __LINE__,
+              __func__);
       exit (-1);
     }
 #endif

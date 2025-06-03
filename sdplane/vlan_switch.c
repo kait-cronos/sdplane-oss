@@ -34,10 +34,11 @@
 #include "rib_manager.h"
 #include "thread_info.h"
 
-static __thread  unsigned lcore_id;
+static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
-extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+extern struct rte_eth_dev_tx_buffer
+    *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
 /* vlan_switch_tx_flush() flushes the queue'ed packets
    in tx_buffer_per_q[] onto the NIC. */
@@ -65,8 +66,8 @@ vlan_switch_tx_flush ()
             DEBUG_SDPLANE_LOG (VLAN_SWITCH,
                                "lcore[%d]: port %d queue %d flush: "
                                "sent: %d buffer->length: %d",
-                               lcore_id, tx_portid, tx_queueid,
-                               sent, buffer->length);
+                               lcore_id, tx_portid, tx_queueid, sent,
+                               buffer->length);
         }
       if (sent)
         {
@@ -98,9 +99,8 @@ vlan_switch_tx_burst ()
       portid = lcore_qconf->rx_queue_list[i].port_id;
       queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
-      nb_rx = rte_ring_dequeue_burst (ring_dn[portid][queueid],
-                                     (void **) pkts_burst, MAX_PKT_BURST,
-                                     NULL);
+      nb_rx = rte_ring_dequeue_burst (
+          ring_dn[portid][queueid], (void **) pkts_burst, MAX_PKT_BURST, NULL);
 
       if (unlikely (nb_rx == 0))
         continue;
@@ -164,31 +164,31 @@ vlan_switch_send (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   if (tx_portid >= nb_ports)
     return;
 
-      if (rx_portid == tx_portid)
-        return;
+  if (rx_portid == tx_portid)
+    return;
 
-      if (! rib->rib_info->port[tx_portid].link.link_status)
-        return;
+  if (! rib->rib_info->port[tx_portid].link.link_status)
+    return;
 
-      buffer = tx_buffer_per_q[tx_portid][tx_queueid];
-      if (! buffer)
-        return;
+  buffer = tx_buffer_per_q[tx_portid][tx_queueid];
+  if (! buffer)
+    return;
 
-      /* copy the packet */
-      c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
-      if (c)
-        {
-          /* send the packet-copy */
-          sent = rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, c);
-          if (sent)
-            port_statistics[tx_portid].tx += sent;
-        }
-      else
-        {
-          DEBUG_LOG_MSG ("lcore[%d]: m: %p port %d -> %d "
-                         "rte_pktmbuf_copy() failed.",
-                         lcore_id, m, rx_portid, tx_portid);
-        }
+  /* copy the packet */
+  c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+  if (c)
+    {
+      /* send the packet-copy */
+      sent = rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, c);
+      if (sent)
+        port_statistics[tx_portid].tx += sent;
+    }
+  else
+    {
+      DEBUG_LOG_MSG ("lcore[%d]: m: %p port %d -> %d "
+                     "rte_pktmbuf_copy() failed.",
+                     lcore_id, m, rx_portid, tx_portid);
+    }
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -239,7 +239,8 @@ vlan_switch_run (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
 }
 
 static inline __attribute__ ((always_inline)) void
-vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
+vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid,
+                    unsigned rx_queueid)
 {
   struct rte_ether_hdr *eth_hdr;
   struct port_conf *port_config;
@@ -255,7 +256,7 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
     {
       uint16_t vlan_id;
       struct rte_vlan_hdr *vlan_hdr;
-      vlan_hdr = (struct rte_vlan_hdr *)(eth_hdr + 1);
+      vlan_hdr = (struct rte_vlan_hdr *) (eth_hdr + 1);
 #ifndef RTE_VLAN_TCI_ID
 #define RTE_VLAN_TCI_ID(vlan_tci) ((vlan_tci) & 0x0fff)
 #endif
@@ -279,8 +280,8 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
          for the port. */
       vswitch_link_id = port_config->vswitch_link_id_of_native_vlan;
       vswitch_link = &rib->rib_info->vswitch_link[vswitch_link_id];
-      DEBUG_SDPLANE_LOG (VLAN_SWITCH, "m: %p untag: vswitch: %u",
-                         m, vswitch_link->vswitch_id);
+      DEBUG_SDPLANE_LOG (VLAN_SWITCH, "m: %p untag: vswitch: %u", m,
+                         vswitch_link->vswitch_id);
     }
 
   if (! vswitch_link)
@@ -307,13 +308,13 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
         continue;
 
       /* forward to dpdk ports. */
-      //vlan_switch_send (m, rx_portid, rx_queueid, tx_portid, tx_queueid);
+      // vlan_switch_send (m, rx_portid, rx_queueid, tx_portid, tx_queueid);
     }
 
-  //vlan_switch_router_if_send (m, rx_portid, rx_queueid);
-  //vlan_switch_capture_if_send (m, rx_portid, rx_queueid);
+  // vlan_switch_router_if_send (m, rx_portid, rx_queueid);
+  // vlan_switch_capture_if_send (m, rx_portid, rx_queueid);
 
-  //rte_pktmbuf_free (m);
+  // rte_pktmbuf_free (m);
 
   return;
 }
@@ -339,7 +340,7 @@ vlan_switch_rx_burst ()
       queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
       nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
-      //nb_rx_burst++;
+      // nb_rx_burst++;
 
       if (unlikely (nb_rx == 0))
         continue;
@@ -406,7 +407,7 @@ vlan_switch (__rte_unused void *dummy)
         }
 
       vlan_switch_rx_burst ();
-      //vlan_switch_tx_burst ();
+      // vlan_switch_tx_burst ();
 
 #if HAVE_LIBURCU_QSBR
       urcu_qsbr_read_unlock ();

@@ -136,8 +136,8 @@ vty_server (void *arg)
       DEBUG_SDPLANE_LOG (VTY_SERVER, "lthread_accept: client[%d].", client_id);
       client_info[client_id].peer_addr = peer_addr;
       client_info[client_id].fd = client_fd;
-      ret = lthread_create (&client_info[client_id].lt,
-                            vty_shell, &client_info[client_id]);
+      ret = lthread_create (&client_info[client_id].lt, vty_shell,
+                            &client_info[client_id]);
       if (client_size < client_id)
         client_size = client_id + 1;
 

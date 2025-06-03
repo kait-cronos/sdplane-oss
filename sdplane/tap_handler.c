@@ -73,8 +73,8 @@ vswitch_port_update ()
                          "vswport[%d]: id: %d type: %d name: %s sockfd: %d "
                          "lcore_id: %d ring[0/1]: %p/%p ",
                          i, vswport->id, vswport->type, vswport->name,
-                         vswport->sockfd, vswport->lcore_id,
-                         vswport->ring[0], vswport->ring[1]);
+                         vswport->sockfd, vswport->lcore_id, vswport->ring[0],
+                         vswport->ring[1]);
     }
 
   DEBUG_SDPLANE_LOG (VSWITCH, "removing DPDK port in vswitch: size %d",
@@ -89,7 +89,8 @@ vswitch_port_update ()
             {
               nextport = &vswitch->port[i + 1];
               memmove (vswport, nextport,
-                       (vswitch->size - (i + 1)) * sizeof (struct vswitch_port));
+                       (vswitch->size - (i + 1)) *
+                           sizeof (struct vswitch_port));
             }
           else
             {
@@ -108,8 +109,8 @@ vswitch_port_update ()
                          "vswport[%d]: id: %d type: %d name: %s sockfd: %d "
                          "lcore_id: %d ring[0/1]: %p/%p ",
                          i, vswport->id, vswport->type, vswport->name,
-                         vswport->sockfd, vswport->lcore_id,
-                         vswport->ring[0], vswport->ring[1]);
+                         vswport->sockfd, vswport->lcore_id, vswport->ring[0],
+                         vswport->ring[1]);
     }
 
   for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
@@ -136,8 +137,7 @@ vswitch_port_update ()
                         lcore_id);
 #else
               snprintf (port_name, sizeof (port_name),
-                        "ring_up[port-%d][queue-%d]",
-                        portid, queueid);
+                        "ring_up[port-%d][queue-%d]", portid, queueid);
 #endif
               vswport->dpdk_port_id = portid;
               vswport->dpdk_queue_id = queueid;
@@ -150,7 +150,8 @@ vswitch_port_update ()
                                  "type: dpdk-lcore name: %s lcore_id: %d "
                                  "ring[up(%d)/down(%d)]: %p/%p",
                                  vswport_id, vswport->name, vswport->lcore_id,
-                                 TAPDIR_UP, TAPDIR_DOWN, vswport->ring[TAPDIR_UP],
+                                 TAPDIR_UP, TAPDIR_DOWN,
+                                 vswport->ring[TAPDIR_UP],
                                  vswport->ring[TAPDIR_DOWN]);
               vswitch->size++;
             }
@@ -162,11 +163,11 @@ vswitch_port_update ()
   for (i = 0; i < vswitch->size; i++)
     {
       vswport = &vswitch->port[i];
-      DEBUG_SDPLANE_LOG (VSWITCH,
-                         "vswport[%d]: id: %d type: %d name: %s sockfd: %d lcore_id: %d ring[0/1]: %p/%p ",
-                         i, vswport->id, vswport->type, vswport->name,
-                         vswport->sockfd, vswport->lcore_id,
-                         vswport->ring[0], vswport->ring[1]);
+      DEBUG_SDPLANE_LOG (
+          VSWITCH,
+          "vswport[%d]: id: %d type: %d name: %s sockfd: %d lcore_id: %d ring[0/1]: %p/%p ",
+          i, vswport->id, vswport->type, vswport->name, vswport->sockfd,
+          vswport->lcore_id, vswport->ring[0], vswport->ring[1]);
     }
 }
 
@@ -178,8 +179,7 @@ tap_handler_register_fdb (struct rte_mbuf *m)
   struct rte_ether_hdr *eth;
 
   eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  rte_ether_format_addr (eth_src, sizeof (eth_src),
-                         &eth->src_addr);
+  rte_ether_format_addr (eth_src, sizeof (eth_src), &eth->src_addr);
 
   /* register in FDB */
   for (j = 0; j < FDB_SIZE; j++)
@@ -188,24 +188,22 @@ tap_handler_register_fdb (struct rte_mbuf *m)
         {
           fdb[j].l2addr = eth->src_addr;
           fdb[j].port = m->port;
-          DEBUG_SDPLANE_LOG (
-              FDB_CHANGE,
-              "m: %p new: in fdb[%d]: addr: %s port: %d", m, j,
-              eth_src, m->port);
+          DEBUG_SDPLANE_LOG (FDB_CHANGE,
+                             "m: %p new: in fdb[%d]: addr: %s port: %d", m, j,
+                             eth_src, m->port);
           break;
         }
       if (rte_is_same_ether_addr (&fdb[j].l2addr, &eth->src_addr))
         {
           fdb[j].port = m->port;
-          DEBUG_SDPLANE_LOG (
-              FDB, "m: %p found: in fdb[%d]: addr: %s port: %d", m,
-              j, eth_src, m->port);
+          DEBUG_SDPLANE_LOG (FDB, "m: %p found: in fdb[%d]: addr: %s port: %d",
+                             m, j, eth_src, m->port);
           break;
         }
       char buf[32];
       rte_ether_format_addr (buf, sizeof (buf), &fdb[j].l2addr);
-      DEBUG_SDPLANE_LOG (FDB, "m: %p fdb[%d]: addr: %s port: %d",
-                         m, j, buf, fdb[j].port);
+      DEBUG_SDPLANE_LOG (FDB, "m: %p fdb[%d]: addr: %s port: %d", m, j, buf,
+                         fdb[j].port);
     }
 }
 
@@ -226,13 +224,11 @@ tap_handler_write_peek (struct rte_mbuf *m)
     {
       ret = write (capture_fd, pkt, data_len);
       if (ret < 0)
-        DEBUG_SDPLANE_LOG (TAPHANDLER,
-                           "warning: write () failed: %s",
+        DEBUG_SDPLANE_LOG (TAPHANDLER, "warning: write () failed: %s",
                            strerror (errno));
       else
         DEBUG_SDPLANE_LOG (
-            TAPHANDLER,
-            "packet [%d/%d] (in_port: %d) written to capture I/F.",
+            TAPHANDLER, "packet [%d/%d] (in_port: %d) written to capture I/F.",
             data_len, pkt_len, m->port);
     }
 }
@@ -250,8 +246,7 @@ tap_handler_write_port (struct rte_mbuf *m)
   pkt = rte_pktmbuf_mtod (m, char *);
 
   if (data_len < pkt_len)
-    DEBUG_SDPLANE_LOG (TAPHANDLER,
-                       "warning: multi-seg mbuf: %u < %u",
+    DEBUG_SDPLANE_LOG (TAPHANDLER, "warning: multi-seg mbuf: %u < %u",
                        data_len, pkt_len);
 
   /* write to port-dpdkX. */
@@ -259,15 +254,13 @@ tap_handler_write_port (struct rte_mbuf *m)
     {
       ret = write (port_fd[m->port], pkt, data_len);
       if (ret < 0)
-        DEBUG_SDPLANE_LOG (
-            TAPHANDLER,
-            "write() failed: port_fd[%d]: %d error: %s.", m->port,
-            port_fd[m->port], strerror (errno));
+        DEBUG_SDPLANE_LOG (TAPHANDLER,
+                           "write() failed: port_fd[%d]: %d error: %s.",
+                           m->port, port_fd[m->port], strerror (errno));
       else
-        DEBUG_SDPLANE_LOG (
-            TAPHANDLER,
-            "packet [%d/%d] (in_port: %d) to port-dpdk%d.",
-            data_len, pkt_len, m->port, m->port);
+        DEBUG_SDPLANE_LOG (TAPHANDLER,
+                           "packet [%d/%d] (in_port: %d) to port-dpdk%d.",
+                           data_len, pkt_len, m->port, m->port);
     }
 }
 
@@ -286,8 +279,7 @@ tap_handler_write_port_all (struct rte_mbuf *m)
   pkt = rte_pktmbuf_mtod (m, char *);
 
   if (data_len < pkt_len)
-    DEBUG_SDPLANE_LOG (TAPHANDLER,
-                       "warning: multi-seg mbuf: %u < %u",
+    DEBUG_SDPLANE_LOG (TAPHANDLER, "warning: multi-seg mbuf: %u < %u",
                        data_len, pkt_len);
 
   nb_ports = rte_eth_dev_count_avail ();
@@ -298,15 +290,13 @@ tap_handler_write_port_all (struct rte_mbuf *m)
         {
           ret = write (port_fd[port_id], pkt, data_len);
           if (ret < 0)
-            DEBUG_SDPLANE_LOG (
-                TAPHANDLER,
-                "write() failed: port_fd[%d]: %d error: %s.", port_id,
-                port_fd[port_id], strerror (errno));
+            DEBUG_SDPLANE_LOG (TAPHANDLER,
+                               "write() failed: port_fd[%d]: %d error: %s.",
+                               port_id, port_fd[port_id], strerror (errno));
           else
-            DEBUG_SDPLANE_LOG (
-                TAPHANDLER,
-                "packet [%d/%d] (in_port: %d) to port-dpdk%d.",
-                data_len, pkt_len, m->port, port_id);
+            DEBUG_SDPLANE_LOG (TAPHANDLER,
+                               "packet [%d/%d] (in_port: %d) to port-dpdk%d.",
+                               data_len, pkt_len, m->port, port_id);
         }
     }
 }
@@ -431,7 +421,7 @@ tap_handler_handle_packet_down ()
             continue;
 
           socket = rte_lcore_to_socket_id (rte_lcore_id ());
-          //mp = pktmbuf_pool[vswport->dpdk_port_id][socket];
+          // mp = pktmbuf_pool[vswport->dpdk_port_id][socket];
           mp = l2fwd_pktmbuf_pool;
           m = rte_pktmbuf_alloc (mp);
           rte_pktmbuf_append (m, ret);
@@ -440,10 +430,9 @@ tap_handler_handle_packet_down ()
 
           ring = ring_dn[vswport->dpdk_port_id][vswport->dpdk_queue_id];
           rte_ring_enqueue (ring, m);
-          DEBUG_SDPLANE_LOG (TAPHANDLER,
-                             "packet: sockfd %d -> ring_dn[%d][%d]",
-                             vswport->sockfd, vswport->dpdk_port_id,
-                             vswport->dpdk_queue_id);
+          DEBUG_SDPLANE_LOG (
+              TAPHANDLER, "packet: sockfd %d -> ring_dn[%d][%d]",
+              vswport->sockfd, vswport->dpdk_port_id, vswport->dpdk_queue_id);
         }
     }
 }

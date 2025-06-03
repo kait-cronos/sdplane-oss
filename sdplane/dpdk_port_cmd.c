@@ -158,8 +158,8 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
     port_spec = strtol (argv[2], NULL, 0);
 
   if (brief)
-    fprintf (t, "%-8s %-7s %6s %7s %-9s %-24s%s", "port:", "device",
-             "status", "speed", "driver", "<capability>", shell->NL);
+    fprintf (t, "%-8s %-7s %6s %7s %-9s %-24s%s", "port:", "device", "status",
+             "speed", "driver", "<capability>", shell->NL);
 
   nb_ports = rte_eth_dev_count_avail ();
   for (port_id = 0; port_id < nb_ports; port_id++)
@@ -183,8 +183,7 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
         }
       status = (link.link_status ? "up" : "down");
 
-      snprintf (devname, sizeof (devname),
-                "%s", rte_dev_name (dev->device));
+      snprintf (devname, sizeof (devname), "%s", rte_dev_name (dev->device));
       devname2 = NULL;
       if (! strncmp (devname, "0000:", 5))
         devname2 = &devname[5];
@@ -202,11 +201,10 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
         {
           char port_name[16];
           snprintf (port_name, sizeof (port_name), "port[%d]:", port_id);
-          fprintf (t, "%-8s %-7s %6s %'7d %-9s %-24s%s",
-                   port_name, (devname2 ? devname2 : devname),
-                   status, link.link_speed,
-                   (drivername2 ? drivername2 : drivername),
-                   link_capa2, shell->NL);
+          fprintf (t, "%-8s %-7s %6s %'7d %-9s %-24s%s", port_name,
+                   (devname2 ? devname2 : devname), status, link.link_speed,
+                   (drivername2 ? drivername2 : drivername), link_capa2,
+                   shell->NL);
         }
       else
         {
@@ -560,18 +558,13 @@ CLI_COMMAND2 (
   return 0;
 }
 
-extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+extern struct rte_eth_dev_tx_buffer
+    *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
 CLI_COMMAND2 (set_port_dev_configure,
-              "set port (<0-16>|all) dev-configure <0-64> <0-64>",
-              SHOW_HELP,
-              PORT_HELP,
-              PORT_NUMBER_HELP,
-              ALL_HELP,
-              "rte_eth_dev_configure.\n",
-              "nb_rx_queue.\n",
-              "nb_tx_queue.\n"
-              )
+              "set port (<0-16>|all) dev-configure <0-64> <0-64>", SHOW_HELP,
+              PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "rte_eth_dev_configure.\n", "nb_rx_queue.\n", "nb_tx_queue.\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -608,8 +601,8 @@ CLI_COMMAND2 (set_port_dev_configure,
       if (ret != 0)
         {
           fprintf (shell->terminal,
-                   "rte_eth_dev_info_get(): port: %d failed: %s%s",
-                   port_id, strerror (-ret), shell->NL);
+                   "rte_eth_dev_info_get(): port: %d failed: %s%s", port_id,
+                   strerror (-ret), shell->NL);
           continue;
         }
       if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE)
@@ -620,8 +613,8 @@ CLI_COMMAND2 (set_port_dev_configure,
       if (ret < 0)
         {
           fprintf (shell->terminal,
-                   "rte_eth_dev_configure(): port: %d failed: %d%s",
-                   port_id, ret, shell->NL);
+                   "rte_eth_dev_configure(): port: %d failed: %d%s", port_id,
+                   ret, shell->NL);
         }
 
       rxq_conf = dev_info.default_rxconf;
@@ -630,8 +623,7 @@ CLI_COMMAND2 (set_port_dev_configure,
         {
           ret = rte_eth_rx_queue_setup (port_id, i, nb_rxd,
                                         rte_eth_dev_socket_id (port_id),
-                                        &rxq_conf,
-                                        l2fwd_pktmbuf_pool);
+                                        &rxq_conf, l2fwd_pktmbuf_pool);
           if (ret < 0)
             {
               fprintf (shell->terminal,
@@ -645,9 +637,8 @@ CLI_COMMAND2 (set_port_dev_configure,
       txq_conf.offloads = port_conf.txmode.offloads;
       for (i = 0; i < nb_tx_queue; i++)
         {
-          ret = rte_eth_tx_queue_setup (port_id, i, nb_txd,
-                                        rte_eth_dev_socket_id (port_id),
-                                        &txq_conf);
+          ret = rte_eth_tx_queue_setup (
+              port_id, i, nb_txd, rte_eth_dev_socket_id (port_id), &txq_conf);
           if (ret < 0)
             {
               fprintf (shell->terminal,
@@ -659,12 +650,11 @@ CLI_COMMAND2 (set_port_dev_configure,
           if (tx_buffer_per_q[port_id][i])
             continue;
 
-	  DEBUG_SDPLANE_LOG (L2_REPEATER, "tx_buffer_init: port: %d queue: %d",
-			  port_id, i);
-          tx_buffer_per_q[port_id][i] =
-            rte_zmalloc_socket ("tx_buffer",
-                                RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
-                                rte_eth_dev_socket_id (port_id));
+          DEBUG_SDPLANE_LOG (L2_REPEATER, "tx_buffer_init: port: %d queue: %d",
+                             port_id, i);
+          tx_buffer_per_q[port_id][i] = rte_zmalloc_socket (
+              "tx_buffer", RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
+              rte_eth_dev_socket_id (port_id));
           rte_eth_tx_buffer_init (tx_buffer_per_q[port_id][i], MAX_PKT_BURST);
         }
     }
@@ -672,11 +662,8 @@ CLI_COMMAND2 (set_port_dev_configure,
 }
 
 CLI_COMMAND2 (set_port_txrx_desc,
-              "set port (<0-16>|all) (nrxdesc|ntxdesc) <0-16384>",
-              SET_HELP,
-              PORT_HELP,
-              PORT_NUMBER_HELP,
-              ALL_HELP,
+              "set port (<0-16>|all) (nrxdesc|ntxdesc) <0-16384>", SET_HELP,
+              PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
               "set the number of rx descriptor for the port\n",
               "set the number of tx descriptor for the port\n",
               "Specify the descriptor number.\n")
@@ -725,17 +712,16 @@ CLI_COMMAND2 (set_port_txrx_desc,
       if (tx_spec)
         nb_tx_desc = desc_val;
 
-      fprintf (shell->terminal,
-               "port: %d nb_rxd: %hu nb_txd: %hu%s",
-               port_id, nb_rx_desc, nb_tx_desc, shell->NL);
+      fprintf (shell->terminal, "port: %d nb_rxd: %hu nb_txd: %hu%s", port_id,
+               nb_rx_desc, nb_tx_desc, shell->NL);
 
-      ret = rte_eth_dev_adjust_nb_rx_tx_desc (port_id,
-                                              &nb_rx_desc, &nb_tx_desc);
+      ret =
+          rte_eth_dev_adjust_nb_rx_tx_desc (port_id, &nb_rx_desc, &nb_tx_desc);
       if (ret < 0)
         {
           fprintf (shell->terminal,
-                   "rte_eth_dev_adjust_nb_rx_tx_desc(): error: ret: %d%s",
-                   ret, shell->NL);
+                   "rte_eth_dev_adjust_nb_rx_tx_desc(): error: ret: %d%s", ret,
+                   shell->NL);
           continue;
         }
       else
@@ -750,12 +736,11 @@ CLI_COMMAND2 (set_port_txrx_desc,
       txrx_desc.portid = port_id;
       txrx_desc.nb_rxd = nb_rx_desc;
       txrx_desc.nb_txd = nb_tx_desc;
-      msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC,
-                                  &txrx_desc, sizeof (txrx_desc));
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC, &txrx_desc,
+                                  sizeof (txrx_desc));
       internal_msg_send_to (msg_queue_rib, msgp, shell);
 
-      fprintf (shell->terminal,
-               "send internal msg: %p%s", msgp, shell->NL);
+      fprintf (shell->terminal, "send internal msg: %p%s", msgp, shell->NL);
     }
 
 #if HAVE_LIBURCU_QSBR

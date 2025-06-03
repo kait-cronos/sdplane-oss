@@ -34,12 +34,13 @@
 #include "rib_manager.h"
 #include "thread_info.h"
 
-static __thread  unsigned lcore_id;
+static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
 uint64_t l2_repeat_pkt_copy_failure = 0;
 
-extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+extern struct rte_eth_dev_tx_buffer
+    *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
 /* l2_repeater_tx_flush() flushes the queue'ed packets
    in tx_buffer_per_q[] onto the NIC. */
@@ -67,8 +68,8 @@ l2_repeater_tx_flush ()
             DEBUG_SDPLANE_LOG (L2_REPEATER,
                                "lcore[%d]: port %d queue %d flush: "
                                "sent: %d buffer->length: %d",
-                               lcore_id, tx_portid, tx_queueid,
-                               sent, buffer->length);
+                               lcore_id, tx_portid, tx_queueid, sent,
+                               buffer->length);
         }
       if (sent)
         {
@@ -100,9 +101,8 @@ l2_repeater_tx_burst ()
       portid = lcore_qconf->rx_queue_list[i].port_id;
       queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
-      nb_rx = rte_ring_dequeue_burst (ring_dn[portid][queueid],
-                                     (void **) pkts_burst, MAX_PKT_BURST,
-                                     NULL);
+      nb_rx = rte_ring_dequeue_burst (
+          ring_dn[portid][queueid], (void **) pkts_burst, MAX_PKT_BURST, NULL);
 
       if (unlikely (nb_rx == 0))
         continue;
