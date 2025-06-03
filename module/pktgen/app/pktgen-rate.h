@@ -12,23 +12,21 @@
 #include <rte_timer.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-  typedef struct
-  {
+typedef struct {
     uint64_t timestamp;
     uint16_t magic;
-  } rate_stamp_t;
+} rate_stamp_t;
 
 #define RATE_MAGIC (('R' << 8) + 'y')
 
-  void pktgen_rate_init (port_info_t *info);
-  void pktgen_page_rate (void);
-  void rate_set_value (port_info_t *info, const char *what, uint32_t value);
-  void update_rate_values (port_info_t *info);
-  void pktgen_rate_setup (port_info_t *info);
+void pktgen_rate_init(port_info_t *info);
+void pktgen_page_rate(void);
+void rate_set_value(port_info_t *info, const char *what, uint32_t value);
+void update_rate_values(port_info_t *info);
+void pktgen_rate_setup(port_info_t *info);
 
 #ifdef __cplusplus
 }

@@ -11,42 +11,37 @@
 
 #define PROC_CPUINFO "/proc/cpuinfo"
 
-typedef union
-{
-  struct
-  {
-    uint8_t lid; /* Logical core ID */
-    uint8_t sid; /* CPU socket ID */
-    uint8_t cid; /* Physical CPU core ID */
-    uint8_t tid; /* Hyper-thread ID */
-  };
-  uint32_t word;
+typedef union {
+    struct {
+        uint8_t lid; /* Logical core ID */
+        uint8_t sid; /* CPU socket ID */
+        uint8_t cid; /* Physical CPU core ID */
+        uint8_t tid; /* Hyper-thread ID */
+    };
+    uint32_t word;
 } lc_info_t;
 
-typedef struct lcore
-{
-  struct lcore *next;
-  lc_info_t u;
+typedef struct lcore {
+    struct lcore *next;
+    lc_info_t u;
 } lcore_t;
 
-struct cmap
-{
-  uint16_t num_cores;
-  uint16_t sid_cnt;
-  uint16_t cid_cnt;
-  uint16_t tid_cnt;
-  lc_info_t *linfo;
-  char *model;
+struct cmap {
+    uint16_t num_cores;
+    uint16_t sid_cnt;
+    uint16_t cid_cnt;
+    uint16_t tid_cnt;
+    lc_info_t *linfo;
+    char *model;
 };
 
-typedef lcore_t *(*do_line_fn) (const char *line, lcore_t *);
-typedef unsigned (*getter_fn) (const lcore_t *);
-typedef void (*setter_fn) (lcore_t *, unsigned new_val);
+typedef lcore_t *(*do_line_fn)(const char *line, lcore_t *);
+typedef unsigned (*getter_fn)(const lcore_t *);
+typedef void (*setter_fn)(lcore_t *, unsigned new_val);
 
-typedef struct action
-{
-  const char *desc;
-  do_line_fn fn;
+typedef struct action {
+    const char *desc;
+    do_line_fn fn;
 } action_t;
 
 /**
@@ -55,7 +50,7 @@ typedef struct action
  * @return
  *   The pointer to the cmap structure or NULL on error
  */
-struct cmap *cmap_create (void);
+struct cmap *cmap_create(void);
 
 /**
  * Return the current CPU model string
@@ -63,7 +58,7 @@ struct cmap *cmap_create (void);
  * @return
  *   Pointer to current CPU model string.
  */
-char *cmap_cpu_model (void);
+char *cmap_cpu_model(void);
 
 /**
  * Free up the resources attached to a cmap structure
@@ -71,7 +66,7 @@ char *cmap_cpu_model (void);
  * @param cmap
  *   A valid cmap pointer
  */
-void cmap_free (struct cmap *cmap);
+void cmap_free(struct cmap *cmap);
 
 /**
  * Return the socket id for a given lcore (Internal)
@@ -82,9 +77,9 @@ void cmap_free (struct cmap *cmap);
  *   The socket ID value
  */
 static inline unsigned int
-cmap_socket_id (const lcore_t *lc)
+cmap_socket_id(const lcore_t *lc)
 {
-  return lc->u.sid;
+    return lc->u.sid;
 }
 
 /**
@@ -98,9 +93,9 @@ cmap_socket_id (const lcore_t *lc)
  *   N/A
  */
 static inline void
-cmap_set_socket_id (lcore_t *lc, unsigned v)
+cmap_set_socket_id(lcore_t *lc, unsigned v)
 {
-  lc->u.sid = v;
+    lc->u.sid = v;
 }
 
 /**
@@ -112,9 +107,9 @@ cmap_set_socket_id (lcore_t *lc, unsigned v)
  *   The core ID value
  */
 static inline unsigned int
-cmap_core_id (const lcore_t *lc)
+cmap_core_id(const lcore_t *lc)
 {
-  return lc->u.cid;
+    return lc->u.cid;
 }
 
 /**
@@ -128,9 +123,9 @@ cmap_core_id (const lcore_t *lc)
  *   N/A
  */
 static inline void
-cmap_set_core_id (lcore_t *lc, unsigned v)
+cmap_set_core_id(lcore_t *lc, unsigned v)
 {
-  lc->u.cid = v;
+    lc->u.cid = v;
 }
 
 /**
@@ -142,9 +137,9 @@ cmap_set_core_id (lcore_t *lc, unsigned v)
  *   The thread ID value
  */
 static inline unsigned int
-cmap_thread_id (const lcore_t *lc)
+cmap_thread_id(const lcore_t *lc)
 {
-  return lc->u.tid;
+    return lc->u.tid;
 }
 
 /**
@@ -156,20 +151,19 @@ cmap_thread_id (const lcore_t *lc)
  *   A function pointer to help count the type of values
  */
 static inline unsigned int
-cmap_cnt (lcore_t *lc, getter_fn get)
+cmap_cnt(lcore_t *lc, getter_fn get)
 {
-  unsigned cnt = 0;
+    unsigned cnt = 0;
 
-  if (! get)
-    return cnt;
+    if (!get)
+        return cnt;
 
-  while (lc)
-    {
-      if (cnt < get (lc))
-        cnt = get (lc);
-      lc = lc->next;
+    while (lc) {
+        if (cnt < get(lc))
+            cnt = get(lc);
+        lc = lc->next;
     }
-  return cnt + 1;
+    return cnt + 1;
 }
 
 #endif /*_CLI_CMAP_H */

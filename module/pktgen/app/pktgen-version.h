@@ -10,14 +10,13 @@
 #define _PKTGEN_VERSION_H_
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #define PKTGEN_VER_PREFIX     "Pktgen "
 #define PKTGEN_VER_CREATED_BY "Keith Wiles"
 
-// #define PKTGEN_VERSION PKTGEN_VER_PREFIX __PROJECT_VERSION
+//#define PKTGEN_VERSION PKTGEN_VER_PREFIX __PROJECT_VERSION
 #define PKTGEN_VERSION PKTGEN_VER_PREFIX "-sdplane"
 
 #ifdef __cplusplus

@@ -1,7 +1,7 @@
 #ifndef __L2FWD_EXPORT_H__
 #define __L2FWD_EXPORT_H__
 
-// extern volatile bool force_stop[RTE_MAX_LCORE];
+//extern volatile bool force_stop[RTE_MAX_LCORE];
 
 #define MAX_PKT_BURST      32
 #define BURST_TX_DRAIN_US  100 /* TX drain every ~100us */
@@ -40,8 +40,8 @@ extern struct l2fwd_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 
 extern int mac_updating;
 extern int promiscuous_on;
-// extern uint16_t nb_rxd;
-// extern uint16_t nb_txd;
+//extern uint16_t nb_rxd;
+//extern uint16_t nb_txd;
 extern struct rte_ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
 extern uint32_t l2fwd_enabled_port_mask;
 extern struct port_pair_params port_pair_params_array[RTE_MAX_ETHPORTS / 2];

@@ -24,19 +24,17 @@
 #include <lualib.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-  void *lua_get_stdout (luaData_t *ld);
-  void *lua_get_stdin (luaData_t *ld);
-  void *lua_get_stderr (luaData_t *ld);
-  void lua_create_stdfile (luaData_t *ld, FILE *f, const char *k,
-                           const char *fname);
-  void lua_set_stdfiles (luaData_t *ld);
-  void lua_reset_stdfiles (luaData_t *ld);
-  void lua_signal_set_stdfiles (luaData_t *ld);
-  void lua_signal_reset_stdfiles (luaData_t *ld);
+void *lua_get_stdout(luaData_t *ld);
+void *lua_get_stdin(luaData_t *ld);
+void *lua_get_stderr(luaData_t *ld);
+void lua_create_stdfile(luaData_t *ld, FILE *f, const char *k, const char *fname);
+void lua_set_stdfiles(luaData_t *ld);
+void lua_reset_stdfiles(luaData_t *ld);
+void lua_signal_set_stdfiles(luaData_t *ld);
+void lua_signal_reset_stdfiles(luaData_t *ld);
 
 #ifdef __cplusplus
 }

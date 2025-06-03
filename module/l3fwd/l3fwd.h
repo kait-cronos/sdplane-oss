@@ -42,7 +42,7 @@
 #define PREFETCH_OFFSET 3
 
 /* Used to mark destination port as 'invalid'. */
-#define BAD_PORT ((uint16_t) - 1)
+#define BAD_PORT ((uint16_t) -1)
 
 /* replace first 12B of the ethernet header. */
 #define MASK_ETH 0x3f

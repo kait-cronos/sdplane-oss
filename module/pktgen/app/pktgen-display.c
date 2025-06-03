@@ -15,13 +15,12 @@
 #define MAX_COLOR_NAME_SIZE    64
 #define MAX_PROMPT_STRING_SIZE 64
 
-static char prompt_str[MAX_PROMPT_STRING_SIZE] = { 0 };
+static char prompt_str[MAX_PROMPT_STRING_SIZE] = {0};
 
 /* String to color value mapping */
-typedef struct string_color_map_s
-{
-  const char *name;   /**< Color name */
-  scrn_color_e color; /**< Color value for scrn_{fg,bg}color() */
+typedef struct string_color_map_s {
+    const char *name;   /**< Color name */
+    scrn_color_e color; /**< Color value for scrn_{fg,bg}color() */
 } string_color_map_t;
 
 // clang-format off
@@ -45,10 +44,9 @@ string_color_map_t string_color_map[] = {
 // clang-format on
 
 /* String to attribute mapping */
-typedef struct string_attr_map_s
-{
-  const char *name; /**< Attribute name */
-  scrn_attr_e attr; /**< Attribute value for scrn_{fg,bg}color_attr() */
+typedef struct string_attr_map_s {
+    const char *name; /**< Attribute name */
+    scrn_attr_e attr; /**< Attribute value for scrn_{fg,bg}color_attr() */
 } string_attr_map_t;
 
 // clang-format off
@@ -67,12 +65,11 @@ string_attr_map_t string_attr_map[] = {
 // clang-format on
 
 /* Element to color mapping */
-typedef struct theme_color_map_s
-{
-  const char *name; /**< Display element name */
-  scrn_color_e fg_color;
-  scrn_color_e bg_color;
-  scrn_attr_e attr;
+typedef struct theme_color_map_s {
+    const char *name; /**< Display element name */
+    scrn_color_e fg_color;
+    scrn_color_e bg_color;
+    scrn_attr_e attr;
 } theme_color_map_t;
 
 // clang-format off
@@ -147,278 +144,264 @@ theme_color_map_t theme_color_map[] = {
 /* Initialize screen data structures */
 /* Print out the top line on the screen */
 void
-display_topline (const char *msg)
+display_topline(const char *msg)
 {
-  if (this_scrn && this_scrn->type != SCRN_STDIN_TYPE)
-    {
-      scrn_puts ("\n");
-      return;
+    if (this_scrn && this_scrn->type != SCRN_STDIN_TYPE) {
+        scrn_puts("\n");
+        return;
     }
 
-  pktgen_display_set_color ("top.page");
-  scrn_printf (1, 20, "%s", msg);
-  pktgen_display_set_color ("top.copyright");
-  scrn_puts ("  %s", copyright_msg_short ());
-  pktgen_display_set_color (NULL);
+    pktgen_display_set_color("top.page");
+    scrn_printf(1, 20, "%s", msg);
+    pktgen_display_set_color("top.copyright");
+    scrn_puts("  %s", copyright_msg_short());
+    pktgen_display_set_color(NULL);
 }
 
 /* Print out the dashed line on the screen. */
 void
-display_dashline (int last_row)
+display_dashline(int last_row)
 {
-  int i;
+    int i;
 
-  if (this_scrn && this_scrn->type != SCRN_STDIN_TYPE)
-    {
-      scrn_puts ("\n");
-      return;
+    if (this_scrn && this_scrn->type != SCRN_STDIN_TYPE) {
+        scrn_puts("\n");
+        return;
     }
 
-  scrn_setw (last_row);
-  last_row--;
-  scrn_pos (last_row, 1);
-  pktgen_display_set_color ("sep.dash");
-  for (i = 0; i < 79; i++)
-    scrn_fprintf (0, 0, stdout, "-");
-  pktgen_display_set_color ("stats.port.linklbl");
-  scrn_printf (last_row, 3, " %s ", pktgen_version ());
-  pktgen_display_set_color ("top.poweredby");
-  scrn_puts (" %s ", powered_by ());
-  scrn_puts (" (pid:%d) ", getpid ());
-  pktgen_display_set_color (NULL);
+    scrn_setw(last_row);
+    last_row--;
+    scrn_pos(last_row, 1);
+    pktgen_display_set_color("sep.dash");
+    for (i = 0; i < 79; i++)
+        scrn_fprintf(0, 0, stdout, "-");
+    pktgen_display_set_color("stats.port.linklbl");
+    scrn_printf(last_row, 3, " %s ", pktgen_version());
+    pktgen_display_set_color("top.poweredby");
+    scrn_puts(" %s ", powered_by());
+    scrn_puts(" (pid:%d) ", getpid());
+    pktgen_display_set_color(NULL);
 }
 
 /* Get the display geometry */
 void
-pktgen_display_get_geometry (uint16_t *rows, uint16_t *cols)
+pktgen_display_get_geometry(uint16_t *rows, uint16_t *cols)
 {
-  if (! this_scrn)
-    return;
+    if (!this_scrn)
+        return;
 
-  if (rows != NULL)
-    *rows = this_scrn->nrows;
+    if (rows != NULL)
+        *rows = this_scrn->nrows;
 
-  if (cols != NULL)
-    *cols = this_scrn->ncols;
+    if (cols != NULL)
+        *cols = this_scrn->ncols;
 }
 
 /* Look up the named color in the colormap */
 static theme_color_map_t *
-lookup_item (const char *elem)
+lookup_item(const char *elem)
 {
-  theme_color_map_t *result;
+    theme_color_map_t *result;
 
-  if (elem == NULL)
-    elem = "default";
+    if (elem == NULL)
+        elem = "default";
 
-  /* Look up colors and attributes for elem */
-  for (result = theme_color_map; result->name != NULL; ++result)
-    if (strncasecmp (result->name, elem, MAX_COLOR_NAME_SIZE) == 0)
-      break;
+    /* Look up colors and attributes for elem */
+    for (result = theme_color_map; result->name != NULL; ++result)
+        if (strncasecmp(result->name, elem, MAX_COLOR_NAME_SIZE) == 0)
+            break;
 
-  /* Report failure if element is not found */
-  if (result->name == NULL)
-    result = NULL;
+    /* Report failure if element is not found */
+    if (result->name == NULL)
+        result = NULL;
 
-  return result;
+    return result;
 }
 
 /* Changes the color to the color of the specified element */
 void
-pktgen_display_set_color (const char *elem)
+pktgen_display_set_color(const char *elem)
 {
-  theme_color_map_t *theme_color;
+    theme_color_map_t *theme_color;
 
-  if (! this_scrn || this_scrn->theme == SCRN_THEME_OFF)
-    return;
+    if (!this_scrn || this_scrn->theme == SCRN_THEME_OFF)
+        return;
 
-  theme_color = lookup_item (elem);
-  if (theme_color == NULL)
-    {
-      pktgen_log_error ("Unknown color '%s'", elem);
-      return;
+    theme_color = lookup_item(elem);
+    if (theme_color == NULL) {
+        pktgen_log_error("Unknown color '%s'", elem);
+        return;
     }
 
-  scrn_color (theme_color->fg_color, theme_color->bg_color, theme_color->attr);
+    scrn_color(theme_color->fg_color, theme_color->bg_color, theme_color->attr);
 }
 
 /* String to use as prompt, with proper ANSI color codes */
 void
-__set_prompt (void)
+__set_prompt(void)
 {
-  theme_color_map_t *def, *prompt;
+    theme_color_map_t *def, *prompt;
 
-  if (! this_scrn)
-    return;
+    if (!this_scrn)
+        return;
 
-  /* Set default return value. */
-  snprintf (prompt_str, sizeof (prompt_str), "%s> ", PKTGEN_VER_PREFIX);
+    /* Set default return value. */
+    snprintf(prompt_str, sizeof(prompt_str), "%s> ", PKTGEN_VER_PREFIX);
 
-  if ((this_scrn->theme == SCRN_THEME_ON) && ! scrn_is_paused ())
-    {
-      /* Look up the default and prompt values */
-      def = lookup_item (NULL);
-      prompt = lookup_item ("pktgen.prompt");
+    if ((this_scrn->theme == SCRN_THEME_ON) && !scrn_is_paused()) {
+        /* Look up the default and prompt values */
+        def    = lookup_item(NULL);
+        prompt = lookup_item("pktgen.prompt");
 
-      if ((def == NULL) || (prompt == NULL))
-        pktgen_log_error ("Prompt and/or default color undefined");
+        if ((def == NULL) || (prompt == NULL))
+            pktgen_log_error("Prompt and/or default color undefined");
 
-      else
-        snprintf (prompt_str, sizeof (prompt_str),
-                  "\033[%d;%d;%dm%s>\033[%d;%d;%dm ", prompt->attr,
-                  30 + prompt->fg_color, 40 + prompt->bg_color,
-                  PKTGEN_VER_PREFIX, def->attr, 30 + def->fg_color,
-                  40 + def->bg_color);
+        else
+            snprintf(prompt_str, sizeof(prompt_str), "\033[%d;%d;%dm%s>\033[%d;%d;%dm ",
+                     prompt->attr, 30 + prompt->fg_color, 40 + prompt->bg_color, PKTGEN_VER_PREFIX,
+                     def->attr, 30 + def->fg_color, 40 + def->bg_color);
     }
 }
 
 static const char *
-get_name_by_color (scrn_color_e color)
+get_name_by_color(scrn_color_e color)
 {
-  int i;
+    int i;
 
-  for (i = 0; string_color_map[i].name; i++)
-    if (color == string_color_map[i].color)
-      return string_color_map[i].name;
-  return NULL;
+    for (i = 0; string_color_map[i].name; i++)
+        if (color == string_color_map[i].color)
+            return string_color_map[i].name;
+    return NULL;
 }
 
 static const char *
-get_name_by_attr (scrn_attr_e attr)
+get_name_by_attr(scrn_attr_e attr)
 {
-  int i;
+    int i;
 
-  for (i = 0; string_attr_map[i].name; i++)
-    if (attr == string_attr_map[i].attr)
-      return string_attr_map[i].name;
-  return NULL;
+    for (i = 0; string_attr_map[i].name; i++)
+        if (attr == string_attr_map[i].attr)
+            return string_attr_map[i].name;
+    return NULL;
 }
 
 static scrn_color_e
-get_color_by_name (char *name)
+get_color_by_name(char *name)
 {
-  int i;
+    int i;
 
-  for (i = 0; string_color_map[i].name; i++)
-    if (strcmp (name, string_color_map[i].name) == 0)
-      return string_color_map[i].color;
-  return SCRN_UNKNOWN_COLOR;
+    for (i = 0; string_color_map[i].name; i++)
+        if (strcmp(name, string_color_map[i].name) == 0)
+            return string_color_map[i].color;
+    return SCRN_UNKNOWN_COLOR;
 }
 
 static scrn_attr_e
-get_attr_by_name (char *name)
+get_attr_by_name(char *name)
 {
-  int i;
+    int i;
 
-  for (i = 0; string_attr_map[i].name; i++)
-    if (strcmp (name, string_attr_map[i].name) == 0)
-      return string_attr_map[i].attr;
-  return SCRN_UNKNOWN_ATTR;
+    for (i = 0; string_attr_map[i].name; i++)
+        if (strcmp(name, string_attr_map[i].name) == 0)
+            return string_attr_map[i].attr;
+    return SCRN_UNKNOWN_ATTR;
 }
 
 void
-pktgen_theme_show (void)
+pktgen_theme_show(void)
 {
-  int i;
+    int i;
 
-  if (! this_scrn)
-    return;
+    if (!this_scrn)
+        return;
 
-  printf ("*** Theme Color Map Names (%s) ***\n",
-          this_scrn->theme ? "Enabled" : "Disabled");
-  printf ("   %-30s %-10s %-10s %s\n", "name", "FG Color", "BG Color",
-          "Attribute");
-  for (i = 0; theme_color_map[i].name; i++)
-    {
-      printf ("   %-32s %-10s %-10s %-6s", theme_color_map[i].name,
-              get_name_by_color (theme_color_map[i].fg_color),
-              get_name_by_color (theme_color_map[i].bg_color),
-              get_name_by_attr (theme_color_map[i].attr));
-      printf ("     ");
-      pktgen_display_set_color (theme_color_map[i].name);
-      printf ("%-s", theme_color_map[i].name);
-      pktgen_display_set_color (NULL);
-      printf ("\n");
+    printf("*** Theme Color Map Names (%s) ***\n", this_scrn->theme ? "Enabled" : "Disabled");
+    printf("   %-30s %-10s %-10s %s\n", "name", "FG Color", "BG Color", "Attribute");
+    for (i = 0; theme_color_map[i].name; i++) {
+        printf("   %-32s %-10s %-10s %-6s", theme_color_map[i].name,
+               get_name_by_color(theme_color_map[i].fg_color),
+               get_name_by_color(theme_color_map[i].bg_color),
+               get_name_by_attr(theme_color_map[i].attr));
+        printf("     ");
+        pktgen_display_set_color(theme_color_map[i].name);
+        printf("%-s", theme_color_map[i].name);
+        pktgen_display_set_color(NULL);
+        printf("\n");
     }
 }
 
 void
-pktgen_theme_state (const char *state)
+pktgen_theme_state(const char *state)
 {
-  if (! this_scrn)
-    return;
-  if (estate (state) == DISABLE_STATE)
-    this_scrn->theme = SCRN_THEME_OFF;
-  else
-    this_scrn->theme = SCRN_THEME_ON;
-  __set_prompt ();
+    if (!this_scrn)
+        return;
+    if (estate(state) == DISABLE_STATE)
+        this_scrn->theme = SCRN_THEME_OFF;
+    else
+        this_scrn->theme = SCRN_THEME_ON;
+    __set_prompt();
 }
 
 void
-pktgen_set_theme_item (char *item, char *fg_color, char *bg_color, char *attr)
+pktgen_set_theme_item(char *item, char *fg_color, char *bg_color, char *attr)
 {
-  theme_color_map_t *elem;
-  scrn_color_e fg, bg;
-  scrn_attr_e at;
+    theme_color_map_t *elem;
+    scrn_color_e fg, bg;
+    scrn_attr_e at;
 
-  elem = lookup_item (item);
+    elem = lookup_item(item);
 
-  if (elem == NULL)
-    {
-      pktgen_log_error ("Unknown item name (%s)\n", item);
-      return;
+    if (elem == NULL) {
+        pktgen_log_error("Unknown item name (%s)\n", item);
+        return;
     }
 
-  fg = get_color_by_name (fg_color);
-  bg = get_color_by_name (bg_color);
-  at = get_attr_by_name (attr);
+    fg = get_color_by_name(fg_color);
+    bg = get_color_by_name(bg_color);
+    at = get_attr_by_name(attr);
 
-  if ((fg == SCRN_UNKNOWN_COLOR) || (bg == SCRN_UNKNOWN_COLOR) ||
-      (at == SCRN_UNKNOWN_ATTR))
-    {
-      pktgen_log_error ("Unknown color or attribute (%s, %s, %s)\n", fg_color,
-                        bg_color, attr);
-      return;
+    if ((fg == SCRN_UNKNOWN_COLOR) || (bg == SCRN_UNKNOWN_COLOR) || (at == SCRN_UNKNOWN_ATTR)) {
+        pktgen_log_error("Unknown color or attribute (%s, %s, %s)\n", fg_color, bg_color, attr);
+        return;
     }
 
-  elem->fg_color = fg;
-  elem->bg_color = bg;
-  elem->attr = at;
+    elem->fg_color = fg;
+    elem->bg_color = bg;
+    elem->attr     = at;
 }
 
 void
-pktgen_theme_save (char *filename)
+pktgen_theme_save(char *filename)
 {
-  FILE *f;
-  int i;
+    FILE *f;
+    int i;
 
-  f = fopen (filename, "w+");
-  if (f == NULL)
-    {
-      pktgen_log_error ("Unable to open file %s\n", filename);
-      return;
+    f = fopen(filename, "w+");
+    if (f == NULL) {
+        pktgen_log_error("Unable to open file %s\n", filename);
+        return;
     }
 
-  for (i = 0; theme_color_map[i].name; i++)
-    fprintf (f, "theme %s %s %s %s\n", theme_color_map[i].name,
-             get_name_by_color (theme_color_map[i].fg_color),
-             get_name_by_color (theme_color_map[i].bg_color),
-             get_name_by_attr (theme_color_map[i].attr));
-  fprintf (f, "cls\n");
+    for (i = 0; theme_color_map[i].name; i++)
+        fprintf(f, "theme %s %s %s %s\n", theme_color_map[i].name,
+                get_name_by_color(theme_color_map[i].fg_color),
+                get_name_by_color(theme_color_map[i].bg_color),
+                get_name_by_attr(theme_color_map[i].attr));
+    fprintf(f, "cls\n");
 
-  fchmod (fileno (f), 0666);
-  fclose (f);
+    fchmod(fileno(f), 0666);
+    fclose(f);
 }
 
 void
-pktgen_print_div (uint32_t row_first, uint32_t row_last, uint32_t col)
+pktgen_print_div(uint32_t row_first, uint32_t row_last, uint32_t col)
 {
-  uint32_t row;
+    uint32_t row;
 
-  if (this_scrn && this_scrn->type != SCRN_STDIN_TYPE)
-    return;
+    if (this_scrn && this_scrn->type != SCRN_STDIN_TYPE)
+        return;
 
-  pktgen_display_set_color ("stats.colon");
-  for (row = row_first; row < row_last; row++)
-    scrn_printf (row, col, ":");
+    pktgen_display_set_color("stats.colon");
+    for (row = row_first; row < row_last; row++)
+        scrn_printf(row, col, ":");
 }

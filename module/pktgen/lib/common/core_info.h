@@ -12,39 +12,37 @@
 #include <pg_compat.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-  /**
-   *
-   * Return the first and last lcore index values into the char pointers args.
-   *
-   * \returns number of lcores enabled.
-   */
-  static __inline__ uint32_t
-  lcore_mask (uint16_t *first, uint16_t *last)
-  {
+/**
+ *
+ * Return the first and last lcore index values into the char pointers args.
+ *
+ * \returns number of lcores enabled.
+ */
+static __inline__ uint32_t
+lcore_mask(uint16_t *first, uint16_t *last)
+{
     int32_t cnt, lid;
 
-    lid = rte_get_main_lcore ();
+    lid = rte_get_main_lcore();
     if (first)
-      *first = lid;
+        *first = lid;
 
     /* Count the number of lcores being used. */
-    for (cnt = 0; lid < RTE_MAX_LCORE; lid++)
-      {
-        if (! rte_lcore_is_enabled (lid))
-          continue;
+    for (cnt = 0; lid < RTE_MAX_LCORE; lid++) {
+        if (!rte_lcore_is_enabled(lid))
+            continue;
         cnt++;
         if (last)
-          *last = lid;
-      }
+            *last = lid;
+    }
 
     return cnt;
-  }
+}
 
-  uint32_t sct_convert (char *sct[]);
+uint32_t sct_convert(char *sct[]);
 
 #ifdef __cplusplus
 }

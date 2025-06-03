@@ -11,12 +11,10 @@
 #include <rte_timer.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-  typedef struct pkt_stats_s
-  {
+typedef struct pkt_stats_s {
     uint64_t arp_pkts;     /**< Number of ARP packets received */
     uint64_t echo_pkts;    /**< Number of ICMP echo requests received */
     uint64_t ip_pkts;      /**< Number of IPv4 packets received */
@@ -29,10 +27,9 @@ extern "C"
     uint64_t ibadcrc;      /**< Number of RX bad crc packets */
     uint64_t ibadlen;      /**< Number of RX bad length packets */
     uint64_t rx_nombuf;    /**< Number of times we had not mbufs for Rx */
-  } pkt_stats_t;
+} pkt_stats_t;
 
-  typedef struct pkt_sizes_s
-  {
+typedef struct pkt_sizes_s {
     uint64_t _64;        /**< Number of 64 byte packets */
     uint64_t _65_127;    /**< Number of 65-127 byte packets */
     uint64_t _128_255;   /**< Number of 128-255 byte packets */
@@ -44,16 +41,16 @@ extern "C"
     uint64_t jumbo;      /**< Number of Jumbo frames */
     uint64_t runt;       /**< Number of Runt frames */
     uint64_t unknown;    /**< Number of unknown sizes */
-  } pkt_sizes_t;
+} pkt_sizes_t;
 
-  struct port_info_s;
+struct port_info_s;
 
-  void pktgen_get_link_status (struct port_info_s *info, int pid, int wait);
-  void pktgen_process_stats (void);
+void pktgen_get_link_status(struct port_info_s *info, int pid, int wait);
+void pktgen_process_stats(void);
 
-  void pktgen_page_stats (void);
-  void pktgen_page_phys_stats (uint16_t pid);
-  void pktgen_page_xstats (uint16_t pid);
+void pktgen_page_stats(void);
+void pktgen_page_phys_stats(uint16_t pid);
+void pktgen_page_xstats(uint16_t pid);
 
 #ifdef __cplusplus
 }

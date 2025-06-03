@@ -9,8 +9,7 @@
 #define LPKTGENLIB_H_
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #ifdef LUA_ENABLED
@@ -21,8 +20,8 @@ extern "C"
 #define LUA_PKTGENLIBNAME "pktgen"
 #define PKTGEN_SHORTCUTS  "Pktgen"
 
-  LUALIB_API int luaopen_pktgen (lua_State *L);
-  void pktgen_lua_openlib (lua_State *L);
+LUALIB_API int luaopen_pktgen(lua_State *L);
+void pktgen_lua_openlib(lua_State *L);
 #endif
 
 #ifdef __cplusplus

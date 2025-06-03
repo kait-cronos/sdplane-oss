@@ -24,12 +24,10 @@
 #include <lualib.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-  int lua_start_socket (luaData_t *ld, pthread_t *pthread, char *hostname,
-                        int port);
+int lua_start_socket(luaData_t *ld, pthread_t *pthread, char *hostname, int port);
 
 #ifdef __cplusplus
 }
