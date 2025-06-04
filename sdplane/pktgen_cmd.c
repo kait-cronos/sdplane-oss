@@ -67,9 +67,29 @@ CLI_COMMAND2 (pktgen_init, "pktgen init argv-list <0-7>", "pktgen\n", "init\n",
   return 0;
 }
 
+int start_stop_cmd(int argc, char **argv);
+
+CLI_COMMAND2 (pktgen_do,
+              "pktgen do (start|stop) <0-7>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen start cmd\n",
+              "pktgen stop cmd\n",
+              "specify port.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int pktgen_argc;
+  char **pktgen_argv;
+  pktgen_argc = 2;
+  pktgen_argv = (char **) &argv[2];
+  start_stop_cmd (pktgen_argc, pktgen_argv);
+  return 0;
+}
+
 void
 pktgen_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, show_pktgen);
   INSTALL_COMMAND2 (cmdset, pktgen_init);
+  INSTALL_COMMAND2 (cmdset, pktgen_do);
 }
