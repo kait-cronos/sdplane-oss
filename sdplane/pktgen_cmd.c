@@ -9,6 +9,8 @@
 
 #include "../module/pktgen/app/pktgen.h"
 
+// clang-format off
+
 extern pktgen_t pktgen;
 
 CLI_COMMAND2 (show_pktgen, "show pktgen", SHOW_HELP, "pktgen information.\n")

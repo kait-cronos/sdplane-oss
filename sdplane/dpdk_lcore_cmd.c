@@ -25,6 +25,8 @@
 
 #include "thread_info.h"
 
+// clang-format off
+
 volatile bool force_stop[RTE_MAX_LCORE];
 
 struct lcore_worker lcore_workers[RTE_MAX_LCORE];
