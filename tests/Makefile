@@ -3,9 +3,10 @@ SDPLANE_DIR = ../sdplane
 L3FWD_MODULE_DIR = ../module/l3fwd
 L2FWD_MODULE_DIR = ../module/l2fwd
 PKTGEN_MODULE_DIR = ../module/pktgen
+TEST_COMMON_DIR = ./common
 
 CFLAGS = -include $(shell pwd)/config.h -g -O2 -Wno-format-truncation -I/usr/local/include -include rte_config.h -march=native -mrtm -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) -I$(PKTGEN_MODULE_DIR)/lib/common -I$(PKTGEN_MODULE_DIR)/lib/lua -I$(PKTGEN_MODULE_DIR)/lib/cli -I$(PKTGEN_MODULE_DIR)/lib/utils -I$(PKTGEN_MODULE_DIR)/lib/plugin -I$(SDPLANE_DIR)
-LDFLAGS = -Wl,--as-needed -L/usr/local/lib/x86_64-linux-gnu -lrte_node -lrte_graph -lrte_pipeline -lrte_table -lrte_pdump -lrte_port -lrte_fib -lrte_pdcp -lrte_ipsec -lrte_vhost -lrte_stack -lrte_security -lrte_sched -lrte_reorder -lrte_rib -lrte_mldev -lrte_regexdev -lrte_rawdev -lrte_power -lrte_pcapng -lrte_member -lrte_lpm -lrte_latencystats -lrte_jobstats -lrte_ip_frag -lrte_gso -lrte_gro -lrte_gpudev -lrte_dispatcher -lrte_eventdev -lrte_efd -lrte_dmadev -lrte_distributor -lrte_cryptodev -lrte_compressdev -lrte_cfgfile -lrte_bpf -lrte_bitratestats -lrte_bbdev -lrte_acl -lrte_timer -lrte_hash -lrte_metrics -lrte_cmdline -lrte_pci -lrte_ethdev -lrte_meter -lrte_net -lrte_mbuf -lrte_mempool -lrte_rcu -lrte_ring -lrte_eal -lrte_telemetry -lrte_kvargs -lrte_log  -llthread -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
+LDFLAGS = -Wl,--as-needed -L/usr/local/lib/x86_64-linux-gnu -lrte_node -lrte_graph -lrte_pipeline -lrte_table -lrte_pdump -lrte_port -lrte_net_ring -lrte_fib -lrte_pdcp -lrte_ipsec -lrte_vhost -lrte_stack -lrte_security -lrte_sched -lrte_reorder -lrte_rib -lrte_mldev -lrte_regexdev -lrte_rawdev -lrte_power -lrte_pcapng -lrte_member -lrte_lpm -lrte_latencystats -lrte_jobstats -lrte_ip_frag -lrte_gso -lrte_gro -lrte_gpudev -lrte_dispatcher -lrte_eventdev -lrte_efd -lrte_dmadev -lrte_distributor -lrte_cryptodev -lrte_compressdev -lrte_cfgfile -lrte_bpf -lrte_bitratestats -lrte_bbdev -lrte_acl -lrte_timer -lrte_hash -lrte_metrics -lrte_cmdline -lrte_pci -lrte_ethdev -lrte_meter -lrte_net -lrte_mbuf -lrte_mempool -lrte_rcu -lrte_ring -lrte_eal -lrte_telemetry -lrte_kvargs -lrte_log  -llthread -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
 
 COMMON_SOURCES = $(L3FWD_MODULE_DIR)/l3fwd_acl.c $(L3FWD_MODULE_DIR)/l3fwd_lpm.c \
 	$(L3FWD_MODULE_DIR)/l3fwd_fib.c $(L3FWD_MODULE_DIR)/l3fwd_em.c \
@@ -78,8 +79,10 @@ COMMON_SOURCES = $(L3FWD_MODULE_DIR)/l3fwd_acl.c $(L3FWD_MODULE_DIR)/l3fwd_lpm.c
 	$(SDPLANE_DIR)/internal_message.c $(SDPLANE_DIR)/rib.c $(SDPLANE_DIR)/nettlp.c $(SDPLANE_DIR)/nettlp_support.c $(SDPLANE_DIR)/tap_cmd.c \
 	$(SDPLANE_DIR)/dpdk_devbind.c $(SDPLANE_DIR)/netlink_thread.c $(SDPLANE_DIR)/stream_buf.c $(SDPLANE_DIR)/vlan_switch.c \
 	$(SDPLANE_DIR)/pktgen_cmd.c
-
 COMMON_OBJECTS = $(COMMON_SOURCES:.c=.o)
+
+TEST_COMMON_SOURCES = $(TEST_COMMON_DIR)/test_main.c
+TEST_COMMON_OBJECTS = $(TEST_COMMON_SOURCES:.c=.o)
 
 OUTDIR = $(shell pwd)/build
 
@@ -92,11 +95,11 @@ $(OUTDIR):
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OUTDIR)/test_l2repeater: test_l2repeater.o $(COMMON_OBJECTS) | $(OUTDIR)
-	$(CC) $(CFLAGS) -o $@ test_l2repeater.o $(COMMON_OBJECTS) $(LDFLAGS)
+$(OUTDIR)/test_l2repeater: test_l2repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS) | $(OUTDIR)
+	$(CC) $(CFLAGS) -o $@ test_l2repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS) $(LDFLAGS)
 
 clean:
-	rm -f test_l2repeater.o $(COMMON_OBJECTS)
+	rm -f test_l2repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS)
 	rm -rf $(OUTDIR)
 
 .PHONY: all clean
