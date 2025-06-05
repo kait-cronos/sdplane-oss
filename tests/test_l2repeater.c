@@ -9,6 +9,7 @@
 #include <rte_mbuf.h>
 #include <rte_mempool.h>
 #include <rte_eal.h>
+#include <rte_eth_ring.h>
 
 #include <sdplane/debug.h>
 #include <sdplane/termio.h>
@@ -25,6 +26,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include "l2_repeater.h"
 #include "l3fwd.h"
@@ -50,14 +52,16 @@ void test_lthread_main(void *arg) {
     int count_dev = rte_eth_dev_count_avail();
     printf("Available Ethernet devices: %d\n", count_dev);
     
-    	struct rte_ring *ring[2];
+  struct rte_ring *ring[4];
 	int port0, port1;
 
-    ring[0] = rte_ring_create("R0", 256, 0, RING_F_SP_ENQ|RING_F_SC_DEQ);
+  ring[0] = rte_ring_create("R0", 256, 0, RING_F_SP_ENQ|RING_F_SC_DEQ);
 	ring[1] = rte_ring_create("R1", 256, 0, RING_F_SP_ENQ|RING_F_SC_DEQ);
+  ring[2] = rte_ring_create("R2", 256, 0, RING_F_SP_ENQ|RING_F_SC_DEQ);
+  ring[3] = rte_ring_create("R3", 256, 0, RING_F_SP_ENQ|RING_F_SC_DEQ);
 
 	port0 = rte_eth_from_rings("net_ring0", &ring[0], 1, &ring[1], 1, 0);
-	port1 = rte_eth_from_rings("net_ring1", &ring[1], 1, &ring[0], 1, 0);
+	port1 = rte_eth_from_rings("net_ring1", &ring[2], 1, &ring[3], 1, 0);
 
     count_dev = rte_eth_dev_count_avail();
     printf("Available Ethernet devices after creating rings: %d\n", count_dev);
@@ -71,19 +75,24 @@ void test_lthread_main(void *arg) {
     apply_config();
     printf("applied config");
 
-    lthread_sleep(2000);
+    lthread_sleep(500);
 
     printf("Enqueuing message to R0...\n");
-    rte_ring_enqueue(ring[0], (void *)"Hello from R0");
+    ret = rte_ring_enqueue_burst(ring[0], (void *)"Hello from R0", 32, NULL);
+    if (ret < 0) {
+        printf("Failed to enqueue message to R0: %s\n", rte_strerror(-ret));
+        return;
+    }
     printf("Message enqueued to R0.\n");
 
-    lthread_sleep(2000);
-    printf("Dequeuing message from R1...\n");
-    rte_ring_dequeue(ring[1], (void **)&msg);
-    printf("Message dequeued from R1: %s\n", msg);
-    lthread_sleep(2000);
-
-    printf("Received message from R0: %s\n", msg);
+    lthread_sleep(500);
+    printf("Dequeuing message from R3...\n");
+    ret = rte_ring_dequeue_burst(ring[3], (void **)&msg, 32, NULL);
+    if (ret == 0) {
+      printf("R3 is empty, no message dequeued.\n");
+    } else {
+      printf("Message dequeued from R3: %s\n", msg);
+    }
 }
 
 int apply_config() {

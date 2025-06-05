@@ -22,19 +22,7 @@ void test_lthread_main(void *arg);
 void
 signal_handler (int signum)
 {
-  printf ("%s:%d: %s: Signal %d received.\n", __FILE__, __LINE__, __func__,
-          signum);
-
-  if (signum == SIGINT)
-    {
-      /* do nothing. */
-      printf ("Signal %d received.\n", signum);
-    }
-  else if (signum == SIGTERM)
-    {
-      printf ("Signal %d received, preparing to exit...\n", signum);
-      force_quit = true;
-    }
+  force_quit = true;
 }
 
 int
