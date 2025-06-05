@@ -13,7 +13,10 @@
 
 extern pktgen_t pktgen;
 
-CLI_COMMAND2 (show_pktgen, "show pktgen", SHOW_HELP, "pktgen information.\n")
+CLI_COMMAND2 (show_pktgen,
+              "show pktgen",
+              SHOW_HELP,
+              "pktgen information.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
@@ -29,6 +32,9 @@ CLI_COMMAND2 (show_pktgen, "show pktgen", SHOW_HELP, "pktgen information.\n")
 
   for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
     {
+      if (! rte_lcore_is_enabled (lcore_id))
+        continue;
+
       switch (get_type (pktgen.l2p, lcore_id))
         {
         case RX_TYPE:
@@ -49,13 +55,62 @@ CLI_COMMAND2 (show_pktgen, "show pktgen", SHOW_HELP, "pktgen information.\n")
       fprintf (t, "lcore[%d]: pktgen type: %s running: %d%s", lcore_id, type,
                running, shell->NL);
     }
+
+  l2p_t *l2p = pktgen.l2p;
+
+  uint16_t i, j;
+  lobj_t *lobj; // lcore obj
+  pobj_t *pobj; // port obj
+  const char *lcore_type_str[] = { "unknown", "rx", "tx", "rxtx", NULL };
+
+  for (i = 0; i < RTE_MAX_LCORE; i++)
+    {
+      if (! rte_lcore_is_enabled (i))
+        continue;
+
+      lobj = &l2p->lcores[i];
+      fprintf (t, "lcore[%d]: type: %s private: %p%s",
+               lobj->lid, lcore_type_str[lobj->type], lobj->private,
+               shell->NL);
+
+      for (j = 0; j < lobj->pids.rx_cnt; j++)
+        fprintf (t, "    pids.rx[%d/%d]: port %d%s",
+                 j, lobj->pids.rx_cnt, lobj->pids.rx[j], shell->NL);
+      for (j = 0; j < lobj->qids.rx_cnt; j++)
+        fprintf (t, "    qids.rx[%d/%d]: queue %d%s",
+                 j, lobj->qids.rx_cnt, lobj->qids.rx[j], shell->NL);
+
+      for (j = 0; j < lobj->pids.tx_cnt; j++)
+        fprintf (t, "    pids.tx[%d/%d]: port %d%s",
+                 j, lobj->pids.tx_cnt, lobj->pids.tx[j], shell->NL);
+      for (j = 0; j < lobj->qids.tx_cnt; j++)
+        fprintf (t, "    qids.tx[%d/%d]: queue %d%s",
+                 j, lobj->qids.tx_cnt, lobj->qids.tx[j], shell->NL);
+    }
+
+  for (i = 0; i < RTE_MAX_ETHPORTS; i++)
+    {
+      pobj = &l2p->ports[i];
+      if (pobj->nb_lids)
+        fprintf (t, "port[%d]: rx_qids: %d tx_qids: %d private: %p%s",
+                 pobj->pid, pobj->rx_qid, pobj->tx_qid, pobj->private,
+                 shell->NL);
+      for (j = 0; j < pobj->nb_lids; j++)
+        fprintf (t, "    lcore_index[%d/%d]: %d%s",
+                 j, pobj->nb_lids, pobj->lids[j], shell->NL);
+    }
+
   return 0;
 }
 
 int _pktgen_main_init (int argc, char **argv);
 
-CLI_COMMAND2 (pktgen_init, "pktgen init argv-list <0-7>", "pktgen\n", "init\n",
-              "specify argv-list\n", "specify argv-list number\n")
+CLI_COMMAND2 (pktgen_init,
+              "pktgen init argv-list <0-7>",
+              "pktgen\n",
+              "init\n",
+              "specify argv-list\n",
+              "specify argv-list number\n")
 {
   struct shell *shell = (struct shell *) context;
 
@@ -72,12 +127,14 @@ CLI_COMMAND2 (pktgen_init, "pktgen init argv-list <0-7>", "pktgen\n", "init\n",
 int start_stop_cmd(int argc, char **argv);
 
 CLI_COMMAND2 (pktgen_do,
-              "pktgen do (start|stop) <0-7>",
+              "pktgen do (start|stop) (<0-7>|all)",
               "pktgen\n",
               "pktgen do\n",
               "pktgen start cmd\n",
               "pktgen stop cmd\n",
-              "specify port.\n")
+              "specify port.\n"
+              "specify for all ports.\n"
+             )
 {
   struct shell *shell = (struct shell *) context;
   int pktgen_argc;
