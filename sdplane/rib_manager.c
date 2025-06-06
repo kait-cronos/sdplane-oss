@@ -75,7 +75,8 @@ rib_info_hard_coding (struct rib_info *new)
       /* native vlan check. */
       vswitch_link_id = port->vswitch_link_id_of_native_vlan;
       DEBUG_SDPLANE_LOG (RIB, "vswitch[%d]: port_id: %d == port_id: %d",
-                         vswitch_link_id, new->vswitch_link[vswitch_link_id].port_id, port_id);
+                         vswitch_link_id,
+                         new->vswitch_link[vswitch_link_id].port_id, port_id);
       if (new->vswitch_link[vswitch_link_id].port_id != port_id)
         {
           uint16_t vswitch_port_id;
@@ -86,13 +87,13 @@ rib_info_hard_coding (struct rib_info *new)
 
           /* add new port to the default_vlan_vswitch */
           vswitch_port_id = default_vlan_vswitch->vswitch_port_size++;
-          default_vlan_vswitch->vswitch_link_id[vswitch_port_id]
-            = vswitch_link_id;
+          default_vlan_vswitch->vswitch_link_id[vswitch_port_id] =
+              vswitch_link_id;
 
           /* fill in the vswitch_link */
           vswitch_link->port_id = port_id;
           vswitch_link->vlan_id = 0; // indicates default_vlan.
-          vswitch_link->tag_id = 0; // indicates untag.
+          vswitch_link->tag_id = 0;  // indicates untag.
           vswitch_link->vswitch_id = default_vlan_vswitch_id;
           vswitch_link->vswitch_port = vswitch_port_id;
 
