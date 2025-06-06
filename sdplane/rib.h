@@ -37,7 +37,7 @@ struct vswitch_link
 struct vswitch_conf
 {
   uint16_t vswitch_port_size;
-  struct vswitch_link vswitch_port[MAX_VSWITCH_PORTS];
+  uint16_t vswitch_link_id[MAX_VSWITCH_PORTS];
   struct router_if router_if;
   struct capture_if capture_if;
 };
