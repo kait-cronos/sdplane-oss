@@ -45,6 +45,63 @@ uint64_t rib_rcu_replace = 0;
 
 static __thread struct rib *rib = NULL;
 
+static inline __attribute__ ((always_inline)) void
+rib_info_hard_coding (struct rib_info *new)
+{
+  uint8_t default_vlan_vswitch_id = 0;
+  struct vswitch_conf *default_vlan_vswitch;
+
+  uint16_t port_id;
+  struct port_conf *port;
+  uint16_t vswitch_link_id = 0;
+  struct vswitch_link *vswitch_link;
+
+  /* default vlan vswitch check */
+  /* default_vlan_vswitch_id is always 0. */
+  if (new->vswitch_size == 0)
+    default_vlan_vswitch_id = new->vswitch_size++;
+  else
+    default_vlan_vswitch_id = 0;
+  default_vlan_vswitch = &new->vswitch[default_vlan_vswitch_id];
+
+  new->port_size = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < new->port_size; port_id++)
+    {
+      port = &new->port[port_id];
+
+      DEBUG_SDPLANE_LOG (RIB, "port_id: %d vswitch_link_id_of_native_vlan: %d",
+                         port_id, port->vswitch_link_id_of_native_vlan);
+
+      /* native vlan check. */
+      vswitch_link_id = port->vswitch_link_id_of_native_vlan;
+      DEBUG_SDPLANE_LOG (RIB, "vswitch[%d]: port_id: %d == port_id: %d",
+                         vswitch_link_id, new->vswitch_link[vswitch_link_id].port_id, port_id);
+      if (new->vswitch_link[vswitch_link_id].port_id != port_id)
+        {
+          uint16_t vswitch_port_id;
+
+          /* create a new vswitch_link */
+          vswitch_link_id = new->vswitch_link_size++;
+          vswitch_link = &new->vswitch_link[vswitch_link_id];
+
+          /* add new port to the default_vlan_vswitch */
+          vswitch_port_id = default_vlan_vswitch->vswitch_port_size++;
+          default_vlan_vswitch->vswitch_link_id[vswitch_port_id]
+            = vswitch_link_id;
+
+          /* fill in the vswitch_link */
+          vswitch_link->port_id = port_id;
+          vswitch_link->vlan_id = 0; // indicates default_vlan.
+          vswitch_link->tag_id = 0; // indicates untag.
+          vswitch_link->vswitch_id = default_vlan_vswitch_id;
+          vswitch_link->vswitch_port = vswitch_port_id;
+
+          /* connect the vswitch_link to the dpdk port. */
+          port->vswitch_link_id_of_native_vlan = vswitch_link_id;
+        }
+    }
+}
+
 static inline __attribute__ ((always_inline)) struct rib_info *
 rib_info_create (struct rib_info *old)
 {
@@ -59,6 +116,9 @@ rib_info_create (struct rib_info *old)
     memset (new, 0, sizeof (struct rib_info));
   else
     memcpy (new, old, sizeof (struct rib_info));
+
+  /* XXX hard-coding part. */
+  rib_info_hard_coding (new);
 
   new->ver++;
   return new;
