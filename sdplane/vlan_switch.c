@@ -249,9 +249,8 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid,
   struct vswitch_link *vswitch_link = NULL;
   int i;
 
-  DEBUG_SDPLANE_LOG (VLAN_SWITCH,
-                     "m: %p received on port: %d queue: %d",
-                     m, rx_portid, rx_queueid);
+  DEBUG_SDPLANE_LOG (VLAN_SWITCH, "m: %p received on port: %d queue: %d", m,
+                     rx_portid, rx_queueid);
 
   port_config = &rib->rib_info->port[rx_portid];
   eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
@@ -274,8 +273,8 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid,
             {
               vswitch_link = link;
               DEBUG_SDPLANE_LOG (VLAN_SWITCH,
-                                 "m: %p tagged: vlan: %u vswitch: %u",
-                                 m, vlan_id, vswitch_link->vswitch_id);
+                                 "m: %p tagged: vlan: %u vswitch: %u", m,
+                                 vlan_id, vswitch_link->vswitch_id);
               break;
             }
         }
@@ -288,16 +287,15 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid,
       if (0 <= vswitch_link_id &&
           vswitch_link_id < rib->rib_info->vswitch_link_size)
         {
-      vswitch_link = &rib->rib_info->vswitch_link[vswitch_link_id];
-      DEBUG_SDPLANE_LOG (VLAN_SWITCH, "m: %p untag: vswitch: %u",
-                         m, vswitch_link->vswitch_id);
+          vswitch_link = &rib->rib_info->vswitch_link[vswitch_link_id];
+          DEBUG_SDPLANE_LOG (VLAN_SWITCH, "m: %p untag: vswitch: %u", m,
+                             vswitch_link->vswitch_id);
         }
     }
 
   if (! vswitch_link)
     {
-      DEBUG_SDPLANE_LOG (VLAN_SWITCH,
-                         "m: %p cannot find the vswitch link", m);
+      DEBUG_SDPLANE_LOG (VLAN_SWITCH, "m: %p cannot find the vswitch link", m);
       return;
     }
 
@@ -320,16 +318,17 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid,
   for (i = 0; i < vswitch->vswitch_port_size; i++)
     {
       uint16_t vswitch_link_id = vswitch->vswitch_link_id[i];
-      struct vswitch_link *link = &rib->rib_info->vswitch_link[vswitch_link_id];
+      struct vswitch_link *link =
+          &rib->rib_info->vswitch_link[vswitch_link_id];
       unsigned tx_portid = link->port_id;
 
-      DEBUG_SDPLANE_LOG (VLAN_SWITCH,
-                         "m: %p vswitch[%d]vswport[%d/%d]: vswitch_link_id: %u "
-                         "port: %d vlan: %d tag: %d (vswitch%u[%d])",
-                         m, vswitch_link->vswitch_id,
-                         i, vswitch->vswitch_port_size, vswitch_link_id,
-                         link->port_id, link->vlan_id, link->tag_id,
-                         link->vswitch_id, link->vswitch_port);
+      DEBUG_SDPLANE_LOG (
+          VLAN_SWITCH,
+          "m: %p vswitch[%d]vswport[%d/%d]: vswitch_link_id: %u "
+          "port: %d vlan: %d tag: %d (vswitch%u[%d])",
+          m, vswitch_link->vswitch_id, i, vswitch->vswitch_port_size,
+          vswitch_link_id, link->port_id, link->vlan_id, link->tag_id,
+          link->vswitch_id, link->vswitch_port);
 
       /* skip received link port. split-horizon */
       if (link == vswitch_link || tx_portid == rx_portid)
