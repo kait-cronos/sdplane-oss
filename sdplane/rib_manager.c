@@ -629,6 +629,7 @@ rib_check (struct rib *new)
       DEBUG_SDPLANE_LOG (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d", i,
                          nrxq, ntxq);
       ret = rte_eth_dev_stop (i);
+      printf ("!!!!! STOPPED DEV %d", i);
       ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
 
       nb_rxd = RX_DESC_DEFAULT;
@@ -672,6 +673,7 @@ rib_check (struct rib *new)
         }
 
       ret = rte_eth_dev_start (i);
+      printf ("!!!!! STARTED DEV %d", i);
     }
 
     /* prepare rte_ring "ring_up/dn[][]" */
@@ -784,7 +786,7 @@ rib_replace (struct rib *new)
                      rib_rcu_replace, old, new,
                      (old && old->rib_info ? old->rib_info->ver : -1),
                      (old ? old->rib_info : NULL),
-                     (new &&new->rib_info ? new->rib_info->ver : -1),
+                     (new && new->rib_info ? new->rib_info->ver : -1),
                      (new ? new->rib_info : NULL));
 
   /* reclaim old */
@@ -854,7 +856,6 @@ rib_manager_process_message (void *msgp)
   int i, j;
   DEBUG_SDPLANE_LOG (RIB, "%s: msg: %p.", __func__, msgp);
 
-#if HAVE_LIBURCU_QSBR
   struct rib *new, *old;
 
   /* retrieve old */
@@ -1157,7 +1158,6 @@ rib_manager_process_message (void *msgp)
   free (msgp);
 
   rib_replace (new);
-#endif /*HAVE_LIBURCU_QSBR*/
 }
 
 void

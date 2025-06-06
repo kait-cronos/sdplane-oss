@@ -37,65 +37,74 @@
 
 char msg[256];
 
-void test_lthread_main(void *arg) {
-    printf("Hello, World!\n");
+void
+test_lthread_main (void *arg)
+{
+  printf ("Hello, World!\n");
 
-    char *rte_eal_argv[3] = {"sdplane", "-c", "0xf"};
-    int rte_eal_argc = 3;
+  char *rte_eal_argv[3] = { "sdplane", "-c", "0xf" };
+  int rte_eal_argc = 3;
 
-    printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
+  printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
 
-	int ret = rte_eal_init(rte_eal_argc, rte_eal_argv);
-	if (ret < 0)
-		rte_panic("Cannot init EAL\n");
+  int ret = rte_eal_init (rte_eal_argc, rte_eal_argv);
+  if (ret < 0)
+    rte_panic ("Cannot init EAL\n");
 
-    int count_dev = rte_eth_dev_count_avail();
-    printf("Available Ethernet devices: %d\n", count_dev);
-    
+  int count_dev = rte_eth_dev_count_avail ();
+  printf ("Available Ethernet devices: %d\n", count_dev);
+
   struct rte_ring *ring[4];
-	int port0, port1;
+  int port0, port1;
 
-  ring[0] = rte_ring_create("R0", 256, 0, RING_F_SP_ENQ|RING_F_SC_DEQ);
-	ring[1] = rte_ring_create("R1", 256, 0, RING_F_SP_ENQ|RING_F_SC_DEQ);
-  ring[2] = rte_ring_create("R2", 256, 0, RING_F_SP_ENQ|RING_F_SC_DEQ);
-  ring[3] = rte_ring_create("R3", 256, 0, RING_F_SP_ENQ|RING_F_SC_DEQ);
+  ring[0] = rte_ring_create ("R0", 256, 0, RING_F_SP_ENQ | RING_F_SC_DEQ);
+  ring[1] = rte_ring_create ("R1", 256, 0, RING_F_SP_ENQ | RING_F_SC_DEQ);
+  ring[2] = rte_ring_create ("R2", 256, 0, RING_F_SP_ENQ | RING_F_SC_DEQ);
+  ring[3] = rte_ring_create ("R3", 256, 0, RING_F_SP_ENQ | RING_F_SC_DEQ);
 
-	port0 = rte_eth_from_rings("net_ring0", &ring[0], 1, &ring[1], 1, 0);
-	port1 = rte_eth_from_rings("net_ring1", &ring[2], 1, &ring[3], 1, 0);
+  port0 = rte_eth_from_rings ("net_ring0", &ring[0], 1, &ring[1], 1, 0);
+  port1 = rte_eth_from_rings ("net_ring1", &ring[2], 1, &ring[3], 1, 0);
 
-    count_dev = rte_eth_dev_count_avail();
-    printf("Available Ethernet devices after creating rings: %d\n", count_dev);
+  count_dev = rte_eth_dev_count_avail ();
+  printf ("Available Ethernet devices after creating rings: %d\n", count_dev);
+  printf ("Added port: %d, %d\n", port0, port1);
 
-    debug_log_init ("sdplane");
-    sdplane_init();
-    debug_zcmdsh_cmd_init ();
-    command_shell_init ();
+  debug_log_init ("sdplane");
+  sdplane_init ();
+  debug_zcmdsh_cmd_init ();
+  command_shell_init ();
 
-    printf("EAL initialized, ports: %d, %d\n", port0, port1);
-    apply_config();
-    printf("applied config");
+  printf ("EAL initialized, ports: %d, %d\n", port0, port1);
+  apply_config ();
+  printf ("applied config");
 
-    lthread_sleep(500);
+  lthread_sleep (500);
 
-    printf("Enqueuing message to R0...\n");
-    ret = rte_ring_enqueue_burst(ring[0], (void *)"Hello from R0", 32, NULL);
-    if (ret < 0) {
-        printf("Failed to enqueue message to R0: %s\n", rte_strerror(-ret));
-        return;
+  printf ("Enqueuing message to R0...\n");
+  ret = rte_ring_enqueue_burst (ring[0], (void *) "Hello from R0", 32, NULL);
+  if (ret < 0)
+    {
+      printf ("Failed to enqueue message to R0: %s\n", rte_strerror (-ret));
+      return;
     }
-    printf("Message enqueued to R0.\n");
+  printf ("Message enqueued to R0.\n");
 
-    lthread_sleep(500);
-    printf("Dequeuing message from R3...\n");
-    ret = rte_ring_dequeue_burst(ring[3], (void **)&msg, 32, NULL);
-    if (ret == 0) {
-      printf("R3 is empty, no message dequeued.\n");
-    } else {
-      printf("Message dequeued from R3: %s\n", msg);
+  lthread_sleep (500);
+  printf ("Dequeuing message from R3...\n");
+  ret = rte_ring_dequeue_burst (ring[3], (void **) &msg, 32, NULL);
+  if (ret == 0)
+    {
+      printf ("R3 is empty, no message dequeued.\n");
+    }
+  else
+    {
+      printf ("Message dequeued from R3: %s\n", msg);
     }
 }
 
-int apply_config() {
+int
+apply_config ()
+{
   struct shell *shell = NULL;
 
   shell = command_shell_create ();
@@ -133,7 +142,7 @@ int apply_config() {
   int fd;
   int ret = 0;
   fd = open (config_file, O_RDONLY);
-    printf ("%s[%d]: %s: opened %s.\n", __FILE__, __LINE__, __func__,
+  printf ("%s[%d]: %s: opened %s.\n", __FILE__, __LINE__, __func__,
           config_file);
   if (fd >= 0)
     {
