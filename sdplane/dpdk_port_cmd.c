@@ -29,6 +29,8 @@
 #include "rib.h"
 #include "internal_message.h"
 
+// clang-format off
+
 struct flag_name link_speeds[] = {
   { "Fix", RTE_ETH_LINK_SPEED_FIXED },
   { "10M-hd", RTE_ETH_LINK_SPEED_10M_HD },
@@ -276,9 +278,15 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
 }
 
 CLI_COMMAND2 (show_port_statistics,
-              "show port statistics (pps|total|bps|total-bytes)", SHOW_HELP,
-              PORT_HELP, "statistics\n", "pps\n", "total packets\n", "bps\n",
-              "total bytes\n")
+              "show port statistics (|pps|total|bps|Bps|total-bytes)",
+              SHOW_HELP,
+              PORT_HELP,
+              "show port statistics\n",
+              "packets per second.\n",
+              "total packets.\n",
+              "bits per second.\n",
+              "Bytes per second.\n",
+              "total bytes.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
@@ -286,10 +294,18 @@ CLI_COMMAND2 (show_port_statistics,
   uint16_t nb_ports;
   char name[16];
   bool packets = false;
+  bool bytes = false;
   bool total = false;
   struct rte_eth_stats *stats, *stats_array;
 
-  if (! strcmp (argv[3], "pps"))
+  if (argc <= 3)
+    {
+      /* default is to show "pps" */
+      packets = true;
+      total = false;
+      stats_array = stats_per_sec;
+    }
+  else if (! strcmp (argv[3], "pps"))
     {
       packets = true;
       total = false;
@@ -307,18 +323,30 @@ CLI_COMMAND2 (show_port_statistics,
       total = false;
       stats_array = stats_per_sec;
     }
+  else if (! strcmp (argv[3], "Bps"))
+    {
+      packets = false;
+      bytes = true;
+      total = false;
+      stats_array = stats_per_sec;
+    }
   else if (! strcmp (argv[3], "total-bytes"))
     {
       packets = false;
+      bytes = true;
       total = true;
       stats_array = stats_current;
     }
 
+  /* 100Gbps: 148.8Mpps = 148,800,000 1Tbps: 1.488Gpps = 1,488,000,000: 13 */
   if (packets)
-    fprintf (t, "%16s %8s %8s %8s %8s%s", "port name:", "rx", "tx", "ierrors",
+    fprintf (t, "%16s %13s %13s %8s %8s%s", "port name:", "rx", "tx", "ierrors",
              "oerrors", shell->NL);
+  else if (bytes)
+    fprintf (t, "%16s %15s %15s%s", "port name:", "bytes-in", "bytes-out",
+             shell->NL);
   else
-    fprintf (t, "%16s %8s %8s%s", "port name:", "bytes-in", "bytes-out",
+    fprintf (t, "%16s %15s %15s%s", "port name:", "bits-in", "bits-out",
              shell->NL);
 
   nb_ports = rte_eth_dev_count_avail ();
@@ -327,10 +355,14 @@ CLI_COMMAND2 (show_port_statistics,
       stats = &stats_array[port_id];
       snprintf (name, sizeof (name), "port[%d]:", port_id);
       if (packets)
-        fprintf (t, "%16s %'8lu %'8lu %'8lu %'8lu%s", name, stats->ipackets,
+        fprintf (t, "%16s %'13lu %'13lu %'8lu %'8lu%s", name, stats->ipackets,
                  stats->opackets, stats->ierrors, stats->oerrors, shell->NL);
+      else if (bytes)
+        fprintf (t, "%16s %'15lu %'15lu%s", name, stats->ibytes, stats->obytes,
+                 shell->NL);
       else
-        fprintf (t, "%16s %'8lu %'8lu%s", name, stats->ibytes, stats->obytes,
+        fprintf (t, "%16s %'15lu %'15lu%s", name,
+                 stats->ibytes * 8, stats->obytes * 8,
                  shell->NL);
     }
   return 0;

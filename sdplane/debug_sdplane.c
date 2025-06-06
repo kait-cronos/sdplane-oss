@@ -47,6 +47,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_NETDEVICE, "netdevice" },
   { DEBUG_SDPLANE_NETLINK, "netlink" },
   { DEBUG_SDPLANE_VLAN_SWITCH, "vlan-switch" },
+  { DEBUG_SDPLANE_PKTGEN, "pktgen" },
 };
 
 struct command_header debug_sdplane_cmd;
