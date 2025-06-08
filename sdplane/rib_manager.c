@@ -72,7 +72,7 @@ vswitch_link_new (struct rib_info *new, struct vswitch_conf *vswitch,
   vswitch_link->vswitch_link_id = vswitch_link_id;
   vswitch_link->port_id = port->dpdk_port_id;
   vswitch_link->vlan_id = vswitch->vlan_id;
-  vswitch_link->tag_id = vswitch->vlan_id; //tagged.
+  vswitch_link->tag_id = vswitch->vlan_id; // tagged.
   vswitch_link->vswitch_id = vswitch->vswitch_id;
 
   uint16_t vswitch_port;
