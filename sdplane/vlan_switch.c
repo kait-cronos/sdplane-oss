@@ -264,6 +264,8 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid,
 #define RTE_VLAN_TCI_ID(vlan_tci) ((vlan_tci) & 0x0fff)
 #endif
       vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_hdr->vlan_tci));
+      DEBUG_SDPLANE_LOG (VLAN_SWITCH, "m: %p tagged: vlan: %u", m, vlan_id);
+
       for (i = 0; i < port_config->vlan_size; i++)
         {
           struct vswitch_link *link;

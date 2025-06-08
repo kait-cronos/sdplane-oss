@@ -45,6 +45,64 @@ uint64_t rib_rcu_replace = 0;
 
 static __thread struct rib *rib = NULL;
 
+static inline __attribute__ ((always_inline)) struct vswitch_conf *
+vswitch_new (struct rib_info *new, uint16_t vlan_id)
+{
+  uint16_t vswitch_id;
+  struct vswitch_conf *vswitch;
+  if (new->vswitch_size >= MAX_VSWITCH_ID)
+    return NULL;
+  vswitch_id = new->vswitch_size++;
+  vswitch = &new->vswitch[vswitch_id];
+  vswitch->vswitch_id = vswitch_id;
+  vswitch->vlan_id = vlan_id;
+  return vswitch;
+}
+
+static inline __attribute__ ((always_inline)) struct vswitch_link *
+vswitch_link_new (struct rib_info *new, struct vswitch_conf *vswitch,
+                  struct port_conf *port)
+{
+  uint16_t vswitch_link_id;
+  struct vswitch_link *vswitch_link;
+  if (new->vswitch_link_size >= MAX_VSWITCH_LINK)
+    return NULL;
+  vswitch_link_id = new->vswitch_link_size++;
+  vswitch_link = &new->vswitch_link[vswitch_link_id];
+  vswitch_link->vswitch_link_id = vswitch_link_id;
+  vswitch_link->port_id = port->dpdk_port_id;
+  vswitch_link->vlan_id = vswitch->vlan_id;
+  vswitch_link->tag_id = vswitch->vlan_id; //tagged.
+  vswitch_link->vswitch_id = vswitch->vswitch_id;
+
+  uint16_t vswitch_port;
+  if (vswitch->vswitch_port_size < MAX_VSWITCH_PORTS)
+    {
+      vswitch_port = vswitch->vswitch_port_size++;
+      vswitch->vswitch_link_id[vswitch_port] = vswitch_link_id;
+      vswitch_link->vswitch_port = vswitch_port;
+    }
+
+  return vswitch_link;
+}
+
+static inline __attribute__ ((always_inline)) void
+port_set_native_vlan (struct rib_info *new, struct port_conf *port,
+                      struct vswitch_link *vswitch_link)
+{
+  port->vswitch_link_id_of_native_vlan = vswitch_link->vswitch_link_id;
+}
+
+static inline __attribute__ ((always_inline)) void
+port_add_tagged_vlan (struct rib_info *new, struct port_conf *port,
+                      struct vswitch_link *vswitch_link)
+{
+  if (port->vlan_size >= MAX_VLAN_PER_PORT)
+    return;
+  uint16_t index = port->vlan_size++;
+  port->vswitch_link_id_of_vlan[index] = vswitch_link->vswitch_link_id;
+}
+
 static inline __attribute__ ((always_inline)) void
 rib_info_hard_coding (struct rib_info *new)
 {
@@ -58,16 +116,17 @@ rib_info_hard_coding (struct rib_info *new)
 
   /* default vlan vswitch check */
   /* default_vlan_vswitch_id is always 0. */
+  default_vlan_vswitch_id = 0;
   if (new->vswitch_size == 0)
-    default_vlan_vswitch_id = new->vswitch_size++;
+    default_vlan_vswitch = vswitch_new (new, default_vlan_vswitch_id);
   else
-    default_vlan_vswitch_id = 0;
-  default_vlan_vswitch = &new->vswitch[default_vlan_vswitch_id];
+    default_vlan_vswitch = &new->vswitch[default_vlan_vswitch_id];
 
   new->port_size = rte_eth_dev_count_avail ();
   for (port_id = 0; port_id < new->port_size; port_id++)
     {
       port = &new->port[port_id];
+      port->dpdk_port_id = port_id;
 
       DEBUG_SDPLANE_LOG (RIB, "port_id: %d vswitch_link_id_of_native_vlan: %d",
                          port_id, port->vswitch_link_id_of_native_vlan);
@@ -82,24 +141,49 @@ rib_info_hard_coding (struct rib_info *new)
           uint16_t vswitch_port_id;
 
           /* create a new vswitch_link */
-          vswitch_link_id = new->vswitch_link_size++;
-          vswitch_link = &new->vswitch_link[vswitch_link_id];
-
-          /* add new port to the default_vlan_vswitch */
-          vswitch_port_id = default_vlan_vswitch->vswitch_port_size++;
-          default_vlan_vswitch->vswitch_link_id[vswitch_port_id] =
-              vswitch_link_id;
-
-          /* fill in the vswitch_link */
-          vswitch_link->port_id = port_id;
-          vswitch_link->vlan_id = 0; // indicates default_vlan.
-          vswitch_link->tag_id = 0;  // indicates untag.
-          vswitch_link->vswitch_id = default_vlan_vswitch_id;
-          vswitch_link->vswitch_port = vswitch_port_id;
+          vswitch_link = vswitch_link_new (new, default_vlan_vswitch, port);
 
           /* connect the vswitch_link to the dpdk port. */
-          port->vswitch_link_id_of_native_vlan = vswitch_link_id;
+          port_set_native_vlan (new, port, vswitch_link);
         }
+    }
+
+  int vswitch_id_20 = -1;
+  int vswitch_id_30 = -1;
+  int i;
+  for (i = 0; i < new->vswitch_size; i++)
+    {
+      struct vswitch_conf *vswitch = &new->vswitch[i];
+      if (vswitch->vlan_id == 20)
+        vswitch_id_20 = i;
+      else if (vswitch->vlan_id == 30)
+        vswitch_id_30 = i;
+    }
+
+  struct vswitch_conf *vlan_20 = NULL;
+  struct vswitch_conf *vlan_30 = NULL;
+  if (vswitch_id_20 >= 0)
+    vlan_20 = &new->vswitch[vswitch_id_20];
+  if (vswitch_id_30 >= 0)
+    vlan_30 = &new->vswitch[vswitch_id_30];
+  struct port_conf *port_0 = &new->port[0];
+  struct port_conf *port_1 = &new->port[1];
+
+  if (! vlan_20)
+    {
+      vlan_20 = vswitch_new (new, 20);
+      vswitch_link = vswitch_link_new (new, vlan_20, port_0);
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+      vswitch_link = vswitch_link_new (new, vlan_20, port_1);
+      port_add_tagged_vlan (new, port_1, vswitch_link);
+    }
+  if (! vlan_30)
+    {
+      vlan_30 = vswitch_new (new, 30);
+      vswitch_link = vswitch_link_new (new, vlan_30, port_0);
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+      vswitch_link = vswitch_link_new (new, vlan_30, port_1);
+      port_add_tagged_vlan (new, port_1, vswitch_link);
     }
 }
 
