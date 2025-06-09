@@ -60,6 +60,22 @@ vswitch_new (struct rib_info *new, uint16_t vlan_id)
 }
 
 static inline __attribute__ ((always_inline)) struct vswitch_link *
+vswitch_link_lookup (struct rib_info *new, struct vswitch_conf *vswitch,
+                  struct port_conf *port)
+{
+  int i;
+  struct vswitch_link *vswitch_link;
+  for (i = 0; i < new->vswitch_link_size; i++)
+    {
+      vswitch_link = &new->vswitch_link[i];
+      if (vswitch_link->vswitch_id == vswitch->vswitch_id &&
+          vswitch_link->port_id == port->dpdk_port_id)
+        return vswitch_link;
+    }
+  return NULL;
+}
+
+static inline __attribute__ ((always_inline)) struct vswitch_link *
 vswitch_link_new (struct rib_info *new, struct vswitch_conf *vswitch,
                   struct port_conf *port)
 {
@@ -90,6 +106,7 @@ static inline __attribute__ ((always_inline)) void
 port_set_native_vlan (struct rib_info *new, struct port_conf *port,
                       struct vswitch_link *vswitch_link)
 {
+  vswitch_link->tag_id = 0;
   port->vswitch_link_id_of_native_vlan = vswitch_link->vswitch_link_id;
 }
 
@@ -136,7 +153,8 @@ rib_info_hard_coding (struct rib_info *new)
       DEBUG_SDPLANE_LOG (RIB, "vswitch[%d]: port_id: %d == port_id: %d",
                          vswitch_link_id,
                          new->vswitch_link[vswitch_link_id].port_id, port_id);
-      if (new->vswitch_link[vswitch_link_id].port_id != port_id)
+      if (new->vswitch_link_size == 0 ||
+          new->vswitch_link[vswitch_link_id].port_id != port_id)
         {
           uint16_t vswitch_port_id;
 
@@ -184,6 +202,14 @@ rib_info_hard_coding (struct rib_info *new)
       port_add_tagged_vlan (new, port_0, vswitch_link);
       vswitch_link = vswitch_link_new (new, vlan_30, port_1);
       port_add_tagged_vlan (new, port_1, vswitch_link);
+
+      vswitch_link = vswitch_link_lookup (new, default_vlan_vswitch, port_0);
+      vswitch_link->tag_id = 10; // on port_0 default_vlan is out with vlan 10.
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+
+      vswitch_link = vswitch_link_lookup (new, vlan_30, port_0);
+      // on port_0 vlan_30 is out untagged.
+      port_set_native_vlan (new, port_0, vswitch_link);
     }
 }
 

@@ -16,6 +16,10 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 
+#ifndef RTE_VLAN_TCI_ID
+#define RTE_VLAN_TCI_ID(vlan_tci) ((vlan_tci) & 0x0fff)
+#endif
+
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
@@ -76,6 +80,11 @@ vlan_switch_tx_flush ()
     }
 }
 
+#if 0
+/* vlan_switch_tx_burst() derived probably from l2_repeater
+   and changed its name systematically, I mean, without solid design.
+   it does not work as "vlan_switch_tx". It is somekind of
+   obsoleted code. */
 /* vlan_switch_tx_burst() reads from ring_dn[] and
    tx_bursts it directly to the NIC. */
 static inline __attribute__ ((always_inline)) void
@@ -111,6 +120,7 @@ vlan_switch_tx_burst ()
                          lcore_id, portid, tx_queueid, nb_rx);
     }
 }
+#endif
 
 /* vlan_switch_tap_up() copies the packet to the tap. */
 static inline __attribute__ ((always_inline)) void
@@ -176,19 +186,116 @@ vlan_switch_send (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
 
   /* copy the packet */
   c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
-  if (c)
-    {
-      /* send the packet-copy */
-      sent = rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, c);
-      if (sent)
-        port_statistics[tx_portid].tx += sent;
-    }
-  else
+  if (! c)
     {
       DEBUG_LOG_MSG ("lcore[%d]: m: %p port %d -> %d "
                      "rte_pktmbuf_copy() failed.",
                      lcore_id, m, rx_portid, tx_portid);
+      return;
     }
+
+  /* send the packet-copy */
+  sent = rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, c);
+  if (sent)
+    port_statistics[tx_portid].tx += sent;
+}
+
+static inline __attribute__ ((always_inline)) void
+vlan_switch_send_link (struct rte_mbuf *m,
+                  unsigned rx_portid, unsigned rx_queueid,
+                  unsigned tx_portid, unsigned tx_queueid,
+                  struct vswitch_link *vswitch_link)
+{
+  struct rte_eth_dev_tx_buffer *buffer;
+  uint16_t nb_ports;
+  int sent;
+  struct rte_mbuf *c;
+
+  nb_ports = rte_eth_dev_count_avail ();
+
+  if (tx_portid >= nb_ports)
+    return;
+
+  if (rx_portid == tx_portid)
+    return;
+
+  if (! rib->rib_info->port[tx_portid].link.link_status)
+    return;
+
+  buffer = tx_buffer_per_q[tx_portid][tx_queueid];
+  if (! buffer)
+    return;
+
+  /* copy the packet */
+  c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+  if (! c)
+    {
+      DEBUG_LOG_MSG ("lcore[%d]: m: %p port %d -> %d "
+                     "rte_pktmbuf_copy() failed.",
+                     lcore_id, m, rx_portid, tx_portid);
+      return;
+    }
+
+  struct rte_ether_hdr *eth_hdr;
+  uint16_t eth_type;
+  uint16_t vlan_id;
+  struct rte_vlan_hdr *vlan_hdr;
+  uint16_t old_vlan_tci, new_vlan_tci;
+
+  eth_hdr = rte_pktmbuf_mtod (c, struct rte_ether_hdr *);
+  eth_type = rte_be_to_cpu_16 (eth_hdr->ether_type);
+  if (eth_type == RTE_ETHER_TYPE_VLAN)
+    {
+      vlan_hdr = (struct rte_vlan_hdr *) (eth_hdr + 1);
+      vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_hdr->vlan_tci));
+
+      if (vswitch_link->tag_id != 0 &&
+          vswitch_link->tag_id != vlan_id)
+        {
+          /* vlan_id translation: modify vlan_id on tx */
+          old_vlan_tci = rte_be_to_cpu_16 (vlan_hdr->vlan_tci);
+          new_vlan_tci = ((old_vlan_tci & 0xf000) |
+                          (vswitch_link->tag_id & 0x0fff));
+          DEBUG_SDPLANE_LOG (VLAN_SWITCH,
+                             "m: %p port[%d]: vlan_id modification: %u -> %u",
+                             m, vswitch_link->port_id,
+                             vlan_id, vswitch_link->tag_id);
+          vlan_hdr->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
+        }
+      else if (vswitch_link->tag_id == 0)
+        {
+          /* remove vlan_hdr */
+          rte_vlan_strip (c);
+          DEBUG_SDPLANE_LOG (VLAN_SWITCH,
+                             "m: %p port[%d]: vlan_id strip: %u -> %u",
+                             m, vswitch_link->port_id,
+                             vlan_id, vswitch_link->tag_id);
+        }
+    }
+  else
+    {
+      if (vswitch_link->tag_id != 0)
+        {
+          /* insert vlan_hdr */
+          rte_vlan_insert (&c);
+          eth_hdr = rte_pktmbuf_mtod (c, struct rte_ether_hdr *);
+          eth_type = rte_be_to_cpu_16 (eth_hdr->ether_type);
+          assert (eth_type == RTE_ETHER_TYPE_VLAN);
+          vlan_hdr = (struct rte_vlan_hdr *) (eth_hdr + 1);
+          old_vlan_tci = rte_be_to_cpu_16 (vlan_hdr->vlan_tci);
+          new_vlan_tci = ((old_vlan_tci & 0xf000) |
+                          (vswitch_link->tag_id & 0x0fff));
+          DEBUG_SDPLANE_LOG (VLAN_SWITCH,
+                             "m: %p port[%d]: add vlan_id: %u",
+                             m, vswitch_link->port_id,
+                             vswitch_link->tag_id);
+          vlan_hdr->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
+        }
+    }
+
+  sent = rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, c);
+  if (sent)
+    port_statistics[tx_portid].tx += sent;
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -271,7 +378,7 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid,
           struct vswitch_link *link;
           vswitch_link_id = port_config->vswitch_link_id_of_vlan[i];
           link = &rib->rib_info->vswitch_link[vswitch_link_id];
-          if (link->vlan_id == vlan_id)
+          if (link->tag_id == vlan_id)
             {
               vswitch_link = link;
               DEBUG_SDPLANE_LOG (VLAN_SWITCH,
@@ -339,8 +446,9 @@ vlan_switch_select (struct rte_mbuf *m, unsigned rx_portid,
           continue;
         }
 
-      /* forward to dpdk ports. */
-      vlan_switch_send (m, rx_portid, rx_queueid, tx_portid, tx_queueid);
+      /* forward to dpdk ports, accoding to the vswitch_link. */
+      vlan_switch_send_link (m, rx_portid, rx_queueid, tx_portid, tx_queueid,
+                             link);
     }
 
   // vlan_switch_router_if_send (m, rx_portid, rx_queueid);
