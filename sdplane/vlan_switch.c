@@ -201,10 +201,9 @@ vlan_switch_send (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
 }
 
 static inline __attribute__ ((always_inline)) void
-vlan_switch_send_link (struct rte_mbuf *m,
-                  unsigned rx_portid, unsigned rx_queueid,
-                  unsigned tx_portid, unsigned tx_queueid,
-                  struct vswitch_link *vswitch_link)
+vlan_switch_send_link (struct rte_mbuf *m, unsigned rx_portid,
+                       unsigned rx_queueid, unsigned tx_portid,
+                       unsigned tx_queueid, struct vswitch_link *vswitch_link)
 {
   struct rte_eth_dev_tx_buffer *buffer;
   uint16_t nb_ports;
@@ -249,27 +248,24 @@ vlan_switch_send_link (struct rte_mbuf *m,
       vlan_hdr = (struct rte_vlan_hdr *) (eth_hdr + 1);
       vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_hdr->vlan_tci));
 
-      if (vswitch_link->tag_id != 0 &&
-          vswitch_link->tag_id != vlan_id)
+      if (vswitch_link->tag_id != 0 && vswitch_link->tag_id != vlan_id)
         {
           /* vlan_id translation: modify vlan_id on tx */
           old_vlan_tci = rte_be_to_cpu_16 (vlan_hdr->vlan_tci);
-          new_vlan_tci = ((old_vlan_tci & 0xf000) |
-                          (vswitch_link->tag_id & 0x0fff));
-          DEBUG_SDPLANE_LOG (VLAN_SWITCH,
-                             "m: %p port[%d]: vlan_id modification: %u -> %u",
-                             m, vswitch_link->port_id,
-                             vlan_id, vswitch_link->tag_id);
+          new_vlan_tci =
+              ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
+          DEBUG_SDPLANE_LOG (
+              VLAN_SWITCH, "m: %p port[%d]: vlan_id modification: %u -> %u", m,
+              vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
           vlan_hdr->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
       else if (vswitch_link->tag_id == 0)
         {
           /* remove vlan_hdr */
           rte_vlan_strip (c);
-          DEBUG_SDPLANE_LOG (VLAN_SWITCH,
-                             "m: %p port[%d]: vlan_id strip: %u -> %u",
-                             m, vswitch_link->port_id,
-                             vlan_id, vswitch_link->tag_id);
+          DEBUG_SDPLANE_LOG (
+              VLAN_SWITCH, "m: %p port[%d]: vlan_id strip: %u -> %u", m,
+              vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
         }
     }
   else
@@ -283,12 +279,10 @@ vlan_switch_send_link (struct rte_mbuf *m,
           assert (eth_type == RTE_ETHER_TYPE_VLAN);
           vlan_hdr = (struct rte_vlan_hdr *) (eth_hdr + 1);
           old_vlan_tci = rte_be_to_cpu_16 (vlan_hdr->vlan_tci);
-          new_vlan_tci = ((old_vlan_tci & 0xf000) |
-                          (vswitch_link->tag_id & 0x0fff));
-          DEBUG_SDPLANE_LOG (VLAN_SWITCH,
-                             "m: %p port[%d]: add vlan_id: %u",
-                             m, vswitch_link->port_id,
-                             vswitch_link->tag_id);
+          new_vlan_tci =
+              ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
+          DEBUG_SDPLANE_LOG (VLAN_SWITCH, "m: %p port[%d]: add vlan_id: %u", m,
+                             vswitch_link->port_id, vswitch_link->tag_id);
           vlan_hdr->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
     }

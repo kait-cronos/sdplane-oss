@@ -61,7 +61,7 @@ vswitch_new (struct rib_info *new, uint16_t vlan_id)
 
 static inline __attribute__ ((always_inline)) struct vswitch_link *
 vswitch_link_lookup (struct rib_info *new, struct vswitch_conf *vswitch,
-                  struct port_conf *port)
+                     struct port_conf *port)
 {
   int i;
   struct vswitch_link *vswitch_link;
