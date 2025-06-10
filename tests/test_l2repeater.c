@@ -10,6 +10,7 @@
 #include <rte_mempool.h>
 #include <rte_eal.h>
 #include <rte_eth_ring.h>
+#include <rte_mempool.h>
 
 #include <sdplane/debug.h>
 #include <sdplane/termio.h>
@@ -54,16 +55,24 @@ test_lthread_main (void *arg)
   int count_dev = rte_eth_dev_count_avail ();
   printf ("Available Ethernet devices: %d\n", count_dev);
 
-  struct rte_ring *ring[4];
+  struct rte_ring *ring[18];
   int port0, port1;
+  for (int i = 0; i < 18; i++)
+    {
+      char ring_name[8];
+      snprintf (ring_name, sizeof (ring_name), "R%d", i);
+      ring[i] = rte_ring_create (ring_name, 256, SOCKET_ID_ANY,
+                                 RING_F_SP_ENQ | RING_F_SC_DEQ);
+      if (! ring[i])
+        {
+          printf ("Failed to create ring %s: %s\n", ring_name,
+                  rte_strerror (rte_errno));
+          return;
+        }
+    }
 
-  ring[0] = rte_ring_create ("R0", 256, 0, RING_F_SP_ENQ | RING_F_SC_DEQ);
-  ring[1] = rte_ring_create ("R1", 256, 0, RING_F_SP_ENQ | RING_F_SC_DEQ);
-  ring[2] = rte_ring_create ("R2", 256, 0, RING_F_SP_ENQ | RING_F_SC_DEQ);
-  ring[3] = rte_ring_create ("R3", 256, 0, RING_F_SP_ENQ | RING_F_SC_DEQ);
-
-  port0 = rte_eth_from_rings ("net_ring0", &ring[0], 1, &ring[1], 1, 0);
-  port1 = rte_eth_from_rings ("net_ring1", &ring[2], 1, &ring[3], 1, 0);
+  port0 = rte_eth_from_rings ("net_ring0", &ring[0], 1, &ring[1], 8, 0);
+  port1 = rte_eth_from_rings ("net_ring1", &ring[9], 1, &ring[10], 8, 0);
 
   count_dev = rte_eth_dev_count_avail ();
   printf ("Available Ethernet devices after creating rings: %d\n", count_dev);
@@ -76,12 +85,32 @@ test_lthread_main (void *arg)
 
   printf ("EAL initialized, ports: %d, %d\n", port0, port1);
   apply_config ();
-  printf ("applied config");
+  printf ("applied config\n");
 
   lthread_sleep (500);
+  printf ("Creating mbuf pool...\n");
+  struct rte_mempool *mbuf_pool =
+      rte_pktmbuf_pool_create ("test_mbuf_pool", 1024 * 8, 32, 0,
+                               RTE_MBUF_DEFAULT_BUF_SIZE, SOCKET_ID_ANY);
+  if (! mbuf_pool)
+    {
+      printf ("Failed to create mbuf pool: %s\n", rte_strerror (rte_errno));
+      return;
+    }
+  struct rte_mbuf *mbuf = rte_pktmbuf_alloc (mbuf_pool);
+  if (! mbuf)
+    {
+      printf ("Failed to allocate mbuf from pool: %s\n",
+              rte_strerror (rte_errno));
+      return;
+    }
+
 
   printf ("Enqueuing message to R0...\n");
-  ret = rte_ring_enqueue_burst (ring[0], (void *) "Hello from R0", 32, NULL);
+  mbuf->data_len = 13;
+  mbuf->pkt_len = mbuf->data_len;
+  memcpy (rte_pktmbuf_mtod (mbuf, void *), "Hello, R0!", 13);
+  ret = rte_ring_enqueue (ring[0], mbuf);
   if (ret < 0)
     {
       printf ("Failed to enqueue message to R0: %s\n", rte_strerror (-ret));
@@ -89,15 +118,18 @@ test_lthread_main (void *arg)
     }
   printf ("Message enqueued to R0.\n");
 
-  lthread_sleep (500);
+  lthread_sleep (1000);
   printf ("Dequeuing message from R3...\n");
-  ret = rte_ring_dequeue_burst (ring[3], (void **) &msg, 32, NULL);
-  if (ret == 0)
+  struct rte_mbuf *received_mbuf;
+  ret = rte_ring_dequeue (ring[12], &received_mbuf);
+  if (ret < 0)
     {
-      printf ("R3 is empty, no message dequeued.\n");
+      printf ("Failed to dequeue message from R3: %s\n", rte_strerror (-ret));
     }
   else
     {
+      memcpy (msg, rte_pktmbuf_mtod (received_mbuf, void *),
+              received_mbuf->data_len);
       printf ("Message dequeued from R3: %s\n", msg);
     }
 }

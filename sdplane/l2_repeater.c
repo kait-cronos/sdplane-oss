@@ -224,8 +224,6 @@ l2_repeater_rx_burst ()
         {
           continue;
         }
-      printf ("rte_eth_rx_burst() returned %d on port %d queue %d\n", nb_rx,
-              portid, queueid);
 
       port_statistics[portid].rx += nb_rx;
 
