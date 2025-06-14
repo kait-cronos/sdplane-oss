@@ -166,27 +166,36 @@ rib_info_hard_coding (struct rib_info *new)
         }
     }
 
-  int vswitch_id_20 = -1;
-  int vswitch_id_30 = -1;
+  int vswitch_id_2337 = -1;
+  int vswitch_id_2410 = -1;
+  int vswitch_id_2411 = -1;
   int i;
   for (i = 0; i < new->vswitch_size; i++)
     {
       struct vswitch_conf *vswitch = &new->vswitch[i];
-      if (vswitch->vlan_id == 20)
-        vswitch_id_20 = i;
-      else if (vswitch->vlan_id == 30)
-        vswitch_id_30 = i;
+      if (vswitch->vlan_id == 2337)
+        vswitch_id_2337 = i;
+      else if (vswitch->vlan_id == 2410)
+        vswitch_id_2410 = i;
+      else if (vswitch->vlan_id == 2411)
+        vswitch_id_2411 = i;
     }
 
-  struct vswitch_conf *vlan_20 = NULL;
-  struct vswitch_conf *vlan_30 = NULL;
-  if (vswitch_id_20 >= 0)
-    vlan_20 = &new->vswitch[vswitch_id_20];
-  if (vswitch_id_30 >= 0)
-    vlan_30 = &new->vswitch[vswitch_id_30];
+  struct vswitch_conf *vlan_2337 = NULL;
+  struct vswitch_conf *vlan_2410 = NULL;
+  struct vswitch_conf *vlan_2411 = NULL;
+  if (vswitch_id_2337 >= 0)
+    vlan_2337 = &new->vswitch[vswitch_id_2337];
+  if (vswitch_id_2410 >= 0)
+    vlan_2410 = &new->vswitch[vswitch_id_2410];
+  if (vswitch_id_2411 >= 0)
+    vlan_2411 = &new->vswitch[vswitch_id_2411];
   struct port_conf *port_0 = &new->port[0];
   struct port_conf *port_1 = &new->port[1];
+  struct port_conf *port_2 = &new->port[2];
+  struct port_conf *port_3 = &new->port[3];
 
+#if 0
   if (! vlan_20)
     {
       vlan_20 = vswitch_new (new, 20);
@@ -210,6 +219,36 @@ rib_info_hard_coding (struct rib_info *new)
       vswitch_link = vswitch_link_lookup (new, vlan_30, port_0);
       // on port_0 vlan_30 is out untagged.
       port_set_native_vlan (new, port_0, vswitch_link);
+    }
+#endif
+
+  if (! vlan_2337)
+    {
+      vlan_2337 = vswitch_new (new, 2337);
+      vswitch_link = vswitch_link_new (new, vlan_2337, port_0);
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+      vswitch_link = vswitch_link_new (new, vlan_2337, port_1);
+      port_add_tagged_vlan (new, port_1, vswitch_link);
+    }
+
+  if (! vlan_2410) // BBIX
+    {
+      vlan_2410 = vswitch_new (new, 2410);
+      vswitch_link = vswitch_link_new (new, vlan_2410, port_0);
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+      vswitch_link = vswitch_link_new (new, vlan_2410, port_1);
+      port_add_tagged_vlan (new, port_1, vswitch_link);
+    }
+
+
+  if (! vlan_2411)
+    {
+      vlan_2411 = vswitch_new (new, 2411);
+      vswitch_link = vswitch_link_new (new, vlan_2411, port_0);
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+      vswitch_link = vswitch_link_new (new, vlan_2411, port_1);
+      //port_add_tagged_vlan (new, port_1, vswitch_link);
+      port_set_native_vlan (new, port_1, vswitch_link);
     }
 }
 
