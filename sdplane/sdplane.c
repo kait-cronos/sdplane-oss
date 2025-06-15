@@ -145,6 +145,37 @@ ALIAS_COMMAND (set_argv_list_8,
                "set command-line arguments.\n"
                "set command-line arguments.\n");
 
+ALIAS_COMMAND (set_argv_list_21,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
 ALIAS_COMMAND (set_argv_list_23,
                set_argv_list_1,
                "set argv-list <0-7> "
@@ -380,6 +411,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_argv_list_1);
   INSTALL_COMMAND2 (cmdset, set_argv_list_2);
   INSTALL_COMMAND2 (cmdset, set_argv_list_8);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_21);
   INSTALL_COMMAND2 (cmdset, set_argv_list_23);
   INSTALL_COMMAND2 (cmdset, show_argv_list);
 

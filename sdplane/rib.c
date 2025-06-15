@@ -101,11 +101,16 @@ CLI_COMMAND2 (show_rib, "show rib", SHOW_HELP, "rib information\n")
                vswitch->vswitch_port_size, shell->NL);
       for (j = 0; j < vswitch->vswitch_port_size; j++)
         {
+          uint16_t vswitch_link_id = vswitch->vswitch_link_id[j];
           struct vswitch_link *link;
-          link = &vswitch->vswitch_port[j];
+          link = &rib->rib_info->vswitch_link[vswitch_link_id];
           fprintf (shell->terminal,
-                   "rib_info: vswitch[%d]: port[%d]: port_id: %u vlan: %u%s",
-                   i, j, link->port_id, link->vlan_id, shell->NL);
+                   "rib_info: vswitch[%d]: vswport[%d]: "
+                   "vswitch_link: %d port_id: %u vlan: %u tag: %u "
+                   "(vswitch%u[%u])%s",
+                   i, j, vswitch_link_id, link->port_id, link->vlan_id,
+                   link->tag_id, link->vswitch_id, link->vswitch_port,
+                   shell->NL);
         }
     }
 

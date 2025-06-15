@@ -26,6 +26,7 @@ struct capture_if
 
 struct vswitch_link
 {
+  uint16_t vswitch_link_id;
   uint16_t port_id;
   // uint16_t queue_id; //queue_id of rx_queue.
   uint16_t vlan_id;
@@ -36,14 +37,17 @@ struct vswitch_link
 
 struct vswitch_conf
 {
+  uint16_t vswitch_id;
+  uint16_t vlan_id;
   uint16_t vswitch_port_size;
-  struct vswitch_link vswitch_port[MAX_VSWITCH_PORTS];
+  uint16_t vswitch_link_id[MAX_VSWITCH_PORTS];
   struct router_if router_if;
   struct capture_if capture_if;
 };
 
 struct port_conf
 {
+  uint16_t dpdk_port_id;
   uint16_t nb_rxd;
   uint16_t nb_txd;
   struct rte_eth_link link;
