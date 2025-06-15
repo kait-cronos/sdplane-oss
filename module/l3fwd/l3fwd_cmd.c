@@ -47,11 +47,8 @@
 #include <sdplane/debug_cmd.h>
 
 #include "l3fwd_cmd.h"
-
-// #include "l2fwd_export.h"
 #include "l3fwd.h"
 #include "sdplane.h"
-
 #include "tap_handler.h"
 
 DEFINE_COMMAND (set_l3fwd_vars_mask,
@@ -78,13 +75,14 @@ DEFINE_COMMAND (set_l3fwd_vars_config,
   struct shell *shell = (struct shell *) context;
   int ret;
 
-  ret = parse_config(argv[3]);
+  ret = parse_config (argv[3]);
   if (ret < 0)
     {
-      fprintf (shell->terminal, "Invalid config string: %s%s", argv[3], shell->NL);
+      fprintf (shell->terminal, "Invalid config string: %s%s", argv[3],
+               shell->NL);
       return -1;
     }
-  
+
   return 0;
 }
 
@@ -98,10 +96,11 @@ DEFINE_COMMAND (set_l3fwd_lookup_mode,
   struct shell *shell = (struct shell *) context;
   int ret;
 
-  ret = parse_lookup(argv[3]);
+  ret = parse_lookup (argv[3]);
   if (ret < 0)
     {
-      fprintf (shell->terminal, "Invalid lookup mode: %s%s", argv[3], shell->NL);
+      fprintf (shell->terminal, "Invalid lookup mode: %s%s", argv[3],
+               shell->NL);
       return -1;
     }
   return 0;
@@ -115,7 +114,7 @@ DEFINE_COMMAND (set_l3fwd_rule_ipv4,
                 "rule_name\n")
 {
   struct shell *shell = (struct shell *) context;
-  l3fwd_set_rule_ipv4_name(strdup (argv[3]));
+  l3fwd_set_rule_ipv4_name (strdup (argv[3]));
 
   return 0;
 }
@@ -147,9 +146,9 @@ DEFINE_COMMAND (set_l3fwd_eth_dest,
 }
 
 DEFINE_COMMAND (l3fwd_init,
-               "l3fwd init",
-               "l3fwd\n"
-               "init\n")
+                "l3fwd init",
+                "l3fwd\n"
+                "init\n")
 {
   struct shell *shell = (struct shell *) context;
   l3fwd_init (0, NULL);
@@ -167,4 +166,3 @@ l3fwd_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_l3fwd_eth_dest);
   INSTALL_COMMAND2 (cmdset, l3fwd_init);
 }
-

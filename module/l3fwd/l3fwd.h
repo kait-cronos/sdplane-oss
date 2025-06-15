@@ -303,24 +303,7 @@ void *fib_get_ipv6_l3fwd_lookup_struct (const int socketid);
 int l3fwd_init (int argc, char **argv);
 int l3fwd_terminate (int argc, char **argv);
 
-// #define MAX_LCORE_PARAMS 1024
-
-// struct lcore_params
-// {
-//   uint16_t port_id;
-//   uint8_t queue_id;
-//   uint8_t lcore_id;
-// } __rte_cache_aligned;
-// extern struct lcore_params lcore_params_array[MAX_LCORE_PARAMS];
-
-// extern uint16_t nb_lcore_params;
-
-// extern uint32_t l3fwd_dst_ports[RTE_MAX_ETHPORTS];
-
-// extern struct rte_mempool *l3fwd_pktmbuf_pool;
-
 extern int promiscuous_on;
-// extern struct rte_ether_addr l3fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
 
 int parse_config(const char *q_arg);
 int parse_lookup(const char *q_arg);
@@ -337,6 +320,5 @@ enum L3FWD_LOOKUP_MODE
   L3FWD_LOOKUP_ACL
 };
 extern enum L3FWD_LOOKUP_MODE lookup_mode;
-
 
 #endif /* __L3_FWD_H__ */

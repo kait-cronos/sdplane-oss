@@ -52,38 +52,40 @@ CLI_COMMAND2 (set_locale,
     fprintf (shell->terminal, "setlocale(): %s.\n", ret);
 }
 
-// char *l3fwd_argv[L3FWD_ARGV_MAX];
-// int l3fwd_argc = 0;
+#if 0
+char *l3fwd_argv[L3FWD_ARGV_MAX];
+int l3fwd_argc = 0;
 
-// CLI_COMMAND2 (set_l3fwd_argv,
-//               "set l3fwd argv <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
-//               SET_HELP, "set l3fwd-related information.\n",
-//               "set command-line arguments.\n", "arbitrary word\n")
-// {
-//   struct shell *shell = (struct shell *) context;
-//   int i;
+CLI_COMMAND2 (set_l3fwd_argv,
+              "set l3fwd argv <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+              SET_HELP, "set l3fwd-related information.\n",
+              "set command-line arguments.\n", "arbitrary word\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i;
 
-//   if (argc - 2 >= L3FWD_ARGV_MAX - 2)
-//     {
-//       fprintf (shell->terminal, "too many arguments: %d.%s",
-//                argc, shell->NL);
-//       return -1;
-//     }
+  if (argc - 2 >= L3FWD_ARGV_MAX - 2)
+    {
+      fprintf (shell->terminal, "too many arguments: %d.%s",
+               argc, shell->NL);
+      return -1;
+    }
 
-//   l3fwd_argc = 0;
-//   memset (l3fwd_argv, 0, sizeof (l3fwd_argv));
-//   l3fwd_argv[l3fwd_argc++] = "sdplane";
+  l3fwd_argc = 0;
+  memset (l3fwd_argv, 0, sizeof (l3fwd_argv));
+  l3fwd_argv[l3fwd_argc++] = "sdplane";
 
-//   for (i = 3; i < argc; i++)
-//     {
-//       l3fwd_argv[l3fwd_argc++] = strdup (argv[i]);
-//     }
+  for (i = 3; i < argc; i++)
+    {
+      l3fwd_argv[l3fwd_argc++] = strdup (argv[i]);
+    }
 
-//   for (i = 0; i < l3fwd_argc; i++)
-//     fprintf (shell->terminal, "l3fwd_argv[%d]: %s\n", i, l3fwd_argv[i]);
+  for (i = 0; i < l3fwd_argc; i++)
+    fprintf (shell->terminal, "l3fwd_argv[%d]: %s\n", i, l3fwd_argv[i]);
 
-//   return 0;
-// }
+  return 0;
+}
+#endif
 
 char *argv_list[ARGV_LIST_MAX][ARGV_LIST_ARGV_MAX];
 int argv_list_argc[ARGV_LIST_MAX];
@@ -402,7 +404,9 @@ sdplane_cmd_init (struct command_set *cmdset)
   setlocale (LC_ALL, "en_US.utf8");
   dpdk_lcore_cmd_init (cmdset);
   dpdk_port_cmd_init (cmdset);
-  // INSTALL_COMMAND2 (cmdset, set_l3fwd_argv);
+#if 0
+  INSTALL_COMMAND2 (cmdset, set_l3fwd_argv);
+#endif
   INSTALL_COMMAND2 (cmdset, set_argv_list_1);
   INSTALL_COMMAND2 (cmdset, set_argv_list_2);
   INSTALL_COMMAND2 (cmdset, set_argv_list_8);

@@ -580,9 +580,11 @@ parse_eth_dest (const char *optarg)
   for (c = 0; c < 6; c++)
     dest[c] = peer_addr[c];
   *(uint64_t *) (val_eth + portid) = dest_eth_addr[portid];
+#if 0
   printf("Destination MAC address for port %d: "
          RTE_ETHER_ADDR_PRT_FMT "\n", portid,
          RTE_ETHER_ADDR_BYTES ((struct rte_ether_addr *)&dest_eth_addr[portid]));
+#endif
 }
 
 static void
@@ -1593,8 +1595,10 @@ l3fwd_init (int argc, char **argv)
   uint8_t queue;
   int ret;
 
-  // argv_save (argc, argv);
-  //soft_dplane_init ();
+#if 0
+  argv_save (argc, argv);
+  soft_dplane_init ();
+#endif
 
 #if 0
   /* init EAL */
