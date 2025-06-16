@@ -896,7 +896,7 @@ static const char *start_help[] = {
     CLI_HELP_PAUSE,
     NULL};
 
-static int
+int
 start_stop_cmd(int argc, char **argv)
 {
     struct cli_map *m;

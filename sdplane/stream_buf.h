@@ -16,8 +16,8 @@ uint8_t stream_getc (struct stream_buf *s);
 uint16_t stream_getw (struct stream_buf *s);
 uint32_t stream_getl (struct stream_buf *s);
 
-void stream_get_at (unsigned long pos,
-                    void *dst, struct stream_buf *s, size_t size);
+void stream_get_at (unsigned long pos, void *dst, struct stream_buf *s,
+                    size_t size);
 uint8_t stream_getc_at (unsigned long pos, struct stream_buf *s);
 uint16_t stream_getw_at (unsigned long pos, struct stream_buf *s);
 uint32_t stream_getl_at (unsigned long pos, struct stream_buf *s);

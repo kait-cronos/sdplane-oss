@@ -69,7 +69,7 @@ startup_config (__rte_unused void *dummy)
           lthread_sleep (10); // yield.
 
           ret = shell_read_nowait (shell);
-	  if (ret < 0)
+          if (ret < 0)
             {
               FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
               DEBUG_SDPLANE_LOG (RIB, "shell_read_nowait: %d", ret);

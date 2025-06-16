@@ -1,17 +1,17 @@
 #ifndef __RIB_H__
 #define __RIB_H__
 
-#define MAX_TAP_IF 8
-#define MAX_ROUTER_IF 8
+#define MAX_TAP_IF        8
+#define MAX_ROUTER_IF     8
 #define MAX_VSWITCH_PORTS 4
-#define MAX_VSWITCH_ID 4
-#define MAX_VSWITCH_LINK 32
+#define MAX_VSWITCH_ID    4
+#define MAX_VSWITCH_LINK  32
 #define MAX_VLAN_PER_PORT 4
-#define MAX_ETH_PORTS 8
+#define MAX_ETH_PORTS     8
 
 struct router_if
 {
-  int sockfd; //tap sockfd.
+  int sockfd; // tap sockfd.
   uint16_t tap_ring_id;
 
   struct in_addr ipv4_addr;
@@ -20,37 +20,41 @@ struct router_if
 
 struct capture_if
 {
-  int sockfd; //tap sockfd.
+  int sockfd; // tap sockfd.
   uint16_t tap_ring_id;
 };
 
 struct vswitch_link
 {
+  uint16_t vswitch_link_id;
   uint16_t port_id;
-  //uint16_t queue_id; //queue_id of rx_queue.
+  // uint16_t queue_id; //queue_id of rx_queue.
   uint16_t vlan_id;
-  uint16_t tag_id; //0 indicates untag. tag_id != vlan_id is tag-modify.
+  uint16_t tag_id; // 0 indicates untag. tag_id != vlan_id is tag-modify.
   uint16_t vswitch_id;
   uint16_t vswitch_port;
 };
 
 struct vswitch_conf
 {
+  uint16_t vswitch_id;
+  uint16_t vlan_id;
   uint16_t vswitch_port_size;
-  struct vswitch_link vswitch_port[MAX_VSWITCH_PORTS];
+  uint16_t vswitch_link_id[MAX_VSWITCH_PORTS];
   struct router_if router_if;
   struct capture_if capture_if;
 };
 
 struct port_conf
 {
+  uint16_t dpdk_port_id;
   uint16_t nb_rxd;
   uint16_t nb_txd;
   struct rte_eth_link link;
   struct rte_eth_dev_info dev_info;
 
   /* vlan support. */
-  uint16_t vlan_size; //configured vlan size.
+  uint16_t vlan_size; // configured vlan size.
   uint16_t vswitch_link_id_of_vlan[MAX_VLAN_PER_PORT];
   uint16_t vswitch_link_id_of_native_vlan;
 };
@@ -63,7 +67,8 @@ struct lcore_qconf
   struct port_queue_conf rx_queue_list[MAX_RX_QUEUE_PER_LCORE];
 };
 
-struct rib_info {
+struct rib_info
+{
   uint32_t ver;
   uint8_t tapif_size;
   uint8_t vswitch_size;

@@ -34,13 +34,8 @@ CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
   fprintf (t, "sdplane version: %s%s", sdplane_version, shell->NL);
 }
 
-CLI_COMMAND2 (set_locale,
-              "set locale (C|C.utf8|en_US.utf8|POSIX)",
-	      SET_HELP,
-              "locale information\n",
-	      "C\n",
-	      "C.utf8\n",
-	      "en_US.utf8\n",
+CLI_COMMAND2 (set_locale, "set locale (C|C.utf8|en_US.utf8|POSIX)", SET_HELP,
+              "locale information\n", "C\n", "C.utf8\n", "en_US.utf8\n",
               "POSIX")
 {
   struct shell *shell = (struct shell *) context;
@@ -66,8 +61,7 @@ CLI_COMMAND2 (set_l3fwd_argv,
 
   if (argc - 2 >= L3FWD_ARGV_MAX - 2)
     {
-      fprintf (shell->terminal, "too many arguments: %d.%s",
-               argc, shell->NL);
+      fprintf (shell->terminal, "too many arguments: %d.%s", argc, shell->NL);
       return -1;
     }
 
@@ -90,11 +84,8 @@ CLI_COMMAND2 (set_l3fwd_argv,
 char *argv_list[ARGV_LIST_MAX][ARGV_LIST_ARGV_MAX];
 int argv_list_argc[ARGV_LIST_MAX];
 
-CLI_COMMAND2 (set_argv_list_1,
-              "set argv-list <0-7> <WORD>",
-              SET_HELP,
-              "set argv-list.\n",
-              "specify argv-list index.\n",
+CLI_COMMAND2 (set_argv_list_1, "set argv-list <0-7> <WORD>", SET_HELP,
+              "set argv-list.\n", "specify argv-list index.\n",
               "set command-line arguments.\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -102,8 +93,7 @@ CLI_COMMAND2 (set_argv_list_1,
 
   if (argc >= ARGV_LIST_ARGV_MAX)
     {
-      fprintf (shell->terminal, "too many arguments: %d.%s",
-               argc, shell->NL);
+      fprintf (shell->terminal, "too many arguments: %d.%s", argc, shell->NL);
       return -1;
     }
 
@@ -127,77 +117,102 @@ CLI_COMMAND2 (set_argv_list_1,
     }
 
   for (i = 0; i < *argcp; i++)
-    fprintf (shell->terminal, "argv_list[%d][%d]: %s\n",
-             index, i, argv_list[index][i]);
+    fprintf (shell->terminal, "argv_list[%d][%d]: %s\n", index, i,
+             argv_list[index][i]);
 
   return 0;
 }
 
 ALIAS_COMMAND (set_argv_list_2,
-              set_argv_list_1,
-              "set argv-list <0-7> <WORD> <WORD>",
-              SET_HELP
-              "set argv-list.\n"
-              "specify argv-list index.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              );
+               set_argv_list_1,
+               "set argv-list <0-7> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
 
 ALIAS_COMMAND (set_argv_list_8,
-              set_argv_list_1,
-              "set argv-list <0-7> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
-              SET_HELP
-              "set argv-list.\n"
-              "specify argv-list index.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              );
+               set_argv_list_1,
+               "set argv-list <0-7> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_21,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
 
 ALIAS_COMMAND (set_argv_list_23,
-              set_argv_list_1,
-              "set argv-list <0-7> "
-              "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
-              "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
-              "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
-              SET_HELP
-              "set argv-list.\n"
-              "specify argv-list index.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              "set command-line arguments.\n"
-              );
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
 
-CLI_COMMAND2 (show_argv_list,
-              "show argv-list (|<0-7>)",
-              SHOW_HELP,
-              "show argv-list.\n",
-              "specify argv-list index.\n")
+CLI_COMMAND2 (show_argv_list, "show argv-list (|<0-7>)", SHOW_HELP,
+              "show argv-list.\n", "specify argv-list index.\n")
 {
   struct shell *shell = (struct shell *) context;
   int i, j;
@@ -214,8 +229,8 @@ CLI_COMMAND2 (show_argv_list,
       if (index >= 0 && i != index)
         continue;
       for (j = 0; j < *argcp; j++)
-        fprintf (shell->terminal, "argv_list[%d][%d]: %s\n",
-                 i, j, argv_list[i][j]);
+        fprintf (shell->terminal, "argv_list[%d][%d]: %s\n", i, j,
+                 argv_list[i][j]);
     }
 
   return 0;
@@ -279,18 +294,15 @@ CLI_COMMAND2 (show_loop_count,
 }
 
 extern uint64_t rib_rcu_replace;
-CLI_COMMAND2 (show_rcu, "show rcu",
-              SHOW_HELP, "show rcu-information.\n")
+CLI_COMMAND2 (show_rcu, "show rcu", SHOW_HELP, "show rcu-information.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
-  fprintf (t, "rib_rcu_replace: %'lu%s",
-           rib_rcu_replace, shell->NL);
+  fprintf (t, "rib_rcu_replace: %'lu%s", rib_rcu_replace, shell->NL);
   return 0;
 }
 
-CLI_COMMAND2 (show_fdb, "show fdb",
-              SHOW_HELP, "show fdb-information.\n")
+CLI_COMMAND2 (show_fdb, "show fdb", SHOW_HELP, "show fdb-information.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
@@ -300,15 +312,12 @@ CLI_COMMAND2 (show_fdb, "show fdb",
     {
       rte_ether_format_addr (buf, sizeof (buf), &fdb[i].l2addr);
       if (! rte_is_zero_ether_addr (&fdb[i].l2addr))
-        fprintf (t, "fdb[%d]: %s port %d%s",
-                 i, buf, fdb[i].port, shell->NL);
+        fprintf (t, "fdb[%d]: %s port %d%s", i, buf, fdb[i].port, shell->NL);
     }
   return 0;
 }
 
-CLI_COMMAND2 (show_vswitch,
-              "show vswitch",
-              SHOW_HELP,
+CLI_COMMAND2 (show_vswitch, "show vswitch", SHOW_HELP,
               "show vswitch-information.\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -338,15 +347,13 @@ CLI_COMMAND2 (show_vswitch,
         }
       fprintf (t, "vswport[%d]: [%d] %9s %s sock: %d lcore: %d ring[%p/%p]%s",
                i, vport->id, type_str, vport->name, vport->sockfd,
-               vport->lcore_id,
-               vport->ring[TAPDIR_UP], vport->ring[TAPDIR_DOWN],
-               shell->NL);
+               vport->lcore_id, vport->ring[TAPDIR_UP],
+               vport->ring[TAPDIR_DOWN], shell->NL);
     }
   return 0;
 }
 
-CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
-              "sleep command\n",
+CLI_COMMAND2 (sleep_cmd, "sleep <0-300>", "sleep command\n",
               "specify seconds to sleep.\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -370,9 +377,7 @@ CLI_COMMAND2 (sleep_cmd, "sleep <0-300>",
   return 0;
 }
 
-CLI_COMMAND2 (show_mempool, "show mempool",
-              SHOW_HELP,
-              "show mempool.\n")
+CLI_COMMAND2 (show_mempool, "show mempool", SHOW_HELP, "show mempool.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
@@ -384,8 +389,8 @@ CLI_COMMAND2 (show_mempool, "show mempool",
   count = rte_mempool_avail_count (mp);
   is_full = rte_mempool_full (mp);
 
-  fprintf (t, "mempool: size: %u count: %u is_full: %d%s",
-           mp->size, count, is_full, shell->NL);
+  fprintf (t, "mempool: size: %u count: %u is_full: %d%s", mp->size, count,
+           is_full, shell->NL);
 
   return 0;
 }
@@ -410,6 +415,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_argv_list_1);
   INSTALL_COMMAND2 (cmdset, set_argv_list_2);
   INSTALL_COMMAND2 (cmdset, set_argv_list_8);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_21);
   INSTALL_COMMAND2 (cmdset, set_argv_list_23);
   INSTALL_COMMAND2 (cmdset, show_argv_list);
 
@@ -439,4 +445,3 @@ sdplane_init ()
   debug_sdplane_cmd_init ();
   thread_info_init ();
 }
-

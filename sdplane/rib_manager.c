@@ -45,6 +45,213 @@ uint64_t rib_rcu_replace = 0;
 
 static __thread struct rib *rib = NULL;
 
+static inline __attribute__ ((always_inline)) struct vswitch_conf *
+vswitch_new (struct rib_info *new, uint16_t vlan_id)
+{
+  uint16_t vswitch_id;
+  struct vswitch_conf *vswitch;
+  if (new->vswitch_size >= MAX_VSWITCH_ID)
+    return NULL;
+  vswitch_id = new->vswitch_size++;
+  vswitch = &new->vswitch[vswitch_id];
+  vswitch->vswitch_id = vswitch_id;
+  vswitch->vlan_id = vlan_id;
+  return vswitch;
+}
+
+static inline __attribute__ ((always_inline)) struct vswitch_link *
+vswitch_link_lookup (struct rib_info *new, struct vswitch_conf *vswitch,
+                     struct port_conf *port)
+{
+  int i;
+  struct vswitch_link *vswitch_link;
+  for (i = 0; i < new->vswitch_link_size; i++)
+    {
+      vswitch_link = &new->vswitch_link[i];
+      if (vswitch_link->vswitch_id == vswitch->vswitch_id &&
+          vswitch_link->port_id == port->dpdk_port_id)
+        return vswitch_link;
+    }
+  return NULL;
+}
+
+static inline __attribute__ ((always_inline)) struct vswitch_link *
+vswitch_link_new (struct rib_info *new, struct vswitch_conf *vswitch,
+                  struct port_conf *port)
+{
+  uint16_t vswitch_link_id;
+  struct vswitch_link *vswitch_link;
+  if (new->vswitch_link_size >= MAX_VSWITCH_LINK)
+    return NULL;
+  vswitch_link_id = new->vswitch_link_size++;
+  vswitch_link = &new->vswitch_link[vswitch_link_id];
+  vswitch_link->vswitch_link_id = vswitch_link_id;
+  vswitch_link->port_id = port->dpdk_port_id;
+  vswitch_link->vlan_id = vswitch->vlan_id;
+  vswitch_link->tag_id = vswitch->vlan_id; // tagged.
+  vswitch_link->vswitch_id = vswitch->vswitch_id;
+
+  uint16_t vswitch_port;
+  if (vswitch->vswitch_port_size < MAX_VSWITCH_PORTS)
+    {
+      vswitch_port = vswitch->vswitch_port_size++;
+      vswitch->vswitch_link_id[vswitch_port] = vswitch_link_id;
+      vswitch_link->vswitch_port = vswitch_port;
+    }
+
+  return vswitch_link;
+}
+
+static inline __attribute__ ((always_inline)) void
+port_set_native_vlan (struct rib_info *new, struct port_conf *port,
+                      struct vswitch_link *vswitch_link)
+{
+  vswitch_link->tag_id = 0;
+  port->vswitch_link_id_of_native_vlan = vswitch_link->vswitch_link_id;
+}
+
+static inline __attribute__ ((always_inline)) void
+port_add_tagged_vlan (struct rib_info *new, struct port_conf *port,
+                      struct vswitch_link *vswitch_link)
+{
+  if (port->vlan_size >= MAX_VLAN_PER_PORT)
+    return;
+  uint16_t index = port->vlan_size++;
+  port->vswitch_link_id_of_vlan[index] = vswitch_link->vswitch_link_id;
+}
+
+static inline __attribute__ ((always_inline)) void
+rib_info_hard_coding (struct rib_info *new)
+{
+  uint8_t default_vlan_vswitch_id = 0;
+  struct vswitch_conf *default_vlan_vswitch;
+
+  uint16_t port_id;
+  struct port_conf *port;
+  uint16_t vswitch_link_id = 0;
+  struct vswitch_link *vswitch_link;
+
+  /* default vlan vswitch check */
+  /* default_vlan_vswitch_id is always 0. */
+  default_vlan_vswitch_id = 0;
+  if (new->vswitch_size == 0)
+    default_vlan_vswitch = vswitch_new (new, default_vlan_vswitch_id);
+  else
+    default_vlan_vswitch = &new->vswitch[default_vlan_vswitch_id];
+
+  new->port_size = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < new->port_size; port_id++)
+    {
+      port = &new->port[port_id];
+      port->dpdk_port_id = port_id;
+
+      DEBUG_SDPLANE_LOG (RIB, "port_id: %d vswitch_link_id_of_native_vlan: %d",
+                         port_id, port->vswitch_link_id_of_native_vlan);
+
+      /* native vlan check. */
+      vswitch_link_id = port->vswitch_link_id_of_native_vlan;
+      DEBUG_SDPLANE_LOG (RIB, "vswitch[%d]: port_id: %d == port_id: %d",
+                         vswitch_link_id,
+                         new->vswitch_link[vswitch_link_id].port_id, port_id);
+      if (new->vswitch_link_size == 0 ||
+          new->vswitch_link[vswitch_link_id].port_id != port_id)
+        {
+          uint16_t vswitch_port_id;
+
+          /* create a new vswitch_link */
+          vswitch_link = vswitch_link_new (new, default_vlan_vswitch, port);
+
+          /* connect the vswitch_link to the dpdk port. */
+          port_set_native_vlan (new, port, vswitch_link);
+        }
+    }
+
+  int vswitch_id_2337 = -1;
+  int vswitch_id_2410 = -1;
+  int vswitch_id_2411 = -1;
+  int i;
+  for (i = 0; i < new->vswitch_size; i++)
+    {
+      struct vswitch_conf *vswitch = &new->vswitch[i];
+      if (vswitch->vlan_id == 2337)
+        vswitch_id_2337 = i;
+      else if (vswitch->vlan_id == 2410)
+        vswitch_id_2410 = i;
+      else if (vswitch->vlan_id == 2411)
+        vswitch_id_2411 = i;
+    }
+
+  struct vswitch_conf *vlan_2337 = NULL;
+  struct vswitch_conf *vlan_2410 = NULL;
+  struct vswitch_conf *vlan_2411 = NULL;
+  if (vswitch_id_2337 >= 0)
+    vlan_2337 = &new->vswitch[vswitch_id_2337];
+  if (vswitch_id_2410 >= 0)
+    vlan_2410 = &new->vswitch[vswitch_id_2410];
+  if (vswitch_id_2411 >= 0)
+    vlan_2411 = &new->vswitch[vswitch_id_2411];
+  struct port_conf *port_0 = &new->port[0];
+  struct port_conf *port_1 = &new->port[1];
+  struct port_conf *port_2 = &new->port[2];
+  struct port_conf *port_3 = &new->port[3];
+
+#if 0
+  if (! vlan_20)
+    {
+      vlan_20 = vswitch_new (new, 20);
+      vswitch_link = vswitch_link_new (new, vlan_20, port_0);
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+      vswitch_link = vswitch_link_new (new, vlan_20, port_1);
+      port_add_tagged_vlan (new, port_1, vswitch_link);
+    }
+  if (! vlan_30)
+    {
+      vlan_30 = vswitch_new (new, 30);
+      vswitch_link = vswitch_link_new (new, vlan_30, port_0);
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+      vswitch_link = vswitch_link_new (new, vlan_30, port_1);
+      port_add_tagged_vlan (new, port_1, vswitch_link);
+
+      vswitch_link = vswitch_link_lookup (new, default_vlan_vswitch, port_0);
+      vswitch_link->tag_id = 10; // on port_0 default_vlan is out with vlan 10.
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+
+      vswitch_link = vswitch_link_lookup (new, vlan_30, port_0);
+      // on port_0 vlan_30 is out untagged.
+      port_set_native_vlan (new, port_0, vswitch_link);
+    }
+#endif
+
+  if (! vlan_2337)
+    {
+      vlan_2337 = vswitch_new (new, 2337);
+      vswitch_link = vswitch_link_new (new, vlan_2337, port_0);
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+      vswitch_link = vswitch_link_new (new, vlan_2337, port_1);
+      port_add_tagged_vlan (new, port_1, vswitch_link);
+    }
+
+  if (! vlan_2410) // BBIX
+    {
+      vlan_2410 = vswitch_new (new, 2410);
+      vswitch_link = vswitch_link_new (new, vlan_2410, port_0);
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+      vswitch_link = vswitch_link_new (new, vlan_2410, port_1);
+      port_add_tagged_vlan (new, port_1, vswitch_link);
+    }
+
+
+  if (! vlan_2411)
+    {
+      vlan_2411 = vswitch_new (new, 2411);
+      vswitch_link = vswitch_link_new (new, vlan_2411, port_0);
+      port_add_tagged_vlan (new, port_0, vswitch_link);
+      vswitch_link = vswitch_link_new (new, vlan_2411, port_1);
+      //port_add_tagged_vlan (new, port_1, vswitch_link);
+      port_set_native_vlan (new, port_1, vswitch_link);
+    }
+}
+
 static inline __attribute__ ((always_inline)) struct rib_info *
 rib_info_create (struct rib_info *old)
 {
@@ -59,6 +266,9 @@ rib_info_create (struct rib_info *old)
     memset (new, 0, sizeof (struct rib_info));
   else
     memcpy (new, old, sizeof (struct rib_info));
+
+  /* XXX hard-coding part. */
+  rib_info_hard_coding (new);
 
   new->ver++;
   return new;
@@ -131,8 +341,8 @@ rib_check (struct rib *new)
   char ring_name[32];
   int j;
 
-  DEBUG_SDPLANE_LOG (RIB, "ver: %d rib: %p rib_info: %p.",
-                     new->rib_info->ver, new, new->rib_info);
+  DEBUG_SDPLANE_LOG (RIB, "ver: %d rib: %p rib_info: %p.", new->rib_info->ver,
+                     new, new->rib_info);
 
   struct rte_eth_rxconf rxq_conf;
   struct rte_eth_txconf txq_conf;
@@ -150,8 +360,9 @@ rib_check (struct rib *new)
           struct port_queue_conf *rxq;
           rxq = &lcore_qconf->rx_queue_list[i];
 
-          DEBUG_SDPLANE_LOG (RIB, "new rib: lcore: %d qconf[%d]: port: %d queue: %d",
-                         lcore, i, rxq->port_id, rxq->queue_id);
+          DEBUG_SDPLANE_LOG (
+              RIB, "new rib: lcore: %d qconf[%d]: port: %d queue: %d", lcore,
+              i, rxq->port_id, rxq->queue_id);
         }
     }
 
@@ -193,16 +404,17 @@ rib_check (struct rib *new)
     {
       struct port_queue_conf *rxq;
       rxq = &port_qconf[i];
-      DEBUG_SDPLANE_LOG (RIB, "port_qconf[%d]: port: %d queue: %d",
-                         i, rxq->port_id, rxq->queue_id);
+      DEBUG_SDPLANE_LOG (RIB, "port_qconf[%d]: port: %d queue: %d", i,
+                         rxq->port_id, rxq->queue_id);
       if (port_nrxq[rxq->port_id] == rxq->queue_id)
         {
           port_nrxq[rxq->port_id]++;
         }
       else
         {
-          DEBUG_SDPLANE_LOG (RIB, "unorderd port_qconf[%d]: port: %d queue: %d",
-                             i, rxq->port_id, rxq->queue_id);
+          DEBUG_SDPLANE_LOG (RIB,
+                             "unorderd port_qconf[%d]: port: %d queue: %d", i,
+                             rxq->port_id, rxq->queue_id);
           return -1;
         }
     }
@@ -227,8 +439,8 @@ rib_check (struct rib *new)
         port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
       else
         port_conf.txmode.offloads &= (~RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE);
-      DEBUG_SDPLANE_LOG (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d",
-                         i, nrxq, ntxq);
+      DEBUG_SDPLANE_LOG (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d", i,
+                         nrxq, ntxq);
       ret = rte_eth_dev_stop (i);
       ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
 
@@ -244,10 +456,9 @@ rib_check (struct rib *new)
 
       for (j = 0; j < nrxq; j++)
         {
-          ret = rte_eth_rx_queue_setup (i, j, nb_rxd,
-                                        rte_eth_dev_socket_id (i),
-                                        &rxq_conf,
-                                        l2fwd_pktmbuf_pool);
+          ret =
+              rte_eth_rx_queue_setup (i, j, nb_rxd, rte_eth_dev_socket_id (i),
+                                      &rxq_conf, l2fwd_pktmbuf_pool);
           DEBUG_SDPLANE_LOG (RIB, "port[%d]: rx_queue_setup: rxq: %d rxd: %d",
                              i, j, nb_rxd);
         }
@@ -258,20 +469,17 @@ rib_check (struct rib *new)
       for (j = 0; j < ntxq; j++)
         {
           ret = rte_eth_tx_queue_setup (i, j, nb_txd,
-                                        rte_eth_dev_socket_id (i),
-                                        &txq_conf);
+                                        rte_eth_dev_socket_id (i), &txq_conf);
           DEBUG_SDPLANE_LOG (RIB, "port[%d]: tx_queue_setup: txq: %d txd: %d",
                              i, j, nb_txd);
 
           if (! tx_buffer_per_q[i][j])
             {
-	      DEBUG_SDPLANE_LOG (L2_REPEATER,
-			      "tx_buffer_init: port: %d queue: %d",
-			      i, j);
-              tx_buffer_per_q[i][j] =
-                rte_zmalloc_socket ("tx_buffer",
-                                RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
-                                rte_eth_dev_socket_id (i));
+              DEBUG_SDPLANE_LOG (L2_REPEATER,
+                                 "tx_buffer_init: port: %d queue: %d", i, j);
+              tx_buffer_per_q[i][j] = rte_zmalloc_socket (
+                  "tx_buffer", RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
+                  rte_eth_dev_socket_id (i));
               rte_eth_tx_buffer_init (tx_buffer_per_q[i][j], MAX_PKT_BURST);
             }
         }
@@ -279,7 +487,7 @@ rib_check (struct rib *new)
       ret = rte_eth_dev_start (i);
     }
 
-  /* prepare rte_ring "ring_up/dn[][]" */
+    /* prepare rte_ring "ring_up/dn[][]" */
 #define RING_TO_TAP_SIZE 64
   for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++)
     {
@@ -293,12 +501,10 @@ rib_check (struct rib *new)
             {
               snprintf (ring_name, sizeof (ring_name), "ring_up[%d][%d]",
                         rxq->port_id, rxq->queue_id);
-              ring_up[rxq->port_id][rxq->queue_id] =
-                rte_ring_create (ring_name, RING_TO_TAP_SIZE,
-                                 rte_socket_id (),
-                                 (RING_F_SP_ENQ | RING_F_SC_DEQ));
-              DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p",
-                                 ring_name,
+              ring_up[rxq->port_id][rxq->queue_id] = rte_ring_create (
+                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
+                  (RING_F_SP_ENQ | RING_F_SC_DEQ));
+              DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  ring_up[rxq->port_id][rxq->queue_id]);
             }
 
@@ -306,12 +512,10 @@ rib_check (struct rib *new)
             {
               snprintf (ring_name, sizeof (ring_name), "ring_dn[%d][%d]",
                         rxq->port_id, rxq->queue_id);
-              ring_dn[rxq->port_id][rxq->queue_id] =
-                rte_ring_create (ring_name, RING_TO_TAP_SIZE,
-                                 rte_socket_id (),
-                                 (RING_F_SP_ENQ | RING_F_SC_DEQ));
-              DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p",
-                                 ring_name,
+              ring_dn[rxq->port_id][rxq->queue_id] = rte_ring_create (
+                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
+                  (RING_F_SP_ENQ | RING_F_SC_DEQ));
+              DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  ring_dn[rxq->port_id][rxq->queue_id]);
             }
         }
@@ -328,14 +532,14 @@ rib_replace (struct rib *new)
 
   /* assign new */
   rcu_assign_pointer (rcu_global_ptr_rib, new);
-  DEBUG_SDPLANE_LOG (RIB, "rib: replace: %'lu-th: "
+  DEBUG_SDPLANE_LOG (RIB,
+                     "rib: replace: %'lu-th: "
                      "rib: %p -> %p "
                      "rib_info: ver.%d (%p) -> ver.%d (%p)",
-                     rib_rcu_replace,
-                     old, new,
+                     rib_rcu_replace, old, new,
                      (old && old->rib_info ? old->rib_info->ver : -1),
                      (old ? old->rib_info : NULL),
-                     (new && new->rib_info ? new->rib_info->ver : -1),
+                     (new &&new->rib_info ? new->rib_info->ver : -1),
                      (new ? new->rib_info : NULL));
 
   /* reclaim old */
@@ -442,9 +646,11 @@ rib_manager_process_message (void *msgp)
                 {
                   char *src, *dst;
                   int len;
-                  dst = (char *) &new->rib_info->lcore_qconf[i].rx_queue_list[j];
+                  dst =
+                      (char *) &new->rib_info->lcore_qconf[i].rx_queue_list[j];
                   src = (char *) &msg_qconf->qconf[i].rx_queue_list[j];
-                  len = sizeof (new->rib_info->lcore_qconf[i].rx_queue_list[j]);
+                  len =
+                      sizeof (new->rib_info->lcore_qconf[i].rx_queue_list[j]);
                   memcpy (dst, src, len);
 #if 0
                   len = sizeof (struct port_queue_conf);
@@ -501,7 +707,7 @@ rib_manager_process_message (void *msgp)
       /* for qconf change, we need an intermittent state to avoid
          a conflict between different cores. */
       /* XXX, we can use smarter intermitent state. */
-      //struct rib *zero;
+      // struct rib *zero;
       zero = malloc (sizeof (struct rib));
       if (zero)
         {
@@ -563,7 +769,7 @@ rib_manager (void *arg)
 
   /* initialize */
   msg_queue_rib =
-    rte_ring_create ("msg_queue_rib", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+      rte_ring_create ("msg_queue_rib", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
 
   int thread_id;
   thread_id = thread_lookup (rib_manager);
@@ -572,7 +778,7 @@ rib_manager (void *arg)
   while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (100); // yield.
-      //DEBUG_SDPLANE_LOG (RIB, "%s: schedule.", __func__);
+      // DEBUG_SDPLANE_LOG (RIB, "%s: schedule.", __func__);
 
       msgp = internal_msg_recv (msg_queue_rib);
       if (msgp)

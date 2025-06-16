@@ -80,4 +80,3 @@ tap_admin_up (char *ifname)
         }
     }
 }
-

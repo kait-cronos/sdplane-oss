@@ -45,8 +45,8 @@ netlink_socket (struct netlink_sock *nlsock, unsigned long groups)
   sockfd = socket (AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
   if (sockfd < 0)
     {
-      DEBUG_SDPLANE_LOG (NETLINK, "can't open %s socket: %s",
-                         nlsock->name, strerror (errno));
+      DEBUG_SDPLANE_LOG (NETLINK, "can't open %s socket: %s", nlsock->name,
+                         strerror (errno));
       return -1;
     }
 
@@ -122,16 +122,17 @@ netlink_request (int family, int type, struct netlink_sock *nlsock)
                 (struct sockaddr *) &snl, sizeof (snl));
   if (ret < 0)
     {
-      DEBUG_SDPLANE_LOG (NETLINK, "%s sendto failed: %s.",
-                         nlsock->name, strerror (errno));
+      DEBUG_SDPLANE_LOG (NETLINK, "%s sendto failed: %s.", nlsock->name,
+                         strerror (errno));
       return -1;
     }
   else
     {
-      DEBUG_SDPLANE_LOG (NETLINK, "%s: sent: "
+      DEBUG_SDPLANE_LOG (NETLINK,
+                         "%s: sent: "
                          "family: %d type: %d pid: %d seq: %d.",
-                         nlsock->name, family, type,
-                         req.nlh.nlmsg_pid, req.nlh.nlmsg_seq);
+                         nlsock->name, family, type, req.nlh.nlmsg_pid,
+                         req.nlh.nlmsg_seq);
     }
 
   return 0;
@@ -142,20 +143,34 @@ netlink_nlmsg_str (uint16_t nlmsg_type)
 {
   switch (nlmsg_type)
     {
-    case NLMSG_NOOP: return "NLMSG_NOOP";
-    case NLMSG_ERROR: return "NLMSG_ERROR";
-    case NLMSG_DONE: return "NLMSG_DONE";
-    case NLMSG_OVERRUN: return "NLMSG_OVERRUN";
-    case RTM_NEWROUTE: return "RTM_NEWROUTE";
-    case RTM_DELROUTE: return "RTM_DELROUTE";
-    case RTM_GETROUTE: return "RTM_GETROUTE";
-    case RTM_NEWLINK: return "RTM_NEWLINK";
-    case RTM_DELLINK: return "RTM_DELLINK";
-    case RTM_GETLINK: return "RTM_GETLINK";
-    case RTM_NEWADDR: return "RTM_NEWADDR";
-    case RTM_DELADDR: return "RTM_DELADDR";
-    case RTM_GETADDR: return "RTM_GETADDR";
-    default: return "Unknown";
+    case NLMSG_NOOP:
+      return "NLMSG_NOOP";
+    case NLMSG_ERROR:
+      return "NLMSG_ERROR";
+    case NLMSG_DONE:
+      return "NLMSG_DONE";
+    case NLMSG_OVERRUN:
+      return "NLMSG_OVERRUN";
+    case RTM_NEWROUTE:
+      return "RTM_NEWROUTE";
+    case RTM_DELROUTE:
+      return "RTM_DELROUTE";
+    case RTM_GETROUTE:
+      return "RTM_GETROUTE";
+    case RTM_NEWLINK:
+      return "RTM_NEWLINK";
+    case RTM_DELLINK:
+      return "RTM_DELLINK";
+    case RTM_GETLINK:
+      return "RTM_GETLINK";
+    case RTM_NEWADDR:
+      return "RTM_NEWADDR";
+    case RTM_DELADDR:
+      return "RTM_DELADDR";
+    case RTM_GETADDR:
+      return "RTM_GETADDR";
+    default:
+      return "Unknown";
     }
   /* not reached */
   return "Not-reached";
@@ -168,7 +183,8 @@ netlink_read_nlmsg_error (struct netlink_sock *nlsock, struct nlmsghdr *h)
 
   if (h->nlmsg_len < NLMSG_LENGTH (sizeof (struct nlmsgerr)))
     {
-      DEBUG_SDPLANE_LOG (NETLINK, "%s: invalid len: %d < "
+      DEBUG_SDPLANE_LOG (NETLINK,
+                         "%s: invalid len: %d < "
                          "NLMSG_LEN(nlmsgerr): %d",
                          nlsock->name, h->nlmsg_len,
                          NLMSG_LENGTH (sizeof (struct nlmsgerr)));
@@ -178,10 +194,9 @@ netlink_read_nlmsg_error (struct netlink_sock *nlsock, struct nlmsghdr *h)
   if (err->error == 0)
     {
       DEBUG_SDPLANE_LOG (NETLINK, "%s: ACK: type: %s(%u) seq: %lu pid: %lu",
-                         nlsock->name,
-                         netlink_nlmsg_str (err->msg.nlmsg_type),
-                         err->msg.nlmsg_type,
-                         err->msg.nlmsg_seq, err->msg.nlmsg_pid);
+                         nlsock->name, netlink_nlmsg_str (err->msg.nlmsg_type),
+                         err->msg.nlmsg_type, err->msg.nlmsg_seq,
+                         err->msg.nlmsg_pid);
       if (! (h->nlmsg_flags & NLM_F_MULTI))
         {
           DEBUG_SDPLANE_LOG (NETLINK, "%s: ACK: not multipart, should end.",
@@ -191,12 +206,13 @@ netlink_read_nlmsg_error (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return 0;
     }
 
-  DEBUG_SDPLANE_LOG (NETLINK, "%s: error: %d: %s "
+  DEBUG_SDPLANE_LOG (NETLINK,
+                     "%s: error: %d: %s "
                      "type: %s(%u) seq: %lu pid: %lu",
                      nlsock->name, err->error, strerror (-err->error),
                      netlink_nlmsg_str (err->msg.nlmsg_type),
-                     err->msg.nlmsg_type,
-                     err->msg.nlmsg_seq, err->msg.nlmsg_pid);
+                     err->msg.nlmsg_type, err->msg.nlmsg_seq,
+                     err->msg.nlmsg_pid);
 
   return -1;
 }
@@ -273,10 +289,8 @@ netlink_read (struct netlink_sock *nlsock)
            h = NLMSG_NEXT (h, len))
         {
           DEBUG_SDPLANE_LOG (NETLINK, "%s: type: %s(%u) seq: %lu pid: %lu",
-                             nlsock->name,
-                             netlink_nlmsg_str (h->nlmsg_type),
-                             h->nlmsg_type,
-                             h->nlmsg_seq, h->nlmsg_pid);
+                             nlsock->name, netlink_nlmsg_str (h->nlmsg_type),
+                             h->nlmsg_type, h->nlmsg_seq, h->nlmsg_pid);
           switch (h->nlmsg_type)
             {
             case NLMSG_ERROR:
@@ -356,17 +370,20 @@ netlink_thread (void *arg)
   netlink_socket (&netlink_cmd, 0);
 
   int ret;
-#define NETLINK_REQUEST_CMD(family, type, nlsock) \
-  do { \
-    ret = netlink_request (family, type, nlsock); \
-    if (ret < 0) \
-      DEBUG_SDPLANE_LOG (NETLINK, "netlink_request: %s %s failed.", \
-                         #family, #type); \
-    else \
-      DEBUG_SDPLANE_LOG (NETLINK, "netlink_request: %s %s " \
-                         "succeeded: %s seq: %d", \
-                         #family, #type, (nlsock)->name, (nlsock)->seq); \
-  } while (0)
+#define NETLINK_REQUEST_CMD(family, type, nlsock)                             \
+  do                                                                          \
+    {                                                                         \
+      ret = netlink_request (family, type, nlsock);                           \
+      if (ret < 0)                                                            \
+        DEBUG_SDPLANE_LOG (NETLINK, "netlink_request: %s %s failed.",         \
+                           #family, #type);                                   \
+      else                                                                    \
+        DEBUG_SDPLANE_LOG (NETLINK,                                           \
+                           "netlink_request: %s %s "                          \
+                           "succeeded: %s seq: %d",                           \
+                           #family, #type, (nlsock)->name, (nlsock)->seq);    \
+    }                                                                         \
+  while (0)
 
   NETLINK_REQUEST_CMD (AF_PACKET, RTM_GETLINK, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
@@ -386,7 +403,7 @@ netlink_thread (void *arg)
   while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (100); // yield.
-      //DEBUG_SDPLANE_LOG (NETLINK, "%s: schedule.", __func__);
+      // DEBUG_SDPLANE_LOG (NETLINK, "%s: schedule.", __func__);
 
       netlink_read (&netlink_cmd);
       netlink_read (&netlink_kernel);

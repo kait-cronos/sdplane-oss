@@ -232,8 +232,8 @@ vty_shell (void *arg)
       loop_vty_shell++;
     }
 
-  DEBUG_SDPLANE_LOG (VTY, "terminating %s[%d]: client[%d]: %s.",
-                     "vty", client->id, client->id, client_addr_str);
+  DEBUG_SDPLANE_LOG (VTY, "terminating %s[%d]: client[%d]: %s.", "vty",
+                     client->id, client->id, client_addr_str);
 
   lthread_close (client->fd);
   client->fd = -1;
