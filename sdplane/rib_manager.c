@@ -195,33 +195,6 @@ rib_info_hard_coding (struct rib_info *new)
   struct port_conf *port_2 = &new->port[2];
   struct port_conf *port_3 = &new->port[3];
 
-#if 0
-  if (! vlan_20)
-    {
-      vlan_20 = vswitch_new (new, 20);
-      vswitch_link = vswitch_link_new (new, vlan_20, port_0);
-      port_add_tagged_vlan (new, port_0, vswitch_link);
-      vswitch_link = vswitch_link_new (new, vlan_20, port_1);
-      port_add_tagged_vlan (new, port_1, vswitch_link);
-    }
-  if (! vlan_30)
-    {
-      vlan_30 = vswitch_new (new, 30);
-      vswitch_link = vswitch_link_new (new, vlan_30, port_0);
-      port_add_tagged_vlan (new, port_0, vswitch_link);
-      vswitch_link = vswitch_link_new (new, vlan_30, port_1);
-      port_add_tagged_vlan (new, port_1, vswitch_link);
-
-      vswitch_link = vswitch_link_lookup (new, default_vlan_vswitch, port_0);
-      vswitch_link->tag_id = 10; // on port_0 default_vlan is out with vlan 10.
-      port_add_tagged_vlan (new, port_0, vswitch_link);
-
-      vswitch_link = vswitch_link_lookup (new, vlan_30, port_0);
-      // on port_0 vlan_30 is out untagged.
-      port_set_native_vlan (new, port_0, vswitch_link);
-    }
-#endif
-
   if (! vlan_2337)
     {
       vlan_2337 = vswitch_new (new, 2337);
@@ -384,13 +357,9 @@ rib_check (struct rib *new)
           if (max_lcore < lcore)
             max_lcore = lcore;
 
-#if 0
-          port_qconf[port_qconf_size++] = *rxq;
-#else
           memcpy (&port_qconf[port_qconf_size], rxq,
                   sizeof (struct port_queue_conf));
           port_qconf_size++;
-#endif
         }
     }
 
@@ -603,37 +572,17 @@ rib_manager_process_message (void *msgp)
       update_port_status (new);
       break;
 
+#if 0
     case INTERNAL_MSG_TYPE_ETH_LINK:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_eth_link: %p.", msgp);
       /* this message is functionally substituted by the above
          update_port_status(). */
-#if 0
-      msg_eth_link = (struct internal_msg_eth_link *) (msg_header + 1);
-      memcpy (new->link, msg_eth_link->link,
-              sizeof (struct rte_eth_link) * RTE_MAX_ETHPORTS);
-      for (i = 0; i < RTE_MAX_ETHPORTS; i++)
-        {
-          if (msg_eth_link->link[i].link_speed ||
-              msg_eth_link->link[i].link_duplex ||
-              msg_eth_link->link[i].link_autoneg ||
-              msg_eth_link->link[i].link_status)
-            {
-              memcpy (&new->rib_info->port[i].link, &msg_eth_link->link[i],
-                      sizeof (struct rte_eth_link));
-              new->rib_info->port_size = i + 1;
-            }
-        }
-#endif
       break;
+#endif
 
     case INTERNAL_MSG_TYPE_QCONF:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_qconf: %p.", msgp);
       msg_qconf = (struct internal_msg_qconf *) (msg_header + 1);
-#if 0
-      memcpy (new->qconf, msg_qconf->qconf,
-              sizeof (struct sdplane_queue_conf) * RTE_MAX_LCORE);
-      //new->rib_info->lcore_size = rte_eth_dev_count_avail ();
-#endif
       uint16_t lcore_size;
       lcore_size = rte_lcore_count ();
       new->rib_info->lcore_size = lcore_size;
@@ -652,13 +601,6 @@ rib_manager_process_message (void *msgp)
                   len =
                       sizeof (new->rib_info->lcore_qconf[i].rx_queue_list[j]);
                   memcpy (dst, src, len);
-#if 0
-                  len = sizeof (struct port_queue_conf);
-                  memcpy (dst, src, len);
-                  *(struct port_queue_conf *)dst = *(struct port_queue_conf *)src;
-                  new->rib_info->lcore_qconf[i].rx_queue_list[j] =
-                    msg_qconf->qconf[i].rx_queue_list[j];
-#endif
                 }
             }
         }
@@ -673,41 +615,8 @@ rib_manager_process_message (void *msgp)
 
       /* for qconf change, we need an intermittent state to avoid
          a conflict between different cores. */
-      /* XXX, we can use smarter intermitent state. */
+      /* XXX, we can use smarter intermittent state. */
       struct rib *zero;
-      zero = malloc (sizeof (struct rib));
-      if (zero)
-        {
-          memset (zero, 0, sizeof (struct rib));
-          rib_replace (zero);
-        }
-
-      break;
-
-    case INTERNAL_MSG_TYPE_QCONF2:
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_qconf2: %p.", msgp);
-      msg_qconf = (struct internal_msg_qconf *) (msg_header + 1);
-      new->rib_info->lcore_size = rte_lcore_count ();
-      new->rib_info->lcore_qconf[0].nrxq = 0;
-      new->rib_info->lcore_qconf[1].nrxq = 0;
-      new->rib_info->lcore_qconf[2].nrxq = 2;
-      new->rib_info->lcore_qconf[2].rx_queue_list[0].port_id = 0;
-      new->rib_info->lcore_qconf[2].rx_queue_list[0].queue_id = 0;
-      new->rib_info->lcore_qconf[2].rx_queue_list[1].port_id = 1;
-      new->rib_info->lcore_qconf[2].rx_queue_list[1].queue_id = 0;
-
-      /* for qconf change, we need strict rib_check(). */
-      ret = rib_check (new);
-      if (ret < 0)
-        {
-          DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
-          return;
-        }
-
-      /* for qconf change, we need an intermittent state to avoid
-         a conflict between different cores. */
-      /* XXX, we can use smarter intermitent state. */
-      // struct rib *zero;
       zero = malloc (sizeof (struct rib));
       if (zero)
         {
