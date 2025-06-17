@@ -429,7 +429,9 @@ sdplane_cmd_init (struct command_set *cmdset)
   lthread_cmd_init (cmdset);
   tap_cmd_init (cmdset);
   dpdk_devbind_cmd_init (cmdset);
+#ifdef ENABLE_PKTGEN
   pktgen_cmd_init (cmdset);
+#endif
 
   nettlp_cmd_init (cmdset);
 }

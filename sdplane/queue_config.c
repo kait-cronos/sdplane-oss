@@ -75,7 +75,6 @@ CLI_COMMAND2 (update_port_status, "update port status", "update information\n",
 {
   struct shell *shell = (struct shell *) context;
   void *msgp;
-
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_PORT_STATUS, NULL, 0);
   internal_msg_send_to (msg_queue_rib, msgp, shell);
 }
