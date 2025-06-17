@@ -166,6 +166,7 @@ rib_info_hard_coding (struct rib_info *new)
         }
     }
 
+#if 0
   int vswitch_id_2337 = -1;
   int vswitch_id_2410 = -1;
   int vswitch_id_2411 = -1;
@@ -223,6 +224,7 @@ rib_info_hard_coding (struct rib_info *new)
       //port_add_tagged_vlan (new, port_1, vswitch_link);
       port_set_native_vlan (new, port_1, vswitch_link);
     }
+#endif
 }
 
 static inline __attribute__ ((always_inline)) struct rib_info *
