@@ -56,6 +56,7 @@
 #include "stat_collector.h"
 
 #include "l2fwd_export.h"
+#include "thread_info.h"
 
 extern volatile bool force_quit;
 
@@ -262,7 +263,11 @@ l2fwd_main_loop(void)
 
 	}
 
-        loop_l2fwd_ptr[lcore_id] = &loop_l2fwd;
+	loop_l2fwd_ptr[lcore_id] = &loop_l2fwd;
+
+	int thread_id;
+  	thread_id = thread_lookup_by_lcore (l2fwd_launch_one_lcore, lcore_id);
+  	thread_register_loop_counter (thread_id, &loop_l2fwd);
 
 #if HAVE_LIBURCU_QSBR
         urcu_qsbr_register_thread ();

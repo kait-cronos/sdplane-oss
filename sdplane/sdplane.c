@@ -47,6 +47,7 @@ CLI_COMMAND2 (set_locale, "set locale (C|C.utf8|en_US.utf8|POSIX)", SET_HELP,
     fprintf (shell->terminal, "setlocale(): %s.\n", ret);
 }
 
+#if 0
 char *l3fwd_argv[L3FWD_ARGV_MAX];
 int l3fwd_argc = 0;
 
@@ -78,6 +79,7 @@ CLI_COMMAND2 (set_l3fwd_argv,
 
   return 0;
 }
+#endif
 
 char *argv_list[ARGV_LIST_MAX][ARGV_LIST_ARGV_MAX];
 int argv_list_argc[ARGV_LIST_MAX];
@@ -407,7 +409,9 @@ sdplane_cmd_init (struct command_set *cmdset)
   setlocale (LC_ALL, "en_US.utf8");
   dpdk_lcore_cmd_init (cmdset);
   dpdk_port_cmd_init (cmdset);
+#if 0
   INSTALL_COMMAND2 (cmdset, set_l3fwd_argv);
+#endif
   INSTALL_COMMAND2 (cmdset, set_argv_list_1);
   INSTALL_COMMAND2 (cmdset, set_argv_list_2);
   INSTALL_COMMAND2 (cmdset, set_argv_list_8);

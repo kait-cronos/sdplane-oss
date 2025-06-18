@@ -61,8 +61,10 @@
 uint16_t nb_rxd = RX_DESC_DEFAULT;
 uint16_t nb_txd = TX_DESC_DEFAULT;
 
+#if 0
 /**< Ports set in promiscuous mode off by default. */
 static int promiscuous_on;
+#endif
 
 /* Select Longest-Prefix, Exact match, Forwarding Information Base or Access
  * Control. */
@@ -496,7 +498,7 @@ parse_portmask (const char *portmask)
   return pm;
 }
 
-static int
+int
 parse_config (const char *q_arg)
 {
   char s[256];
@@ -554,7 +556,7 @@ parse_config (const char *q_arg)
   return 0;
 }
 
-static void
+void
 parse_eth_dest (const char *optarg)
 {
   uint16_t portid;
@@ -576,6 +578,11 @@ parse_eth_dest (const char *optarg)
   for (c = 0; c < 6; c++)
     dest[c] = peer_addr[c];
   *(uint64_t *) (val_eth + portid) = dest_eth_addr[portid];
+#if 0
+  printf("Destination MAC address for port %d: "
+         RTE_ETHER_ADDR_PRT_FMT "\n", portid,
+         RTE_ETHER_ADDR_BYTES ((struct rte_ether_addr *)&dest_eth_addr[portid]));
+#endif
 }
 
 static void
@@ -656,7 +663,7 @@ parse_event_eth_rx_queues (const char *eth_rx_queues)
 }
 #endif
 
-static int
+int
 parse_lookup (const char *optarg)
 {
   if (! strcmp (optarg, "em"))
@@ -1586,9 +1593,12 @@ l3fwd_init (int argc, char **argv, char **envp)
   uint8_t queue;
   int ret;
 
+#if 0
   argv_save (argc, argv);
-  //soft_dplane_init ();
+  // soft_dplane_init ();
+#endif
 
+#if 0
   /* init EAL */
   ret = rte_eal_init (argc, argv);
   if (ret < 0)
@@ -1607,14 +1617,18 @@ l3fwd_init (int argc, char **argv, char **envp)
           RTE_ETHER_LOCAL_ADMIN_ADDR + ((uint64_t) portid << 40);
       *(uint64_t *) (val_eth + portid) = dest_eth_addr[portid];
     }
+#endif
 
 #ifdef RTE_LIB_EVENTDEV
   evt_rsrc = l3fwd_get_eventdev_rsrc ();
 #endif
+
+#if 0
   /* parse application arguments (after the EAL ones) */
   ret = parse_args (argc, argv);
   if (ret < 0)
     rte_exit (EXIT_FAILURE, "Invalid L3FWD parameters\n");
+#endif
 
   /* Setup function pointers for lookup method. */
   setup_l3fwd_lookup_tables ();
