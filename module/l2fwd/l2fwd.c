@@ -60,7 +60,7 @@
 
 extern volatile bool force_quit;
 
-__thread uint64_t loop_counter = 0;
+__thread uint64_t loop_l2fwd = 0;
 
 /* MAC updating enabled by default */
 int mac_updating = 1;
@@ -263,18 +263,18 @@ l2fwd_main_loop(void)
 
 	}
 
-	loop_l2fwd_ptr[lcore_id] = &loop_counter;
+	loop_l2fwd_ptr[lcore_id] = &loop_l2fwd;
 
 	int thread_id;
   	thread_id = thread_lookup_by_lcore (l2fwd_launch_one_lcore, lcore_id);
-  	thread_register_loop_counter (thread_id, &loop_counter);
+  	thread_register_loop_counter (thread_id, &loop_l2fwd);
 
 #if HAVE_LIBURCU_QSBR
         urcu_qsbr_register_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
 
 	while (! force_quit && ! force_stop[lcore_id]) {
-               loop_counter++;
+               loop_l2fwd++;
 #if 0
                if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
                                DEBUG_SDPLANE_L2FWD))

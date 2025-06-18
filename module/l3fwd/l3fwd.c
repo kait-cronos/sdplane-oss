@@ -63,12 +63,11 @@ uint16_t nb_txd = TX_DESC_DEFAULT;
 
 #if 0
 /**< Ports set in promiscuous mode off by default. */
-int promiscuous_on;
+static int promiscuous_on;
 #endif
 
 /* Select Longest-Prefix, Exact match, Forwarding Information Base or Access
  * Control. */
-#if 0
 enum L3FWD_LOOKUP_MODE
 {
   L3FWD_LOOKUP_DEFAULT,
@@ -77,8 +76,7 @@ enum L3FWD_LOOKUP_MODE
   L3FWD_LOOKUP_FIB,
   L3FWD_LOOKUP_ACL
 };
-#endif
-enum L3FWD_LOOKUP_MODE lookup_mode;
+static enum L3FWD_LOOKUP_MODE lookup_mode;
 
 /* Global variables. */
 static int numa_on = 1;      /**< NUMA is enabled by default. */
@@ -1583,7 +1581,7 @@ argv_save (int argc, char **argv)
 }
 
 int
-l3fwd_init (int argc, char **argv)
+l3fwd_init (int argc, char **argv, char **envp)
 {
 #ifdef RTE_LIB_EVENTDEV
   struct l3fwd_event_resources *evt_rsrc;
@@ -1597,7 +1595,7 @@ l3fwd_init (int argc, char **argv)
 
 #if 0
   argv_save (argc, argv);
-  soft_dplane_init ();
+  // soft_dplane_init ();
 #endif
 
 #if 0
@@ -1619,10 +1617,13 @@ l3fwd_init (int argc, char **argv)
           RTE_ETHER_LOCAL_ADMIN_ADDR + ((uint64_t) portid << 40);
       *(uint64_t *) (val_eth + portid) = dest_eth_addr[portid];
     }
+#endif
 
 #ifdef RTE_LIB_EVENTDEV
   evt_rsrc = l3fwd_get_eventdev_rsrc ();
 #endif
+
+#if 0
   /* parse application arguments (after the EAL ones) */
   ret = parse_args (argc, argv);
   if (ret < 0)
@@ -1635,7 +1636,6 @@ l3fwd_init (int argc, char **argv)
   /* Add the config file rules */
   l3fwd_lkp.read_config_files ();
 
-#if 0
 #ifdef RTE_LIB_EVENTDEV
   evt_rsrc->per_port_pool = per_port_pool;
   evt_rsrc->pkt_pool = pktmbuf_pool;
@@ -1655,9 +1655,7 @@ l3fwd_init (int argc, char **argv)
     }
   else
 #endif
-#endif
-
-  l3fwd_poll_resource_setup ();
+    l3fwd_poll_resource_setup ();
 
   /* start ports */
   RTE_ETH_FOREACH_DEV (portid)
