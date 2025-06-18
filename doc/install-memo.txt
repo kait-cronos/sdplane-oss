@@ -206,6 +206,7 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
     192.168.0.0/8 10.0.0.0/8 172.16.0.0/16 からのみ PasswordAuth の設定。
 
 * sdplane startup config:
+  # cp -f /etc/sdplane/modules-load.d/*.conf /etc/modules-load.d/
   # cp -f /etc/sdplane/sdplane.conf.sample /etc/sdplane/sdplane.conf
 
 * systemd enable

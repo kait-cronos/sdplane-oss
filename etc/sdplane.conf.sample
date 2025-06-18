@@ -30,6 +30,9 @@ set mempool
 
 #pktgen init argv-list 2
 
+set tap capture persistent
+set tap capture ifname capture0
+
 # need to stop port before changing ports.
 stop port all
 set port all dev-configure 1 4
@@ -43,6 +46,8 @@ set worker lthread netlink-thread
 # in VM, sleep is necessary to start lthread immediately.
 sleep 0
 
+#set worker lcore 1 vlan-switch
+#set worker lcore 2 vlan-switch
 set worker lcore 1 l2-repeater
 set worker lcore 2 l2-repeater
 set worker lcore 3 tap-handler
