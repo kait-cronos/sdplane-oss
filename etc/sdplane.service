@@ -5,7 +5,6 @@ After=network.target
 
 [Service]
 Environment=TERM=vt100
-ExecStartPre=modprobe uio_pci_generic
 ExecStart=/usr/sbin/sdplane
 Type=simple
 

@@ -7,6 +7,8 @@
 #include "sdplane.h"
 // #include "tap_handler.h"
 
+#ifdef ENABLE_PKTGEN
+
 #include "../module/pktgen/app/pktgen.h"
 
 // clang-format off
@@ -152,3 +154,4 @@ pktgen_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, pktgen_init);
   INSTALL_COMMAND2 (cmdset, pktgen_do);
 }
+#endif /*ENABLE_PKTGEN*/

@@ -44,6 +44,7 @@ qconf_diff (struct sdplane_queue_conf *new, struct sdplane_queue_conf *old)
   return NULL;
 }
 
+#if 0
 CLI_COMMAND2 (update_port_link_status, "update port link-status",
               "update information\n", PORT_HELP, "link-status information\n")
 {
@@ -67,13 +68,13 @@ CLI_COMMAND2 (update_port_link_status, "update port link-status",
 
   internal_msg_send_to (msg_queue_rib, msgp, shell);
 }
+#endif
 
 CLI_COMMAND2 (update_port_status, "update port status", "update information\n",
               PORT_HELP, "port status information\n")
 {
   struct shell *shell = (struct shell *) context;
   void *msgp;
-
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_PORT_STATUS, NULL, 0);
   internal_msg_send_to (msg_queue_rib, msgp, shell);
 }
@@ -163,8 +164,6 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF, thread_qconf,
                               sizeof (thread_qconf));
-  // msgp = internal_msg_create (INTERNAL_MSG_TYPE_QCONF2, dummy,
-  //                             sizeof (dummy));
   ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
   if (ret < 0)
     {
@@ -230,7 +229,7 @@ CLI_COMMAND2 (show_thread_qconf, "show thread qconf", SHOW_HELP,
 void
 queue_config_cmd_init (struct command_set *cmdset)
 {
-  INSTALL_COMMAND2 (cmdset, update_port_link_status);
+  //INSTALL_COMMAND2 (cmdset, update_port_link_status);
   INSTALL_COMMAND2 (cmdset, update_port_status);
   INSTALL_COMMAND2 (cmdset, set_thread_lcore_port_queue);
   INSTALL_COMMAND2 (cmdset, show_thread_qconf);

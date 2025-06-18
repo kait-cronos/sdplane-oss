@@ -35,7 +35,9 @@ extern int lthread_core;
 
 int nettlp_thread (void *arg);
 int vlan_switch (void *arg);
+#ifdef ENABLE_PKTGEN
 int pktgen_launch_one_lcore(void *arg __rte_unused);
+#endif
 
 void
 start_lcore (struct shell *shell, int lcore_id)
@@ -88,7 +90,11 @@ stop_lcore (struct shell *shell, int lcore_id)
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore <0-16> "
     "(|none|l2fwd|l3fwd|l3fwd-lpm|"
-    "tap-handler|l2-repeater|nettlp-thread|vlan-switch|pktgen)",
+    "tap-handler|l2-repeater|nettlp-thread|vlan-switch"
+#ifdef ENABLE_PKTGEN
+    "|pktgen"
+#endif
+    ")",
     SET_HELP, RESET_HELP, START_HELP, RESTART_HELP,
     WORKER_HELP, LCORE_HELP, LCORE_NUMBER_HELP,
     "set lcore not to launch anything\n",
@@ -121,8 +127,10 @@ CLI_COMMAND2 (set_worker,
     func = nettlp_thread;
   else if (! strcmp (argv[4], "vlan-switch"))
     func = vlan_switch;
+#ifdef ENABLE_PKTGEN
   else if (! strcmp (argv[4], "pktgen"))
     func = pktgen_launch_one_lcore;
+#endif
   else if (! strcmp (argv[4], "l3fwd-lpm"))
     func = lpm_main_loop;
   else /* if (! strcmp (argv[4], "l3fwd")) */
@@ -150,8 +158,10 @@ CLI_COMMAND2 (set_worker,
     func_name = "nettlp-thread";
   else if (func == vlan_switch)
     func_name = "vlan-switch";
+#ifdef ENABLE_PKTGEN
   else if (func == pktgen_launch_one_lcore)
     func_name = "pktgen";
+#endif
   else
     func_name = "none";
 
