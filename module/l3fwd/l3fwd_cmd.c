@@ -87,11 +87,14 @@ DEFINE_COMMAND (set_l3fwd_vars_config,
 }
 
 DEFINE_COMMAND (set_l3fwd_lookup_mode,
-                "set l3fwd l3fwd_lookup_mode <WORD>",
+                "set l3fwd l3fwd_lookup_mode (em|lpm|fib|acl)",
                 SET_HELP
                 "l3fwd\n"
                 "l3fwd_lookup_mode\n"
-                "lookup_mode (em|lpm|fib|acl)\n")
+                "lookup_mode (em)\n"
+                "lookup_mode (lpm)\n"
+                "lookup_mode (fib)\n"
+                "lookup_mode (acl)\n")
 {
   struct shell *shell = (struct shell *) context;
   int ret;
@@ -151,7 +154,7 @@ DEFINE_COMMAND (l3fwd_init,
                 "init\n")
 {
   struct shell *shell = (struct shell *) context;
-  l3fwd_init (0, NULL);
+  l3fwd_init (0, NULL, NULL);
   return 0;
 }
 
