@@ -1,9 +1,11 @@
 /*
  * AI Comment Templates for sdplane-dev
- * 
+ *
  * This file contains templates for marking AI-generated code contributions.
  * Copy and modify these templates when adding AI-generated functions.
  */
+
+// clang-format off
 
 #ifndef AI_COMMENT_TEMPLATES_H
 #define AI_COMMENT_TEMPLATES_H
