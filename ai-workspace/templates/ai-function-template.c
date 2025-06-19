@@ -2,6 +2,8 @@
  * AI-generated function template for sdplane-dev
  */
 
+// clang-format off
+
 /* 
  * AI-generated function - Claude Code YYYY-MM-DD
  * Purpose: [Brief description of what this function does]
