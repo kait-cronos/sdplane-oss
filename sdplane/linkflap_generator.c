@@ -202,8 +202,8 @@ link_flap (uint16_t port_id)
   rte_eth_dev_set_link_down (port_id);
   rte_eth_dev_set_link_up (port_id);
   DEBUG_SDPLANE_LOG (LINKFLAP_GENERATOR,
-                     "link down/up on port: %d by lcore %u",
-                     port_id, lcore_id);
+                     "link down/up on port: %d by lcore %u", port_id,
+                     lcore_id);
 }
 
 static uint32_t nb_rx_burst = 0;
@@ -249,7 +249,7 @@ l2_repeater_rx_burst ()
     }
 }
 
-#define LINK_FLAP_INTERVAL_US  (1000*100) //100ms
+#define LINK_FLAP_INTERVAL_US (1000 * 100) //100ms
 
 static inline __attribute__ ((always_inline)) void
 link_flap_once ()
@@ -270,11 +270,11 @@ link_flap_once ()
       else
         rte_eth_dev_set_link_down (portid);
 
-      DEBUG_SDPLANE_LOG (LINKFLAP_GENERATOR,
-                     "link down/up on port: %d by lcore %u: interval: %'d us",
-                     portid, lcore_id, LINK_FLAP_INTERVAL_US);
+      DEBUG_SDPLANE_LOG (
+          LINKFLAP_GENERATOR,
+          "link down/up on port: %d by lcore %u: interval: %'d us", portid,
+          lcore_id, LINK_FLAP_INTERVAL_US);
     }
-
 }
 
 static __thread uint64_t loop_counter = 0;
@@ -306,7 +306,8 @@ linkflap_generator (__rte_unused void *dummy)
   thread_id = thread_lookup_by_lcore (linkflap_generator, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter);
 
-  DEBUG_SDPLANE_LOG (LINKFLAP_GENERATOR, "entering main loop on lcore %u", lcore_id);
+  DEBUG_SDPLANE_LOG (LINKFLAP_GENERATOR, "entering main loop on lcore %u",
+                     lcore_id);
 
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_register_thread ();
