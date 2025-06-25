@@ -206,7 +206,7 @@ link_flap (uint16_t port_id)
                      port_id, lcore_id);
 }
 
-uint32_t nb_rx_burst = 0;
+static uint32_t nb_rx_burst = 0;
 
 static inline __attribute__ ((always_inline)) void
 l2_repeater_rx_burst ()
@@ -226,7 +226,7 @@ l2_repeater_rx_burst ()
       portid = lcore_qconf->rx_queue_list[i].port_id;
       queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
-      link_flap (port_id);
+      //link_flap (portid);
 
       nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
       nb_rx_burst++;
@@ -249,26 +249,61 @@ l2_repeater_rx_burst ()
     }
 }
 
+#define LINK_FLAP_INTERVAL_US  (1000*100) //100ms
+
+static inline __attribute__ ((always_inline)) void
+link_flap_once ()
+{
+  static bool link_status = false;
+  uint16_t portid, queueid;
+  int i;
+
+  struct lcore_qconf *lcore_qconf;
+  lcore_qconf = &rib->rib_info->lcore_qconf[lcore_id];
+  for (i = 0; i < lcore_qconf->nrxq; i++)
+    {
+      portid = lcore_qconf->rx_queue_list[i].port_id;
+      queueid = lcore_qconf->rx_queue_list[i].queue_id;
+
+      if (link_status)
+        rte_eth_dev_set_link_up (portid);
+      else
+        rte_eth_dev_set_link_down (portid);
+
+      DEBUG_SDPLANE_LOG (LINKFLAP_GENERATOR,
+                     "link down/up on port: %d by lcore %u: interval: %'d us",
+                     portid, lcore_id, LINK_FLAP_INTERVAL_US);
+    }
+
+}
+
 static __thread uint64_t loop_counter = 0;
 
 int
 linkflap_generator (__rte_unused void *dummy)
 {
-  uint64_t prev_tsc, diff_tsc, cur_tsc;
-  struct lcore_queue_conf *qconf;
-  const uint64_t drain_tsc =
+  uint64_t cur_tsc;
+  uint64_t prev_tx, diff_tx;
+  const uint64_t drain_tx =
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
+  struct lcore_queue_conf *qconf;
+
+  uint64_t prev_linkflap, diff_linkflap;
+  uint64_t interval_linkflap =
+      (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * LINK_FLAP_INTERVAL_US;
 
   uint16_t nb_ports;
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
 
-  prev_tsc = 0;
+  prev_tx = 0;
+  prev_linkflap = 0;
+
   lcore_id = rte_lcore_id ();
   qconf = &lcore_queue_conf[lcore_id];
 
   int thread_id;
-  thread_id = thread_lookup_by_lcore (l2_repeater, lcore_id);
+  thread_id = thread_lookup_by_lcore (linkflap_generator, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter);
 
   DEBUG_SDPLANE_LOG (LINKFLAP_GENERATOR, "entering main loop on lcore %u", lcore_id);
@@ -286,11 +321,18 @@ linkflap_generator (__rte_unused void *dummy)
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      diff_tsc = cur_tsc - prev_tsc;
-      if (unlikely (diff_tsc > drain_tsc))
+      diff_tx = cur_tsc - prev_tx;
+      if (unlikely (diff_tx > drain_tx))
         {
           l2_repeater_tx_flush ();
-          prev_tsc = cur_tsc;
+          prev_tx = cur_tsc;
+        }
+
+      diff_linkflap = cur_tsc - prev_linkflap;
+      if (unlikely (diff_linkflap > interval_linkflap))
+        {
+          link_flap_once ();
+          prev_linkflap = cur_tsc;
         }
 
       l2_repeater_rx_burst ();

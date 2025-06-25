@@ -783,6 +783,39 @@ CLI_COMMAND2 (set_port_txrx_desc,
   return 0;
 }
 
+CLI_COMMAND2 (set_port_link_updown,
+              "set port (<0-16>|all) link (up|down)",
+              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port link up/down status\n",
+              "set port the link status up\n",
+              "set port the link status down\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+  int negate = 0;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  if (! strcmp (argv[4], "down"))
+    negate = 1;
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+      if (negate)
+        rte_eth_dev_set_link_down (port_id);
+      else
+        rte_eth_dev_set_link_up (port_id);
+    }
+
+  return 0;
+}
+
 
 void
 dpdk_port_cmd_init (struct command_set *cmdset)
@@ -796,4 +829,5 @@ dpdk_port_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_port_flowcontrol);
   INSTALL_COMMAND2 (cmdset, set_port_dev_configure);
   INSTALL_COMMAND2 (cmdset, set_port_txrx_desc);
+  INSTALL_COMMAND2 (cmdset, set_port_link_updown);
 }
