@@ -105,41 +105,51 @@ vty_server (void *arg)
       fds[0].fd = sockfd;
       fds[0].events = POLLIN;
       poll (fds, 1, 0);
-      if ((fds[0].revents & (POLLIN | POLLERR)) == 0)
-        continue;
-
-      client_fd =
-          lthread_accept (sockfd, (struct sockaddr *) &peer_addr, &addrlen);
-      if (client_fd < 0)
+      if ((fds[0].revents & (POLLIN | POLLERR)) != 0)
         {
-          fprintf (stderr, "lthread_accept() failed.\n");
-          continue;
-        }
 
-      client_id = -1;
-      for (i = 0; i < VTY_CLIENT_MAX; i++)
-        {
-          if (client_info[i].fd == -1)
+          client_fd = lthread_accept (sockfd, (struct sockaddr *) &peer_addr,
+                                      &addrlen);
+          if (client_fd < 0)
             {
-              client_id = i;
-              break;
+              DEBUG_SDPLANE_LOG (VTY_SERVER, "lthread_accept() failed.");
+              continue;
             }
-        }
-      if (client_id == -1)
-        {
-          printf ("%s: can't create new client: already served %d. ignore.\n",
-                  __func__, VTY_CLIENT_MAX);
-          lthread_close (client_fd);
-          continue;
-        }
+          else
+            {
+              DEBUG_SDPLANE_LOG (
+                  VTY_SERVER, "lthread_accept(): client_fd: %d.", client_fd);
+            }
 
-      DEBUG_SDPLANE_LOG (VTY_SERVER, "lthread_accept: client[%d].", client_id);
-      client_info[client_id].peer_addr = peer_addr;
-      client_info[client_id].fd = client_fd;
-      ret = lthread_create (&client_info[client_id].lt, vty_shell,
-                            &client_info[client_id]);
-      if (client_size < client_id)
-        client_size = client_id + 1;
+          client_id = -1;
+          for (i = 0; i < VTY_CLIENT_MAX; i++)
+            {
+              if (client_info[i].fd == -1)
+                {
+                  client_id = i;
+                  break;
+                }
+            }
+          if (client_id == -1)
+            {
+              DEBUG_SDPLANE_LOG (VTY_SERVER,
+                                 "can't create new client: "
+                                 "already served max (%d).",
+                                 VTY_CLIENT_MAX);
+              lthread_close (client_fd);
+              continue;
+            }
+
+          DEBUG_SDPLANE_LOG (VTY_SERVER, "lthread_accept: client[%d].",
+                             client_id);
+          client_info[client_id].peer_addr = peer_addr;
+          client_info[client_id].fd = client_fd;
+          ret = lthread_create (&client_info[client_id].lt, vty_shell,
+                                &client_info[client_id]);
+          DEBUG_SDPLANE_LOG (VTY_SERVER, "lthread_create: ret: %d.", ret);
+          if (client_size < client_id)
+            client_size = client_id + 1;
+        }
 
 #if HAVE_LIBURCU_QSBR
       urcu_qsbr_quiescent_state ();
