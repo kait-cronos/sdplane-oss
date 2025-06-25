@@ -87,10 +87,24 @@ sdplane local 9882
 - **Network**: Use netplan for network interface configuration
 - **Firewall**: Configure iptables rules as needed
 
-### Sample Configuration Files
+### Configuration Files
+
+#### OS Setup Configuration (`etc/`)
 - `etc/sdplane.conf.sample`: Main configuration template
-- `etc/sdplane-nettlp.conf.sample`: NetTLP configuration
+- `etc/sdplane.service`: systemd service file
 - `etc/60-netplan-sdplane.yaml`: Network interface configuration
+- `etc/iptables-rules.v4`: IPv4 firewall rules
+- `etc/iptables-rules.v6`: IPv6 firewall rules
+- `etc/sshd_config`: SSH daemon configuration
+- `etc/modules-load.d/`: Kernel module loading configuration
+
+#### Application Configuration (`example-config/`)
+- `example-config/sdplane-nettlp.conf`: NetTLP configuration
+- `example-config/sdplane-pktgen.conf`: Packet generator configuration
+- `example-config/sdplane-topton.conf`: Topton hardware configuration
+- `example-config/sdplane_l2_repeater.conf`: L2 repeater configuration
+- `example-config/sdplane_l2fwd.conf`: L2 forwarding configuration
+- `example-config/sdplane_l3fwd-lpm.conf`: L3 forwarding with LPM configuration
 
 ## Hardware Platforms
 
@@ -101,7 +115,8 @@ The project has been tested on:
 ## Documentation
 
 - [Topton Installation Guide](doc/install-memo-topton.txt) - For 10G NIC systems
-- [Wiretap Installation Guide](doc/install-memo-v15.txt) - For 1G NIC systems
+- [General Installation Guide](doc/install-memo.txt) - For 1G NIC systems
+- [NetTLP Configuration Guide](doc/nettlp-memo.txt) - NetTLP setup instructions
 - [Technical Presentation](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf) (Japanese)
 
 ## Development
