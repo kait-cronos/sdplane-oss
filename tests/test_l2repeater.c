@@ -36,54 +36,20 @@
 #include "sdplane.h"
 #include "debug_sdplane.h"
 
+#include "test_util.h"
+
 char msg[256];
 
-void
-test_lthread_main (void *arg)
+int
+test_l2_repeater (void *arg)
 {
-  printf ("Hello, World!\n");
-
-  char *rte_eal_argv[3] = { "sdplane", "-c", "0xf" };
-  int rte_eal_argc = 3;
-
-  printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
-
-  int ret = rte_eal_init (rte_eal_argc, rte_eal_argv);
-  if (ret < 0)
-    rte_panic ("Cannot init EAL\n");
-
-  int count_dev = rte_eth_dev_count_avail ();
-  printf ("Available Ethernet devices: %d\n", count_dev);
-
-  struct rte_ring *ring[18];
-  int port0, port1;
-  for (int i = 0; i < 18; i++)
-    {
-      char ring_name[8];
-      snprintf (ring_name, sizeof (ring_name), "R%d", i);
-      ring[i] = rte_ring_create (ring_name, 256, SOCKET_ID_ANY,
-                                 RING_F_SP_ENQ | RING_F_SC_DEQ);
-      if (! ring[i])
-        {
-          printf ("Failed to create ring %s: %s\n", ring_name,
-                  rte_strerror (rte_errno));
-          return;
-        }
-    }
-
-  port0 = rte_eth_from_rings ("net_ring0", &ring[0], 1, &ring[1], 8, 0);
-  port1 = rte_eth_from_rings ("net_ring1", &ring[9], 1, &ring[10], 8, 0);
-
-  count_dev = rte_eth_dev_count_avail ();
-  printf ("Available Ethernet devices after creating rings: %d\n", count_dev);
-  printf ("Added port: %d, %d\n", port0, port1);
+  int ret;
 
   debug_log_init ("sdplane");
   sdplane_init ();
   debug_zcmdsh_cmd_init ();
   command_shell_init ();
 
-  printf ("EAL initialized, ports: %d, %d\n", port0, port1);
   apply_config ();
   printf ("applied config\n");
 
@@ -105,12 +71,10 @@ test_lthread_main (void *arg)
       return;
     }
 
-
-  printf ("Enqueuing message to R0...\n");
   mbuf->data_len = 13;
   mbuf->pkt_len = mbuf->data_len;
   memcpy (rte_pktmbuf_mtod (mbuf, void *), "Hello, R0!", 13);
-  ret = rte_ring_enqueue (ring[0], mbuf);
+  ret = rte_ring_enqueue (test_rings[RXQ_TO_RING_IDX (0, 0)], mbuf);
   if (ret < 0)
     {
       printf ("Failed to enqueue message to R0: %s\n", rte_strerror (-ret));
@@ -121,7 +85,7 @@ test_lthread_main (void *arg)
   lthread_sleep (1000);
   printf ("Dequeuing message from R3...\n");
   struct rte_mbuf *received_mbuf;
-  ret = rte_ring_dequeue (ring[12], &received_mbuf);
+  ret = rte_ring_dequeue (test_rings[TXQ_TO_RING_IDX (1, 2)], &received_mbuf);
   if (ret < 0)
     {
       printf ("Failed to dequeue message from R3: %s\n", rte_strerror (-ret));
@@ -131,7 +95,18 @@ test_lthread_main (void *arg)
       memcpy (msg, rte_pktmbuf_mtod (received_mbuf, void *),
               received_mbuf->data_len);
       printf ("Message dequeued from R3: %s\n", msg);
+
+      if (! strcmp (msg, "Hello, R0!"))
+        {
+          printf ("Message content matches expected: %s\n", msg);
+        }
+      else
+        {
+          printf ("Message content does not match expected: %s\n", msg);
+        }
     }
+
+  return 0;
 }
 
 int
@@ -203,4 +178,15 @@ apply_config ()
   if (ret < 0)
     return ret;
   return 0;
+}
+
+int
+main ()
+{
+  struct test_config config = {
+    .name = "test_l2_repeater",
+    .test_f = test_l2_repeater,
+    .config_path = "test_l2repeater.conf",
+  };
+  run_test (&config);
 }

@@ -1,6 +1,7 @@
 FROM ubuntu:24.04
 
 ENV DPDK_VERSION=23.11.1
+USER root
 
 WORKDIR /tmp
 
@@ -38,6 +39,9 @@ RUN wget https://fast.dpdk.org/rel/dpdk-${DPDK_VERSION}.tar.xz && \
 
 RUN wget https://www.yasuhironet.net/download/partaker/libsdplane_0.3.36-52_amd64.deb && \
     apt-get install -y ./libsdplane_0.3.36-52_amd64.deb
+
+RUN apt-get install -y \
+    sudo
 
 COPY . /sdplane-dev
 
