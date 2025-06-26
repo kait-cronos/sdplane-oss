@@ -272,8 +272,11 @@ link_flap_once ()
 
       DEBUG_SDPLANE_LOG (
           LINKFLAP_GENERATOR,
-          "link down/up on port: %d by lcore %u: interval: %'d us", portid,
-          lcore_id, LINK_FLAP_INTERVAL_US);
+          "link %s on port: %d by lcore %u: interval: %'d us",
+          (link_status ? "up" : "down"), portid, lcore_id,
+          LINK_FLAP_INTERVAL_US);
+
+      link_status ^= true;
     }
 }
 
