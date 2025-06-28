@@ -9,11 +9,14 @@
 #define MAX_VLAN_PER_PORT 4
 #define MAX_ETH_PORTS     8
 
+#include <rte_ether.h>
+
 struct router_if
 {
   int sockfd; // tap sockfd.
   uint16_t tap_ring_id;
 
+  struct rte_ether_addr mac_addr;
   struct in_addr ipv4_addr;
   struct in6_addr ipv6_addr;
 };
@@ -82,6 +85,14 @@ struct rib_info
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);
+EXTERN_COMMAND (set_vswitch);
+EXTERN_COMMAND (delete_vswitch);
+EXTERN_COMMAND (show_vswitch_rib);
+EXTERN_COMMAND (set_vswitch_link);
+EXTERN_COMMAND (delete_vswitch_link);
+EXTERN_COMMAND (show_vswitch_link);
+
+void rib_cmd_init (struct command_set *cmdset);
 
 extern __thread struct rib *rib_tlocal;
 

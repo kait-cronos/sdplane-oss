@@ -148,3 +148,183 @@ CLI_COMMAND2 (show_rib, "show rib", SHOW_HELP, "rib information\n")
 
   return 0;
 }
+
+CLI_COMMAND2 (set_vswitch, "set vswitch <1-4094>", 
+              SET_HELP,
+              "vswitch\n",
+              "vlan_id\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_vswitch_create vswitch_create;
+  struct internal_msg_header *msgp;
+  
+  if (argc != 3) {
+    fprintf (shell->terminal, "usage: set vswitch create vlan_id%s", shell->NL);
+    return 0;
+  }
+  
+  uint16_t vlan_id = atoi (argv[2]);
+  if (vlan_id == 0 || vlan_id > 4094) {
+    fprintf (shell->terminal, "invalid vlan_id: %u (must be 1-4094)%s", vlan_id, shell->NL);
+    return 0;
+  }
+  
+  vswitch_create.vlan_id = vlan_id;
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_CREATE, &vswitch_create, sizeof (vswitch_create));
+  rib_manager_send_message (msgp, shell);
+  
+  fprintf (shell->terminal, "create vswitch with vlan_id %u%s", vlan_id, shell->NL);
+  return 0;
+}
+
+CLI_COMMAND2 (delete_vswitch, "delete vswitch <0-16>",
+              DELETE_HELP,
+              "vswitch\n",
+              "vswitch_id\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_vswitch_delete vswitch_delete;
+  struct internal_msg_header *msgp;
+  
+  if (argc != 3) {
+    fprintf (shell->terminal, "usage: delete vswitch vswitch_id%s", shell->NL);
+    return 0;
+  }
+  
+  uint16_t vswitch_id = atoi (argv[2]);
+  
+  vswitch_delete.vswitch_id = vswitch_id;
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_DELETE, &vswitch_delete, sizeof (vswitch_delete));
+  rib_manager_send_message (msgp, shell);
+  
+  fprintf (shell->terminal, "delete vswitch_id %u%s", vswitch_id, shell->NL);
+  return 0;
+}
+
+CLI_COMMAND2 (show_vswitch_rib, "show vswitch_rib",
+              SHOW_HELP,
+              "show vswitch_rib information\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib;
+  int i, j;
+  
+  rib = rcu_dereference (rcu_global_ptr_rib);
+  if (! rib || ! rib->rib_info) {
+    fprintf (shell->terminal, "no rib information available%s", shell->NL);
+    return 0;
+  }
+  
+  fprintf (shell->terminal, "vswitch configurations:%s", shell->NL);
+  fprintf (shell->terminal, "total vswitches: %d%s", rib->rib_info->vswitch_size, shell->NL);
+  
+  for (i = 0; i < rib->rib_info->vswitch_size; i++) {
+    struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
+    fprintf (shell->terminal, "vswitch[%d]: vlan %u, ports: %u%s", 
+             vswitch->vswitch_id, vswitch->vlan_id, vswitch->vswitch_port_size, shell->NL);
+    
+    for (j = 0; j < vswitch->vswitch_port_size; j++) {
+      uint16_t link_id = vswitch->vswitch_link_id[j];
+      struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
+      fprintf (shell->terminal, "  port[%d]: link %u -> port %u (tag:%u)%s",
+               j, link_id, link->port_id, link->tag_id, shell->NL);
+    }
+  }
+  
+  return 0;
+}
+
+CLI_COMMAND2 (set_vswitch_link, "set vswitch-link <0-16> <0-16> <0-4094>",
+              SET_HELP,
+              "vswitch\n",
+              "vswitch_id\n"
+              "dpdk_port_id\n",
+              "tag_id (0: native, 1-4094: tagged\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_vswitch_link_create vswitch_link_create;
+  struct internal_msg_header *msgp;
+  
+  if (argc < 5) {
+    fprintf (shell->terminal, "usage: set vswitch-link vswitch_id port_id tag_id%s", shell->NL);
+    return 0;
+  }
+  
+  uint16_t vswitch_id = atoi (argv[2]);
+  uint16_t port_id = atoi (argv[3]);
+  uint16_t tag_id = atoi (argv[4]);
+  
+  vswitch_link_create.vswitch_id = vswitch_id;
+  vswitch_link_create.port_id = port_id;
+  vswitch_link_create.tag_id = tag_id;
+  
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_LINK_CREATE, &vswitch_link_create, sizeof (vswitch_link_create));
+  rib_manager_send_message (msgp, shell);
+  
+  fprintf (shell->terminal, "create vswitch link: vswitch %u -> port %u tag:%u%s",
+           vswitch_id, port_id, tag_id, shell->NL);
+  return 0;
+}
+
+CLI_COMMAND2 (delete_vswitch_link, "delete vswitch-link <0-32>",
+              DELETE_HELP,
+              "vswitch-link\n",
+              "vswitch_link_id\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_vswitch_link_delete vswitch_link_delete;
+  struct internal_msg_header *msgp;
+  
+  if (argc != 3) {
+    fprintf (shell->terminal, "usage: delete vswitch-link vswitch_link_id%s", shell->NL);
+    return 0;
+  }
+  
+  uint16_t vswitch_link_id = atoi (argv[2]);
+  
+  vswitch_link_delete.vswitch_link_id = vswitch_link_id;
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_LINK_DELETE, &vswitch_link_delete, sizeof (vswitch_link_delete));
+  rib_manager_send_message (msgp, shell);
+  
+  fprintf (shell->terminal, "delete vswitch_link_id %u%s", vswitch_link_id, shell->NL);
+  return 0;
+}
+
+CLI_COMMAND2 (show_vswitch_link, "show vswitch-link",
+              SHOW_HELP,
+              "show vswitch link information\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib;
+  int i;
+  
+  rib = rcu_dereference (rcu_global_ptr_rib);
+  if (! rib || ! rib->rib_info) {
+    fprintf (shell->terminal, "no rib information available%s", shell->NL);
+    return 0;
+  }
+  
+  fprintf (shell->terminal, "vswitch link configurations:%s", shell->NL);
+  fprintf (shell->terminal, "total vswitch links: %d%s", rib->rib_info->vswitch_link_size, shell->NL);
+  
+  for (i = 0; i < rib->rib_info->vswitch_link_size; i++) {
+    struct vswitch_link *link = &rib->rib_info->vswitch_link[i];
+    fprintf (shell->terminal, "link[%d]: port %u -> vswitch %u (vlan:%u, tag:%u, vswport:%u)%s",
+             link->vswitch_link_id, link->port_id, link->vswitch_id, 
+             link->vlan_id, link->tag_id, link->vswitch_port, shell->NL);
+  }
+  
+  return 0;
+}
+
+void
+rib_cmd_init (struct command_set *cmdset)
+{
+  INSTALL_COMMAND2 (cmdset, show_rib);
+  INSTALL_COMMAND2 (cmdset, set_vswitch);
+  INSTALL_COMMAND2 (cmdset, delete_vswitch);
+  INSTALL_COMMAND2 (cmdset, show_vswitch_rib);
+  INSTALL_COMMAND2 (cmdset, set_vswitch_link);
+  INSTALL_COMMAND2 (cmdset, delete_vswitch_link);
+  INSTALL_COMMAND2 (cmdset, show_vswitch_link);
+}

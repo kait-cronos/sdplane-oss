@@ -21,6 +21,7 @@
 #include "rib_manager.h"
 #include "sdplane.h"
 #include "thread_info.h"
+#include "tap.h"
 
 #include "l2fwd_export.h"
 
@@ -120,6 +121,7 @@ port_add_tagged_vlan (struct rib_info *new, struct port_conf *port,
   port->vswitch_link_id_of_vlan[index] = vswitch_link->vswitch_link_id;
 }
 
+#if 0
 static inline __attribute__ ((always_inline)) void
 rib_info_hard_coding (struct rib_info *new)
 {
@@ -226,6 +228,7 @@ rib_info_hard_coding (struct rib_info *new)
     }
 #endif
 }
+#endif
 
 static inline __attribute__ ((always_inline)) struct rib_info *
 rib_info_create (struct rib_info *old)
@@ -242,8 +245,10 @@ rib_info_create (struct rib_info *old)
   else
     memcpy (new, old, sizeof (struct rib_info));
 
+#if 0
   /* XXX hard-coding part. */
   rib_info_hard_coding (new);
+#endif
 
   new->ver++;
   return new;
@@ -637,6 +642,148 @@ rib_manager_process_message (void *msgp)
       portid = msg_txrx_desc->portid;
       new->rib_info->port[portid].nb_rxd = msg_txrx_desc->nb_rxd;
       new->rib_info->port[portid].nb_txd = msg_txrx_desc->nb_txd;
+      break;
+
+    case INTERNAL_MSG_TYPE_VSWITCH_CREATE:
+      struct internal_msg_vswitch_create *msg_vswitch_create;
+      struct vswitch_conf *new_vswitch;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_create: %p.", msgp);
+      msg_vswitch_create = (struct internal_msg_vswitch_create *) (msg_header + 1);
+      
+      new_vswitch = vswitch_new (new->rib_info, msg_vswitch_create->vlan_id);
+      if (new_vswitch) {
+        DEBUG_SDPLANE_LOG (RIB, "vswitch created: id %u, vlan %u", 
+                           new_vswitch->vswitch_id, new_vswitch->vlan_id);
+      } else {
+        DEBUG_SDPLANE_LOG (RIB, "vswitch creation failed for vlan %u", 
+                           msg_vswitch_create->vlan_id);
+      }
+      break;
+
+    case INTERNAL_MSG_TYPE_VSWITCH_DELETE:
+      struct internal_msg_vswitch_delete *msg_vswitch_delete;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_delete: %p.", msgp);
+      msg_vswitch_delete = (struct internal_msg_vswitch_delete *) (msg_header + 1);
+      
+      if (msg_vswitch_delete->vswitch_id < new->rib_info->vswitch_size) {
+        struct vswitch_conf *vswitch = &new->rib_info->vswitch[msg_vswitch_delete->vswitch_id];
+        
+        for (i = 0; i < vswitch->vswitch_port_size; i++) {
+          uint16_t link_id = vswitch->vswitch_link_id[i];
+          struct vswitch_link *link = &new->rib_info->vswitch_link[link_id];
+          struct port_conf *port = &new->rib_info->port[link->port_id];
+          
+          if (port->vswitch_link_id_of_native_vlan == link_id) {
+            port->vswitch_link_id_of_native_vlan = 0;
+          } else {
+            for (j = 0; j < port->vlan_size; j++) {
+              if (port->vswitch_link_id_of_vlan[j] == link_id) {
+                for (int k = j; k < port->vlan_size - 1; k++) {
+                  port->vswitch_link_id_of_vlan[k] = port->vswitch_link_id_of_vlan[k + 1];
+                }
+                port->vlan_size--;
+                break;
+              }
+            }
+          }
+          
+          memset (link, 0, sizeof (struct vswitch_link));
+          DEBUG_SDPLANE_LOG (RIB, "vswitch_link %u deleted (was part of vswitch %u)", 
+                             link_id, msg_vswitch_delete->vswitch_id);
+        }
+        
+        memset (vswitch, 0, sizeof (struct vswitch_conf));
+        DEBUG_SDPLANE_LOG (RIB, "vswitch deleted: id %u", msg_vswitch_delete->vswitch_id);
+      } else {
+        DEBUG_SDPLANE_LOG (RIB, "vswitch delete failed: invalid id %u", 
+                           msg_vswitch_delete->vswitch_id);
+      }
+      break;
+
+    case INTERNAL_MSG_TYPE_VSWITCH_LINK_CREATE:
+      struct internal_msg_vswitch_link_create *msg_vswitch_link_create;
+      struct vswitch_conf *target_vswitch;
+      struct port_conf *target_port;
+      struct vswitch_link *new_link;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_link_create: %p.", msgp);
+      msg_vswitch_link_create = (struct internal_msg_vswitch_link_create *) (msg_header + 1);
+      
+      if (msg_vswitch_link_create->vswitch_id >= new->rib_info->vswitch_size ||
+          msg_vswitch_link_create->port_id >= new->rib_info->port_size) {
+        DEBUG_SDPLANE_LOG (RIB, "vswitch link creation failed: invalid vswitch %u or port %u",
+                           msg_vswitch_link_create->vswitch_id, msg_vswitch_link_create->port_id);
+        break;
+      }
+      
+      target_vswitch = &new->rib_info->vswitch[msg_vswitch_link_create->vswitch_id];
+      if (target_vswitch->vlan_id == 0) {
+        DEBUG_SDPLANE_LOG (RIB, "vswitch link creation failed: vswitch %u is deleted",
+                           msg_vswitch_link_create->vswitch_id);
+        break;
+      }
+      
+      target_port = &new->rib_info->port[msg_vswitch_link_create->port_id];
+      
+      new_link = vswitch_link_new (new->rib_info, target_vswitch, target_port);
+      if (new_link) {
+        new_link->port_id = msg_vswitch_link_create->port_id;
+      }
+      if (new_link) {
+        new_link->tag_id = msg_vswitch_link_create->tag_id;
+        
+        if (msg_vswitch_link_create->tag_id == 0) {
+          port_set_native_vlan (new->rib_info, target_port, new_link);
+          DEBUG_SDPLANE_LOG (RIB, "vswitch link created as native: link_id %u, vswitch %u -> port %u",
+                             new_link->vswitch_link_id, msg_vswitch_link_create->vswitch_id, 
+                             msg_vswitch_link_create->port_id);
+          }
+
+      } else {
+        DEBUG_SDPLANE_LOG (RIB, "vswitch link creation failed: vswitch %u -> port %u",
+                           msg_vswitch_link_create->vswitch_id, msg_vswitch_link_create->port_id);
+      }
+      break;
+
+    case INTERNAL_MSG_TYPE_VSWITCH_LINK_DELETE:
+      struct internal_msg_vswitch_link_delete *msg_vswitch_link_delete;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_link_delete: %p.", msgp);
+      msg_vswitch_link_delete = (struct internal_msg_vswitch_link_delete *) (msg_header + 1);
+      
+      if (msg_vswitch_link_delete->vswitch_link_id < new->rib_info->vswitch_link_size) {
+        struct vswitch_link *link = &new->rib_info->vswitch_link[msg_vswitch_link_delete->vswitch_link_id];
+        struct vswitch_conf *vswitch = &new->rib_info->vswitch[link->vswitch_id];
+        struct port_conf *port = &new->rib_info->port[link->port_id];
+        
+        for (i = 0; i < vswitch->vswitch_port_size; i++) {
+          if (vswitch->vswitch_link_id[i] == msg_vswitch_link_delete->vswitch_link_id) {
+            for (j = i; j < vswitch->vswitch_port_size - 1; j++) {
+              vswitch->vswitch_link_id[j] = vswitch->vswitch_link_id[j + 1];
+            }
+            vswitch->vswitch_port_size--;
+            break;
+          }
+        }
+        
+        if (port->vswitch_link_id_of_native_vlan == msg_vswitch_link_delete->vswitch_link_id) {
+          port->vswitch_link_id_of_native_vlan = 0;
+        } else {
+          for (i = 0; i < port->vlan_size; i++) {
+            if (port->vswitch_link_id_of_vlan[i] == msg_vswitch_link_delete->vswitch_link_id) {
+              for (j = i; j < port->vlan_size - 1; j++) {
+                port->vswitch_link_id_of_vlan[j] = port->vswitch_link_id_of_vlan[j + 1];
+              }
+              port->vlan_size--;
+              break;
+            }
+          }
+        }
+        
+        memset (link, 0, sizeof (struct vswitch_link));
+        DEBUG_SDPLANE_LOG (RIB, "vswitch link deleted: id %u", msg_vswitch_link_delete->vswitch_link_id);
+      } else {
+        DEBUG_SDPLANE_LOG (RIB, "vswitch link delete failed: invalid id %u", 
+                           msg_vswitch_link_delete->vswitch_link_id);
+      }
       break;
 
     default:

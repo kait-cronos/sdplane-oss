@@ -423,7 +423,6 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_version);
   INSTALL_COMMAND2 (cmdset, show_rcu);
   INSTALL_COMMAND2 (cmdset, show_fdb);
-  INSTALL_COMMAND2 (cmdset, show_rib);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, sleep_cmd);
   INSTALL_COMMAND2 (cmdset, set_locale);
@@ -432,6 +431,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   queue_config_cmd_init (cmdset);
   lthread_cmd_init (cmdset);
   tap_cmd_init (cmdset);
+  rib_cmd_init (cmdset);
   dpdk_devbind_cmd_init (cmdset);
 #ifdef ENABLE_PKTGEN
   pktgen_cmd_init (cmdset);

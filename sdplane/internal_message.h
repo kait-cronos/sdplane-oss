@@ -20,6 +20,10 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_NETTLP_SEND_DMA_READ  5
 #define INTERNAL_MSG_TYPE_QCONF2                6
 #define INTERNAL_MSG_TYPE_TXRX_DESC             7
+#define INTERNAL_MSG_TYPE_VSWITCH_CREATE        8
+#define INTERNAL_MSG_TYPE_VSWITCH_DELETE        9
+#define INTERNAL_MSG_TYPE_VSWITCH_LINK_CREATE   10
+#define INTERNAL_MSG_TYPE_VSWITCH_LINK_DELETE   11
 
 struct internal_msg_eth_link
 {
@@ -36,6 +40,28 @@ struct internal_msg_txrx_desc
   uint16_t portid;
   uint16_t nb_rxd;
   uint16_t nb_txd;
+};
+
+struct internal_msg_vswitch_create
+{
+  uint16_t vlan_id;
+};
+
+struct internal_msg_vswitch_delete
+{
+  uint16_t vswitch_id;
+};
+
+struct internal_msg_vswitch_link_create
+{
+  uint16_t vswitch_id;
+  uint16_t port_id;
+  uint16_t tag_id;
+};
+
+struct internal_msg_vswitch_link_delete
+{
+  uint16_t vswitch_link_id;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);
