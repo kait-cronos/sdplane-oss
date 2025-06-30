@@ -39,5 +39,6 @@ l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
 }
 
 int tap_handler (__rte_unused void *dummy);
+int l3_tap_handler (__rte_unused void *dummy);
 
 #endif /*__L2fWD_SUPPORT_H__*/
