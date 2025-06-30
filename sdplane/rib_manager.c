@@ -34,6 +34,11 @@
 struct rte_ring *ring_up[RTE_MAX_ETHPORTS][MAX_RX_QUEUE_PER_LCORE];
 struct rte_ring *ring_dn[RTE_MAX_ETHPORTS][MAX_RX_QUEUE_PER_LCORE];
 
+struct rte_ring *router_if_ring_up[MAX_VSWITCH_ID];
+struct rte_ring *router_if_ring_dn[MAX_VSWITCH_ID];
+struct rte_ring *capture_if_ring_up[MAX_VSWITCH_ID];
+struct rte_ring *capture_if_ring_dn[MAX_VSWITCH_ID];
+
 struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
 extern int lthread_core;
@@ -499,6 +504,48 @@ rib_check (struct rib *new)
         }
     }
 
+  for (i = 0; i < new->rib_info->vswitch_size; i++) {
+      struct vswitch_conf *vswitch = &new->rib_info->vswitch[i];
+
+      if (vswitch->vlan_id == 0) continue;
+
+      if (vswitch->router_if.sockfd > 0) {
+          if (!router_if_ring_up[i]) {
+              snprintf(ring_name, sizeof(ring_name), "router_up[%d]", i);
+              router_if_ring_up[i] = rte_ring_create(ring_name, RING_TO_TAP_SIZE,
+                                                  rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
+              DEBUG_SDPLANE_LOG (RIB, "created router_if ring_up[%d]: %p", i, router_if_ring_up[i]);
+          }
+          if (!router_if_ring_dn[i]) {
+              snprintf(ring_name, sizeof(ring_name), "router_dn[%d]", i);
+              router_if_ring_dn[i] = rte_ring_create(ring_name, RING_TO_TAP_SIZE,
+                                                  rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
+              DEBUG_SDPLANE_LOG (RIB, "created router_if ring_dn[%d]: %p", i, router_if_ring_dn[i]);
+          }
+
+          vswitch->router_if.ring_up = router_if_ring_up[i];
+          vswitch->router_if.ring_dn = router_if_ring_dn[i];
+      }
+
+      if (vswitch->capture_if.sockfd > 0) {
+          if (!capture_if_ring_up[i]) {
+              snprintf(ring_name, sizeof(ring_name), "capture_up[%d]", i);
+              capture_if_ring_up[i] = rte_ring_create(ring_name, RING_TO_TAP_SIZE,
+                                                  rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
+              DEBUG_SDPLANE_LOG (RIB, "created capture_if ring_up[%d]: %p", i, capture_if_ring_up[i]);
+          }
+          if (!capture_if_ring_dn[i]) {
+              snprintf(ring_name, sizeof(ring_name), "capture_dn[%d]", i);
+              capture_if_ring_dn[i] = rte_ring_create(ring_name, RING_TO_TAP_SIZE,
+                                                  rte_socket_id(), RING_F_SP_ENQ | RING_F_SC_DEQ);
+              DEBUG_SDPLANE_LOG (RIB, "created capture_if ring_dn[%d]: %p", i, capture_if_ring_dn[i]);
+          }
+
+          vswitch->capture_if.ring_up = capture_if_ring_up[i];
+          vswitch->capture_if.ring_dn = capture_if_ring_dn[i];
+      }
+  }
+
   return 0;
 }
 
@@ -702,7 +749,7 @@ rib_manager_process_message (void *msgp)
 
     case INTERNAL_MSG_TYPE_VSWITCH_LINK_CREATE:
       struct internal_msg_vswitch_link_create *msg_vswitch_link_create;
-      struct vswitch_conf *target_vswitch;
+      struct vswitch_conf *target_vswitch_link;
       struct port_conf *target_port;
       struct vswitch_link *new_link;
       DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_link_create: %p.", msgp);
@@ -715,8 +762,8 @@ rib_manager_process_message (void *msgp)
         break;
       }
       
-      target_vswitch = &new->rib_info->vswitch[msg_vswitch_link_create->vswitch_id];
-      if (target_vswitch->vlan_id == 0) {
+      target_vswitch_link = &new->rib_info->vswitch[msg_vswitch_link_create->vswitch_id];
+      if (target_vswitch_link->vlan_id == 0) {
         DEBUG_SDPLANE_LOG (RIB, "vswitch link creation failed: vswitch %u is deleted",
                            msg_vswitch_link_create->vswitch_id);
         break;
@@ -724,7 +771,7 @@ rib_manager_process_message (void *msgp)
       
       target_port = &new->rib_info->port[msg_vswitch_link_create->port_id];
       
-      new_link = vswitch_link_new (new->rib_info, target_vswitch, target_port);
+      new_link = vswitch_link_new (new->rib_info, target_vswitch_link, target_port);
       if (new_link) {
         new_link->port_id = msg_vswitch_link_create->port_id;
       }
@@ -785,6 +832,119 @@ rib_manager_process_message (void *msgp)
                            msg_vswitch_link_delete->vswitch_link_id);
       }
       break;
+
+    case INTERNAL_MSG_TYPE_ROUTER_IF_CREATE:
+      struct internal_msg_router_if_create *msg_router_if_create;
+      struct vswitch_conf *vswitch_router_if;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_router_if_create: %p.", msgp);
+      msg_router_if_create = (struct internal_msg_router_if_create *) (msg_header + 1);
+      
+      if (msg_router_if_create->vswitch_id >= new->rib_info->vswitch_size) {
+        DEBUG_SDPLANE_LOG (RIB, "router interface creation failed: invalid vswitch %u",
+                           msg_router_if_create->vswitch_id);
+        break;
+      }
+  
+      vswitch_router_if = &new->rib_info->vswitch[msg_router_if_create->vswitch_id];
+      if (vswitch_router_if->vlan_id == 0) {
+        DEBUG_SDPLANE_LOG (RIB, "router interface creation failed: vswitch %u is deleted",
+                           msg_router_if_create->vswitch_id);
+        break;
+      }
+      
+      struct router_if *rif = &vswitch_router_if->router_if;
+      
+      rif->sockfd = tap_open (msg_router_if_create->tap_name);
+      rif->tap_ring_id = msg_router_if_create->vswitch_id;
+      tap_admin_up (msg_router_if_create->tap_name);
+      
+      DEBUG_SDPLANE_LOG (RIB, "router interface created: vswitch %u, tap_name %s",
+                        msg_router_if_create->vswitch_id, msg_router_if_create->tap_name);
+           
+      // set router_if ring 
+      ret = rib_check (new);
+      if (ret < 0)
+        {
+          DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+          return;
+        }
+
+      break;
+
+    case INTERNAL_MSG_TYPE_ROUTER_IF_DELETE:
+      struct internal_msg_router_if_delete *msg_router_if_delete;
+      struct vswitch_conf *vswitch_router_del;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_router_if_delete: %p.", msgp);
+      msg_router_if_delete = (struct internal_msg_router_if_delete *) (msg_header + 1);
+      
+      if (msg_router_if_delete->vswitch_id >= new->rib_info->vswitch_size) {
+        DEBUG_SDPLANE_LOG (RIB, "router interface deletion failed: invalid vswitch %u",
+                           msg_router_if_delete->vswitch_id);
+        break;
+      }
+      
+      vswitch_router_del = &new->rib_info->vswitch[msg_router_if_delete->vswitch_id];
+      memset (&vswitch_router_del->router_if, 0, sizeof (struct router_if));
+      
+      DEBUG_SDPLANE_LOG (RIB, "router interface deleted: vswitch %u", msg_router_if_delete->vswitch_id);
+      break;
+
+    case INTERNAL_MSG_TYPE_CAPTURE_IF_CREATE:
+      struct internal_msg_capture_if_create *msg_capture_if_create;
+      struct vswitch_conf *vswitch_capture_if;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_capture_if_create: %p.", msgp);
+      msg_capture_if_create = (struct internal_msg_capture_if_create *) (msg_header + 1);
+      
+      if (msg_capture_if_create->vswitch_id >= new->rib_info->vswitch_size) {
+        DEBUG_SDPLANE_LOG (RIB, "capture interface creation failed: invalid vswitch %u",
+                           msg_capture_if_create->vswitch_id);
+        break;
+      }
+      
+      vswitch_capture_if = &new->rib_info->vswitch[msg_capture_if_create->vswitch_id];
+      if (vswitch_capture_if->vlan_id == 0) {
+        DEBUG_SDPLANE_LOG (RIB, "capture interface creation failed: vswitch %u is deleted",
+                           msg_capture_if_create->vswitch_id);
+        break;
+      }
+      
+      struct capture_if *cif = &vswitch_capture_if->capture_if;
+
+      cif->sockfd = tap_open (msg_capture_if_create->tap_name);
+      cif->tap_ring_id = msg_capture_if_create->vswitch_id;
+      tap_admin_up (msg_capture_if_create->tap_name);
+      
+      DEBUG_SDPLANE_LOG (RIB, "capture interface created: vswitch %u, tap_name %s",
+                         msg_capture_if_create->vswitch_id, msg_capture_if_create->tap_name);
+
+      // set capture_if ring
+      ret = rib_check (new);
+      if (ret < 0)
+        {
+          DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+          return;
+        }
+
+      break;
+
+    case INTERNAL_MSG_TYPE_CAPTURE_IF_DELETE:
+      struct internal_msg_capture_if_delete *msg_capture_if_delete;
+      struct vswitch_conf *vswitch_capture_del;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_capture_if_delete: %p.", msgp);
+      msg_capture_if_delete = (struct internal_msg_capture_if_delete *) (msg_header + 1);
+      
+      if (msg_capture_if_delete->vswitch_id >= new->rib_info->vswitch_size) {
+        DEBUG_SDPLANE_LOG (RIB, "capture interface deletion failed: invalid vswitch %u",
+                           msg_capture_if_delete->vswitch_id);
+        break;
+      }
+      
+      vswitch_capture_del = &new->rib_info->vswitch[msg_capture_if_delete->vswitch_id];
+      memset (&vswitch_capture_del->capture_if, 0, sizeof (struct capture_if));
+      
+      DEBUG_SDPLANE_LOG (RIB, "capture interface deleted: vswitch %u", msg_capture_if_delete->vswitch_id);
+      break;
+
 
     default:
       DEBUG_SDPLANE_LOG (RIB, "recv msg unknown: %p.", msgp);
