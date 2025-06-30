@@ -317,6 +317,185 @@ CLI_COMMAND2 (show_vswitch_link, "show vswitch-link",
   return 0;
 }
 
+CLI_COMMAND2 (set_router_if, "set router-if <0-3> <WORD>",
+              SET_HELP,
+              "router interface\n",
+              "vswitch id\n",
+              "TAP name\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_router_if_create router_if_create;
+  struct internal_msg_header *msgp;
+  int vswitch_id;
+  char *tap_name;
+  
+  vswitch_id = atoi (argv[2]);
+  tap_name = argv[3];
+  
+  router_if_create.vswitch_id = vswitch_id;
+  strncpy (router_if_create.tap_name, tap_name, sizeof (router_if_create.tap_name) - 1);
+  
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_CREATE, &router_if_create, sizeof (router_if_create));
+  rib_manager_send_message (msgp, shell);
+  
+  return 0;
+}
+
+CLI_COMMAND2 (delete_router_if, "delete router-if <0-3>",
+              DELETE_HELP,
+              "delete router interface configuration\n",
+              "vswitch id (0-3)\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_router_if_delete router_if_delete;
+  struct internal_msg_header *msgp;
+  int vswitch_id;
+  
+  vswitch_id = atoi (argv[2]);
+  
+  router_if_delete.vswitch_id = vswitch_id;
+  
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_DELETE, &router_if_delete, sizeof (router_if_delete));
+  rib_manager_send_message (msgp, shell);
+  
+  return 0;
+}
+
+CLI_COMMAND2 (show_router_if, "show router-if <0-3>",
+              SHOW_HELP,
+              "show router interface information\n",
+              "vswitch id (0-3)\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib;
+  int i, target_vswitch = -1;
+  char mac_str[18], ipv4_str[16], ipv6_str[40];
+  
+  if (argc > 2) {
+    target_vswitch = atoi (argv[2]);
+    if (target_vswitch < 0 || target_vswitch >= MAX_VSWITCH_ID) {
+      fprintf (shell->terminal, "invalid vswitch id: %d%s", target_vswitch, shell->NL);
+      return 0;
+    }
+  }
+  
+  rib = rcu_dereference (rcu_global_ptr_rib);
+  if (! rib || ! rib->rib_info) {
+    fprintf (shell->terminal, "no rib information available%s", shell->NL);
+    return 0;
+  }
+  
+  fprintf (shell->terminal, "router interface configurations:%s", shell->NL);
+  
+  for (i = 0; i < rib->rib_info->vswitch_size; i++) {
+    struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
+    
+    if (target_vswitch >= 0 && i != target_vswitch) continue;
+    if (vswitch->vlan_id == 0) continue;
+    
+    struct router_if *rif = &vswitch->router_if;
+    if (rif->sockfd <= 0) continue;
+    
+    rte_ether_format_addr (mac_str, sizeof (mac_str), &rif->mac_addr);
+    inet_ntop (AF_INET, &rif->ipv4_addr, ipv4_str, sizeof (ipv4_str));
+    inet_ntop (AF_INET6, &rif->ipv6_addr, ipv6_str, sizeof (ipv6_str));
+    
+    fprintf (shell->terminal, "vswitch[%d]: router interface configured%s", i, shell->NL);
+    fprintf (shell->terminal, "  MAC: %s, IPv4: %s, IPv6: %s%s", 
+             mac_str, ipv4_str, ipv6_str, shell->NL);
+    fprintf (shell->terminal, "  sockfd: %d, tap_ring_id: %u%s", 
+             rif->sockfd, rif->tap_ring_id, shell->NL);
+  }
+  
+  return 0;
+}
+
+CLI_COMMAND2 (set_capture_if, "set capture-if <0-3> <WORD>",
+              SET_HELP,
+              "set capture interface configuration\n",
+              "vswitch id (0-3)\n",
+              "TAP interface name\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_capture_if_create capture_if_create;
+  struct internal_msg_header *msgp;
+  int vswitch_id;
+  char *tap_name = NULL;
+  
+  vswitch_id = atoi (argv[2]);
+  tap_name = argv[3];
+  
+  capture_if_create.vswitch_id = vswitch_id;
+  strncpy (capture_if_create.tap_name, tap_name, sizeof (capture_if_create.tap_name) - 1);
+  
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_CAPTURE_IF_CREATE, &capture_if_create, sizeof (capture_if_create));
+  rib_manager_send_message (msgp, shell);
+  
+  return 0;
+}
+
+CLI_COMMAND2 (delete_capture_if, "delete capture-if <0-3>",
+              DELETE_HELP,
+              "delete capture interface configuration\n",
+              "vswitch id (0-3)\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_capture_if_delete capture_if_delete;
+  struct internal_msg_header *msgp;
+  int vswitch_id;
+  
+  vswitch_id = atoi (argv[2]);
+  
+  capture_if_delete.vswitch_id = vswitch_id;
+  
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_CAPTURE_IF_DELETE, &capture_if_delete, sizeof (capture_if_delete));
+  rib_manager_send_message (msgp, shell);
+  
+  return 0;
+}
+
+CLI_COMMAND2 (show_capture_if, "show capture-if <0-3>",
+              SHOW_HELP,
+              "show capture interface information\n",
+              "vswitch id (0-3)\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib;
+  int i, target_vswitch = -1;
+  
+  if (argc > 2) {
+    target_vswitch = atoi (argv[2]);
+    if (target_vswitch < 0 || target_vswitch >= MAX_VSWITCH_ID) {
+      fprintf (shell->terminal, "invalid vswitch id: %d%s", target_vswitch, shell->NL);
+      return 0;
+    }
+  }
+  
+  rib = rcu_dereference (rcu_global_ptr_rib);
+  if (! rib || ! rib->rib_info) {
+    fprintf (shell->terminal, "no rib information available%s", shell->NL);
+    return 0;
+  }
+  
+  fprintf (shell->terminal, "capture interface configurations:%s", shell->NL);
+  
+  for (i = 0; i < rib->rib_info->vswitch_size; i++) {
+    struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
+    
+    if (target_vswitch >= 0 && i != target_vswitch) continue;
+    if (vswitch->vlan_id == 0) continue;
+    
+    struct capture_if *cif = &vswitch->capture_if;
+    if (cif->sockfd <= 0) continue;
+    
+    fprintf (shell->terminal, "vswitch[%d]: capture interface configured%s", i, shell->NL);
+    fprintf (shell->terminal, "  sockfd: %d, tap_ring_id: %u%s", 
+             cif->sockfd, cif->tap_ring_id, shell->NL);
+  }
+  
+  return 0;
+}
+
 void
 rib_cmd_init (struct command_set *cmdset)
 {
@@ -327,4 +506,10 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_vswitch_link);
   INSTALL_COMMAND2 (cmdset, delete_vswitch_link);
   INSTALL_COMMAND2 (cmdset, show_vswitch_link);
+  INSTALL_COMMAND2 (cmdset, set_router_if);
+  INSTALL_COMMAND2 (cmdset, delete_router_if);
+  INSTALL_COMMAND2 (cmdset, show_router_if);
+  INSTALL_COMMAND2 (cmdset, set_capture_if);
+  INSTALL_COMMAND2 (cmdset, delete_capture_if);
+  INSTALL_COMMAND2 (cmdset, show_capture_if);
 }
