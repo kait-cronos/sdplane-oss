@@ -24,6 +24,10 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_VSWITCH_DELETE        9
 #define INTERNAL_MSG_TYPE_VSWITCH_LINK_CREATE   10
 #define INTERNAL_MSG_TYPE_VSWITCH_LINK_DELETE   11
+#define INTERNAL_MSG_TYPE_ROUTER_IF_CREATE      12
+#define INTERNAL_MSG_TYPE_ROUTER_IF_DELETE      13
+#define INTERNAL_MSG_TYPE_CAPTURE_IF_CREATE     14
+#define INTERNAL_MSG_TYPE_CAPTURE_IF_DELETE     15
 
 struct internal_msg_eth_link
 {
@@ -62,6 +66,28 @@ struct internal_msg_vswitch_link_create
 struct internal_msg_vswitch_link_delete
 {
   uint16_t vswitch_link_id;
+};
+
+struct internal_msg_router_if_create
+{
+  uint16_t vswitch_id;
+  char tap_name[16];
+};
+
+struct internal_msg_router_if_delete
+{
+  uint16_t vswitch_id;
+};
+
+struct internal_msg_capture_if_create
+{
+  uint16_t vswitch_id;
+  char tap_name[16];
+};
+
+struct internal_msg_capture_if_delete
+{
+  uint16_t vswitch_id;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);

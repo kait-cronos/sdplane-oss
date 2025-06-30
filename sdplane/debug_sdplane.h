@@ -33,6 +33,7 @@
 #define DEBUG_SDPLANE_PKTGEN             (1ULL << 28)
 #define DEBUG_SDPLANE_LINKFLAP_GENERATOR (1ULL << 29)
 #define DEBUG_SDPLANE_STARTUP_CONFIG     (1ULL << 30)
+#define DEBUG_SDPLANE_L3_CONNECTOR       (1ULL << 31)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)
