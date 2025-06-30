@@ -191,6 +191,7 @@ l3_tap_handler_handle_packet_down ()
   char data[9000];
   char *pkt;
 
+  /* 🤖 生成AI (CLAUDE) */
   if (! rib || ! rib->rib_info)
     return;
 

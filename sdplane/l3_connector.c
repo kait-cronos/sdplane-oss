@@ -217,6 +217,7 @@ l3_connector_select (struct rte_mbuf *m, unsigned rx_portid,
                      rx_portid, rx_queueid);
 
   /* Safety checks for RIB access */
+  /* 🤖 生成AI (CLAUDE) */
   if (unlikely (! rib || ! rib->rib_info))
     {
       DEBUG_SDPLANE_LOG (L3_CONNECTOR,
@@ -224,6 +225,7 @@ l3_connector_select (struct rte_mbuf *m, unsigned rx_portid,
       return;
     }
 
+  /* 🤖 生成AI (CLAUDE) */
   if (unlikely (rx_portid >= rib->rib_info->port_size))
     {
       DEBUG_SDPLANE_LOG (L3_CONNECTOR,
@@ -256,8 +258,8 @@ l3_connector_select (struct rte_mbuf *m, unsigned rx_portid,
             {
               vswitch_link = link;
               DEBUG_SDPLANE_LOG (L3_CONNECTOR,
-                                 "m: %p tagged: vswitch: %u, vlan: %u",
-                                 m, vswitch_link->vswitch_id, vlan_id);
+                                 "m: %p tagged: vswitch: %u, vlan: %u", m,
+                                 vswitch_link->vswitch_id, vlan_id);
               break;
             }
         }
@@ -276,6 +278,7 @@ l3_connector_select (struct rte_mbuf *m, unsigned rx_portid,
         }
     }
 
+  /* 🤖 生成AI (CLAUDE) */
   if (! vswitch_link)
     {
       DEBUG_SDPLANE_LOG (
