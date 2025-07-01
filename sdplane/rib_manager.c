@@ -804,6 +804,7 @@ rib_manager_process_message (void *msgp)
   struct internal_msg_header *msg_header;
   struct internal_msg_eth_link *msg_eth_link;
   struct internal_msg_qconf *msg_qconf;
+  struct internal_msg_neigh_entry *msg_neigh_entry;
 
   msg_header = (struct internal_msg_header *) msgp;
   switch (msg_header->type)
@@ -1037,6 +1038,39 @@ rib_manager_process_message (void *msgp)
         break;
 
       capture_if_delete (new->rib_info, msg_capture_if_delete->vswitch_id);
+
+    case INTERNAL_MSG_TYPE_NEIGH_CREATE_TABLE:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_create_table: %p.", msgp);
+      neigh_manager_create_table (new->rib_info->neigh_tables, NEIGH_ARP_TABLE, sizeof (struct in_addr));
+      neigh_manager_create_table (new->rib_info->neigh_tables, NEIGH_ND_TABLE, sizeof (struct in6_addr));
+      break;
+
+    case INTERNAL_MSG_TYPE_NEIGH_FREE_TABLE:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_free_table: %p.", msgp);
+      neigh_manager_free_table (new->rib_info->neigh_tables, NEIGH_ARP_TABLE);
+      neigh_manager_free_table (new->rib_info->neigh_tables, NEIGH_ND_TABLE);
+      break;
+
+    case INTERNAL_MSG_TYPE_NEIGH_ADD_ENTRY:
+      int ret;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_add_entry: %p.", msgp);
+      msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
+      ret = neigh_manager_add_entry (new->rib_info->neigh_tables, msg_neigh_entry->index,
+                                     &msg_neigh_entry->data.ip_addr_key,
+                                     &msg_neigh_entry->data);
+      if (ret == EINVAL)
+        DEBUG_SDPLANE_LOG (RIB, "neigh_manager_add_entry: EINVAL.");
+        /* EINVAL means the entry already exists. */
+      else if (ret == ENOSPC)
+        DEBUG_SDPLANE_LOG (RIB, "neigh_manager_add_entry: ENOSPC.");
+        /* ENOSPC means the table is full. */
+      break;
+
+    case INTERNAL_MSG_TYPE_NEIGH_DEL_ENTRY:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_del_entry: %p.", msgp);
+      msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
+      neigh_manager_delete_entry (new->rib_info->neigh_tables, msg_neigh_entry->index,
+                                  &msg_neigh_entry->data.ip_addr_key);
       break;
 
     default:

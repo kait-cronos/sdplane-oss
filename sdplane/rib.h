@@ -11,6 +11,12 @@
 
 #include <rte_ether.h>
 
+enum {
+    NEIGH_ARP_TABLE = 0,
+    NEIGH_ND_TABLE = 1,
+    NEIGH_NR_TABLES,
+};
+
 struct router_if
 {
   int sockfd; // tap sockfd.
@@ -86,6 +92,7 @@ struct rib_info
   struct vswitch_link vswitch_link[MAX_VSWITCH_LINK];
   struct port_conf port[MAX_ETH_PORTS];
   struct lcore_qconf lcore_qconf[RTE_MAX_LCORE];
+  struct rte_hash *neigh_tables[NEIGH_NR_TABLES];
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);

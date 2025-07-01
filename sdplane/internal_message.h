@@ -5,6 +5,7 @@
 
 #include <rte_ethdev.h>
 #include "queue_config.h"
+#include "neigh_manager.h"
 
 struct internal_msg_header
 {
@@ -28,6 +29,10 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_ROUTER_IF_DELETE      13
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_CREATE     14
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_DELETE     15
+#define INTERNAL_MSG_TYPE_NEIGH_CREATE_TABLE    16
+#define INTERNAL_MSG_TYPE_NEIGH_FREE_TABLE      17
+#define INTERNAL_MSG_TYPE_NEIGH_ADD_ENTRY       18
+#define INTERNAL_MSG_TYPE_NEIGH_DEL_ENTRY       19
 
 struct internal_msg_eth_link
 {
@@ -46,6 +51,7 @@ struct internal_msg_txrx_desc
   uint16_t nb_txd;
 };
 
+<<<<<<< HEAD
 struct internal_msg_vswitch_create
 {
   uint16_t vlan_id;
@@ -88,6 +94,12 @@ struct internal_msg_capture_if_create
 struct internal_msg_capture_if_delete
 {
   uint16_t vswitch_id;
+=======
+struct internal_msg_neigh_entry
+{
+  int index;
+  struct neigh_entry_data data;
+>>>>>>> 66804e2 (neighbor tables)
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);

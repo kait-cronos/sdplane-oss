@@ -56,6 +56,7 @@
 
 #include "sdplane.h"
 #include "tap_handler.h"
+#include "neigh_manager.h"
 
 #include "vty_shell.h"
 #include "thread_info.h"
@@ -120,12 +121,27 @@ CLI_COMMAND2 (set_worker_lthread_netlink_thread,
   return 0;
 }
 
+CLI_COMMAND2 (set_worker_lthread_neigh_manager,
+              "set worker lthread neigh-manager", SET_HELP, WORKER_HELP,
+              "lthread information\n", "neigh_manager\n")
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) neigh_manager, NULL);
+  thread_register (lthread_core, lt, (lthread_func) neigh_manager,
+                   "neigh_manager", NULL);
+  lthread_detach2 (lt);
+  return 0;
+}
+
 void
 lthread_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_stat_collector);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_rib_manager);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_netlink_thread);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
 }
 
 int
