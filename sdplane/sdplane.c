@@ -396,9 +396,9 @@ CLI_COMMAND2 (show_mempool, "show mempool", SHOW_HELP, "show mempool.\n")
   return 0;
 }
 
-CLI_COMMAND2 (show_neighbor, "show neighbor (ipv4|ipv6)",
-             SHOW_HELP, "show neighbor table.\n",
-             "show ARP table.\n", "show ND table.\n")
+CLI_COMMAND2 (show_neighbor, "show neighbor (ipv4|ipv6)", SHOW_HELP,
+              "show neighbor table.\n", "show ARP table.\n",
+              "show ND table.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;

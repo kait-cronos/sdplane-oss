@@ -11,10 +11,11 @@
 
 #include <rte_ether.h>
 
-enum {
-    NEIGH_ARP_TABLE = 0,
-    NEIGH_ND_TABLE = 1,
-    NEIGH_NR_TABLES,
+enum
+{
+  NEIGH_ARP_TABLE = 0,
+  NEIGH_ND_TABLE = 1,
+  NEIGH_NR_TABLES,
 };
 
 struct router_if

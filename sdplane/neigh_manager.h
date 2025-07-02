@@ -5,10 +5,12 @@
 
 #define MAX_NEIGHBOR_TABLE_SIZE 1024
 
-struct neigh_entry_data {
+struct neigh_entry_data
+{
   struct rte_ether_addr lladdr;
   int family;
-  union {
+  union
+  {
     struct in_addr ipv4_addr;
     struct in6_addr ipv6_addr;
   } ip_addr_key;
@@ -45,12 +47,17 @@ arp_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
     }
 }
 
-void neigh_manager_create_table (struct rte_hash **neigh_tables, int index, int key_len);
+void neigh_manager_create_table (struct rte_hash **neigh_tables, int index,
+                                 int key_len);
 void neigh_manager_free_table (struct rte_hash **neigh_tables, int index);
-int neigh_manager_add_entry (struct rte_hash **neigh_tables, const int index, const void *key, const struct neigh_entry_data *data);
-int neigh_manager_delete_entry (struct rte_hash **neigh_tables, const int index, const void *key);
+int neigh_manager_add_entry (struct rte_hash **neigh_tables, const int index,
+                             const void *key,
+                             const struct neigh_entry_data *data);
+int neigh_manager_delete_entry (struct rte_hash **neigh_tables,
+                                const int index, const void *key);
 
-int neigh_manager_lookup (const int index, const void *key, struct neigh_entry_data *out);
+int neigh_manager_lookup (const int index, const void *key,
+                          struct neigh_entry_data *out);
 void neigh_manager_show_table (const int index, const struct shell *shell);
 
 int neigh_manager (void *arg __rte_unused);

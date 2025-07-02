@@ -186,19 +186,19 @@ netlink_nlmsg_str (uint16_t nlmsg_type)
 static inline __attribute__ ((always_inline)) int
 netlink_get_rtattr (struct rtattr **rtas, int max, void *head, int len)
 {
-	int	counter = 0;
-	struct rtattr	*rta = head;
+  int counter = 0;
+  struct rtattr *rta = head;
 
-	for (; RTA_OK (rta, len); rta = RTA_NEXT (rta, len))
+  for (; RTA_OK (rta, len); rta = RTA_NEXT (rta, len))
     {
       if (rta->rta_type <= max)
         {
           rtas[rta->rta_type] = rta;
-          counter ++;
+          counter++;
         }
     }
 
-	return counter;
+  return counter;
 }
 
 int
@@ -250,7 +250,7 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
   if (h->nlmsg_len < NLMSG_LENGTH (sizeof (struct nlmsgerr)))
     {
       DEBUG_SDPLANE_LOG (NETLINK,
-                       "%s: invalid len: %d < "
+                         "%s: invalid len: %d < "
                          "NLMSG_LEN(nlmsgerr): %d",
                          nlsock->name, h->nlmsg_len,
                          NLMSG_LENGTH (sizeof (struct nlmsgerr)));
@@ -258,11 +258,11 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
     }
 
   /* New/Delete Neighbor Table */
-  struct rtattr* rtns[NDA_MAX + 1] = { 0 };
+  struct rtattr *rtns[NDA_MAX + 1] = { 0 };
   char ifname[16] = { 0 };
   char addr[64] = { 0 };
   char lladdr[RTE_ETHER_ADDR_FMT_SIZE] = { 0 };
-  struct rte_ether_addr	*etha = NULL;
+  struct rte_ether_addr *etha = NULL;
   if_indextoname (ndm->ndm_ifindex, ifname);
   struct rtattr *rta = (struct rtattr *) RTM_RTA (ndm);
   netlink_get_rtattr (rtns, RTA_MAX, rta, RTM_PAYLOAD (h));
@@ -279,38 +279,41 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
   msg_neigh_entry.data.family = ndm->ndm_family;
   switch (ndm->ndm_family)
     {
-      case AF_INET:
-        msg_neigh_entry.index = NEIGH_ARP_TABLE;
-        memcpy (&msg_neigh_entry.data.ip_addr_key.ipv4_addr,
-                RTA_DATA (rtns[NDA_DST]), sizeof (struct in_addr));
-        break;
+    case AF_INET:
+      msg_neigh_entry.index = NEIGH_ARP_TABLE;
+      memcpy (&msg_neigh_entry.data.ip_addr_key.ipv4_addr,
+              RTA_DATA (rtns[NDA_DST]), sizeof (struct in_addr));
+      break;
 
-      case AF_INET6:
-        msg_neigh_entry.index = NEIGH_ND_TABLE;
-        memcpy (&msg_neigh_entry.data.ip_addr_key.ipv6_addr,
-                RTA_DATA (rtns[NDA_DST]), sizeof (struct in6_addr));
-        break;
+    case AF_INET6:
+      msg_neigh_entry.index = NEIGH_ND_TABLE;
+      memcpy (&msg_neigh_entry.data.ip_addr_key.ipv6_addr,
+              RTA_DATA (rtns[NDA_DST]), sizeof (struct in6_addr));
+      break;
 
-      default:
-        return -1;
+    default:
+      return -1;
     }
 
   if (h->nlmsg_type == RTM_NEWNEIGH)
     {
       if (! rtns[NDA_LLADDR])
-          return -1;
-      etha = (struct rte_ether_addr*) RTA_DATA (rtns[NDA_LLADDR]);
+        return -1;
+      etha = (struct rte_ether_addr *) RTA_DATA (rtns[NDA_LLADDR]);
       rte_ether_format_addr (lladdr, sizeof (lladdr), etha);
-      inet_ntop (ndm->ndm_family, RTA_DATA (rtns[NDA_DST]), addr, sizeof (addr));
-      DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s lladdr=%s dev=%s",
-                         addr, lladdr, ifname);
-      memcpy (&msg_neigh_entry.data.lladdr, etha, sizeof (struct rte_ether_addr));
+      inet_ntop (ndm->ndm_family, RTA_DATA (rtns[NDA_DST]), addr,
+                 sizeof (addr));
+      DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s lladdr=%s dev=%s", addr,
+                         lladdr, ifname);
+      memcpy (&msg_neigh_entry.data.lladdr, etha,
+              sizeof (struct rte_ether_addr));
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ADD_ENTRY,
                                   &msg_neigh_entry, sizeof (msg_neigh_entry));
     }
   else // RTM_DELNEIGH
     {
-      inet_ntop (ndm->ndm_family, RTA_DATA (rtns[NDA_DST]), addr, sizeof (addr));
+      inet_ntop (ndm->ndm_family, RTA_DATA (rtns[NDA_DST]), addr,
+                 sizeof (addr));
       DEBUG_SDPLANE_LOG (NETLINK, "[DEL] dst=%s dev=%s", addr, ifname);
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_DEL_ENTRY,
                                   &msg_neigh_entry, sizeof (msg_neigh_entry));

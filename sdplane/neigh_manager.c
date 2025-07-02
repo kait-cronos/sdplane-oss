@@ -28,34 +28,34 @@ static __thread struct rib *rib = NULL;
 static inline __attribute__ ((always_inline)) const char *
 neigh_manager_str (int index)
 {
-  switch (index) {
-      case NEIGH_ARP_TABLE:
-          return "arp_table";
-      case NEIGH_ND_TABLE:
-          return "nd_table";
-      default:
-          return "unknown";
-  }
+  switch (index)
+    {
+    case NEIGH_ARP_TABLE:
+      return "arp_table";
+    case NEIGH_ND_TABLE:
+      return "nd_table";
+    default:
+      return "unknown";
+    }
 }
 
 /*
  * NOTE:
  * The rte_hash library does not manage data entities.
- * sdplane must be responsible for allocating, storing, and freeing associated data.
+ * sdplane must be responsible for allocating, storing, and freeing associated
+ * data.
  */
 
 void
-neigh_manager_create_table (struct rte_hash **neigh_tables, int index, int key_len)
+neigh_manager_create_table (struct rte_hash **neigh_tables, int index,
+                            int key_len)
 {
-  struct rte_hash_parameters params =
-    {
-      .name = NULL,
-      .entries = MAX_NEIGHBOR_TABLE_SIZE,
-      .key_len = key_len,
-      .hash_func = rte_jhash,
-      .hash_func_init_val = 0,
-      .socket_id = rte_socket_id()
-    };
+  struct rte_hash_parameters params = { .name = NULL,
+                                        .entries = MAX_NEIGHBOR_TABLE_SIZE,
+                                        .key_len = key_len,
+                                        .hash_func = rte_jhash,
+                                        .hash_func_init_val = 0,
+                                        .socket_id = rte_socket_id () };
 
   char s[64];
   snprintf (s, sizeof (s), "%s", neigh_manager_str (index));
@@ -77,20 +77,25 @@ neigh_manager_free_table (struct rte_hash **neigh_tables, int index)
   void *key;
   uint32_t iter = 0;
 
-  while (rte_hash_iterate (neigh_tables[index], (void *) &key, (void **) &data, &iter) >= 0)
+  while (rte_hash_iterate (neigh_tables[index], (void *) &key, (void **) &data,
+                           &iter) >= 0)
     free (data);
   rte_hash_free (neigh_tables[index]);
 
-  DEBUG_SDPLANE_LOG (NEIGH, "neighbor table %s freed.", neigh_manager_str (index));
+  DEBUG_SDPLANE_LOG (NEIGH, "neighbor table %s freed.",
+                     neigh_manager_str (index));
 }
 
 int
-neigh_manager_add_entry (struct rte_hash **neigh_tables, const int index, const void *key, const struct neigh_entry_data *data)
+neigh_manager_add_entry (struct rte_hash **neigh_tables, const int index,
+                         const void *key, const struct neigh_entry_data *data)
 {
-  struct neigh_entry_data *data_copy = malloc (sizeof (struct neigh_entry_data));
+  struct neigh_entry_data *data_copy =
+      malloc (sizeof (struct neigh_entry_data));
   if (! data_copy)
     {
-      DEBUG_SDPLANE_LOG (NEIGH, "failed to allocate memory for neighbor entry data.");
+      DEBUG_SDPLANE_LOG (NEIGH,
+                         "failed to allocate memory for neighbor entry data.");
       return -1;
     }
   memcpy (data_copy, data, sizeof (struct neigh_entry_data));
@@ -99,7 +104,8 @@ neigh_manager_add_entry (struct rte_hash **neigh_tables, const int index, const 
 }
 
 int
-neigh_manager_delete_entry (struct rte_hash **neigh_tables, const int index, const void *key)
+neigh_manager_delete_entry (struct rte_hash **neigh_tables, const int index,
+                            const void *key)
 {
   struct neigh_entry_data *data;
   if (rte_hash_lookup_data (neigh_tables[index], key, (void *) &data) < 0)
@@ -113,7 +119,8 @@ neigh_manager_delete_entry (struct rte_hash **neigh_tables, const int index, con
 }
 
 int
-neigh_manager_lookup (const int index, const void *key, struct neigh_entry_data *out)
+neigh_manager_lookup (const int index, const void *key,
+                      struct neigh_entry_data *out)
 {
   int ret;
 
@@ -122,7 +129,8 @@ neigh_manager_lookup (const int index, const void *key, struct neigh_entry_data 
   rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-  ret = rte_hash_lookup_data (rib->rib_info->neigh_tables[index], key, (void *) out);
+  ret = rte_hash_lookup_data (rib->rib_info->neigh_tables[index], key,
+                              (void *) out);
 
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_read_unlock ();
@@ -146,7 +154,8 @@ neigh_manager_show_table (const int index, const struct shell *shell)
   rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-  while (rte_hash_iterate (rib->rib_info->neigh_tables[index], (void *) &key, (void **) &data, &iter) >= 0) 
+  while (rte_hash_iterate (rib->rib_info->neigh_tables[index], (void *) &key,
+                           (void **) &data, &iter) >= 0)
     {
       inet_ntop (data->family, &data->ip_addr_key, addr, sizeof (addr));
       rte_ether_format_addr (buf, sizeof (buf), &data->lladdr);
