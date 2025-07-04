@@ -75,9 +75,12 @@ make
 ```bash
 # Run in foreground
 sudo ./sdplane/sdplane
+  or
+# Run in background, when you installed the dpkg.
+sudo systemctl start sdplane
 
-# In another terminal, connect to CLI
-sdplane local 9882
+# connect to CLI
+telnet localhost 9882
 ```
 
 ## Configuration
