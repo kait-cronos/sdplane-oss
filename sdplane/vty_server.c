@@ -107,7 +107,7 @@ vty_server (void *arg)
       poll (fds, 1, 0);
       if ((fds[0].revents & (POLLIN | POLLERR)) != 0)
         {
-
+          DEBUG_SDPLANE_LOG (VTY_SERVER, "lthread_accept() start.");
           client_fd = lthread_accept (sockfd, (struct sockaddr *) &peer_addr,
                                       &addrlen);
           if (client_fd < 0)
