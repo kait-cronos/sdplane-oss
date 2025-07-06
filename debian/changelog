@@ -1,3 +1,26 @@
+sdplane (0.1.3-79) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * quit using lthread_socket functions.
+  * Merge pull request #48 from kait-cronos/develop/yasu-linkflap-gen-fix2
+  * fix linkflap-gen. support for each ports' link-status.
+  * Merge pull request #40 from kait-cronos/develop/claude-changes
+  * fix the telnet part by hand.
+  * Merge pull request #45 from kait-cronos/develop/yasu-linkflapgen-fix
+  * linkflap-generator fix.
+  * docs: update project documentation and guidelines
+  * check_gnu_style.sh update by clang-format 18.1.3.
+  * Merge branch 'develop/claude-changes' of github.com:kait-cronos/sdplane-dev into claude-changes
+  * order Claude to reply in Japanese.
+  * fix: improve clang-format version checking in style script
+  * clang-format off to ai-workspace/templates. fix spaces in rib_manager.c.
+  * feat: implement comprehensive AI contribution tracking system
+  * fix: improve clang-format version checking in style script
+  * clang-format off to ai-workspace/templates. fix spaces in rib_manager.c.
+  * feat: implement comprehensive AI contribution tracking system
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 6 Jul 2025 17:49:19 +0900
+
 sdplane (0.1.3-61) UNRELEASED; urgency=low
 
   * release. update changelog.

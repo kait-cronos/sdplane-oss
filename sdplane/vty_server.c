@@ -41,7 +41,7 @@ vty_server (void *arg)
   int ret;
   int client_fd;
 
-  sockfd = lthread_socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  sockfd = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sockfd == -1)
     {
       fprintf (stderr, "lthread_socket() failed.\n");
@@ -107,18 +107,18 @@ vty_server (void *arg)
       poll (fds, 1, 0);
       if ((fds[0].revents & (POLLIN | POLLERR)) != 0)
         {
-          DEBUG_SDPLANE_LOG (VTY_SERVER, "lthread_accept() start.");
-          client_fd = lthread_accept (sockfd, (struct sockaddr *) &peer_addr,
+          DEBUG_SDPLANE_LOG (VTY_SERVER, "accept() start.");
+          client_fd = accept (sockfd, (struct sockaddr *) &peer_addr,
                                       &addrlen);
           if (client_fd < 0)
             {
-              DEBUG_SDPLANE_LOG (VTY_SERVER, "lthread_accept() failed.");
+              DEBUG_SDPLANE_LOG (VTY_SERVER, "accept() failed.");
               continue;
             }
           else
             {
               DEBUG_SDPLANE_LOG (
-                  VTY_SERVER, "lthread_accept(): client_fd: %d.", client_fd);
+                  VTY_SERVER, "accept(): client_fd: %d.", client_fd);
             }
 
           client_id = -1;
@@ -136,7 +136,7 @@ vty_server (void *arg)
                                  "can't create new client: "
                                  "already served max (%d).",
                                  VTY_CLIENT_MAX);
-              lthread_close (client_fd);
+              close (client_fd);
               continue;
             }
 
