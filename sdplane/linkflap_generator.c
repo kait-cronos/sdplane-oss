@@ -254,29 +254,29 @@ l2_repeater_rx_burst ()
 static inline __attribute__ ((always_inline)) void
 link_flap_once ()
 {
-  static bool link_status = false;
+  static bool link_status[RTE_MAX_ETHPORTS];
   uint16_t portid, queueid;
   int i;
 
   struct lcore_qconf *lcore_qconf;
   lcore_qconf = &rib->rib_info->lcore_qconf[lcore_id];
-  for (i = 0; i < lcore_qconf->nrxq; i++)
+  for (i = 0; i < lcore_qconf->nrxq && i < RTE_MAX_ETHPORTS; i++)
     {
       portid = lcore_qconf->rx_queue_list[i].port_id;
       queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
-      if (link_status)
+      if (link_status[i])
         rte_eth_dev_set_link_up (portid);
       else
         rte_eth_dev_set_link_down (portid);
 
       DEBUG_SDPLANE_LOG (
           LINKFLAP_GENERATOR,
-          "link %s on port: %d by lcore %u: interval: %'d us",
-          (link_status ? "up" : "down"), portid, lcore_id,
+          "link %s(%d) on port: %d by lcore %u: interval: %'d us",
+          (link_status[i] ? "up" : "down"), link_status[i], portid, lcore_id,
           LINK_FLAP_INTERVAL_US);
 
-      link_status ^= true;
+      link_status[i] ^= true;
     }
 }
 
