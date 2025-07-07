@@ -359,12 +359,12 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
   rif = &vswitch->router_if;
   cif = &vswitch->capture_if;
 
-  if (rif->sockfd > 0 && rif->ring_up)
+  if (rif->sockfd >= 0 && rif->ring_up)
     {
       enhanced_repeater_send_router_if (m, rx_portid, rx_queueid, rif);
     }
 
-  if (cif->sockfd > 0 && cif->ring_up)
+  if (cif->sockfd >= 0 && cif->ring_up)
     {
       enhanced_repeater_send_capture_if (m, rx_portid, rx_queueid, cif);
     }
@@ -474,8 +474,6 @@ enhanced_repeater_tx_burst ()
                   m, ROUTER_IF_PORT_ID, ROUTER_IF_QUEUE_ID,
                   vswitch_link->port_id, tx_queueid, vswitch_link);
             }
-
-          // l3_connector_router_if_forward (m, vswitch, tx_queueid);
 
           rte_pktmbuf_free (m);
         }

@@ -156,7 +156,7 @@ CLI_COMMAND2 (set_vswitch,
               "set vswitch <1-4094>",
               SET_HELP,
               "vswitch\n",
-              "vlan_id\n")
+              "vlan id\n")
 {
   struct shell *shell = (struct shell *) context;
   struct internal_msg_vswitch_create vswitch_create;
@@ -176,7 +176,7 @@ CLI_COMMAND2 (delete_vswitch,
               "delete vswitch <0-3>",
               DELETE_HELP,
               "vswitch\n",
-              "vswitch_id\n")
+              "vswitch id\n")
 {
   struct shell *shell = (struct shell *) context;
   struct internal_msg_vswitch_delete vswitch_delete;
@@ -196,7 +196,7 @@ CLI_COMMAND2 (delete_vswitch,
 CLI_COMMAND2 (show_vswitch_rib,
               "show vswitch_rib",
               SHOW_HELP,
-              "show vswitch_rib information\n")
+              "show vswitch rib information\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib;
@@ -234,19 +234,23 @@ CLI_COMMAND2 (show_vswitch_rib,
 }
 
 CLI_COMMAND2 (set_vswitch_link,
-              "set vswitch-link <0-3> <0-7> <0-4094>",
-              SET_HELP, "vswitch\n",
-              "vswitch_id\n"
-              "dpdk_port_id\n",
-              "tag_id (0: native, 1-4094: tagged\n")
+              "set vswitch-link vswitch <0-3> port <0-7> tag <0-4094>",
+              SET_HELP,
+              "vswitch-link\n",
+              "vswitch\n",
+              "vswitch id\n",
+              "port\n",
+              "dpdk port id\n",
+              "tag\n",
+              "tag id (0: native, 1-4094: tagged)\n")
 {
   struct shell *shell = (struct shell *) context;
   struct internal_msg_vswitch_link_create vswitch_link_create;
   struct internal_msg_header *msgp;
 
-  uint16_t vswitch_id = atoi (argv[2]);
-  uint16_t port_id = atoi (argv[3]);
-  uint16_t tag_id = atoi (argv[4]);
+  uint16_t vswitch_id = atoi (argv[3]);
+  uint16_t port_id = atoi (argv[5]);
+  uint16_t tag_id = atoi (argv[7]);
 
   vswitch_link_create.vswitch_id = vswitch_id;
   vswitch_link_create.port_id = port_id;
@@ -264,7 +268,7 @@ CLI_COMMAND2 (delete_vswitch_link,
               "delete vswitch-link <0-7>",
               DELETE_HELP,
               "vswitch-link\n",
-              "vswitch_link_id\n")
+              "vswitch link id\n")
 {
   struct shell *shell = (struct shell *) context;
   struct internal_msg_vswitch_link_delete vswitch_link_delete;
@@ -314,13 +318,14 @@ CLI_COMMAND2 (show_vswitch_link,
 
   return 0;
 }
+/* End of 🤖 生成AI (CLAUDE) */
 
 CLI_COMMAND2 (set_router_if,
               "set router-if <0-3> <WORD>",
               SET_HELP,
               "router interface\n",
               "vswitch id\n",
-              "TAP name\n")
+              "tap name\n")
 {
   struct shell *shell = (struct shell *) context;
   struct internal_msg_router_if_create router_if_create;
@@ -345,7 +350,7 @@ CLI_COMMAND2 (set_router_if,
 CLI_COMMAND2 (delete_router_if,
               "delete router-if <0-3>",
               DELETE_HELP,
-              "delete router interface configuration\n",
+              "router interface\n",
               "vswitch id\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -406,7 +411,7 @@ CLI_COMMAND2 (show_router_if,
         continue;
 
       struct router_if *rif = &vswitch->router_if;
-      if (rif->sockfd <= 0)
+      if (rif->sockfd < 0)
         continue;
 
       rte_ether_format_addr (mac_str, sizeof (mac_str), &rif->mac_addr);
@@ -423,13 +428,14 @@ CLI_COMMAND2 (show_router_if,
 
   return 0;
 }
+/* End of 🤖 生成AI (CLAUDE) */
 
 CLI_COMMAND2 (set_capture_if,
               "set capture-if <0-3> <WORD>",
               SET_HELP,
-              "set capture interface configuration\n",
+              "capture interface\n",
               "vswitch id\n",
-              "TAP interface name\n")
+              "tap name\n")
 {
   struct shell *shell = (struct shell *) context;
   struct internal_msg_capture_if_create capture_if_create;
@@ -454,7 +460,7 @@ CLI_COMMAND2 (set_capture_if,
 CLI_COMMAND2 (delete_capture_if,
               "delete capture-if <0-3>",
               DELETE_HELP,
-              "delete capture interface configuration\n",
+              "capture interface\n",
               "vswitch id\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -514,7 +520,7 @@ CLI_COMMAND2 (show_capture_if,
         continue;
 
       struct capture_if *cif = &vswitch->capture_if;
-      if (cif->sockfd <= 0)
+      if (cif->sockfd < 0)
         continue;
 
       fprintf (shell->terminal, "vswitch[%d]: capture interface configured%s",
@@ -525,6 +531,7 @@ CLI_COMMAND2 (show_capture_if,
 
   return 0;
 }
+/* End of 🤖 生成AI (CLAUDE) */
 
 void
 rib_cmd_init (struct command_set *cmdset)
