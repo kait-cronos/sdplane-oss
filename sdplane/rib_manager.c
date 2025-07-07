@@ -835,6 +835,17 @@ rib_manager_process_message (void *msgp)
                   msg_vswitch_link_create->vswitch_id,
                   msg_vswitch_link_create->port_id);
             }
+          else
+            {
+              port_add_tagged_vlan (new->rib_info, target_port, new_link);
+              DEBUG_SDPLANE_LOG (
+                  RIB,
+                  "vswitch link created as tagged: link_id %u, vswitch %u -> port %u (tag:%u)",
+                  new_link->vswitch_link_id,
+                  msg_vswitch_link_create->vswitch_id,
+                  msg_vswitch_link_create->port_id,
+                  msg_vswitch_link_create->tag_id);
+            }
         }
       else
         {

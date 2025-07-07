@@ -28,7 +28,7 @@ sdplane_SOURCES = \
         internal_message.c rib.c nettlp.c nettlp_support.c tap_cmd.c \
         dpdk_devbind.c netlink_thread.c stream_buf.c vlan_switch.c \
         pktgen_cmd.c linkflap_generator.c \
-        l3_connector.c l3_tap_handler.c
+        enhanced_repeater.c l3_tap_handler.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
 sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
 
