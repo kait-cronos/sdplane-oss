@@ -191,10 +191,6 @@ l3_tap_handler_handle_packet_down ()
   char data[9000];
   char *pkt;
 
-  /* 🤖 生成AI (CLAUDE) */
-  if (! rib || ! rib->rib_info)
-    return;
-
   struct vswitch_conf *vswitch;
   int vswitch_id;
 
@@ -251,25 +247,13 @@ l3_tap_handler_handle_packet_down ()
           int socket = rte_lcore_to_socket_id (rte_lcore_id ());
           struct rte_mempool *mp = l2fwd_pktmbuf_pool;
           struct rte_mbuf *m = rte_pktmbuf_alloc (mp);
-
-          if (m)
-            {
-              rte_pktmbuf_append (m, ret);
-              pkt = rte_pktmbuf_mtod (m, char *);
-              memcpy (pkt, data, ret);
-
-              if (rte_ring_enqueue (vswitch->router_if.ring_dn, m) != 0)
-                {
-                  DEBUG_SDPLANE_LOG (
-                      TAPHANDLER, "ring_dn enqueue failed, dropping packet");
-                  rte_pktmbuf_free (m);
-                }
-            }
-          else
-            {
-              DEBUG_SDPLANE_LOG (TAPHANDLER,
-                                 "mbuf allocation failed, dropping packet");
-            }
+          rte_pktmbuf_append (m, ret);
+          pkt = rte_pktmbuf_mtod (m, char *);
+          memcpy (pkt, data, ret);
+          rte_ring_enqueue (vswitch->router_if.ring_dn, m);
+          DEBUG_SDPLANE_LOG (TAPHANDLER, "packet: sockfd %d -> ring_dn %d",
+                             vswitch->router_if.sockfd,
+                             vswitch->router_if.tap_ring_id);
         }
     }
 }
@@ -300,20 +284,6 @@ l3_tap_handler (__rte_unused void *dummy)
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_register_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
-
-  /* Wait for RIB to be initialized */
-  int rib_wait_count = 0;
-  while (! rcu_dereference (rcu_global_ptr_rib) && rib_wait_count < 100)
-    {
-      rte_delay_ms (10);
-      rib_wait_count++;
-    }
-
-  if (! rcu_dereference (rcu_global_ptr_rib))
-    {
-      DEBUG_SDPLANE_LOG (TAPHANDLER, "RIB not available after wait, exiting");
-      return -1;
-    }
 
   while (! force_quit && ! force_stop[tap_handler_id])
     {

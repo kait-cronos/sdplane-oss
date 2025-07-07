@@ -162,28 +162,13 @@ CLI_COMMAND2 (set_vswitch,
   struct internal_msg_vswitch_create vswitch_create;
   struct internal_msg_header *msgp;
 
-  if (argc != 3)
-    {
-      fprintf (shell->terminal, "usage: set vswitch create vlan_id%s",
-               shell->NL);
-      return 0;
-    }
-
   uint16_t vlan_id = atoi (argv[2]);
-  if (vlan_id == 0 || vlan_id > 4094)
-    {
-      fprintf (shell->terminal, "invalid vlan_id: %u (must be 1-4094)%s",
-               vlan_id, shell->NL);
-      return 0;
-    }
 
   vswitch_create.vlan_id = vlan_id;
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_CREATE,
                               &vswitch_create, sizeof (vswitch_create));
   rib_manager_send_message (msgp, shell);
 
-  fprintf (shell->terminal, "create vswitch with vlan_id %u%s", vlan_id,
-           shell->NL);
   return 0;
 }
 
@@ -197,13 +182,6 @@ CLI_COMMAND2 (delete_vswitch,
   struct internal_msg_vswitch_delete vswitch_delete;
   struct internal_msg_header *msgp;
 
-  if (argc != 3)
-    {
-      fprintf (shell->terminal, "usage: delete vswitch vswitch_id%s",
-               shell->NL);
-      return 0;
-    }
-
   uint16_t vswitch_id = atoi (argv[2]);
 
   vswitch_delete.vswitch_id = vswitch_id;
@@ -211,7 +189,6 @@ CLI_COMMAND2 (delete_vswitch,
                               &vswitch_delete, sizeof (vswitch_delete));
   rib_manager_send_message (msgp, shell);
 
-  fprintf (shell->terminal, "delete vswitch_id %u%s", vswitch_id, shell->NL);
   return 0;
 }
 
@@ -267,14 +244,6 @@ CLI_COMMAND2 (set_vswitch_link,
   struct internal_msg_vswitch_link_create vswitch_link_create;
   struct internal_msg_header *msgp;
 
-  if (argc < 5)
-    {
-      fprintf (shell->terminal,
-               "usage: set vswitch-link vswitch_id port_id tag_id%s",
-               shell->NL);
-      return 0;
-    }
-
   uint16_t vswitch_id = atoi (argv[2]);
   uint16_t port_id = atoi (argv[3]);
   uint16_t tag_id = atoi (argv[4]);
@@ -288,9 +257,6 @@ CLI_COMMAND2 (set_vswitch_link,
                            &vswitch_link_create, sizeof (vswitch_link_create));
   rib_manager_send_message (msgp, shell);
 
-  fprintf (shell->terminal,
-           "create vswitch link: vswitch %u -> port %u tag:%u%s", vswitch_id,
-           port_id, tag_id, shell->NL);
   return 0;
 }
 
@@ -304,13 +270,6 @@ CLI_COMMAND2 (delete_vswitch_link,
   struct internal_msg_vswitch_link_delete vswitch_link_delete;
   struct internal_msg_header *msgp;
 
-  if (argc != 3)
-    {
-      fprintf (shell->terminal, "usage: delete vswitch-link vswitch_link_id%s",
-               shell->NL);
-      return 0;
-    }
-
   uint16_t vswitch_link_id = atoi (argv[2]);
 
   vswitch_link_delete.vswitch_link_id = vswitch_link_id;
@@ -319,8 +278,6 @@ CLI_COMMAND2 (delete_vswitch_link,
                            &vswitch_link_delete, sizeof (vswitch_link_delete));
   rib_manager_send_message (msgp, shell);
 
-  fprintf (shell->terminal, "delete vswitch_link_id %u%s", vswitch_link_id,
-           shell->NL);
   return 0;
 }
 
