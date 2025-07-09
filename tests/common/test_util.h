@@ -11,6 +11,7 @@
 
 extern int test_ports[TEST_PORT_NUM];
 extern struct rte_ring *test_rings[TEST_RING_NUM];
+extern struct rte_mempool *test_mbuf_pool;
 
 struct test_config
 {
@@ -20,3 +21,4 @@ struct test_config
 };
 
 int run_test (struct test_config *config);
+int apply_config (const char *config_path);
