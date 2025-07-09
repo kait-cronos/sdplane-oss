@@ -47,4 +47,6 @@ COPY . /sdplane-dev
 
 WORKDIR /sdplane-dev/tests
 
-CMD ["make", "test"]
+SHELL ["/bin/bash", "-c"]
+
+CMD ["/bin/bash", "-c", "make test -j $(nproc)"]
