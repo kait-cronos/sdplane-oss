@@ -100,7 +100,7 @@ main ()
 {
   struct test_config config = {
     .name = "test_l2_repeater",
-    .test_f = test_l2_repeater,
+    .test_func = test_l2_repeater,
     .config_path = "test_l2repeater.conf",
   };
   run_test (&config);

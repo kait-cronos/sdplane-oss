@@ -16,7 +16,7 @@ extern struct rte_mempool *test_mbuf_pool;
 struct test_config
 {
   char *name;
-  int (*test_f) ();
+  int (*test_func) ();
   char *config_path;
 };
 

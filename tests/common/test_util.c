@@ -44,11 +44,10 @@ struct rte_ring *test_rings[TEST_RING_NUM];
 char *test_rte_eal_argv[4] = { "sdplane", "-c", "0xf", "--no-pci" };
 int test_rte_eal_argc = 4;
 
-int (*test_func) ();
 int test_ret;
 
 int
-prepare_test ()
+prepare_test (struct test_config *config)
 {
   int dev_count = rte_eth_dev_count_avail ();
 
@@ -93,16 +92,17 @@ prepare_test ()
               RXQ_TO_RING_IDX (i, 0), TXQ_TO_RING_IDX (i, 0),
               TXQ_TO_RING_IDX (i, TEST_NTXQ_NUM - 1));
     }
+
+  if (config->config_path)
+    apply_config (config->config_path);
 }
 
 void
 test_lthread_main (void *arg)
 {
   struct test_config *config = (struct test_config *) arg;
-  prepare_test ();
-  if (config->config_path)
-    apply_config (config->config_path);
-  test_ret = test_func ();
+  prepare_test (config);
+  test_ret = config->test_func ();
   force_quit = true;
 }
 
@@ -116,7 +116,6 @@ int
 run_test (struct test_config *config)
 {
   lthread_t *lt = NULL;
-  test_func = config->test_f;
 
   signal (SIGINT, signal_handler);
   signal (SIGTERM, signal_handler);
