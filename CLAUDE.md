@@ -39,7 +39,19 @@ make
 ./autogen.sh
 mkdir build
 cd build
-../configure
+# For debug builds (recommended for development)
+CFLAGS="-g -O0" ../configure
+# For production builds
+# ../configure
+make
+```
+
+### Build with Packet Generator Support
+```bash
+./autogen.sh
+mkdir build
+cd build
+CFLAGS="-g -O0" ../configure --enable-pktgen
 make
 ```
 
@@ -112,8 +124,12 @@ Requires clang-format version 18.1.3. Files in `module/` directory are ignored b
 # Run in foreground
 ./sdplane/sdplane
 
+# Run as systemd service (after installation)
+sudo systemctl start sdplane
+sudo systemctl enable sdplane
+
 # Connect to CLI
-sdplane local 9882
+telnet localhost 9882
 ```
 
 ## Configuration Files
@@ -142,6 +158,8 @@ sdplane local 9882
 - Packet processing uses zero-copy ring buffers between components
 - CLI commands are defined using the CLI_COMMAND2 macro system
 - Version information is auto-generated from git via `sdplane-version-c.sh`
+- Use `--enable-pktgen` configure option to include packet generation capabilities
+- Debug builds with `CFLAGS="-g -O0"` are recommended for development
 
 ## AI Contribution Tracking
 
