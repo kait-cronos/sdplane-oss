@@ -135,14 +135,16 @@ telnet localhost 9882
 - `example-config/sdplane_l3fwd-lpm.conf`: L3 forwarding with LPM configuration
 - `example-config/sdplane-nettlp.conf`: NetTLP configuration
 
-## Documentation
+## User's Guide (Manual)
+
+## Developer's Guide
+
+### Documentation
 
 - [Topton Installation Guide](doc/install-memo-topton.txt) - For 10G NIC systems
 - [General Installation Guide](doc/install-memo.txt) - For 1G NIC systems
 - [NetTLP Configuration Guide](doc/nettlp-memo.txt) - NetTLP setup instructions
 - [Technical Presentation](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf) (Japanese)
-
-## Development
 
 ### Code Style
 The project follows GNU coding standards. Use the provided scripts to check and format code:
