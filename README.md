@@ -1,20 +1,65 @@
 
 # sdplane-dev (Soft Data Plane)
 
-<a href="https://gist.github.com/cheerfulstoic/d107229326a01ff0f333a1d3476e068d"><img src="https://img.shields.io/badge/Maintenance%20Level-Actively%20Developed-brightgreen.svg" /></a>
-
-A high-performance open-source software router built on DPDK (Data Plane Development Kit), designed for software-defined networking applications.
+A high-performance open-source software router built on
+DPDK (Data Plane Development Kit), designed for
+software-defined networking applications.
 
 ## Features
 
-- **High-Performance Packet Processing**: Leverages DPDK for zero-copy, user-space packet processing
-- **Layer 2/3 Forwarding**: Integrated L2 and L3 forwarding with ACL, LPM, and FIB support
-- **Packet Generation**: Built-in packet generator for testing and benchmarking
-- **Network Virtualization**: TAP interface support and VLAN switching capabilities
-- **CLI Management**: Interactive command-line interface for configuration and monitoring
-- **Multi-threading**: Cooperative threading model with per-core workers
+- **High-Performance Packet Processing**:
+  Leverages DPDK for zero-copy, user-space packet processing
+- **Layer 2/3 Forwarding**:
+  Integrated L2 and L3 forwarding with ACL, LPM, and FIB support
+- **Packet Generation**:
+  Built-in packet generator for testing and benchmarking
+- **Network Virtualization**:
+  TAP interface support and VLAN switching capabilities
+- **CLI Management**:
+  Interactive command-line interface for configuration and monitoring
+- **Multi-threading**:
+  Cooperative threading model with per-core workers
 
-## Requirements
+### Architecture
+- **Main Application**: Core router logic and initialization
+- **DPDK Modules**: L2/L3 forwarding and packet generation
+- **CLI System**: Command-line interface with completion and help
+- **Threading**: lthread-based cooperative multitasking
+- **Virtualization**: TAP interfaces and virtual switching
+
+## Quick Start by Debian Package
+
+
+## Build from Source
+
+### System Requirements
+- **OS**:
+  Ubuntu Linux (currently supported)
+- **NICs**:
+  4 network interfaces (virtio-net supported for virtual environments)
+- **Memory**:
+  Hugepage support required
+- **CPU**:
+  Multi-core processor recommended
+
+## Hardware Platforms
+
+The project has been tested on:
+- **Topton**: Mini-PC with 10G NICs
+- **Wiretap**: Mini-PC with 1G NICs
+
+
+### Prerequisite Ubuntu Packages
+```bash
+sudo apt install build-essential cmake \
+                 autotools-dev autoconf automake libtool pkg-config
+```
+
+### Optional Ubuntu Packages
+```bash
+sudo apt install etckeeper tig bridge-utils \
+                 iptables-persistent fail2ban dmidecode screen ripgrep
+```
 
 ### Dependencies
 - **DPDK**: Data Plane Development Kit
@@ -22,21 +67,6 @@ A high-performance open-source software router built on DPDK (Data Plane Develop
 - **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (DPDK-based cooperative threading)
 - **liburcu-qsbr**: Userspace RCU library
 - **libpcap**: Packet capture library
-
-### System Requirements
-- **OS**: Ubuntu Linux (currently supported)
-- **NICs**: 4 network interfaces (virtio-net supported for virtual environments)
-- **Memory**: Hugepage support required
-- **CPU**: Multi-core processor recommended
-
-### Ubuntu Packages
-```bash
-sudo apt install etckeeper tig build-essential bridge-utils cmake \
-                 iptables-persistent fail2ban dmidecode screen ripgrep \
-                 autotools-dev autoconf automake libtool pkg-config
-```
-
-## Quick Start
 
 ### 1. Install Dependencies
 
@@ -66,7 +96,7 @@ cd sdplane-dev
 # Configure and build
 mkdir build
 cd build
-../configure
+CFLAGS="-g -O0" sh ../configure
 make
 ```
 
@@ -95,25 +125,15 @@ telnet localhost 9882
 #### OS Setup Configuration (`etc/`)
 - `etc/sdplane.conf.sample`: Main configuration template
 - `etc/sdplane.service`: systemd service file
-- `etc/60-netplan-sdplane.yaml`: Network interface configuration
-- `etc/iptables-rules.v4`: IPv4 firewall rules
-- `etc/iptables-rules.v6`: IPv6 firewall rules
-- `etc/sshd_config`: SSH daemon configuration
 - `etc/modules-load.d/`: Kernel module loading configuration
 
 #### Application Configuration (`example-config/`)
-- `example-config/sdplane-nettlp.conf`: NetTLP configuration
 - `example-config/sdplane-pktgen.conf`: Packet generator configuration
 - `example-config/sdplane-topton.conf`: Topton hardware configuration
 - `example-config/sdplane_l2_repeater.conf`: L2 repeater configuration
 - `example-config/sdplane_l2fwd.conf`: L2 forwarding configuration
 - `example-config/sdplane_l3fwd-lpm.conf`: L3 forwarding with LPM configuration
-
-## Hardware Platforms
-
-The project has been tested on:
-- **Topton**: Mini-PC with 10G NICs
-- **Wiretap**: Mini-PC with 1G NICs
+- `example-config/sdplane-nettlp.conf`: NetTLP configuration
 
 ## Documentation
 
@@ -134,13 +154,6 @@ The project follows GNU coding standards. Use the provided scripts to check and 
 # Auto-format code
 ./style/check_gnu_style.sh update
 ```
-
-### Architecture
-- **Main Application**: Core router logic and initialization
-- **DPDK Modules**: L2/L3 forwarding and packet generation
-- **CLI System**: Command-line interface with completion and help
-- **Threading**: lthread-based cooperative multitasking
-- **Virtualization**: TAP interfaces and virtual switching
 
 ## License
 
