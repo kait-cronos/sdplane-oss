@@ -144,13 +144,9 @@ The project follows GNU coding standards. Use the provided scripts to check and 
 
 ## License
 
-This project is open source. See the COPYING file for license details.
+This project is open source. See the LICENSE file for license details.
 
 ## Author
 
 Yasuhiro Ohara (yasu1976@gmail.com)
-
-## Contributing
-
-Contributions are welcome! Please ensure code follows the project's coding standards and includes appropriate documentation.
 
