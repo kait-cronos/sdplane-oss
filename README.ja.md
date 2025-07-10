@@ -179,4 +179,4 @@ telnet localhost 9882
 
 ## 作者
 
-大原康裕（Yasuhiro Ohara）(yasu1976@gmail.com)
+小原泰弘（Yasuhiro Ohara）(yasu1976@gmail.com)

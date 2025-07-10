@@ -141,20 +141,20 @@ telnet localhost 9882
 
 Comprehensive user guides and command references are available:
 
-- [User Guide](doc/manual/en/README.md) - Complete overview and command classification
-- [Port Management & Statistics](doc/manual/en/port-management.md) - DPDK port management and statistics
-- [Worker & lcore Management](doc/manual/en/worker-management.md) - Worker threads and lcore management
-- [Debug & Logging](doc/manual/en/debug-logging.md) - Debug and logging functions
-- [VTY & Shell Management](doc/manual/en/vty-shell.md) - VTY and shell management
-- [System Information & Monitoring](doc/manual/en/system-monitoring.md) - System information and monitoring
-- [RIB & Routing](doc/manual/en/routing.md) - RIB and routing functions
-- [Queue Configuration](doc/manual/en/queue-configuration.md) - Queue configuration and management
-- [Packet Generation](doc/manual/en/packet-generation.md) - Packet generation using PKTGEN
-- [Thread Information](doc/manual/en/thread-information.md) - Thread information and monitoring
-- [TAP Interface](doc/manual/en/tap-interface.md) - TAP interface management
-- [NetTLP](doc/manual/en/nettlp.md) - Network TLP functions
-- [lthread Management](doc/manual/en/lthread-management.md) - lthread management
-- [Device Management](doc/manual/en/device-management.md) - Device and driver management
+- [User Guide](doc/manual/README.md) - Complete overview and command classification
+- [Port Management & Statistics](doc/manual/port-management.md) - DPDK port management and statistics
+- [Worker & lcore Management](doc/manual/worker-management.md) - Worker threads and lcore management
+- [Debug & Logging](doc/manual/debug-logging.md) - Debug and logging functions
+- [VTY & Shell Management](doc/manual/vty-shell.md) - VTY and shell management
+- [System Information & Monitoring](doc/manual/system-monitoring.md) - System information and monitoring
+- [RIB & Routing](doc/manual/routing.md) - RIB and routing functions
+- [Queue Configuration](doc/manual/queue-configuration.md) - Queue configuration and management
+- [Packet Generation](doc/manual/packet-generation.md) - Packet generation using PKTGEN
+- [Thread Information](doc/manual/thread-information.md) - Thread information and monitoring
+- [TAP Interface](doc/manual/tap-interface.md) - TAP interface management
+- [NetTLP](doc/manual/nettlp.md) - Network TLP functions
+- [lthread Management](doc/manual/lthread-management.md) - lthread management
+- [Device Management](doc/manual/device-management.md) - Device and driver management
 
 ## Developer's Guide
 
