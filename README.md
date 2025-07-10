@@ -137,6 +137,23 @@ telnet localhost 9882
 
 ## User's Guide (Manual)
 
+詳細なユーザーガイドとコマンドリファレンスは以下をご覧ください：
+
+- [ユーザーガイド](doc/manual/README.md) - 全機能の概要とコマンド分類
+- [ポート管理・統計](doc/manual/port-management.md) - DPDKポートの管理と統計情報
+- [ワーカー・lcore管理](doc/manual/worker-management.md) - ワーカースレッドとlcoreの管理
+- [デバッグ・ログ](doc/manual/debug-logging.md) - デバッグとログ機能
+- [VTY・シェル管理](doc/manual/vty-shell.md) - VTYとシェルの管理
+- [システム情報・監視](doc/manual/system-monitoring.md) - システム情報と監視機能
+- [RIB・ルーティング](doc/manual/routing.md) - RIBとルーティング機能
+- [キュー設定](doc/manual/queue-configuration.md) - キューの設定と管理
+- [パケット生成](doc/manual/packet-generation.md) - PKTGENを使用したパケット生成
+- [スレッド情報](doc/manual/thread-information.md) - スレッドの情報と監視
+- [TAPインターフェース](doc/manual/tap-interface.md) - TAPインターフェースの管理
+- [NetTLP](doc/manual/nettlp.md) - Network TLP機能
+- [lthread管理](doc/manual/lthread-management.md) - lthreadの管理
+- [デバイス管理](doc/manual/device-management.md) - デバイスとドライバーの管理
+
 ## Developer's Guide
 
 ### Documentation
