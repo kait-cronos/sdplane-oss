@@ -1,6 +1,6 @@
 # VTY・シェル管理
 
-**言語 / Language:** [English](../en/vty-shell.md) | **日本語**
+**言語 / Language:** [English](../vty-shell.md) | **日本語**
 
 VTY（Virtual Terminal）とシェルの管理を行うコマンドです。
 

@@ -1,5 +1,7 @@
 # TAPインターフェース
 
+**言語 / Language:** [English](../tap-interface.md) | **日本語**
+
 TAPインターフェースの管理を行うコマンドです。
 
 ## コマンド一覧

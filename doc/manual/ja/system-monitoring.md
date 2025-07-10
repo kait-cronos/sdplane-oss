@@ -1,5 +1,7 @@
 # システム情報・監視
 
+**言語 / Language:** [English](../system-monitoring.md) | **日本語**
+
 sdplaneのシステム情報と監視機能を提供するコマンドです。
 
 ## コマンド一覧

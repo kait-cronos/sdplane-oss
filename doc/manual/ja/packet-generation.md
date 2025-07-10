@@ -1,5 +1,7 @@
 # パケット生成
 
+**言語 / Language:** [English](../packet-generation.md) | **日本語**
+
 PKTGEN（Packet Generator）を使用したパケット生成機能のコマンドです。
 
 ## コマンド一覧

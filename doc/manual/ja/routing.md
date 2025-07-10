@@ -1,5 +1,7 @@
 # RIB・ルーティング
 
+**言語 / Language:** [English](../routing.md) | **日本語**
+
 RIB（Routing Information Base）とルーティング機能を管理するコマンドです。
 
 ## コマンド一覧

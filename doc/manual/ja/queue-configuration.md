@@ -1,5 +1,7 @@
 # キュー設定
 
+**言語 / Language:** [English](../queue-configuration.md) | **日本語**
+
 DPDKキューの設定と管理を行うコマンドです。
 
 ## コマンド一覧

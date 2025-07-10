@@ -1,5 +1,7 @@
 # デバイス管理
 
+**言語 / Language:** [English](../device-management.md) | **日本語**
+
 DPDKデバイスとドライバーの管理を行うコマンドです。
 
 ## コマンド一覧

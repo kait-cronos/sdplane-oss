@@ -1,6 +1,6 @@
 # Worker & lcore Management
 
-**Language / 言語:** **English** | [日本語](../ja/worker-management.md)
+**Language / 言語:** **English** | [Japanese](ja/worker-management.md)
 
 Commands for managing DPDK worker threads and lcores.
 

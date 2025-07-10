@@ -1,6 +1,6 @@
 # NetTLP
 
-**Language / 言語:** **English** | [日本語](../ja/nettlp.md)
+**Language / 言語:** **English** | [Japanese](ja/nettlp.md)
 
 Commands for managing Network TLP (Transaction Layer Protocol) functions.
 

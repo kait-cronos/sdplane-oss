@@ -1,6 +1,6 @@
 # ワーカー・lcore管理
 
-**言語 / Language:** [English](../en/worker-management.md) | **日本語**
+**言語 / Language:** [English](../worker-management.md) | **日本語**
 
 DPDKワーカースレッドとlcoreの管理を行うコマンドです。
 

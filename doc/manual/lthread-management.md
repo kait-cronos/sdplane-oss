@@ -1,6 +1,6 @@
 # lthread Management
 
-**Language / 言語:** **English** | [日本語](../ja/lthread-management.md)
+**Language / 言語:** **English** | [Japanese](ja/lthread-management.md)
 
 Commands for managing lthread (lightweight threads).
 

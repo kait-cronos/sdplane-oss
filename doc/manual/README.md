@@ -1,6 +1,6 @@
 # sdplane-dev User's Guide
 
-**Language / 言語:** **English** | [日本語](../ja/README.md)
+**Language / 言語:** **English** | [Japanese](ja/README.md)
 
 sdplane-dev is a high-performance DPDK-based software router. This user guide describes all commands and features of sdplane.
 

@@ -1,5 +1,7 @@
 # スレッド情報
 
+**言語 / Language:** [English](../thread-information.md) | **日本語**
+
 スレッドの情報と監視を行うコマンドです。
 
 ## コマンド一覧

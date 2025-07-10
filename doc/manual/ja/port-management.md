@@ -1,6 +1,6 @@
 # ポート管理・統計
 
-**言語 / Language:** [English](../en/port-management.md) | **日本語**
+**言語 / Language:** [English](../port-management.md) | **日本語**
 
 DPDKポートの管理と統計情報を扱うコマンドです。
 

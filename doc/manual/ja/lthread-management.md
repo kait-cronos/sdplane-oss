@@ -1,5 +1,7 @@
 # lthread管理
 
+**言語 / Language:** [English](../lthread-management.md) | **日本語**
+
 lthread（軽量スレッド）の管理を行うコマンドです。
 
 ## コマンド一覧

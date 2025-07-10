@@ -1,6 +1,6 @@
 # Device Management
 
-**Language / 言語:** **English** | [日本語](../ja/device-management.md)
+**Language / 言語:** **English** | [Japanese](ja/device-management.md)
 
 Commands for managing DPDK devices and drivers.
 

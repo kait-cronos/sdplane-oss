@@ -1,5 +1,7 @@
 # NetTLP
 
+**言語 / Language:** [English](../nettlp.md) | **日本語**
+
 Network TLP（Transaction Layer Protocol）機能を管理するコマンドです。
 
 ## コマンド一覧
