@@ -5,7 +5,7 @@ A high-performance open-source software router built on
 DPDK (Data Plane Development Kit), designed for
 software-defined networking applications.
 
-**Language / 言語:** **English** | [日本語](README.ja.md)
+**Language / 言語:** **English** | [Japanese](README.ja.md)
 
 ## Features
 
