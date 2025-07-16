@@ -1060,12 +1060,10 @@ rib_manager_process_message (void *msgp)
       ret = neigh_manager_add_entry (
           new->rib_info->neigh_tables, msg_neigh_entry->index,
           &msg_neigh_entry->data.ip_addr_key, &msg_neigh_entry->data);
-      if (ret == EINVAL)
+      if (ret == EINVAL) /* entry already exists. */
         DEBUG_SDPLANE_LOG (RIB, "neigh_manager_add_entry: EINVAL.");
-      /* EINVAL means the entry already exists. */
-      else if (ret == ENOSPC)
+      else if (ret == ENOSPC) /* table is full. */
         DEBUG_SDPLANE_LOG (RIB, "neigh_manager_add_entry: ENOSPC.");
-      /* ENOSPC means the table is full. */
       break;
 
     case INTERNAL_MSG_TYPE_NEIGH_DEL_ENTRY:

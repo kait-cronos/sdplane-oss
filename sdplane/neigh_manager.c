@@ -37,6 +37,8 @@ neigh_manager_str (int index)
     default:
       return "unknown";
     }
+
+  return NULL;
 }
 
 /*
@@ -57,17 +59,15 @@ neigh_manager_create_table (struct rte_hash **neigh_tables, int index,
                                         .hash_func_init_val = 0,
                                         .socket_id = rte_socket_id () };
 
-  char s[64];
-  snprintf (s, sizeof (s), "%s", neigh_manager_str (index));
-  params.name = s;
+  params.name = neigh_manager_str (index);
   neigh_tables[index] = rte_hash_create (&params);
   if (neigh_tables[index] == NULL)
     {
-      DEBUG_SDPLANE_LOG (NEIGH, "failed to create neighbor table: %s", s);
+      DEBUG_SDPLANE_LOG (NEIGH, "failed to create neighbor table: %s", params.name);
       return;
     }
 
-  DEBUG_SDPLANE_LOG (NEIGH, "neighbor table %s created.", s);
+  DEBUG_SDPLANE_LOG (NEIGH, "neighbor table %s created.", params.name);
 }
 
 void
@@ -159,7 +159,7 @@ neigh_manager_show_table (const int index, const struct shell *shell)
     {
       inet_ntop (data->family, &data->ip_addr_key, addr, sizeof (addr));
       rte_ether_format_addr (buf, sizeof (buf), &data->lladdr);
-      fprintf (stderr, "%s lladdr %s\n", addr, buf);
+      fprintf (shell->terminal, "%s lladdr %s\n", addr, buf);
     }
 
 #if HAVE_LIBURCU_QSBR

@@ -477,8 +477,8 @@ netlink_thread (void *arg)
   listen_groups = RTMGRP_LINK;
   listen_groups |= RTMGRP_IPV4_ROUTE | RTMGRP_IPV4_IFADDR;
   listen_groups |= RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_IFADDR;
-  netlink_socket (&netlink_kernel, listen_groups);
   listen_groups |= RTMGRP_NEIGH;
+  netlink_socket (&netlink_kernel, listen_groups);
   netlink_socket (&netlink_cmd, 0);
 
   int ret;

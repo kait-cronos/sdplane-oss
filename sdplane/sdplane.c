@@ -408,9 +408,9 @@ CLI_COMMAND2 (show_neighbor, "show neighbor (ipv4|ipv6)", SHOW_HELP,
       fprintf (t, "Usage: %s\n", argv[0]);
       return -1;
     }
-  if (strcmp (argv[2], "ipv4") == 0)
+  if (! strcmp (argv[2], "ipv4"))
     neigh_manager_show_table (NEIGH_ARP_TABLE, shell);
-  else if (strcmp (argv[2], "ipv6") == 0)
+  else if (! strcmp (argv[2], "ipv6"))
     neigh_manager_show_table (NEIGH_ND_TABLE, shell);
   else
     {
