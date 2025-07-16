@@ -593,6 +593,15 @@ CLI_COMMAND2 (
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
+static int
+lsi_event_callback(uint16_t port_id, enum rte_eth_event_type type, void *param,
+		    void *ret_param)
+{
+  void *msgp;
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_PORT_STATUS, NULL, 0);
+  internal_msg_send_to (msg_queue_rib, msgp, NULL);
+}
+
 CLI_COMMAND2 (set_port_dev_configure,
               "set port (<0-16>|all) dev-configure <0-64> <0-64>", SHOW_HELP,
               PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
@@ -605,7 +614,9 @@ CLI_COMMAND2 (set_port_dev_configure,
   int ret;
   struct rte_eth_dev_info dev_info;
   struct rte_eth_conf port_conf =
-    { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, }, };
+    { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, },
+      .intr_conf = { .lsc = 1 },
+    };
 
   uint16_t nb_rx_queue = 1;
   uint16_t nb_tx_queue = 1;
@@ -647,6 +658,15 @@ CLI_COMMAND2 (set_port_dev_configure,
           fprintf (shell->terminal,
                    "rte_eth_dev_configure(): port: %d failed: %d%s", port_id,
                    ret, shell->NL);
+        }
+      
+      ret = rte_eth_dev_callback_register (
+          port_id, RTE_ETH_EVENT_INTR_LSC, lsi_event_callback, NULL);
+      if (ret < 0)
+        {
+          fprintf (shell->terminal,
+                    "rte_eth_dev_callback_register(): port: %d failed: %d%s",
+                    port_id, ret, shell->NL);
         }
 
       rxq_conf = dev_info.default_rxconf;
