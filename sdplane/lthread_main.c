@@ -34,14 +34,17 @@
 #include <lthread.h>
 
 #include <sdplane/debug.h>
+#include <sdplane/debug_cmd.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
+#include "debug_sdplane.h"
+
 #include <sdplane/termio.h>
 #include <sdplane/vector.h>
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-#include <sdplane/debug_cmd.h>
-// #include <sdplane/shell_fselect.h>
-#include <sdplane/debug_zcmdsh.h>
 
 #include "l3fwd.h"
 #include "l3fwd_event.h"
@@ -54,9 +57,16 @@
 #include "sdplane.h"
 #include "tap_handler.h"
 
-#include "debug_sdplane.h"
 #include "vty_shell.h"
 #include "thread_info.h"
+
+#if HAVE_LIBURCU_QSBR
+#include <urcu/urcu-qsbr.h>
+#endif /*HAVE_LIBURCU_QSBR*/
+
+__thread struct rib *rib_tlocal = NULL;
+
+static __thread uint64_t loop_counter = 0;
 
 int lthread_core = 0;
 
@@ -121,13 +131,15 @@ int
 lthread_main (__rte_unused void *dummy)
 {
   lthread_t *lt = NULL;
+  int ret;
+  int lcore_id;
+  int thread_id;
 
   /* timer set */
   // timer_init (60 * 60, "2024/12/31 23:59:59");
   timer_init (0, NULL);
 
   /* initialize workers */
-  int lcore_id;
   for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)
     {
       lcore_workers[lcore_id].func = NULL;
@@ -145,32 +157,74 @@ lthread_main (__rte_unused void *dummy)
   printf ("%s[%d]: %s: enter at core[%d].\n", __FILE__, __LINE__, __func__,
           lthread_core);
 
+  thread_id = thread_lookup (lthread_main);
+  if (thread_id < 0)
+    thread_id = thread_register (lthread_core, lt, lthread_main,
+                                 "lthread_main", NULL);
+  else
+    thread_update (thread_id, lthread_core, lt, lthread_main,
+                                 "lthread_main", NULL);
+  thread_register_loop_counter (thread_id, &loop_counter);
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_register_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+
   /* library initialization. */
   debug_zcmdsh_cmd_init ();
   command_shell_init ();
 
-  // lthread_create (&lt, (lthread_func) tap_handler, NULL);
   lthread_create (&lt, (lthread_func) vty_server, NULL);
   thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
   lthread_detach2 (lt);
 
-#if 0
-  lthread_create (&lt, (lthread_func) startup_config, NULL);
-  thread_register (lthread_core, lt, (lthread_func) startup_config,
-                   "startup_config", NULL);
-  lthread_join (lt, NULL, 0);
-#else
-  int ret;
   ret = startup_config (NULL);
   if (ret < 0)
     {
-      printf ("%s[%d]: %s: error in startup_config.\n", __FILE__, __LINE__,
-              __func__);
+      printf ("%s[%d]: %s: error in startup_config.\n",
+              __FILE__, __LINE__, __func__);
       exit (-1);
     }
-#endif
 
   lthread_create (&lt, (lthread_func) console_shell, NULL);
-  thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
-  lthread_detach2 (lt);
+  thread_id = thread_register (lthread_core, lt, console_shell,
+                               "console_shell", NULL);
+
+  /* quietly wait/check for the application process quit status. */
+  while (! force_quit && ! force_stop[lthread_core])
+    {
+      lthread_sleep (1000); // yield.
+      loop_counter++;
+    }
+
+  /* join the console lthread. */
+  //lthread_join_all ();
+  ret = lthread_join (threads[thread_id].lthread, NULL, 0);
+  switch (ret)
+    {
+    case 0:
+      //DEBUG_SDPLANE_LOG (LTHREAD, "successfully joined.");
+      printf ("%s[%d]: %s: lthread_join() on console_thread: %d: success.\n",
+              __FILE__, __LINE__, __func__, ret);
+      break;
+    case -1:
+      //DEBUG_SDPLANE_LOG (LTHREAD, "joined thread is canceled.");
+      printf ("%s[%d]: %s: lthread_join() on console_thread: %d: canceled.\n",
+              __FILE__, __LINE__, __func__, ret);
+      break;
+    case -2:
+      //DEBUG_SDPLANE_LOG (LTHREAD, "join timeout.");
+      printf ("%s[%d]: %s: lthread_join() on console_thread: %d: timeout.\n",
+              __FILE__, __LINE__, __func__, ret);
+      break;
+    default:
+      //DEBUG_SDPLANE_LOG (LTHREAD, "join ended in unknown status.");
+      printf ("%s[%d]: %s: lthread_join() on console_thread: %d: timeout.\n",
+              __FILE__, __LINE__, __func__, ret);
+      break;
+    }
+
+#if HAVE_LIBURCU_QSBR
+  urcu_qsbr_unregister_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
 }

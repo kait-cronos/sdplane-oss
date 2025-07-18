@@ -107,11 +107,13 @@ vty_banner (struct shell *shell)
 {
   int ret;
   char signature[1024];
-  snprintf_signature (signature, sizeof (signature), "enp1s0");
   fprintf (shell->terminal, "welcome to sdplane vty_shell.%s", shell->NL);
   fprintf (shell->terminal, "sdplane version: %s%s", sdplane_version,
            shell->NL);
+#if 0
+  snprintf_signature (signature, sizeof (signature), "enp1s0");
   fprintf (shell->terminal, "signature: %s%s", signature, shell->NL);
+#endif
   fflush (shell->terminal);
 }
 
