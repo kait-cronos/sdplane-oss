@@ -83,4 +83,7 @@ struct rib_info
 
 EXTERN_COMMAND (show_rib);
 
+extern __thread struct rib *rib_tlocal;
+
+
 #endif /*__RIB_H__*/

@@ -63,6 +63,7 @@
 #include "vty_shell.h"
 
 #include "thread_info.h"
+#include "rib_manager.h"
 
 extern int lthread_core;
 
@@ -80,8 +81,6 @@ CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
   int lcore_id;
   for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
     stop_lcore (shell, lcore_id);
-
-  lthread_cancel_all ();
 }
 
 bool reboot = false;
@@ -143,12 +142,18 @@ console_shell (void *arg)
     {
       lthread_sleep (100); // yield.
 
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_read_lock ();
+      rib_tlocal = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+
       if (shell->is_paging)
         shell_read_nowait_paging (shell);
       else
         shell_read_nowait (shell);
 
 #if HAVE_LIBURCU_QSBR
+      urcu_qsbr_read_unlock ();
       urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
 

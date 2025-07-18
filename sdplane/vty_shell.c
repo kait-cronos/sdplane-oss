@@ -33,6 +33,7 @@
 #include "vty_shell.h"
 
 #include "sdplane_version.h"
+#include "rib_manager.h"
 
 int
 shell_keyfunc_clear_terminal (struct shell *shell)
@@ -107,11 +108,13 @@ vty_banner (struct shell *shell)
 {
   int ret;
   char signature[1024];
-  snprintf_signature (signature, sizeof (signature), "enp1s0");
   fprintf (shell->terminal, "welcome to sdplane vty_shell.%s", shell->NL);
   fprintf (shell->terminal, "sdplane version: %s%s", sdplane_version,
            shell->NL);
+#if 0
+  snprintf_signature (signature, sizeof (signature), "enp1s0");
   fprintf (shell->terminal, "signature: %s%s", signature, shell->NL);
+#endif
   fflush (shell->terminal);
 }
 
@@ -214,6 +217,11 @@ vty_shell (void *arg)
     {
       lthread_sleep (100); // yield.
 
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_read_lock ();
+      rib_tlocal = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+
       if (shell->is_paging)
         {
           DEBUG_ZCMDSH_LOG (PAGER, "nowait_pager");
@@ -223,9 +231,7 @@ vty_shell (void *arg)
         shell_read_nowait (shell);
 
 #if HAVE_LIBURCU_QSBR
-      /* we define rcu_read_lock does not survibe between two
-      shell command execution. */
-      /* for the safety, we report to rcu system a quiescent state. */
+      urcu_qsbr_read_unlock ();
       urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
 

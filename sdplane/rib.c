@@ -26,19 +26,12 @@
 
 #include "internal_message.h"
 
-static __thread struct rib *rib = NULL;
-
-#if HAVE_LIBURCU_QSBR
-#include <urcu/urcu-qsbr.h>
-#endif /*HAVE_LIBURCU_QSBR*/
-
 CLI_COMMAND2 (show_rib, "show rib", SHOW_HELP, "rib information\n")
 {
   struct shell *shell = (struct shell *) context;
-  struct rib *rib;
+  struct rib *rib = rib_tlocal;
   int i, j;
   int nb_ports;
-  rib = rcu_dereference (rcu_global_ptr_rib);
 
   if (! rib)
     return 0;

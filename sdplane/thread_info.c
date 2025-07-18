@@ -76,6 +76,33 @@ thread_unregister (int thread_id)
 }
 
 int
+thread_update (int thread_id, int lcore_id, lthread_t *lthread,
+               lthread_func func, char *name, void *arg)
+{
+  struct thread_info *tinfo;
+  int i;
+
+  if (thread_id < 0 || thread_info_size <= thread_id)
+    return -1;
+
+  rte_rwlock_write_lock (&thread_info_lock);
+
+  if (thread_id >= 0)
+    {
+      tinfo = &threads[thread_id];
+      tinfo->lcore_id = lcore_id;
+      tinfo->lthread = lthread;
+      tinfo->func = func;
+      tinfo->name = strdup (name);
+      tinfo->arg = arg;
+    }
+
+  rte_rwlock_write_unlock (&thread_info_lock);
+
+  return thread_id;
+}
+
+int
 thread_register_loop_counter (int thread_id, uint64_t *ptr)
 {
   struct thread_info *tinfo;
