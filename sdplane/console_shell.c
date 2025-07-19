@@ -153,6 +153,7 @@ console_shell (void *arg)
         shell_read_nowait (shell);
 
 #if HAVE_LIBURCU_QSBR
+      rib_tlocal = NULL;
       urcu_qsbr_read_unlock ();
       urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/

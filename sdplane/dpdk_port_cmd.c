@@ -707,12 +707,7 @@ CLI_COMMAND2 (set_port_txrx_desc,
   bool rx_spec, tx_spec;
   uint16_t nb_rx_desc, nb_tx_desc;
   uint16_t desc_val;
-  struct rib *rib;
-
-#if HAVE_LIBURCU_QSBR
-  urcu_qsbr_read_lock ();
-  rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
-#endif /*HAVE_LIBURCU_QSBR*/
+  struct rib *rib = rib_tlocal;
 
   if (strcmp (argv[2], "all"))
     port_spec = strtol (argv[2], NULL, 0);
@@ -770,17 +765,16 @@ CLI_COMMAND2 (set_port_txrx_desc,
       txrx_desc.nb_txd = nb_tx_desc;
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC, &txrx_desc,
                                   sizeof (txrx_desc));
-      internal_msg_send_to (msg_queue_rib, msgp, shell);
+      ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
+      if (ret < 0)
+        {
+          return CMD_FAILURE;
+        }
 
       fprintf (shell->terminal, "send internal msg: %p%s", msgp, shell->NL);
     }
 
-#if HAVE_LIBURCU_QSBR
-  urcu_qsbr_read_unlock ();
-  urcu_qsbr_quiescent_state ();
-#endif /*HAVE_LIBURCU_QSBR*/
-
-  return 0;
+  return CMD_SUCCESS;
 }
 
 CLI_COMMAND2 (set_port_link_updown,

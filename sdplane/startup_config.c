@@ -69,11 +69,16 @@ startup_config (__rte_unused void *dummy)
           lthread_sleep (10); // yield.
 
           ret = shell_read_nowait (shell);
-          if (ret < 0)
+          if (shell->cmd_status == CMD_NOT_FOUND ||
+              shell->cmd_status == CMD_FAILURE)
             {
               FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
-              DEBUG_SDPLANE_LOG (RIB, "shell_read_nowait: %d", ret);
-              printf ("shell_read_nowait: %d\n", ret);
+              DEBUG_SDPLANE_LOG (STARTUP_CONFIG, "shell_read_nowait: error: "
+                                 "ret: %d cmd_status: %d",
+                                 ret, shell->cmd_status);
+              printf ("shell_read_nowait: error: ret: %d cmd_status: %d\n",
+                      ret, shell->cmd_status);
+              fflush (stdout);
             }
         }
     }
