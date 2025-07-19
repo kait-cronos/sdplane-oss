@@ -44,8 +44,6 @@ void command_shell_finish ();
 void command_history_add (char *command_line, struct command_history *history,
                           struct shell *shell);
 
-void timer_init (int duration_limit, char *date_limit);
-
 int dirent_cmp (const void *va, const void *vb);
 void file_ls_candidate (struct shell *shell, char *file_path);
 

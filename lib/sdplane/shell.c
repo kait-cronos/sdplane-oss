@@ -73,17 +73,12 @@ shell_format (struct shell *shell)
       /* move to the beginning. */
       for (i = shell->cursor; 0 < i; i--)
         writec (shell->writefd, CONTROL ('H'));
-    }
-  else
-    writec (shell->writefd, '\n');
 
-  /* re-write the new command-line. */
-  ret = write (shell->writefd, command_line, strlen (command_line));
-  if (ret < 0)
-    DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
+      /* re-write the new command-line. */
+      ret = write (shell->writefd, command_line, strlen (command_line));
+      if (ret < 0)
+        DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
 
-  if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
-    {
       /* erase the last part. */
       for (i = end; i < shell->end; i++)
         writec (shell->writefd, ' ');
@@ -151,8 +146,10 @@ shell_prompt (struct shell *shell)
   /* move cursor to beginning */
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
     writec (shell->writefd, '\r');
+#if 0
   else
     writec (shell->writefd, '\n');
+#endif
 
   /* print prompt */
   ret = write (shell->writefd, shell->prompt, strlen (shell->prompt));

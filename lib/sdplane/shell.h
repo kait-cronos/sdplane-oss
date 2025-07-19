@@ -45,6 +45,8 @@ struct shell
   shell_keyfunc_t *keymap;
   shell_keyfunc_t keymap_normal[256];
 
+  int cmd_status; /* command.h: CMD_SUCCESS, CMD_NOT_FOUND, etc. */
+
   void *cmdset;
   void *history;
 

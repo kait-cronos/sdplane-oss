@@ -827,7 +827,7 @@ command_execute (char *command_line, struct command_set *cmdset, void *context)
         }
     }
   else
-    ret = -1;
+    ret = CMD_NOT_FOUND;
 
   free (argv);
   free (cmd_dup);

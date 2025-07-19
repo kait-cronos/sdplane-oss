@@ -8,6 +8,11 @@
 #define COMMAND_WORD_DELIMITERS " "
 #define COMMAND_HELP_DELIMITERS "\n"
 
+#define CMD_NONE      0
+#define CMD_SUCCESS   1
+#define CMD_FAILURE   2
+#define CMD_NOT_FOUND 3
+
 typedef int (*command_func_t) (void *context, int argc, char **argv);
 
 struct command_node
