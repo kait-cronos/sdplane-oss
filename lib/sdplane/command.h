@@ -66,6 +66,7 @@ struct command_header
 
 #define EXTERN_COMMAND(cmdname) extern struct command_header cmdname##_cmd
 
+#if 0
 #define INSTALL_COMMAND3(cmdset, cmdname, index)                              \
   do                                                                          \
     {                                                                         \
@@ -76,6 +77,7 @@ struct command_header
   while (0)
 
 #define EXTERN_COMMAND3(cmdname) extern struct command_header cmdname##_cmd[]
+#endif /*0*/
 
 struct command_set *command_set_create ();
 void command_set_delete (struct command_set *cmdset);
@@ -113,75 +115,6 @@ void command_config_write (struct vector *config, FILE *fp);
 #define SHOW_HELP "show information.\n"
 #define NO_HELP   "disable information.\n"
 
-#if 0 //obsolete CLI_COMMAND. please use CLI_COMMAND2.
-
-#define DEFINE_COMMAND1(cmdname, cmdstr, h1)                                  \
-  DEFINE_COMMAND (cmdname, cmdstr, h1)
-#define DEFINE_COMMAND2(cmdname, cmdstr, h1, h2)                              \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2)
-#define DEFINE_COMMAND3(cmdname, cmdstr, h1, h2, h3)                          \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3)
-#define DEFINE_COMMAND4(cmdname, cmdstr, h1, h2, h3, h4)                      \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4)
-#define DEFINE_COMMAND5(cmdname, cmdstr, h1, h2, h3, h4, h5)                  \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5)
-#define DEFINE_COMMAND6(cmdname, cmdstr, h1, h2, h3, h4, h5, h6)              \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5 h6)
-#define DEFINE_COMMAND7(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7)          \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5 h6 h7)
-#define DEFINE_COMMAND8(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8)      \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5 h6 h7 h8)
-
-#define DEFINE_COMMAND9(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9)  \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5 h6 h7 h8 h9)
-#define DEFINE_COMMAND10(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
-                         h10)                                                 \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5 h6 h7 h8 h9 h10)
-#define DEFINE_COMMAND11(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
-                         h10, h11)                                            \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11)
-#define DEFINE_COMMAND12(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
-                         h10, h11, h12)                                       \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12)
-#define DEFINE_COMMAND13(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
-                         h10, h11, h12, h13)                                  \
-  DEFINE_COMMAND (cmdname, cmdstr, h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13)
-#define DEFINE_COMMAND14(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
-                         h10, h11, h12, h13, h14)                             \
-  DEFINE_COMMAND (cmdname, cmdstr,                                            \
-                  h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14)
-#define DEFINE_COMMAND15(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
-                         h10, h11, h12, h13, h14, h15)                        \
-  DEFINE_COMMAND (cmdname, cmdstr,                                            \
-                  h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15)
-#define DEFINE_COMMAND16(cmdname, cmdstr, h1, h2, h3, h4, h5, h6, h7, h8, h9, \
-                         h10, h11, h12, h13, h14, h15, h16)                   \
-  DEFINE_COMMAND (cmdname, cmdstr,                                            \
-                  h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16)
-
-
-
-#define DEFCOM_NARG(...)  DEFCOM_NARG2 (0, ##__VA_ARGS__, DEFCOM_RSEQ_N)
-#define DEFCOM_NARG2(...) DEFCOM_ARG_N (__VA_ARGS__)
-#define DEFCOM_ARG_N(__0, __1, __2, __3, __4, __5, __6, __7, __8, __9, _10,   \
-                     _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21,   \
-                     _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32,   \
-                     _33, _34, _35, _36, _37, _38, _39, _40, _41, _42, _43,   \
-                     _44, _45, _46, _47, _48, _49, _50, _51, _52, _53, _54,   \
-                     _55, _56, _57, _58, _59, _60, _61, _62, _63, N, ...)     \
-  DEFINE_COMMAND##N
-#define DEFCOM_RSEQ_N                                                         \
-  63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, \
-      44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, \
-      26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9,  \
-      8, 7, 6, 5, 4, 3, 2, 1, 0
-#define CLI_COMMAND(cmdname, cmdstr, ...)                                     \
-  DEFCOM_NARG (__VA_ARGS__)                                                   \
-  (cmdname, cmdstr, __VA_ARGS__)
-
-#endif /*0*/
-
-
 #define ZCMDSH_MKSTR_AUX(x) #x
 #define ZCMDSH_MKSTR(x) ZCMDSH_MKSTR_AUX(x)
 
@@ -191,6 +124,11 @@ void command_config_write (struct vector *config, FILE *fp);
 #define ZCMDSH_LIST_AUX(x,y) x y
 #define ZCMDSH_LIST(x,y) ZCMDSH_LIST_AUX(x,y)
 
+/* The following part is to compute the number of args:
+   e.g., number_arg[] = concat(arg[1,2,3,4], reverse[8,7,6,5,4,3,2,1]),
+   then number_arg[8] == 4.
+   below implementation is using 64 instead of 8, meaning
+   we support up to 64 args. */
 #define ZCMDSH_INDEX_REVERSE \
   63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, \
       44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, \
@@ -204,7 +142,8 @@ void command_config_write (struct vector *config, FILE *fp);
   _44, _45, _46, _47, _48, _49, _50, _51, _52, _53, _54,   \
   _55, _56, _57, _58, _59, _60, _61, _62, _63
 
-#define ZCMDSH_NARG(...)  ZCMDSH_NARG_AUX (0, ##__VA_ARGS__, ZCMDSH_INDEX_REVERSE())
+#define ZCMDSH_NARG(...) \
+  ZCMDSH_NARG_AUX (0, ##__VA_ARGS__, ZCMDSH_INDEX_REVERSE())
 #define ZCMDSH_NARG_AUX(...) ZCMDSH_ARG_N (__VA_ARGS__)
 #define ZCMDSH_ARG_N(\
   __0, __1, __2, __3, __4, __5, __6, __7, __8, __9, _10,   \
@@ -215,6 +154,9 @@ void command_config_write (struct vector *config, FILE *fp);
   _55, _56, _57, _58, _59, _60, _61, _62, _63, \
   NUM, ...) NUM
 
+/* The following part is to change the listing by commas to
+   the listing by spaces: e.g., (x, y) to (x y).
+   it decreases by one arg for each substitution. */
 #define LIST ZCMDSH_LIST
 #define NCLI1(n, s, h1, ...) DEFINE_COMMAND (n, s, h1)
 #define NCLI2(n, s, h1, h2, ...) NCLI1 (n, s, LIST (h1, h2), __VA_ARGS__)
@@ -243,9 +185,11 @@ void command_config_write (struct vector *config, FILE *fp);
 #define NCLI23(n, s, h1, h2, ...) NCLI22 (n, s, LIST (h1, h2), __VA_ARGS__)
 #define NCLI24(n, s, h1, h2, ...) NCLI23 (n, s, LIST (h1, h2), __VA_ARGS__)
 
+/* CLI_COMMAND2() computes the number of args, 'X',
+   and calls NCLI'X' */
 #define ZCMDSH_VARARG_COMMAND(...)  \
   ZCMDSH_CONCAT(NCLI, ZCMDSH_NARG(__VA_ARGS__))
-#define CLI_COMMAND2(cmdname, cmdstr, ...)                                     \
+#define CLI_COMMAND2(cmdname, cmdstr, ...)  \
   ZCMDSH_VARARG_COMMAND (__VA_ARGS__) (cmdname, cmdstr, __VA_ARGS__)
 
 #endif /*__COMMAND_H__*/
