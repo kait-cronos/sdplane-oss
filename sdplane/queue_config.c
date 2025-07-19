@@ -180,11 +180,7 @@ CLI_COMMAND2 (show_thread_qconf, "show thread qconf", SHOW_HELP,
   int i, j;
   struct sdplane_queue_conf *qconf;
 
-  struct rib *rib = NULL;
-#if HAVE_LIBURCU_QSBR
-  urcu_qsbr_read_lock ();
-  rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
-#endif /*HAVE_LIBURCU_QSBR*/
+  struct rib *rib = rib_tlocal;
 
   if (rib && rib->rib_info)
     {
@@ -219,10 +215,6 @@ CLI_COMMAND2 (show_thread_qconf, "show thread qconf", SHOW_HELP,
         }
     }
 
-#if HAVE_LIBURCU_QSBR
-  urcu_qsbr_read_unlock ();
-  urcu_qsbr_quiescent_state ();
-#endif /*HAVE_LIBURCU_QSBR*/
   return 0;
 }
 

@@ -49,6 +49,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_VLAN_SWITCH, "vlan-switch" },
   { DEBUG_SDPLANE_PKTGEN, "pktgen" },
   { DEBUG_SDPLANE_LINKFLAP_GENERATOR, "linkflap-generator" },
+  { DEBUG_SDPLANE_STARTUP_CONFIG, "startup-config" },
 };
 
 struct command_header debug_sdplane_cmd;
