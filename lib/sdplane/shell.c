@@ -68,22 +68,11 @@ shell_format (struct shell *shell)
         count = 0;
     }
 
-#if 0
-  fprintf (shell->terminal, "back from %d to 0%s",
-           shell->cursor, shell->NL);
-  fprintf (shell->terminal, "write new command_line (%d bytes)%s",
-           strlen (command_line), shell->NL);
-  fprintf (shell->terminal, "write extra space (%d bytes)%s",
-           shell->end - end, shell->NL);
-  fprintf (shell->terminal, "go back from %d to %d%s",
-           shell->end,  cursor, shell->NL);
-#endif
-
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
     {
-  /* move to the beginning. */
-  for (i = shell->cursor; 0 < i; i--)
-    writec (shell->writefd, CONTROL ('H'));
+      /* move to the beginning. */
+      for (i = shell->cursor; 0 < i; i--)
+        writec (shell->writefd, CONTROL ('H'));
     }
   else
     writec (shell->writefd, '\n');
@@ -95,13 +84,13 @@ shell_format (struct shell *shell)
 
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
     {
-  /* erase the last part. */
-  for (i = end; i < shell->end; i++)
-    writec (shell->writefd, ' ');
+      /* erase the last part. */
+      for (i = end; i < shell->end; i++)
+        writec (shell->writefd, ' ');
 
-  /* move back to the cursor. */
-  for (i = shell->end; cursor < i; i--)
-    writec (shell->writefd, CONTROL ('H'));
+      /* move back to the cursor. */
+      for (i = shell->end; cursor < i; i--)
+        writec (shell->writefd, CONTROL ('H'));
     }
 
   free (shell->command_line);
@@ -741,6 +730,17 @@ shell_close (struct shell *shell)
     }
 }
 
+char *
+shell_input_str (char c)
+{
+  static char buf[8];
+  if (c == '\n')
+    snprintf (buf, sizeof (buf), "\\n");
+  else
+    snprintf (buf, sizeof (buf), "%c", c);
+  return buf;
+}
+
 int
 shell_read (struct shell *shell)
 {
@@ -767,8 +767,8 @@ shell_read (struct shell *shell)
       ret_shell = shell_input (shell, buf[i]);
       if (ret_shell < 0)
         {
-          printf ("shell_input: %d input char: '%c'\n",
-                  ret_shell, buf[i]);
+          DEBUG_ZCMDSH_LOG (SHELL, "shell_input: ret: %d input char: '%s'",
+                  ret_shell, shell_input_str (buf[i]));
           break;
         }
     }
