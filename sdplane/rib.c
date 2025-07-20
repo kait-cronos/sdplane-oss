@@ -26,6 +26,8 @@
 
 #include "internal_message.h"
 
+// clang-format off
+
 CLI_COMMAND2 (show_rib,
               "show rib",
               SHOW_HELP,
@@ -199,10 +201,9 @@ CLI_COMMAND2 (show_vswitch_rib,
               "show vswitch rib information\n")
 {
   struct shell *shell = (struct shell *) context;
-  struct rib *rib;
+  struct rib *rib = rib_tlocal;
   int i, j;
 
-  rib = rcu_dereference (rcu_global_ptr_rib);
   if (! rib || ! rib->rib_info)
     {
       fprintf (shell->terminal, "no rib information available%s", shell->NL);
@@ -292,10 +293,9 @@ CLI_COMMAND2 (show_vswitch_link,
               "show vswitch link information\n")
 {
   struct shell *shell = (struct shell *) context;
-  struct rib *rib;
+  struct rib *rib = rib_tlocal;
   int i;
 
-  rib = rcu_dereference (rcu_global_ptr_rib);
   if (! rib || ! rib->rib_info)
     {
       fprintf (shell->terminal, "no rib information available%s", shell->NL);
@@ -338,7 +338,7 @@ CLI_COMMAND2 (set_router_if,
 
   router_if_create.vswitch_id = vswitch_id;
   snprintf (router_if_create.tap_name, sizeof (router_if_create.tap_name),
-           "%s", tap_name);
+            "%s", tap_name);
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_CREATE,
                               &router_if_create, sizeof (router_if_create));
@@ -377,7 +377,7 @@ CLI_COMMAND2 (show_router_if,
               "vswitch id\n")
 {
   struct shell *shell = (struct shell *) context;
-  struct rib *rib;
+  struct rib *rib = rib_tlocal;
   int i, target_vswitch = -1;
   char mac_str[18], ipv4_str[16], ipv6_str[40];
 
@@ -392,7 +392,6 @@ CLI_COMMAND2 (show_router_if,
         }
     }
 
-  rib = rcu_dereference (rcu_global_ptr_rib);
   if (! rib || ! rib->rib_info)
     {
       fprintf (shell->terminal, "no rib information available%s", shell->NL);
@@ -448,7 +447,7 @@ CLI_COMMAND2 (set_capture_if,
 
   capture_if_create.vswitch_id = vswitch_id;
   snprintf (capture_if_create.tap_name, sizeof (capture_if_create.tap_name),
-           "%s", tap_name);
+            "%s", tap_name);
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_CAPTURE_IF_CREATE,
                               &capture_if_create, sizeof (capture_if_create));
@@ -487,7 +486,7 @@ CLI_COMMAND2 (show_capture_if,
               "vswitch id\n")
 {
   struct shell *shell = (struct shell *) context;
-  struct rib *rib;
+  struct rib *rib = rib_tlocal;
   int i, target_vswitch = -1;
 
   if (argc > 2)
@@ -501,7 +500,6 @@ CLI_COMMAND2 (show_capture_if,
         }
     }
 
-  rib = rcu_dereference (rcu_global_ptr_rib);
   if (! rib || ! rib->rib_info)
     {
       fprintf (shell->terminal, "no rib information available%s", shell->NL);

@@ -159,11 +159,11 @@ lthread_main (__rte_unused void *dummy)
 
   thread_id = thread_lookup (lthread_main);
   if (thread_id < 0)
-    thread_id = thread_register (lthread_core, lt, lthread_main,
-                                 "lthread_main", NULL);
+    thread_id =
+        thread_register (lthread_core, lt, lthread_main, "lthread_main", NULL);
   else
-    thread_update (thread_id, lthread_core, lt, lthread_main,
-                                 "lthread_main", NULL);
+    thread_update (thread_id, lthread_core, lt, lthread_main, "lthread_main",
+                   NULL);
   thread_register_loop_counter (thread_id, &loop_counter);
 
 #if HAVE_LIBURCU_QSBR
@@ -181,14 +181,14 @@ lthread_main (__rte_unused void *dummy)
   ret = startup_config (NULL);
   if (ret < 0)
     {
-      printf ("%s[%d]: %s: error in startup_config.\n",
-              __FILE__, __LINE__, __func__);
+      printf ("%s[%d]: %s: error in startup_config.\n", __FILE__, __LINE__,
+              __func__);
       exit (-1);
     }
 
   lthread_create (&lt, (lthread_func) console_shell, NULL);
-  thread_id = thread_register (lthread_core, lt, console_shell,
-                               "console_shell", NULL);
+  thread_id =
+      thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
 
   /* quietly wait/check for the application process quit status. */
   while (! force_quit && ! force_stop[lthread_core])
