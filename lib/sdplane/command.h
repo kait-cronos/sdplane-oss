@@ -94,6 +94,12 @@ void command_install (struct command_set *cmdset, char *command_line,
 void command_install2 (struct command_set *cmdset, char *command_line,
                        char *help_string, command_func_t func);
 
+int command_argv_parse (char *command_line_dup,
+                     int *argc_ptr, char ***argv_ptr);
+int command_matched_nodes (int argc, char **argv, char *command_line,
+                       struct command_set *cmdset,
+                       struct command_node ***cmdnodes_ptr);
+
 int command_execute (char *command_line, struct command_set *cmdset,
                      void *context);
 

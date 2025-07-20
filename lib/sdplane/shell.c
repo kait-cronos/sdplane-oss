@@ -14,6 +14,8 @@
 #include "debug_log.h"
 #include "debug_zcmdsh.h"
 
+#include "command.h"
+
 // static unsigned char inputch = 0;
 
 int
@@ -559,7 +561,6 @@ shell_move_word_forward (struct shell *shell)
   return 0;
 }
 
-#define DEBUG_POS 82
 void
 shell_debug (struct shell *shell)
 {
@@ -569,13 +570,75 @@ shell_debug (struct shell *shell)
 
   shell_terminate (shell);
 
-  fprintf (shell->terminal, "cmd: [");
-  for (i = 0; i < shell->end; i++)
-    fprintf (shell->terminal, " %#02x", shell->command_line[i]);
-  fprintf (shell->terminal, " ]%s", shell->NL);
-  fprintf (shell->terminal, "size: %d cursor: %d end: %d%s", shell->size,
-           shell->cursor, shell->end, shell->NL);
+  char *command_line_dup;
+  int argc;
+  char **argv;
+  struct command_node **cmdnodes;
+
+  command_line_dup = strdup (shell->command_line);
+
+  /* parse current command-line's argv. */
+  command_argv_parse (command_line_dup, &argc, &argv);
+
+#if 0
+  /* display argv's memory address. */
+  fprintf (shell->terminal, "debug: argv: %p%s",
+           (void *) argv, shell->NL);
+#endif
+
+  /* display current command-line's argv. */
+  fprintf (shell->terminal, "debug: argc: %d argv:", argc);
+  for (i = 0; i < argc; i++)
+    {
+      fprintf (shell->terminal, " %s", argv[i]);
+    }
+  fprintf (shell->terminal, "%s", shell->NL);
+
+  /* find matching command nodes. */
+  command_matched_nodes (argc, argv, shell->command_line,
+                         shell->cmdset, &cmdnodes);
+
+#if 0
+  /* display cmdset's and matched cmdnodes's memory address. */
+  fprintf (shell->terminal, "debug: cmdset: %p%s", shell->cmdset, shell->NL);
+  fprintf (shell->terminal, "debug: cmdnodes: %p%s", (void *) cmdnodes,
+           shell->NL);
+#endif
+
+  /* display matched command nodes. */
+  for (i = 0; i < argc; i++)
+    {
+      if (cmdnodes[i])
+      fprintf (shell->terminal, "cmdnode[%d]: %p %s%s",
+               i, cmdnodes[i], cmdnodes[i]->cmdstr, shell->NL);
+    }
   fflush (shell->terminal);
+
+  /* need to free allocated memory. */
+  free (cmdnodes);
+  free (argv);
+  free (command_line_dup);
+
+  /* display the last input char. */
+    {
+      char ch = shell->inputch;
+      fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x", __func__, ch, ch,
+               ch);
+      if (CONTROL ('@') <= ch && ch <= CONTROL ('_'))
+        fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->NL);
+      else if (ch == 127)
+        fprintf (shell->terminal, " DEL%s", shell->NL);
+      else if (isascii (ch))
+        fprintf (shell->terminal, " '%c'%s", ch, shell->NL);
+      else
+        fprintf (shell->terminal, "%s", shell->NL);
+      fprintf (shell->terminal, "keymap: %p, keymap[%d]: %p%s",
+               (void *) shell->keymap, ch, (void *) shell->keymap[ch],
+               shell->NL);
+    }
+
+  fprintf (shell->terminal, "size: %d cursor: %d end: %d%s",
+           shell->size, shell->cursor, shell->end, shell->NL);
 
   snprintf (
       debug, sizeof (debug),
@@ -586,29 +649,6 @@ shell_debug (struct shell *shell)
       shell->inputch, shell->size);
   fprintf (shell->terminal, "%s%s", debug, shell->NL);
   fflush (shell->terminal);
-  // ret = write (shell->writefd, debug, strlen (debug));
-
-#if 0
-  for (i = 0; i < shell->end; i++)
-    {
-      int cmdch;
-      cmdch = shell->command_line[i];
-      if (isascii (cmdch))
-        write (shell->writefd, (char)cmdch, 1);
-      else
-        {
-          snprintf (debug, sizeof (debug), "(%02x|%d)", cmdch, cmdch);
-          write (shell->writefd, debug, strlen (debug));
-        }
-    }
-  snprintf (debug, sizeof (debug), "%s", shell->NL);
-  write (shell->writefd, debug, strlen (debug));
-#endif
-
-#if 0
-  ret = write (shell->writefd, &shell->command_line[shell->cursor],
-               strlen (&shell->command_line[shell->cursor]));
-#endif
 }
 
 int
@@ -616,10 +656,6 @@ shell_refresh (struct shell *shell)
 {
   int i;
   int ret;
-
-  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG) ||
-      FLAG_CHECK (DEBUG_CONFIG (ZCMDSH), DEBUG_TYPE (ZCMDSH, SHELL)))
-    shell_debug (shell);
 
   /* print prompt */
   shell_prompt (shell);
@@ -647,27 +683,6 @@ shell_input (struct shell *shell, unsigned char ch)
   /* save input char */
   shell->inputch = ch;
 
-#if 1
-  if (FLAG_CHECK (DEBUG_CONFIG (ZCMDSH), DEBUG_TYPE (ZCMDSH, SHELL)))
-    {
-      fprintf (shell->terminal, "%s", shell->NL);
-      fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x", __func__, ch, ch,
-               ch);
-      if (CONTROL ('@') <= ch && ch <= CONTROL ('_'))
-        fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->NL);
-      else if (ch == 127)
-        fprintf (shell->terminal, " DEL%s", shell->NL);
-      else if (isascii (ch))
-        fprintf (shell->terminal, " '%c'%s", ch, shell->NL);
-      else
-        fprintf (shell->terminal, "%s", shell->NL);
-      fprintf (shell->terminal, "keymap: %p, keymap[%d]: %p%s",
-               (void *) shell->keymap, ch, (void *) shell->keymap[ch],
-               shell->NL);
-      shell_refresh (shell);
-    }
-#endif
-
   int ret = 0;
   if (shell->keymap[ch])
     ret = (*shell->keymap[ch]) (shell);
@@ -676,7 +691,11 @@ shell_input (struct shell *shell, unsigned char ch)
     FLAG_CLEAR (shell->flag, SHELL_FLAG_ESCAPE);
 
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
-    shell_refresh (shell);
+    {
+      shell_linefeed (shell);
+      shell_debug (shell);
+      shell_refresh (shell);
+    }
 
   return ret;
 }

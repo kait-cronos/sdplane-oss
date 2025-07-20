@@ -643,7 +643,7 @@ command_install2 (struct command_set *cmdset, char *command_line,
     {
       char *p;
 
-      DEBUG_ZCMDSH_LOG (COMMAND, "%s: word: %s\n", __func__, word);
+      DEBUG_ZCMDSH_LOG (COMMAND, "%s: word: %s", __func__, word);
 
       /* everything before '(' is ignored. */
       p = index (word, '(');
@@ -753,6 +753,125 @@ command_replace (struct command_node *cmd, char *word)
     ret = file_replace (word);
 
   return ret;
+}
+
+/*
+  command_line_dup = strdup (shell->command_line);
+  command_argv_parse (command_line_dup, &argc, &argv);
+  command_matched_nodes (argc, argv, shell->cmdset, &cmdnodes);
+  free (command_line_dup);
+  free (argv);
+  free (cmdnodes);
+ */
+
+#define PTR_ARRAY_MALLOC(size, type) \
+    (type*) malloc (sizeof (type) * (size))
+#define PTR_ARRAY_CLEAR(ptr, size, type) \
+    memset (ptr, 0, sizeof (type) * (size))
+#define PTR_ARRAY_REALLOC(ptr, size, type) \
+    (type*) realloc (ptr, sizeof (type) * (size))
+
+int
+command_argv_parse (char *command_line_dup,
+                     int *argc_ptr, char ***argv_ptr)
+{
+  char *stringp;
+  char *word;
+
+  int argc;
+  int argsize;
+
+  /* arrays to be created. */
+  char **argv, **argv_new;
+
+  stringp = command_line_dup;
+
+  argc = 0;
+  argsize = 4;
+
+  argv = PTR_ARRAY_MALLOC(argsize, char *);
+  if (! argv)
+    {
+      DEBUG_ZCMDSH_LOG (COMMAND, "malloc failed.");
+      return -1;
+    }
+  PTR_ARRAY_CLEAR(argv, argsize, char *);
+
+  while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
+    {
+      /* prevent execution completing NULL word */
+      if (*word == '\0')
+        break;
+
+      if (argc + 1 >= argsize)
+        {
+          argv_new = PTR_ARRAY_REALLOC (argv, argsize * 2, char *);
+          if (argv_new)
+            {
+              DEBUG_ZCMDSH_LOG (COMMAND,
+                                "expand argv array: %p: %d -> %p: %d.",
+                                argv, argsize, argv_new, argsize * 2);
+              argv = argv_new;
+              argsize *= 2;
+            }
+          else
+            {
+              DEBUG_ZCMDSH_LOG (COMMAND, "expand realloc failed.");
+              break;
+            }
+        }
+
+      argv[argc++] = word;
+    }
+
+  *argc_ptr = argc;
+  *argv_ptr = argv;
+
+  return 0;
+}
+
+int
+command_matched_nodes (int argc, char **argv, char *command_line,
+                       struct command_set *cmdset,
+                       struct command_node ***cmdnodes_ptr)
+{
+  struct command_node **cmdnodes;
+  int i;
+  struct command_node *parent, *match = NULL;
+  char *word;
+
+  cmdnodes = PTR_ARRAY_MALLOC (argc, struct command_node *);
+  if (! cmdnodes)
+    {
+      DEBUG_ZCMDSH_LOG (COMMAND, "malloc failed.");
+      return -1;
+    }
+  PTR_ARRAY_CLEAR (cmdnodes, argc, struct command_node *);
+
+  parent = cmdset->root;
+
+  for (i = 0; i < argc; i++)
+    {
+      word = argv[i];
+      match = command_match_unique_exact (parent, word);
+      if (match == NULL)
+        break;
+      cmdnodes[i] = match;
+
+      /* update argv if necessary */
+      if (line_spec (match->cmdstr))
+        {
+          argv[i] = strstr (command_line, word);
+          break;
+        }
+
+      argv[i] = command_replace (match, word);
+
+      parent = match;
+    }
+
+  *cmdnodes_ptr = cmdnodes;
+  return 0;
 }
 
 int
