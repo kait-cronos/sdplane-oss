@@ -391,7 +391,9 @@ rib_check (struct rib *new)
     }
 
   struct rte_eth_conf port_conf =
-    { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, }, };
+    { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, },
+      .intr_conf = { .lsc = 1 },
+    };
   struct rte_eth_dev_info dev_info;
 
   int ntxq;
