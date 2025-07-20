@@ -39,9 +39,6 @@
 
 #include "log_packet.h"
 
-extern int capture_fd;
-static int router_fd = -1;
-
 extern struct fdb_entry fdb[FDB_SIZE];
 
 static __thread uint64_t loop_counter = 0;
@@ -84,7 +81,7 @@ l3_tap_handler_register_fdb (struct rte_mbuf *m)
 }
 
 static inline __attribute__ ((always_inline)) void
-l3_tap_handler_write_capture_if (struct rte_mbuf *m)
+l3_tap_handler_write_capture_if (int capture_fd, struct rte_mbuf *m)
 {
   uint32_t pkt_len;
   uint16_t data_len;
@@ -111,7 +108,7 @@ l3_tap_handler_write_capture_if (struct rte_mbuf *m)
 }
 
 static inline __attribute__ ((always_inline)) void
-l3_tap_handler_write_router_if (struct rte_mbuf *m)
+l3_tap_handler_write_router_if (int router_fd, struct rte_mbuf *m)
 {
   uint32_t pkt_len;
   uint16_t data_len;
@@ -148,15 +145,14 @@ l3_tap_handler_handle_packet_up ()
       unsigned int dequeued = 0, avail = 0;
 
       struct vswitch_conf *vswitch = &rib->rib_info->vswitch[vswitch_id];
-      struct router_if *rif = &vswitch->router_if;
 
-      router_fd = rif->sockfd;
-      capture_fd = vswitch->capture_if.sockfd;
+      int router_fd = vswitch->router_if.sockfd;
+      int capture_fd = vswitch->capture_if.sockfd;
 
-      if (rif->tap_ring_id != vswitch_id)
+      if (vswitch->router_if.tap_ring_id != vswitch_id)
         continue;
 
-      tap_ring = rif->ring_up;
+      tap_ring = vswitch->router_if.ring_up;
       dequeued = rte_ring_dequeue_burst (tap_ring, (void **) pkts_burst,
                                          MAX_PKT_BURST, &avail);
 
@@ -169,12 +165,14 @@ l3_tap_handler_handle_packet_up ()
             continue;
 
           DEBUG_SDPLANE_LOG (PACKET, "m: %p received from tap_ring: %d", m,
-                             rif->tap_ring_id);
-          log_packet (m, vswitch_id, rif->tap_ring_id);
+                             vswitch->router_if.tap_ring_id);
+          log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
 
           l3_tap_handler_register_fdb (m);
-          l3_tap_handler_write_capture_if (m);
-          l3_tap_handler_write_router_if (m);
+          if (capture_fd >= 0)
+            l3_tap_handler_write_capture_if (capture_fd, m);
+          if (router_fd >= 0)
+            l3_tap_handler_write_router_if (router_fd, m);
 
           rte_pktmbuf_free (m);
         }

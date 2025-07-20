@@ -337,8 +337,8 @@ CLI_COMMAND2 (set_router_if,
   tap_name = argv[3];
 
   router_if_create.vswitch_id = vswitch_id;
-  strncpy (router_if_create.tap_name, tap_name,
-           sizeof (router_if_create.tap_name) - 1);
+  snprintf (router_if_create.tap_name, sizeof (router_if_create.tap_name),
+           "%s", tap_name);
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_CREATE,
                               &router_if_create, sizeof (router_if_create));
@@ -447,8 +447,8 @@ CLI_COMMAND2 (set_capture_if,
   tap_name = argv[3];
 
   capture_if_create.vswitch_id = vswitch_id;
-  strncpy (capture_if_create.tap_name, tap_name,
-           sizeof (capture_if_create.tap_name) - 1);
+  snprintf (capture_if_create.tap_name, sizeof (capture_if_create.tap_name),
+           "%s", tap_name);
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_CAPTURE_IF_CREATE,
                               &capture_if_create, sizeof (capture_if_create));
