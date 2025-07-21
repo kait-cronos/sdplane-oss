@@ -227,7 +227,7 @@ vty_shell (void *arg)
 
       if (shell->is_paging)
         {
-          DEBUG_ZCMDSH_LOG (PAGER, "nowait_pager");
+          DEBUG_ZCMDSH_LOG (PAGER, "nowait_paging");
           shell_read_nowait_paging (shell);
         }
       else

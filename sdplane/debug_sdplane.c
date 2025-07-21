@@ -39,7 +39,6 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_THREAD, "thread" },
   { DEBUG_SDPLANE_RIB, "rib" },
   { DEBUG_SDPLANE_VSWITCH, "vswitch" },
-  { DEBUG_SDPLANE_ALL, "all" },
   { DEBUG_SDPLANE_RIB_MESG, "rib-message" },
   { DEBUG_SDPLANE_RIB_CHECK, "rib-check" },
   { DEBUG_SDPLANE_IMESSAGE, "internal-message" },
