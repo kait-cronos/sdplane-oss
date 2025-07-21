@@ -11,6 +11,7 @@
 #define DEBUG_ZCMDSH_TELNET  (1ULL << 6)
 #define DEBUG_ZCMDSH_COMMAND_SHELL   (1ULL << 7)
 #define DEBUG_ZCMDSH_COMMAND_LOG   (1ULL << 8)
+#define DEBUG_ZCMDSH_PAGER_CONTENTS   (1ULL << 9)
 
 #define DEBUG_ZCMDSH_LOG(type, format, ...)                                   \
   DEBUG_LOG (ZCMDSH, type, format, ##__VA_ARGS__)

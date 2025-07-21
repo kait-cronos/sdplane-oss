@@ -526,20 +526,26 @@ shell_read_nowait_paging (struct shell *shell)
                                   strerror (errno));
               DEBUG_ZCMDSH_LOG (PAGER, "pager: fd: %d -> fd: %d, %d bytes",
                                 readfd, writefd, ret);
-              char str_buf[1024];
-              char *curr = str_buf;
-              char *end = str_buf + 1024;
-              int ret2;
-              for (i = 0; i < ret; i++)
+#ifndef NO_PAGER_CONTENTS
+              if (FLAG_CHECK (DEBUG_CONFIG (ZCMDSH),
+                              DEBUG_TYPE (ZCMDSH, PAGER_CONTENTS)))
                 {
-                  ret2 = 0;
-                  if (isascii ((int) buf[i]))
-                    ret2 = snprintf (curr, end - curr, "%c", buf[i]);
-                  else
-                    ret2 = snprintf (curr, end - curr, "%#x", buf[i]);
-                  curr += ret2;
+                  char str_buf[1024];
+                  char *curr = str_buf;
+                  char *end = str_buf + sizeof (str_buf);
+                  int nwrite;
+                  for (i = 0; i < ret; i++)
+                    {
+                      nwrite = 0;
+                      if (isascii ((int) buf[i]))
+                        nwrite = snprintf (curr, end - curr, "%c", buf[i]);
+                      else
+                        nwrite = snprintf (curr, end - curr, "%#x", buf[i]);
+                      curr += nwrite;
+                    }
+                  DEBUG_ZCMDSH_LOG (PAGER_CONTENTS, "pager: buf: %s", str_buf);
                 }
-              DEBUG_ZCMDSH_LOG (PAGER, "pager: buf: %s", str_buf);
+#endif /*NO_PAGER_CONTENTS*/
             }
         }
     }
@@ -596,15 +602,19 @@ command_shell_execute (struct shell *shell)
 
       shell_linefeed (shell);
 
+#if 0
       if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
         fprintf (shell->terminal, "command started: %s%s",
                  shell->command_line, shell->NL);
+#endif
 
       ret = command_execute (shell->command_line, shell->cmdset, shell);
 
+#if 0
       if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
         fprintf (shell->terminal, "command finished: %s%s",
                  shell->command_line, shell->NL);
+#endif
 
       /* record the execution of the command. */
       DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: %s",
@@ -613,14 +623,14 @@ command_shell_execute (struct shell *shell)
       shell->cmd_status = ret;
       if (ret == CMD_NOT_FOUND)
         {
-          DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: not found");
+          DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: command not found");
           fprintf (shell->terminal, "no such command: %s%s",
                    shell->command_line, shell->NL);
           ret = -1;
         }
       if (ret == CMD_FAILURE)
         {
-          DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: failed");
+          DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: command failed");
           fprintf (shell->terminal, "command failed: %s%s",
                    shell->command_line, shell->NL);
           ret = -1;
@@ -630,9 +640,6 @@ command_shell_execute (struct shell *shell)
 
       if (shell->is_paging)
         {
-          fprintf (shell->terminal, "read_nowait_paging from comand_shell_execute.%s",
-                   shell->NL);
-
           /* fflush() is mandatory before closing the pager.*/
           fflush (shell->terminal);
 
