@@ -632,6 +632,10 @@ command_shell_execute (struct shell *shell)
         {
           fprintf (shell->terminal, "read_nowait_paging from comand_shell_execute.%s",
                    shell->NL);
+
+          /* fflush() is mandatory before closing the pager.*/
+          fflush (shell->terminal);
+
           shell_read_nowait_paging (shell);
         }
     }
