@@ -653,7 +653,7 @@ command_install2 (struct command_set *cmdset, char *command_line,
           word = p;
         }
 
-      /* everything after '(' is ignored. */
+      /* everything after ')' is ignored. */
       p = index (word, ')');
       if (p)
         *p = '\0';
@@ -771,6 +771,48 @@ command_replace (struct command_node *cmd, char *word)
 #define PTR_ARRAY_REALLOC(ptr, size, type) \
     (type*) realloc (ptr, sizeof (type) * (size))
 
+char *
+shell_format3 (char *command_line_orig)
+{
+  char *command_line;
+  int i, cursor, end;
+  int count = 0;
+  int ret;
+  int shell_end;
+  int shell_orig_end;
+
+  end = 0;
+  cursor = 0;
+  command_line = strdup (command_line_orig);
+  if (command_line == NULL)
+    return 0;
+  shell_end = strlen (command_line);
+  shell_orig_end = strlen (command_line_orig);
+  memset (command_line, 0, shell_end);
+
+  /* filter out the duplicated consecutive spaces. */
+  for (i = 0; i < shell_orig_end; i++)
+    {
+      if (command_line_orig[i] == ' ')
+        count++;
+
+      /* omit redundant spaces */
+      if (command_line_orig[i] == ' ' && count > 1)
+        continue;
+
+      /* omit even first space if it is the beginning of the line */
+      if (command_line_orig[i] == ' ' && i == 0)
+        continue;
+
+      command_line[end++] = command_line_orig[i];
+
+      if (command_line_orig[i] != ' ')
+        count = 0;
+    }
+
+  return command_line;
+}
+
 int
 command_argv_parse (char *command_line_dup,
                      int *argc_ptr, char ***argv_ptr)
@@ -784,7 +826,7 @@ command_argv_parse (char *command_line_dup,
   /* arrays to be created. */
   char **argv, **argv_new;
 
-  stringp = command_line_dup;
+  stringp = shell_format3 (command_line_dup);
 
   argc = 0;
   argsize = 4;
@@ -799,9 +841,11 @@ command_argv_parse (char *command_line_dup,
 
   while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
     {
+#if 0 /* "" word is allowed here. */
       /* prevent execution completing NULL word */
       if (*word == '\0')
         break;
+#endif
 
       if (argc + 1 >= argsize)
         {
@@ -823,6 +867,18 @@ command_argv_parse (char *command_line_dup,
 
       argv[argc++] = word;
     }
+
+  int i, ret;
+  char str_buf[1024];
+  char *s, *e;
+  s = str_buf;
+  e = str_buf + sizeof (str_buf);
+  for (i = 0; i < argc; i++)
+    {
+      ret = snprintf (s, e - s, " \"%s\"", argv[i]);
+      s += ret;
+    }
+  DEBUG_ZCMDSH_LOG (COMMAND, "argc: %d argv: %s", argc, str_buf);
 
   *argc_ptr = argc;
   *argv_ptr = argv;
@@ -990,7 +1046,8 @@ command_complete (char *command_line, int point, struct command_set *cmdset)
 
   memset (retbuf, 0, sizeof (retbuf));
 
-  cmd_dup = strdup (command_line);
+  cmd_dup = shell_format3 (command_line);
+  point = strlen (cmd_dup);
   cmd_dup[point] = '\0';
   stringp = cmd_dup;
   parent = cmdset->root;
@@ -1099,4 +1156,51 @@ command_config_write (struct vector *config, FILE *fp)
   for (vn = vector_head (config); vn; vn = vector_next (vn))
     if (vn->data)
       fprintf (fp, "%s\n", (char *) vn->data);
+}
+
+
+struct vector *command_func_name;
+
+void
+command_func_name_init ()
+{
+  command_func_name = vector_create ();
+}
+
+void
+command_func_name_register (command_func_t command_func, char *command_name)
+{
+  struct command_func_name_entry *entry;
+  entry = malloc (sizeof (struct command_func_name_entry));
+  entry->command_func = command_func;
+  entry->command_name = command_name;
+  vector_add (entry, command_func_name);
+}
+
+char *
+command_func_name_lookup (command_func_t command_func)
+{
+  struct vector_node *vn;
+  struct command_func_name_entry *entry;
+  char *match = NULL;
+  for (vn = vector_head (command_func_name); vn; vn = vector_next (vn))
+    {
+      entry = (struct command_func_name_entry *) vn->data;
+      if (entry->command_func == command_func)
+        match = entry->command_name;
+    }
+  return match;
+}
+
+void
+command_func_name_finish ()
+{
+  struct vector_node *vn;
+  struct command_func_name_entry *entry;
+  for (vn = vector_head (command_func_name); vn; vn = vector_next (vn))
+    {
+      entry = (struct command_func_name_entry *) vn->data;
+      free (entry);
+    }
+  vector_delete (command_func_name);
 }

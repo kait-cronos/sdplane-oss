@@ -6,9 +6,10 @@
 
 #include "debug.h"
 #include "flag.h"
+#include "vector.h"
 #include "shell.h"
 #include "shell_keyfunc.h"
-#include "vector.h"
+#include "shell_debug.h"
 
 #include "debug_category.h"
 #include "debug_log.h"
@@ -163,7 +164,6 @@ shell_format2 (struct shell *shell)
   return 0;
 }
 
-
 int
 shell_linefeed (struct shell *shell)
 {
@@ -215,10 +215,8 @@ shell_prompt (struct shell *shell)
   /* move cursor to beginning */
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
     writec (shell->writefd, '\r');
-#if 0
   else
     writec (shell->writefd, '\n');
-#endif
 
   /* print prompt */
   ret = write (shell->writefd, shell->prompt, strlen (shell->prompt));
@@ -401,6 +399,40 @@ shell_moveto (struct shell *shell, int index)
   else if (index < shell->cursor)
     shell_backward (shell, shell->cursor - index);
 }
+
+char *
+shell_word_dup (struct shell *shell, int point)
+{
+  char *start;
+  char *stringp;
+  char *word, *next;
+  int head = 0;
+  char *word_ret;
+
+  assert (0 <= point && point <= shell->end);
+
+  shell_terminate (shell);
+  start = strdup (shell->command_line);
+  stringp = start;
+
+  word = start;
+  while ((next = strsep (&stringp, SHELL_WORD_DELIMITERS)) != NULL)
+    {
+      if (word - start <= point && point < next - start)
+        break;
+      if (*next != '\0')
+        word = next;
+    }
+
+  if (word - start + strlen (word) < point)
+    word_ret = NULL;
+  else
+    word_ret = strdup (word);
+
+  free (start);
+  return word_ret;
+}
+
 
 /* used for command line tokenize */
 int
@@ -626,96 +658,6 @@ shell_move_word_forward (struct shell *shell)
   start = shell_word_next_head (shell, shell->cursor);
   shell_moveto (shell, start);
   return 0;
-}
-
-void
-shell_debug (struct shell *shell)
-{
-  int i;
-  char debug[64];
-  //int ret;
-
-  shell_terminate (shell);
-
-  char *command_line_dup;
-  int argc;
-  char **argv;
-  struct command_node **cmdnodes;
-
-  command_line_dup = strdup (shell->command_line);
-
-  /* parse current command-line's argv. */
-  command_argv_parse (command_line_dup, &argc, &argv);
-
-#if 0
-  /* display argv's memory address. */
-  fprintf (shell->terminal, "debug: argv: %p%s",
-           (void *) argv, shell->NL);
-#endif
-
-  /* display current command-line's argv. */
-  fprintf (shell->terminal, "debug: argc: %d argv:", argc);
-  for (i = 0; i < argc; i++)
-    {
-      fprintf (shell->terminal, " %s", argv[i]);
-    }
-  fprintf (shell->terminal, "%s", shell->NL);
-
-  /* find matching command nodes. */
-  command_matched_nodes (argc, argv, shell->command_line,
-                         shell->cmdset, &cmdnodes);
-
-#if 0
-  /* display cmdset's and matched cmdnodes's memory address. */
-  fprintf (shell->terminal, "debug: cmdset: %p%s", shell->cmdset, shell->NL);
-  fprintf (shell->terminal, "debug: cmdnodes: %p%s", (void *) cmdnodes,
-           shell->NL);
-#endif
-
-  /* display matched command nodes. */
-  for (i = 0; i < argc; i++)
-    {
-      if (cmdnodes[i])
-      fprintf (shell->terminal, "cmdnode[%d]: %p %s%s",
-               i, cmdnodes[i], cmdnodes[i]->cmdstr, shell->NL);
-    }
-  fflush (shell->terminal);
-
-  /* need to free allocated memory. */
-  free (cmdnodes);
-  free (argv);
-  free (command_line_dup);
-
-  /* display the last input char. */
-    {
-      char ch = shell->inputch;
-      fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x", __func__, ch, ch,
-               ch);
-      if (CONTROL ('@') <= ch && ch <= CONTROL ('_'))
-        fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->NL);
-      else if (ch == 127)
-        fprintf (shell->terminal, " DEL%s", shell->NL);
-      else if (isascii (ch))
-        fprintf (shell->terminal, " '%c'%s", ch, shell->NL);
-      else
-        fprintf (shell->terminal, "%s", shell->NL);
-      fprintf (shell->terminal, "keymap: %p, keymap[%d]: %p%s",
-               (void *) shell->keymap, ch, (void *) shell->keymap[ch],
-               shell->NL);
-    }
-
-  fprintf (shell->terminal, "size: %d cursor: %d end: %d%s",
-           shell->size, shell->cursor, shell->end, shell->NL);
-
-  snprintf (
-      debug, sizeof (debug),
-      "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d",
-      shell_word_prev_head (shell, shell->cursor),
-      shell_word_head (shell, shell->cursor),
-      shell_word_end (shell, shell->cursor), shell->cursor, shell->end,
-      shell->inputch, shell->size);
-  fprintf (shell->terminal, "%s%s", debug, shell->NL);
-  fflush (shell->terminal);
 }
 
 int

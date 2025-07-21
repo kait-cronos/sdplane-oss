@@ -38,6 +38,18 @@ struct command_header
   command_func_t cmdfunc;
 };
 
+struct command_func_name_entry
+{
+  command_func_t command_func;
+  char *command_name;
+};
+
+void command_func_name_init ();
+void command_func_name_register (command_func_t command_func,
+                                 char *command_name);
+char *command_func_name_lookup (command_func_t command_func);
+void command_func_name_finish ();
+
 #define DEFINE_COMMAND(cmdname, cmdstr, helpstr)                              \
   int cmdname##_func (void *context, int argc, char **argv);                  \
   struct command_header cmdname##_cmd = { cmdstr, helpstr, cmdname##_func };  \
@@ -59,13 +71,14 @@ struct command_header
     {                                                                         \
       if (! cmdname##_cmd.cmdstr || ! cmdname##_cmd.helpstr ||                \
           ! cmdname##_cmd.cmdfunc)                                            \
-        fprintf (stderr,                                                      \
-                 "%s:%d: %s: "                                                \
-                 "null commands. forgot init?\n",                             \
+        fprintf (stderr, "%s:%d: %s: null commands. forgot init?\n",          \
                  __FILE__, __LINE__, __func__);                               \
       else                                                                    \
-        command_install2 (cmdset, cmdname##_cmd.cmdstr,                       \
+        {                                                                     \
+          command_func_name_register (cmdname##_cmd.cmdfunc, #cmdname);       \
+          command_install2 (cmdset, cmdname##_cmd.cmdstr,                     \
                           cmdname##_cmd.helpstr, cmdname##_cmd.cmdfunc);      \
+        }                                                                     \
     }                                                                         \
   while (0)
 
@@ -93,6 +106,8 @@ void command_install (struct command_set *cmdset, char *command_line,
                       char *help_string, command_func_t func);
 void command_install2 (struct command_set *cmdset, char *command_line,
                        char *help_string, command_func_t func);
+
+char *shell_format3 (char *command_line_orig);
 
 int command_argv_parse (char *command_line_dup,
                      int *argc_ptr, char ***argv_ptr);

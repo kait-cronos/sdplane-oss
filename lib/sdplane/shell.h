@@ -79,6 +79,8 @@ struct shell
 
 int shell_terminate (struct shell *shell);
 int shell_format (struct shell *shell);
+int shell_format2 (struct shell *shell);
+
 int shell_linefeed (struct shell *shell);
 int shell_clear (struct shell *shell);
 void shell_set_prompt (struct shell *shell, char *prompt);
@@ -95,8 +97,12 @@ void shell_forward (struct shell *shell, int num);
 void shell_backward (struct shell *shell, int num);
 
 void shell_moveto (struct shell *shell, int index);
+char *shell_word_dup (struct shell *shell, int point);
 int shell_word_head (struct shell *shell, int point);
 int shell_word_end (struct shell *shell, int point);
+
+int shell_word_prev_head (struct shell *shell, int point);
+int shell_subword_prev_head (struct shell *shell, int point);
 
 int shell_subword_head (struct shell *shell, int point);
 int shell_delete_word_backward (struct shell *shell);

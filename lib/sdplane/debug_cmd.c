@@ -108,7 +108,7 @@ debug_helpstr_init (char *cate, char *helpstr, int size,
   p += ret;
   len -= ret;
 
-  ret = snprintf (p, len, "all types.\n", cate);
+  ret = snprintf (p, len, "all types.\n");
   p += ret;
   len -= ret;
 

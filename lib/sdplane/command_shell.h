@@ -70,4 +70,6 @@ extern struct funcp_str_map func2str[];
     }                                                                         \
   while (0)
 
+int func_table_lookup (shell_keyfunc_t ptr);
+
 #endif /*__COMMAND_SHELL_H__*/

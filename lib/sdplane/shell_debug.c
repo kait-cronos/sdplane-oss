@@ -1,0 +1,120 @@
+#include <includes.h>
+
+#include "vector.h"
+#include "file.h"
+#include "shell.h"
+#include "shell_keyfunc.h"
+#include "termio.h"
+#include "command.h"
+#include "command_shell.h"
+
+void
+shell_debug (struct shell *shell)
+{
+  int i;
+  char debug[64];
+  //int ret;
+
+  shell_terminate (shell);
+
+  char *command_line_dup;
+  int argc;
+  char **argv;
+  struct command_node **cmdnodes;
+
+  command_line_dup = strdup (shell->command_line);
+
+  /* parse current command-line's argv. */
+  command_argv_parse (command_line_dup, &argc, &argv);
+
+#if 0
+  /* display argv's memory address. */
+  fprintf (shell->terminal, "debug: argv: %p%s",
+           (void *) argv, shell->NL);
+#endif
+
+  /* display current command-line's argv. */
+  fprintf (shell->terminal, "debug: argc: %d argv:", argc);
+  for (i = 0; i < argc; i++)
+    {
+      fprintf (shell->terminal, " %s", argv[i]);
+    }
+  fprintf (shell->terminal, "%s", shell->NL);
+
+  /* find matching command nodes. */
+  command_matched_nodes (argc, argv, shell->command_line,
+                         shell->cmdset, &cmdnodes);
+
+#if 0
+  /* display cmdset's and matched cmdnodes's memory address. */
+  fprintf (shell->terminal, "debug: cmdset: %p%s", shell->cmdset, shell->NL);
+  fprintf (shell->terminal, "debug: cmdnodes: %p%s", (void *) cmdnodes,
+           shell->NL);
+#endif
+
+  /* display matched command nodes. */
+  char *command_name;
+  for (i = 0; i < argc; i++)
+    {
+      command_name = "unknown";
+      if (! cmdnodes[i] || ! cmdnodes[i]->func)
+        command_name = "null";
+      else
+        {
+          command_name = command_func_name_lookup (cmdnodes[i]->func);
+          if (! command_name)
+            command_name = "null";
+        }
+      if (cmdnodes[i])
+      fprintf (shell->terminal, "cmdnode[%d]: %p %s (func: %s)%s",
+               i, cmdnodes[i], cmdnodes[i]->cmdstr, command_name, shell->NL);
+    }
+  fflush (shell->terminal);
+
+  /* need to free allocated memory. */
+  free (cmdnodes);
+  free (argv);
+  free (command_line_dup);
+
+  /* display the last input char. */
+    {
+      char ch = shell->inputch;
+      fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x", __func__, ch, ch,
+               ch);
+      if (CONTROL ('@') <= ch && ch <= CONTROL ('_'))
+        fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->NL);
+      else if (ch == 127)
+        fprintf (shell->terminal, " DEL%s", shell->NL);
+      else if (isascii (ch))
+        fprintf (shell->terminal, " '%c'%s", ch, shell->NL);
+      else
+        fprintf (shell->terminal, "%s", shell->NL);
+
+      int index;
+      char *name = "unknown";
+      shell_keyfunc_t ptr;
+      ptr = shell->keymap[ch];
+      index = func_table_lookup (ptr);
+      if (index >= 0)
+        name = func2str[index].str;
+
+      fprintf (shell->terminal, "keymap: %p, keymap[%d]: %p (%s)%s",
+               (void *) shell->keymap, ch, (void *) ptr, name,
+               shell->NL);
+    }
+
+  fprintf (shell->terminal, "size: %d cursor: %d end: %d%s",
+           shell->size, shell->cursor, shell->end, shell->NL);
+
+  snprintf (
+      debug, sizeof (debug),
+      "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d",
+      shell_word_prev_head (shell, shell->cursor),
+      shell_word_head (shell, shell->cursor),
+      shell_word_end (shell, shell->cursor), shell->cursor, shell->end,
+      shell->inputch, shell->size);
+  fprintf (shell->terminal, "%s%s", debug, shell->NL);
+  fflush (shell->terminal);
+}
+
+

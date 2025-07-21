@@ -166,7 +166,7 @@ DEFINE_COMMAND (show_history, "show history",
   int floor, start, i;
 
   if (! history)
-    return;
+    return CMD_SUCCESS;
 
   floor = HISTORY_NEXT (history->last);
   start = HISTORY_NEXT (floor);
@@ -174,7 +174,7 @@ DEFINE_COMMAND (show_history, "show history",
   for (i = start; i != floor; i = HISTORY_NEXT (i))
     if (history->array[i])
       fprintf (shell->terminal, "[%3d] %s\n", i, history->array[i]);
-  return 0;
+  return CMD_SUCCESS;
 }
 
 #include <poll.h>
@@ -579,7 +579,7 @@ command_shell_execute (struct shell *shell)
   int ret = 0;
   char *comment;
 
-  /* send a line-feed to terinate the comand line. */
+  /* send a line-feed to terminate the command line. */
   shell_linefeed (shell);
 
   /* remove the comment part, until the line-end. */
@@ -824,51 +824,76 @@ command_shell_ls_candidate (struct shell *shell)
   char *last;
   int last_head;
   struct command_node *match;
+  struct command_node *exact_match;
   struct command_node *node;
   struct vector_node *vn;
+
+  shell_terminate (shell);
+  shell_linefeed (shell);
 
   if (shell->cursor != shell->end)
     {
       shell->cursor = shell->end;
       shell_refresh (shell);
-      shell_format (shell);
-      shell_linefeed (shell);
-      shell_refresh (shell);
-      // return;
     }
 
-  last_head = shell_word_head (shell, shell->cursor);
-  cmd_dup = strdup (shell->command_line);
-  cmd_dup[last_head] = '\0';
-  last = strdup (&shell->command_line[last_head]);
+  char *command_line_dup;
+  int argc;
+  char **argv;
+  struct command_node **cmdnodes;
+  struct command_set *cmdset;
 
-  shell_linefeed (shell);
+  command_line_dup = strdup (shell->command_line);
 
-  match = command_match_node (cmd_dup, shell->cmdset);
+  /* parse current command-line's argv. */
+  command_argv_parse (command_line_dup, &argc, &argv);
+
+  /* find matching command nodes. */
+  command_matched_nodes (argc, argv, shell->command_line,
+                         shell->cmdset, &cmdnodes);
+
+  cmdset = shell->cmdset;
+  int index;
+
+  assert (argc > 0);
+  index = argc - 1;
+  if (index == 0)
+    {
+      if (cmdnodes[0])
+        match = cmdnodes[0];
+      else
+        match = cmdset->root;
+    }
+  else
+    {
+      match = cmdnodes[index - 1];
+    }
+
   if (match)
     {
-      if (last_head == shell->cursor && match->func)
+      if (! strlen (argv[index]) && match->func)
         fprintf (shell->terminal, "  %-16s %s%s", "<cr>", match->helpstr,
                  shell->NL);
 
       for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
         {
           node = (struct command_node *) vn->data;
-          if (is_command_match (node->cmdstr, last))
+          if (is_command_match (node->cmdstr, argv[index]))
             fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
                      node->helpstr, shell->NL);
 
           if (file_spec (node->cmdstr))
-            file_ls_candidate (shell, last);
+            file_ls_candidate (shell, argv[index]);
         }
     }
 
-  free (last);
-  free (cmd_dup);
+  free (command_line_dup);
+  free (argv);
+  free (cmdnodes);
 
-  // shell_format (shell);
-  shell_linefeed (shell);
+  //shell_linefeed (shell);
   shell_refresh (shell);
+
   return 0;
 }
 
@@ -1145,6 +1170,7 @@ command_shell_delete (struct shell *shell)
 void
 command_shell_init ()
 {
+  command_func_name_init ();
   cmdset_default = command_set_create ();
   default_install_command (cmdset_default);
 }
@@ -1153,4 +1179,5 @@ void
 command_shell_finish ()
 {
   command_set_delete (cmdset_default);
+  command_func_name_finish ();
 }
