@@ -21,6 +21,8 @@ struct debug_type debug_zcmdsh_types[] = {
   { DEBUG_ZCMDSH_PAGER, "pager" },     { DEBUG_ZCMDSH_TIMER, "timer" },
   { DEBUG_ZCMDSH_UNICODE, "unicode" }, { DEBUG_ZCMDSH_TERMIO, "termio" },
   { DEBUG_ZCMDSH_TELNET, "telnet" },
+  { DEBUG_ZCMDSH_COMMAND_SHELL, "command-shell" },
+  { DEBUG_ZCMDSH_COMMAND_LOG, "command-log" },
 };
 
 struct command_header debug_zcmdsh_cmd;

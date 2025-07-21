@@ -31,12 +31,12 @@ struct command_set *cmdset_default = NULL;
 DEFINE_COMMAND (exit, "exit", "exit\n")
 {
   struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "exit !\n");
+  fprintf (shell->terminal, "exit !%s", shell->NL);
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
   /* don't do shell_close() here: it closes stdout,
      and breaks safe termination. */
   // shell_close (shell);
-  return 0;
+  return CMD_SUCCESS;
 }
 
 ALIAS_COMMAND (logout, exit, "logout", "logout\n");
@@ -48,9 +48,9 @@ DEFINE_COMMAND (enable_shell_debugging, "enable shell debugging",
                 "enable shell debugging\n")
 {
   struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "enable shell debugging.\n");
+  fprintf (shell->terminal, "enable shell debugging.%s", shell->NL);
   FLAG_SET (shell->flag, SHELL_FLAG_DEBUG);
-  return 0;
+  return CMD_SUCCESS;
 }
 
 DEFINE_COMMAND (disable_shell_debugging, "disable shell debugging",
@@ -59,9 +59,9 @@ DEFINE_COMMAND (disable_shell_debugging, "disable shell debugging",
                 "disable shell debugging\n")
 {
   struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "disable shell debugging.\n");
+  fprintf (shell->terminal, "disable shell debugging.%s", shell->NL);
   FLAG_CLEAR (shell->flag, SHELL_FLAG_DEBUG);
-  return 0;
+  return CMD_SUCCESS;
 }
 
 void
@@ -346,7 +346,7 @@ pager_end (struct shell *shell)
     }
 
 #if ! PAGER_USE_POPEN
-  DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
+  //DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
   int ret, nwrite;
   struct pollfd fds[2];
   nfds_t nfds = 2;
@@ -372,11 +372,6 @@ pager_end (struct shell *shell)
       for (i = 0; i < nfds; i++)
         {
           int readfd, writefd;
-          DEBUG_ZCMDSH_LOG (
-              PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x", i, fds[i].fd,
-              (fds[i].revents & POLLIN ? " POLLIN" : ""),
-              (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
-              (fds[i].revents & POLLERR ? " POLLERR" : ""), fds[i].revents);
 
 #if 0
           if (fds[i].revents & POLLHUP)
@@ -385,6 +380,12 @@ pager_end (struct shell *shell)
 
           if (! (fds[i].revents & (POLLIN | POLLHUP)))
             continue;
+
+          DEBUG_ZCMDSH_LOG (
+              PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x", i, fds[i].fd,
+              (fds[i].revents & POLLIN ? " POLLIN" : ""),
+              (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
+              (fds[i].revents & POLLERR ? " POLLERR" : ""), fds[i].revents);
 
           readfd = fds[i].fd;
           j = (i & 0x01) ^ 0x01;
@@ -442,6 +443,7 @@ void
 shell_read_nowait_paging (struct shell *shell)
 {
   int wstatus;
+
   close (shell->pipefd[1]);
 
   if (shell->pager_saved_terminal)
@@ -455,7 +457,7 @@ shell_read_nowait_paging (struct shell *shell)
       shell->pager_saved_writefd = -1;
     }
 
-  DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
+  //DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
 
   int ret, nwrite;
   struct pollfd fds[2];
@@ -483,17 +485,18 @@ shell_read_nowait_paging (struct shell *shell)
       for (i = 0; i < nfds; i++)
         {
           int readfd, writefd;
-          DEBUG_ZCMDSH_LOG (
-              PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x", i, fds[i].fd,
-              (fds[i].revents & POLLIN ? " POLLIN" : ""),
-              (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
-              (fds[i].revents & POLLERR ? " POLLERR" : ""), fds[i].revents);
 
           if (! (fds[i].revents & (POLLIN | POLLHUP)))
             continue;
 
           if (fds[i].revents & POLLHUP)
             closed++;
+
+          DEBUG_ZCMDSH_LOG (
+              PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x", i, fds[i].fd,
+              (fds[i].revents & POLLIN ? " POLLIN" : ""),
+              (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
+              (fds[i].revents & POLLERR ? " POLLERR" : ""), fds[i].revents);
 
           readfd = fds[i].fd;
           j = (i & 0x01) ^ 0x01;
@@ -523,6 +526,20 @@ shell_read_nowait_paging (struct shell *shell)
                                   strerror (errno));
               DEBUG_ZCMDSH_LOG (PAGER, "pager: fd: %d -> fd: %d, %d bytes",
                                 readfd, writefd, ret);
+              char str_buf[1024];
+              char *curr = str_buf;
+              char *end = str_buf + 1024;
+              int ret2;
+              for (i = 0; i < ret; i++)
+                {
+                  ret2 = 0;
+                  if (isascii ((int) buf[i]))
+                    ret2 = snprintf (curr, end - curr, "%c", buf[i]);
+                  else
+                    ret2 = snprintf (curr, end - curr, "%#x", buf[i]);
+                  curr += ret2;
+                }
+              DEBUG_ZCMDSH_LOG (PAGER, "pager: buf: %s", str_buf);
             }
         }
     }
@@ -556,7 +573,7 @@ command_shell_execute (struct shell *shell)
   int ret = 0;
   char *comment;
 
-  /* send line-feed to notice that the user executed the command. */
+  /* send a line-feed to terinate the comand line. */
   shell_linefeed (shell);
 
   /* remove the comment part, until the line-end. */
@@ -569,51 +586,54 @@ command_shell_execute (struct shell *shell)
       shell_terminate (shell);
     }
 
-#if 0
-  if (! strlen (shell->command_line))
-    {
-      shell_clear (shell);
-      shell_prompt (shell);
-      shell_refresh (shell);
-      return 0;
-    }
-#endif
   if (strlen (shell->command_line))
     {
+      /* remove unnecessary spaces. */
+      shell_format2 (shell);
 
-  shell_format (shell);
-#if 0
-  if (shell->end)
-    shell_linefeed (shell);
-#endif
-  fflush (shell->terminal);
+      if (shell->pager)
+        pager_start (shell);
 
-  if (shell->pager)
-    pager_start (shell);
+      shell_linefeed (shell);
 
-  ret = command_execute (shell->command_line, shell->cmdset, shell);
-  shell->cmd_status = ret;
-  if (ret == CMD_NOT_FOUND)
-    {
-      fprintf (shell->terminal, "no such command: %s%s", shell->command_line,
-               shell->NL);
-      ret = -1;
-    }
-  if (ret == CMD_FAILURE)
-    {
-      fprintf (shell->terminal, "command failed: %s%s", shell->command_line,
-               shell->NL);
-      ret = -1;
-    }
+      if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
+        fprintf (shell->terminal, "command started: %s%s",
+                 shell->command_line, shell->NL);
 
-  command_history_add (shell->command_line, shell->history, shell);
+      ret = command_execute (shell->command_line, shell->cmdset, shell);
 
-  if (shell->is_paging)
-    {
-      fflush (shell->terminal);
-      shell_read_nowait_paging (shell);
-    }
+      if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
+        fprintf (shell->terminal, "command finished: %s%s",
+                 shell->command_line, shell->NL);
 
+      /* record the execution of the command. */
+      DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: %s",
+                        shell->command_line);
+
+      shell->cmd_status = ret;
+      if (ret == CMD_NOT_FOUND)
+        {
+          DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: not found");
+          fprintf (shell->terminal, "no such command: %s%s",
+                   shell->command_line, shell->NL);
+          ret = -1;
+        }
+      if (ret == CMD_FAILURE)
+        {
+          DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: failed");
+          fprintf (shell->terminal, "command failed: %s%s",
+                   shell->command_line, shell->NL);
+          ret = -1;
+        }
+
+      command_history_add (shell->command_line, shell->history, shell);
+
+      if (shell->is_paging)
+        {
+          fprintf (shell->terminal, "read_nowait_paging from comand_shell_execute.%s",
+                   shell->NL);
+          shell_read_nowait_paging (shell);
+        }
     }
 
   if (! shell_running (shell))
@@ -1078,10 +1098,8 @@ default_install_command (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_pager_command);
   INSTALL_COMMAND2 (cmdset, set_pager_default);
 
-#if 0
   INSTALL_COMMAND (cmdset, enable_shell_debugging);
   INSTALL_COMMAND (cmdset, disable_shell_debugging);
-#endif
 }
 
 struct shell *

@@ -98,6 +98,73 @@ shell_format (struct shell *shell)
 }
 
 int
+shell_format2 (struct shell *shell)
+{
+  char *command_line;
+  int i, cursor, end;
+  int count = 0;
+  int ret;
+
+  end = 0;
+  cursor = 0;
+  command_line = (char *) malloc (shell->size);
+  if (command_line == NULL)
+    return 0;
+  memset (command_line, 0, shell->size);
+
+  /* filter out the duplicated consecutive spaces. */
+  for (i = 0; i < shell->end; i++)
+    {
+      if (shell->command_line[i] == ' ')
+        count++;
+
+      /* omit redundant spaces */
+      if (shell->command_line[i] == ' ' && count > 1)
+        continue;
+
+      /* omit even first space if it is the beginning of the line */
+      if (shell->command_line[i] == ' ' && i == 0)
+        continue;
+
+      command_line[end++] = shell->command_line[i];
+      if (i < shell->cursor)
+        cursor++;
+
+      if (shell->command_line[i] != ' ')
+        count = 0;
+    }
+
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
+    {
+#if 0
+      /* move to the beginning. */
+      for (i = shell->cursor; 0 < i; i--)
+        writec (shell->writefd, CONTROL ('H'));
+
+      /* re-write the new command-line. */
+      ret = write (shell->writefd, command_line, strlen (command_line));
+      if (ret < 0)
+        DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
+
+      /* erase the last part. */
+      for (i = end; i < shell->end; i++)
+        writec (shell->writefd, ' ');
+
+      /* move back to the cursor. */
+      for (i = shell->end; cursor < i; i--)
+        writec (shell->writefd, CONTROL ('H'));
+#endif
+    }
+
+  free (shell->command_line);
+  shell->command_line = command_line;
+  shell->cursor = cursor;
+  shell->end = end;
+  return 0;
+}
+
+
+int
 shell_linefeed (struct shell *shell)
 {
   fprintf (shell->terminal, "%s", shell->NL);
@@ -683,19 +750,19 @@ shell_input (struct shell *shell, unsigned char ch)
   /* save input char */
   shell->inputch = ch;
 
-  int ret = 0;
-  if (shell->keymap[ch])
-    ret = (*shell->keymap[ch]) (shell);
-
-  if (escaped)
-    FLAG_CLEAR (shell->flag, SHELL_FLAG_ESCAPE);
-
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
     {
       shell_linefeed (shell);
       shell_debug (shell);
       shell_refresh (shell);
     }
+
+  int ret = 0;
+  if (shell->keymap[ch])
+    ret = (*shell->keymap[ch]) (shell);
+
+  if (escaped)
+    FLAG_CLEAR (shell->flag, SHELL_FLAG_ESCAPE);
 
   return ret;
 }
@@ -777,6 +844,10 @@ shell_read (struct shell *shell)
       return ret;
     }
 
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
+    {
+      fprintf (shell->terminal, "read: size: %d%s", ret, shell->NL);
+    }
   int ret_shell = 0;
   for (i = 0; i < ret; i++)
     {
@@ -799,12 +870,14 @@ shell_read_nowait (struct shell *shell)
 {
   int ret;
   struct pollfd pollfds[1];
+
   pollfds[0].fd = shell->readfd;
   pollfds[0].events = POLLIN;
   pollfds[0].revents = 0;
   ret = poll (pollfds, 1, 0);
   if (ret > 0)
-    return shell_read (shell);
+    ret = shell_read (shell);
+
   return ret;
 }
 
