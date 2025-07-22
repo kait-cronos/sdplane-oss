@@ -62,8 +62,9 @@ internal_msg_send_to (struct rte_ring *ring, struct internal_msg_header *msgp,
   else
     {
 #define MSG1 "can't send message %p to ring-queue: NULL."
-#define MSG2 "sending internal message faild. " \
-             "please start \"rib_manager\" beforehand."
+#define MSG2                                                                  \
+  "sending internal message faild. "                                          \
+  "please start \"rib_manager\" beforehand."
       if (shell)
         {
           fprintf (shell->terminal, MSG1 "%s", msgp, shell->NL);

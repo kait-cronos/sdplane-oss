@@ -65,6 +65,7 @@ extern struct fdb_entry fdb[FDB_SIZE];
 // #define SHOW_HELP "show information\n"
 #define CLEAR_HELP        "clear information\n"
 #define SET_HELP          "set information\n"
+#define DELETE_HELP       "delete information\n"
 #define RESET_HELP        "reset information\n"
 #define START_HELP        "start information\n"
 #define STOP_HELP         "stop information\n"

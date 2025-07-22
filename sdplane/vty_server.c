@@ -104,8 +104,8 @@ vty_server (void *arg)
       if ((fds[0].revents & (POLLIN | POLLERR)) != 0)
         {
           DEBUG_SDPLANE_LOG (VTY_SERVER, "accept() start.");
-          client_fd = accept (sockfd, (struct sockaddr *) &peer_addr,
-                                      &addrlen);
+          client_fd =
+              accept (sockfd, (struct sockaddr *) &peer_addr, &addrlen);
           if (client_fd < 0)
             {
               DEBUG_SDPLANE_LOG (VTY_SERVER, "accept() failed.");
@@ -113,8 +113,8 @@ vty_server (void *arg)
             }
           else
             {
-              DEBUG_SDPLANE_LOG (
-                  VTY_SERVER, "accept(): client_fd: %d.", client_fd);
+              DEBUG_SDPLANE_LOG (VTY_SERVER, "accept(): client_fd: %d.",
+                                 client_fd);
             }
 
           client_id = -1;

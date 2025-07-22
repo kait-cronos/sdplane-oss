@@ -49,6 +49,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_PKTGEN, "pktgen" },
   { DEBUG_SDPLANE_LINKFLAP_GENERATOR, "linkflap-generator" },
   { DEBUG_SDPLANE_STARTUP_CONFIG, "startup-config" },
+  { DEBUG_SDPLANE_ENHANCED_REPEATER, "enhanced-repeater" },
 };
 
 struct command_header debug_sdplane_cmd;

@@ -73,7 +73,8 @@ startup_config (__rte_unused void *dummy)
               shell->cmd_status == CMD_FAILURE)
             {
               FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
-              DEBUG_SDPLANE_LOG (STARTUP_CONFIG, "shell_read_nowait: error: "
+              DEBUG_SDPLANE_LOG (STARTUP_CONFIG,
+                                 "shell_read_nowait: error: "
                                  "ret: %d cmd_status: %d",
                                  ret, shell->cmd_status);
               printf ("shell_read_nowait: error: ret: %d cmd_status: %d\n",
