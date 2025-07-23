@@ -282,14 +282,14 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
     {
     case AF_INET:
       msg_neigh_entry.index = NEIGH_ARP_TABLE;
-      memcpy (&msg_neigh_entry.ip_addr_key.ipv4_addr,
-              RTA_DATA (rtns[NDA_DST]), sizeof (struct in_addr));
+      memcpy (&msg_neigh_entry.ip_addr_key.ipv4_addr, RTA_DATA (rtns[NDA_DST]),
+              sizeof (struct in_addr));
       break;
 
     case AF_INET6:
       msg_neigh_entry.index = NEIGH_ND_TABLE;
-      memcpy (&msg_neigh_entry.ip_addr_key.ipv6_addr,
-              RTA_DATA (rtns[NDA_DST]), sizeof (struct in6_addr));
+      memcpy (&msg_neigh_entry.ip_addr_key.ipv6_addr, RTA_DATA (rtns[NDA_DST]),
+              sizeof (struct in6_addr));
       break;
 
     default:

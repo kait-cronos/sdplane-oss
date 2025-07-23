@@ -97,7 +97,8 @@ struct internal_msg_capture_if_delete
 struct internal_msg_neigh_entry
 {
   int index; // NEIGH_ARP_TABLE or NEIGH_ND_TABLE.
-  union {
+  union
+  {
     struct in_addr ipv4_addr;
     struct in6_addr ipv6_addr;
   } ip_addr_key;

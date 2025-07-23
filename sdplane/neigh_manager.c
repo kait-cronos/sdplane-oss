@@ -29,8 +29,8 @@ static __thread struct rte_hash *primary_neigh_tables[NEIGH_NR_TABLES];
 static __thread uint64_t loop_counter = 0;
 
 const int neigh_key_lengths[NEIGH_NR_TABLES] = {
-  [NEIGH_ARP_TABLE] = sizeof(struct in_addr),
-  [NEIGH_ND_TABLE]  = sizeof(struct in6_addr),
+  [NEIGH_ARP_TABLE] = sizeof (struct in_addr),
+  [NEIGH_ND_TABLE] = sizeof (struct in6_addr),
 };
 
 static inline __attribute__ ((always_inline)) const char *
@@ -71,14 +71,14 @@ neigh_manager_create_table (struct rte_hash **neigh_tables, int index,
                                         .hash_func_init_val = 0,
                                         .socket_id = rte_socket_id () };
 
-  snprintf(name, sizeof(name), "%s(%d)", neigh_manager_str (index), id);
+  snprintf (name, sizeof (name), "%s(%d)", neigh_manager_str (index), id);
   params.name = name;
   neigh_tables[index] = rte_hash_create (&params);
   if (neigh_tables[index] == NULL)
     {
-      DEBUG_SDPLANE_LOG (NEIGH,
-              "Failed to create neighbor table: %s (rte_errno=%d: %s)\n",
-              params.name, rte_errno, rte_strerror(rte_errno));
+      DEBUG_SDPLANE_LOG (
+          NEIGH, "Failed to create neighbor table: %s (rte_errno=%d: %s)\n",
+          params.name, rte_errno, rte_strerror (rte_errno));
       return;
     }
 
@@ -153,7 +153,8 @@ neigh_manager_lookup (const int index, const void *key,
 {
   struct rib *rib = rib_tlocal;
 
-  return rte_hash_lookup_data (rib->rib_info->neigh_tables[index], key, (void **) out);
+  return rte_hash_lookup_data (rib->rib_info->neigh_tables[index], key,
+                               (void **) out);
 }
 
 void
@@ -176,7 +177,8 @@ neigh_manager_show_table (const int index, const struct shell *shell)
 }
 
 void
-neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables, struct rte_ring *msg_queue)
+neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables,
+                               struct rte_ring *msg_queue)
 {
   int i, ret;
   DEBUG_SDPLANE_LOG (NEIGH, "%s: msg: %p.", __func__, msgp);
@@ -198,16 +200,16 @@ neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables, struc
     case INTERNAL_MSG_TYPE_NEIGH_FREE_TABLE:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_free_table: %p.", msgp);
       for (i = 0; i < NEIGH_NR_TABLES; i++)
-          neigh_manager_free_table (neigh_tables, i);
+        neigh_manager_free_table (neigh_tables, i);
       forward_to_rib = true;
       break;
 
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg_neigh_add_entry: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      ret = neigh_manager_add_entry (
-          neigh_tables, msg_neigh_entry->index,
-          &msg_neigh_entry->ip_addr_key, &msg_neigh_entry->data);
+      ret = neigh_manager_add_entry (neigh_tables, msg_neigh_entry->index,
+                                     &msg_neigh_entry->ip_addr_key,
+                                     &msg_neigh_entry->data);
       if (ret == EINVAL) /* entry already exists. */
         DEBUG_SDPLANE_LOG (NEIGH, "neigh_manager_add_entry: EINVAL.");
       else if (ret == ENOSPC) /* table is full. */
@@ -218,13 +220,12 @@ neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables, struc
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg_neigh_del_entry: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      neigh_manager_delete_entry (neigh_tables,
-                                  msg_neigh_entry->index,
+      neigh_manager_delete_entry (neigh_tables, msg_neigh_entry->index,
                                   &msg_neigh_entry->ip_addr_key);
       forward_to_rib = true;
       break;
 
-    // address resolution requests, etc.
+      // address resolution requests, etc.
 
     default:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg unknown: %p.", msgp);
@@ -236,7 +237,8 @@ neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables, struc
     {
       if (forward_to_rib)
         {
-          /* reflect updates from primary_neigh_tables into rib's copy. (rib->rib_info->neigh_tables) */
+          /* reflect updates from primary_neigh_tables into rib's copy.
+           * (rib->rib_info->neigh_tables) */
           DEBUG_SDPLANE_LOG (NEIGH, "forwarding msg to rib: %p.", msgp);
           /* msgp will be freed by rib_manager_process_message() */
           internal_msg_send_to (msg_queue_rib, msgp, NULL);
@@ -245,7 +247,8 @@ neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables, struc
         free (msgp);
     }
 
-    /* if msg_queue == msg_queue_rib, msgp will also be freed by rib_manager_process_message() */
+  /* if msg_queue == msg_queue_rib, msgp will also be freed by
+   * rib_manager_process_message() */
 }
 
 int
@@ -276,7 +279,8 @@ neigh_manager (void *arg __rte_unused)
 
       msgp = internal_msg_recv (msg_queue_neigh);
       if (msgp)
-        neigh_manager_process_message (msgp, primary_neigh_tables, msg_queue_neigh);
+        neigh_manager_process_message (msgp, primary_neigh_tables,
+                                       msg_queue_neigh);
 
       loop_counter++;
     }

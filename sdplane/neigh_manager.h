@@ -42,10 +42,11 @@ arp_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
     }
 }
 
-int neigh_manager_lookup(const int index, const void *key,
-                         struct neigh_entry_data **out);
-void neigh_manager_show_table(const int index, const struct shell *shell);
-void neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables, struct rte_ring *msg_queue);
+int neigh_manager_lookup (const int index, const void *key,
+                          struct neigh_entry_data **out);
+void neigh_manager_show_table (const int index, const struct shell *shell);
+void neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables,
+                                    struct rte_ring *msg_queue);
 int neigh_manager (void *arg __rte_unused);
 
 #endif /*__NEIGH_MANAGER_H__*/
