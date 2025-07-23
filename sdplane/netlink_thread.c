@@ -276,18 +276,19 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
+  inet_ntop (ndm->ndm_family, RTA_DATA (rtns[NDA_DST]), addr, sizeof (addr));
   msg_neigh_entry.data.family = ndm->ndm_family;
   switch (ndm->ndm_family)
     {
     case AF_INET:
       msg_neigh_entry.index = NEIGH_ARP_TABLE;
-      memcpy (&msg_neigh_entry.data.ip_addr_key.ipv4_addr,
+      memcpy (&msg_neigh_entry.ip_addr_key.ipv4_addr,
               RTA_DATA (rtns[NDA_DST]), sizeof (struct in_addr));
       break;
 
     case AF_INET6:
       msg_neigh_entry.index = NEIGH_ND_TABLE;
-      memcpy (&msg_neigh_entry.data.ip_addr_key.ipv6_addr,
+      memcpy (&msg_neigh_entry.ip_addr_key.ipv6_addr,
               RTA_DATA (rtns[NDA_DST]), sizeof (struct in6_addr));
       break;
 
@@ -301,25 +302,21 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
         return -1;
       etha = (struct rte_ether_addr *) RTA_DATA (rtns[NDA_LLADDR]);
       rte_ether_format_addr (lladdr, sizeof (lladdr), etha);
-      inet_ntop (ndm->ndm_family, RTA_DATA (rtns[NDA_DST]), addr,
-                 sizeof (addr));
       DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s lladdr=%s dev=%s", addr,
                          lladdr, ifname);
       memcpy (&msg_neigh_entry.data.lladdr, etha,
               sizeof (struct rte_ether_addr));
-      msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ADD_ENTRY,
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
                                   &msg_neigh_entry, sizeof (msg_neigh_entry));
     }
   else // RTM_DELNEIGH
     {
-      inet_ntop (ndm->ndm_family, RTA_DATA (rtns[NDA_DST]), addr,
-                 sizeof (addr));
       DEBUG_SDPLANE_LOG (NETLINK, "[DEL] dst=%s dev=%s", addr, ifname);
-      msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_DEL_ENTRY,
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL,
                                   &msg_neigh_entry, sizeof (msg_neigh_entry));
     }
 
-  internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
 
   return 0;
 }

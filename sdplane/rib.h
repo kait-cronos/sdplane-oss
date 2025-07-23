@@ -18,6 +18,8 @@ enum
   NEIGH_NR_TABLES,
 };
 
+extern const int neigh_key_lengths[];
+
 struct router_if
 {
   int sockfd; // tap sockfd.

@@ -111,6 +111,7 @@ void sdplane_cmd_init (struct command_set *cmdset);
 void sdplane_init ();
 
 extern struct rte_ring *msg_queue_rib;
+extern struct rte_ring *msg_queue_neigh;
 
 #include <rte_ethdev.h>
 #include "queue_config.h"
