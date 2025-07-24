@@ -1,0 +1,82 @@
+name: Check Format
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-format:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check code format
+        id: check
+        continue-on-error: true
+        run: |
+          ./style/check_gnu_style.sh check
+
+      - name: Delete previous format error comments
+        if: steps.check.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comments = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const botComments = comments.data.filter(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('🚨 Code Format Check Failed')
+            );
+
+            for (const comment of botComments) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: comment.id,
+              });
+              console.log(`Deleted comment ${comment.id}`);
+            }
+
+      - name: Generate format diff
+        if: steps.check.outcome == 'failure'
+        id: diff
+        run: |
+          echo "FORMAT_DIFF<<EOF" >> $GITHUB_OUTPUT
+          ./style/check_gnu_style.sh diff
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with format issues
+        if: steps.check.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const diff = `${{ steps.diff.outputs.FORMAT_DIFF }}`;
+            const comment = `## 🚨 Code Format Check Failed
+
+            ❌ The code format check has failed. Please run the following command to fix the formatting:
+
+            \`\`\`bash
+            ./style/check_gnu_style.sh fix
+            \`\`\`
+
+            📋 **Format Diff:**
+            \`\`\`diff
+            ${diff}
+            \`\`\`
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
