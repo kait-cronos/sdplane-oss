@@ -306,8 +306,7 @@ CLI_COMMAND2 (
               drivers_path, driver_name);
 
   fd = open (driver_bind_path, O_WRONLY, 0);
-  if (fd < 0)
-    {
+  if (fd < 0) {
       fprintf (shell->terminal, "opening %s failed: %s%s", driver_bind_path,
                strerror (errno), shell->NL);
       return -1;
