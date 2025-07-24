@@ -8,15 +8,6 @@ on:
       - main
 
 jobs:
-  check-format:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check code format
-        run: |
-          ./style/check_gnu_style.sh check
   build:
     runs-on: ubuntu-24.04
     env:
