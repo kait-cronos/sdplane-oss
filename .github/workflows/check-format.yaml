@@ -64,7 +64,7 @@ jobs:
             ❌ The code format check has failed. Please run the following command to fix the formatting:
 
             \`\`\`bash
-            ./style/check_gnu_style.sh fix
+            ./style/check_gnu_style.sh update
             \`\`\`
 
             📋 **Format Diff:**
