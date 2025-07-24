@@ -21,8 +21,15 @@ jobs:
         run: |
           ./style/check_gnu_style.sh check
 
+      - name: Generate format diff
+        if: steps.check.outcome == 'failure'
+        id: diff
+        run: |
+          echo "FORMAT_DIFF<<EOF" >> $GITHUB_OUTPUT
+          ./style/check_gnu_style.sh diff >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Delete previous format error comments
-        if: steps.check.outcome == 'success'
         uses: actions/github-script@v7
         with:
           script: |
@@ -45,14 +52,6 @@ jobs:
               });
               console.log(`Deleted comment ${comment.id}`);
             }
-
-      - name: Generate format diff
-        if: steps.check.outcome == 'failure'
-        id: diff
-        run: |
-          echo "FORMAT_DIFF<<EOF" >> $GITHUB_OUTPUT
-          ./style/check_gnu_style.sh diff
-          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment PR with format issues
         if: steps.check.outcome == 'failure'
