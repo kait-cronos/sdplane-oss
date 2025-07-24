@@ -164,6 +164,8 @@ netlink_nlmsg_str (uint16_t nlmsg_type)
       return "RTM_NEWNEIGH";
     case RTM_DELNEIGH:
       return "RTM_DELNEIGH";
+    case RTM_GETNEIGH:
+      return "RTM_GETNEIGH";
     case RTM_NEWLINK:
       return "RTM_NEWLINK";
     case RTM_DELLINK:
@@ -503,11 +505,18 @@ netlink_thread (void *arg)
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETROUTE, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
+  NETLINK_REQUEST_CMD (AF_INET, RTM_GETNEIGH, &netlink_cmd);
+  netlink_read_block (&netlink_cmd);
+
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETADDR, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETROUTE, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
+
+  NETLINK_REQUEST_CMD (AF_INET6, RTM_GETNEIGH, &netlink_cmd);
+  netlink_read_block (&netlink_cmd);
+
 
   while (! force_quit && ! force_stop[lthread_core])
     {
