@@ -17,6 +17,24 @@
 #include "sdplane.h"
 #include "thread_info.h"
 
+#include <unistd.h>
+#include <getopt.h>
+
+extern char *optarg;
+extern int optind, opterr, optopt;
+
+struct option longopts[] =
+{
+  { "config-file", required_argument, NULL, 'f' },
+  { NULL,          no_argument,       NULL,  0  },
+};
+char *optstring = "f:";
+
+int opt;
+int longindex;
+
+extern char *config_file;
+
 void
 signal_handler (int signum)
 {
@@ -47,8 +65,24 @@ main (int argc, char **argv)
   /* Preserve name of myself. */
   char *progname, *p;
   progname = ((p = strrchr (argv[0], '/')) ? ++p : argv[0]);
-  debug_log_init (progname);
 
+  while ((opt = getopt_long (argc, argv, optstring,
+                             longopts, &longindex)) != -1)
+    {
+      switch (opt)
+        {
+        case 'f':
+          config_file = optarg;
+          break;
+        default:
+          fprintf (stderr, "unknown option: \'%c\' optopt: \'%c\'\n",
+                   opt, optopt);
+          exit (-1);
+          break;
+        }
+    }
+
+  debug_log_init (progname);
   sdplane_init ();
 
   lthread_create (&lt, (lthread_func) lthread_main, NULL);
