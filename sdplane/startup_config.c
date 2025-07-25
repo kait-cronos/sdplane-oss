@@ -71,7 +71,8 @@ startup_config (__rte_unused void *dummy)
 
           ret = shell_read_nowait (shell);
           if (shell->cmd_status == CMD_NOT_FOUND ||
-              shell->cmd_status == CMD_FAILURE)
+              shell->cmd_status == CMD_FAILURE ||
+              ret < 0)
             {
               FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
               DEBUG_SDPLANE_LOG (STARTUP_CONFIG,
