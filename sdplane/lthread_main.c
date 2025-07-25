@@ -102,6 +102,7 @@ CLI_COMMAND2 (set_worker_lthread_rib_manager, "set worker lthread rib-manager",
   thread_register (lthread_core, lt, (lthread_func) rib_manager, "rib_manager",
                    NULL);
   lthread_detach2 (lt);
+  lthread_sleep (0);
   return 0;
 }
 
