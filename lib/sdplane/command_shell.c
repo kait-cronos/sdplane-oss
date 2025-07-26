@@ -859,9 +859,11 @@ command_shell_ls_candidate (struct shell *shell)
 
   cmdset = shell->cmdset;
   int index;
+  int curr, upper;
 
   assert (argc > 0);
   index = argc - 1;
+
   if (index == 0)
     {
       if (cmdnodes[0])
@@ -874,12 +876,41 @@ command_shell_ls_candidate (struct shell *shell)
       match = cmdnodes[index - 1];
     }
 
-  if (match)
-    {
-      if (! strlen (argv[index]) && match->func)
-        fprintf (shell->terminal, "  %-16s %s%s", "<cr>", match->helpstr,
-                 shell->NL);
+  curr = argc - 1;
+  upper = (curr > 0 ? upper = curr - 1 : -1);
 
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
+    {
+      fprintf (shell->terminal, "upper: %d curr: %d%s",
+               upper, curr, shell->NL);
+      fprintf (shell->terminal, "argv[%d]: \"%s\" (strlen: %lu)%s",
+               index, argv[index], strlen (argv[index]), shell->NL);
+      fprintf (shell->terminal, "cmdnodes[upper]: %p cmdnodes[curr]: %p%s",
+               cmdnodes[upper], cmdnodes[curr], shell->NL);
+      if (upper >= 0 && cmdnodes[upper])
+      fprintf (shell->terminal, "cmdnodes[upper]: %s%s",
+               cmdnodes[upper]->cmdstr, shell->NL);
+      if (cmdnodes[curr])
+      fprintf (shell->terminal, "cmdnodes[curr]: %s%s",
+               cmdnodes[curr]->cmdstr, shell->NL);
+    }
+
+  if (cmdnodes[curr])
+    {
+      node = cmdnodes[curr];
+      if (node->func)
+        fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
+                 node->helpstr, shell->NL);
+      else
+        fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
+                 node->helpstr, shell->NL);
+    }
+  else if (upper >= 0 && cmdnodes[upper])
+    {
+      match = cmdnodes[upper];
+      if (! strlen (argv[curr]) && match->func)
+        fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
+                 match->helpstr, shell->NL);
       for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
         {
           node = (struct command_node *) vn->data;
