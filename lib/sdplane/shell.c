@@ -786,10 +786,13 @@ shell_read (struct shell *shell)
       return ret;
     }
 
+#if 0
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
     {
       fprintf (shell->terminal, "read: size: %d%s", ret, shell->NL);
     }
+#endif
+
   int ret_shell = 0;
   for (i = 0; i < ret; i++)
     {

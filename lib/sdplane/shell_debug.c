@@ -13,7 +13,6 @@ shell_debug (struct shell *shell)
 {
   int i;
   char debug[64];
-  //int ret;
 
   shell_terminate (shell);
 
@@ -27,12 +26,6 @@ shell_debug (struct shell *shell)
   /* parse current command-line's argv. */
   command_argv_parse (command_line_dup, &argc, &argv);
 
-#if 0
-  /* display argv's memory address. */
-  fprintf (shell->terminal, "debug: argv: %p%s",
-           (void *) argv, shell->NL);
-#endif
-
   /* display current command-line's argv. */
   fprintf (shell->terminal, "debug: argc: %d argv:", argc);
   for (i = 0; i < argc; i++)
@@ -45,15 +38,9 @@ shell_debug (struct shell *shell)
   command_matched_nodes (argc, argv, shell->command_line,
                          shell->cmdset, &cmdnodes);
 
-#if 0
-  /* display cmdset's and matched cmdnodes's memory address. */
-  fprintf (shell->terminal, "debug: cmdset: %p%s", shell->cmdset, shell->NL);
-  fprintf (shell->terminal, "debug: cmdnodes: %p%s", (void *) cmdnodes,
-           shell->NL);
-#endif
-
   /* display matched command nodes. */
   char *command_name;
+  char *complete_str;
   for (i = 0; i < argc; i++)
     {
       command_name = "unknown";
@@ -65,9 +52,12 @@ shell_debug (struct shell *shell)
           if (! command_name)
             command_name = "null";
         }
+      complete_str = NULL;
       if (cmdnodes[i])
-      fprintf (shell->terminal, "cmdnode[%d]: %p %s (func: %s)%s",
-               i, cmdnodes[i], cmdnodes[i]->cmdstr, command_name, shell->NL);
+        complete_str = cmdnodes[i]->cmdstr;
+      fprintf (shell->terminal, "cmdnode[%d]: %p %s %s (func: %s)%s",
+               i, cmdnodes[i], argv[i], complete_str,
+               command_name, shell->NL);
     }
   fflush (shell->terminal);
 
@@ -75,6 +65,10 @@ shell_debug (struct shell *shell)
   free (cmdnodes);
   free (argv);
   free (command_line_dup);
+
+  /* the shell status when the input was received. */
+  fprintf (shell->terminal, "size: %d cursor: %d end: %d%s",
+           shell->size, shell->cursor, shell->end, shell->NL);
 
   /* display the last input char. */
     {
@@ -103,9 +97,7 @@ shell_debug (struct shell *shell)
                shell->NL);
     }
 
-  fprintf (shell->terminal, "size: %d cursor: %d end: %d%s",
-           shell->size, shell->cursor, shell->end, shell->NL);
-
+#if 0
   snprintf (
       debug, sizeof (debug),
       "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d",
@@ -114,6 +106,8 @@ shell_debug (struct shell *shell)
       shell_word_end (shell, shell->cursor), shell->cursor, shell->end,
       shell->inputch, shell->size);
   fprintf (shell->terminal, "%s%s", debug, shell->NL);
+#endif
+
   fflush (shell->terminal);
 }
 

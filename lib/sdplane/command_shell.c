@@ -581,6 +581,11 @@ command_shell_execute (struct shell *shell)
 
   /* send a line-feed to terminate the command line. */
   shell_linefeed (shell);
+  /* without the below fflush(), the newline will be sent after the pager
+     output, and will break the output: the executed command-line
+     will be erased, and after the command-output, it appears as
+     the additional newline which seems to be redundant. */
+  fflush (shell->terminal);
 
   /* remove the comment part, until the line-end. */
   comment = strpbrk (shell->command_line, "#!");
@@ -600,7 +605,7 @@ command_shell_execute (struct shell *shell)
       if (shell->pager)
         pager_start (shell);
 
-      shell_linefeed (shell);
+      //shell_linefeed (shell);
 
 #if 0
       if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
