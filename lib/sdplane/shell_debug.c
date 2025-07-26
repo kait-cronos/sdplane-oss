@@ -97,15 +97,20 @@ shell_debug (struct shell *shell)
                shell->NL);
     }
 
+  /* history */
+  int floor, start;
+  struct command_history *history = shell->history;
+  floor = HISTORY_NEXT (history->last);
+  start = HISTORY_NEXT (floor);
+  fprintf (shell->terminal,
+           "history: start: %d last: %d floor: %d current: %d%s",
+           start, history->last, floor, history->current, shell->NL);
 #if 0
-  snprintf (
-      debug, sizeof (debug),
-      "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d",
-      shell_word_prev_head (shell, shell->cursor),
-      shell_word_head (shell, shell->cursor),
-      shell_word_end (shell, shell->cursor), shell->cursor, shell->end,
-      shell->inputch, shell->size);
-  fprintf (shell->terminal, "%s%s", debug, shell->NL);
+  /* ring buffer. from start to floor, possibly wrapping. */
+  for (i = start; i != floor; i = HISTORY_NEXT (i))
+    if (history->array[i])
+      fprintf (shell->terminal, "history[%3d] %s%s",
+               i, history->array[i], shell->NL);
 #endif
 
   fflush (shell->terminal);

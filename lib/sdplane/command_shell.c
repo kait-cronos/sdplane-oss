@@ -87,6 +87,16 @@ command_history_add (char *command_line, struct command_history *history,
   if (history->array[history->last])
     history->current = HISTORY_NEXT (history->last);
   assert (! history->array[history->current]);
+
+  /* update the time the command was added in the history */
+  time (&history->clock[history->last]);
+  if (history->array[history->last] &&
+      ! strcmp (history->array[history->last], command_line))
+    {
+      /* ommit adding identical command_line. */
+      return;
+    }
+
   history->array[history->current] = strdup (command_line);
   history->last = history->current;
   history->current = HISTORY_NEXT (history->current);
@@ -106,11 +116,6 @@ command_history_prev (struct shell *shell)
 
   ceil = HISTORY_NEXT (history->last);
   start = HISTORY_NEXT (ceil);
-
-#if 0
-  printf ("last: %d ceil: %d start: %d current: %d\n",
-          history->last, ceil, start, history->current);
-#endif
 
   /* wrapping */
   if (history->current == start)
@@ -138,11 +143,6 @@ command_history_next (struct shell *shell)
   floor = HISTORY_NEXT (history->last);
   start = HISTORY_NEXT (floor);
 
-#if 0
-  printf ("last: %d floor: %d start: %d current: %d\n",
-          history->last, floor, start, history->current);
-#endif
-
   /* wrapping */
   if (history->current == floor)
     return 0;
@@ -152,6 +152,11 @@ command_history_next (struct shell *shell)
     {
       shell_delete_string (shell, 0, shell->end);
       shell_insert (shell, history->array[next]);
+      history->current = next;
+    }
+  if (next == floor)
+    {
+      shell_delete_string (shell, 0, shell->end);
       history->current = next;
     }
   return 0;
@@ -164,6 +169,9 @@ DEFINE_COMMAND (show_history, "show history",
   struct shell *shell = (struct shell *) context;
   struct command_history *history = shell->history;
   int floor, start, i;
+  struct tm *tm;
+#define TIMEBUFSIZ 32
+  char timebuf[TIMEBUFSIZ];
 
   if (! history)
     return CMD_SUCCESS;
@@ -173,7 +181,12 @@ DEFINE_COMMAND (show_history, "show history",
 
   for (i = start; i != floor; i = HISTORY_NEXT (i))
     if (history->array[i])
-      fprintf (shell->terminal, "[%3d] %s\n", i, history->array[i]);
+      {
+        tm = localtime (&history->clock[i]);
+        strftime (timebuf, sizeof (timebuf), "%Y/%m/%d %H:%M:%S", tm);
+        fprintf (shell->terminal, "[%3d] %s %s\n",
+                 i, timebuf, history->array[i]);
+      }
   return CMD_SUCCESS;
 }
 

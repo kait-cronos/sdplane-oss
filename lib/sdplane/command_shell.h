@@ -18,6 +18,7 @@ struct command_history
   char *array[HISTORY_SIZE];
   int last;
   int current;
+  time_t clock[HISTORY_SIZE];
 };
 
 EXTERN_COMMAND (exit);
