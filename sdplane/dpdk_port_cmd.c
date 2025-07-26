@@ -298,14 +298,14 @@ CLI_COMMAND2 (show_port_statistics,
   bool total = false;
   struct rte_eth_stats *stats, *stats_array;
 
-  if (argc <= 3)
+  /* default is to show "pps" */
+  packets = true;
+  total = false;
+  stats_array = stats_per_sec;
+
+  if (argc > 3)
     {
-      /* default is to show "pps" */
-      packets = true;
-      total = false;
-      stats_array = stats_per_sec;
-    }
-  else if (! strcmp (argv[3], "pps"))
+  if (! strcmp (argv[3], "pps"))
     {
       packets = true;
       total = false;
@@ -336,6 +336,7 @@ CLI_COMMAND2 (show_port_statistics,
       bytes = true;
       total = true;
       stats_array = stats_current;
+    }
     }
 
   /* 100Gbps: 148.8Mpps = 148,800,000 1Tbps: 1.488Gpps = 1,488,000,000: 13 */
