@@ -908,17 +908,7 @@ command_shell_ls_candidate (struct shell *shell)
                cmdnodes[curr]->cmdstr, shell->NL);
     }
 
-  if (cmdnodes[curr])
-    {
-      node = cmdnodes[curr];
-      if (node->func)
-        fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
-                 node->helpstr, shell->NL);
-      else
-        fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
-                 node->helpstr, shell->NL);
-    }
-  else if (upper >= 0 && cmdnodes[upper])
+  if (upper >= 0 && cmdnodes[upper])
     {
       match = cmdnodes[upper];
       if (! strlen (argv[curr]) && match->func)
@@ -933,6 +923,17 @@ command_shell_ls_candidate (struct shell *shell)
 
           if (file_spec (node->cmdstr))
             file_ls_candidate (shell, argv[index]);
+        }
+    }
+  else if (argc == 1)
+    {
+      match = cmdset->root;
+      for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
+        {
+          node = (struct command_node *) vn->data;
+          if (is_command_match (node->cmdstr, argv[index]))
+            fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
+                     node->helpstr, shell->NL);
         }
     }
 
