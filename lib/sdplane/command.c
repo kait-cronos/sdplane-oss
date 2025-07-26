@@ -38,6 +38,14 @@ command_node_cmp (const void *a, const void *b)
   return strcmp (ca->cmdstr, cb->cmdstr);
 }
 
+int
+command_node_cmp_qsort (const void *a, const void *b)
+{
+  struct command_node *ca = *(struct command_node **) a;
+  struct command_node *cb = *(struct command_node **) b;
+  return strcmp (ca->cmdstr, cb->cmdstr);
+}
+
 struct command_node *
 command_node_create ()
 {
@@ -596,7 +604,7 @@ command_install (struct command_set *cmdset, char *command_line,
           node->cmdstr = word;
           node->helpstr = word_help;
           vector_add (node, parent->cmdvec);
-          vector_sort (command_node_cmp, parent->cmdvec);
+          vector_sort (command_node_cmp_qsort, parent->cmdvec);
         }
       parent = node;
     }
@@ -694,7 +702,7 @@ command_install2 (struct command_set *cmdset, char *command_line,
                   node->cmdstr = subword;
                   node->helpstr = word_help;
                   vector_add (node, parent->cmdvec);
-                  vector_sort (command_node_cmp, parent->cmdvec);
+                  vector_sort (command_node_cmp_qsort, parent->cmdvec);
                 }
 
               if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
