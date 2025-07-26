@@ -751,6 +751,8 @@ command_replace (struct command_node *cmd, char *word)
 
   if (file_spec (cmd->cmdstr))
     ret = file_replace (word);
+  else if (! is_command_match_variable (cmd->cmdstr, word))
+    ret = cmd->cmdstr;
 
   return ret;
 }
