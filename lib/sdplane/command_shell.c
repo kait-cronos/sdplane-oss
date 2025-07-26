@@ -89,14 +89,15 @@ command_history_add (char *command_line, struct command_history *history,
   assert (! history->array[history->current]);
 
   /* update the time the command was added in the history */
-  time (&history->clock[history->last]);
   if (history->array[history->last] &&
       ! strcmp (history->array[history->last], command_line))
     {
       /* ommit adding identical command_line. */
+      time (&history->clock[history->last]);
       return;
     }
 
+  time (&history->clock[history->current]);
   history->array[history->current] = strdup (command_line);
   history->last = history->current;
   history->current = HISTORY_NEXT (history->current);
