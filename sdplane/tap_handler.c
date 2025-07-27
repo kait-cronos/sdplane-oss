@@ -458,7 +458,7 @@ tap_handler (__rte_unused void *dummy)
                      rte_lcore_id ());
 
   if (! strlen (capture_ifname))
-    snprintf (capture_ifname, sizeof (capture_ifname), "peek0");
+    snprintf (capture_ifname, sizeof (capture_ifname), "capture0");
   capture_fd = tap_open (capture_ifname);
   if (capture_if_persistent)
     ioctl (capture_fd, TUNSETPERSIST, 1);
