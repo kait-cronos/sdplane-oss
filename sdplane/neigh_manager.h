@@ -15,13 +15,6 @@
 #define NEIGH_STATE_NOARP      0x40
 #define NEIGH_STATE_PERMANENT  0x80
 
-struct neigh_entry_data
-{
-  int family;
-  struct rte_ether_addr lladdr;
-  // e.g. router_if, state, timer
-};
-
 static inline __attribute__ ((always_inline)) void
 arp_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
 {

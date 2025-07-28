@@ -169,14 +169,13 @@ neigh_manager_lookup (const struct neigh_table *neigh_table, const int index,
                       const void *key, struct neigh_entry *out)
 {
   uint32_t hash, offset;
-  size_t key_len = neigh_key_lengths[index];
 
-  hash = jenkins_hash ((uint8_t *) key, key_len);
+  hash = jenkins_hash ((uint8_t *) key, neigh_key_lengths[index]);
   offset = hash;
 
   while (neigh_table->entries[offset].state != NEIGH_STATE_NONE)
     {
-      if (! memcmp (&neigh_table->entries[offset].ip_addr, key, key_len))
+      if (! memcmp (&neigh_table->entries[offset].ip_addr, key, neigh_key_lengths[index]))
         {
           memcpy (out, &neigh_table->entries[offset],
                   sizeof (struct neigh_entry));
