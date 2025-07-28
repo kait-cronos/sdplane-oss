@@ -24,7 +24,7 @@
 
 struct rte_ring *msg_queue_neigh;
 
-static __thread struct rte_hash *primary_neigh_tables[NEIGH_NR_TABLES];
+static __thread struct neigh_table primary_neigh_tables[NEIGH_NR_TABLES];
 
 static __thread uint64_t loop_counter = 0;
 
@@ -34,7 +34,7 @@ const int neigh_key_lengths[NEIGH_NR_TABLES] = {
 };
 
 static inline __attribute__ ((always_inline)) const char *
-neigh_manager_str (int index)
+neigh_manager_table_str (int index)
 {
   switch (index)
     {
@@ -49,180 +49,219 @@ neigh_manager_str (int index)
   return NULL;
 }
 
-/*
- * NOTE:
- * The rte_hash library does not manage data entities.
- * sdplane must be responsible for allocating, storing, and freeing associated
- * data.
- */
-
-static inline __attribute__ ((always_inline)) void
-neigh_manager_create_table (struct rte_hash **neigh_tables, int index,
-                            int key_len)
+static inline __attribute__ ((always_inline)) const char *
+neigh_manager_state_str (uint8_t state)
 {
-  char name[64];
-  static int global_table_counter = 0;
-  int id = __sync_fetch_and_add (&global_table_counter, 1);
-
-  struct rte_hash_parameters params = { .name = NULL,
-                                        .entries = MAX_NEIGHBOR_TABLE_SIZE,
-                                        .key_len = key_len,
-                                        .hash_func = rte_jhash,
-                                        .hash_func_init_val = 0,
-                                        .socket_id = rte_socket_id () };
-
-  snprintf (name, sizeof (name), "%s(%d)", neigh_manager_str (index), id);
-  params.name = name;
-  neigh_tables[index] = rte_hash_create (&params);
-  if (neigh_tables[index] == NULL)
+  switch (state)
     {
-      DEBUG_SDPLANE_LOG (
-          NEIGH, "Failed to create neighbor table: %s (rte_errno=%d: %s)\n",
-          params.name, rte_errno, rte_strerror (rte_errno));
-      return;
+    case NEIGH_STATE_NONE:
+      return "none";
+    case NEIGH_STATE_INCOMPLETE:
+      return "incomplete";
+    case NEIGH_STATE_REACHABLE:
+      return "reachable";
+    case NEIGH_STATE_STALE:
+      return "stale";
+    case NEIGH_STATE_DELAY:
+      return "delay";
+    case NEIGH_STATE_PROBE:
+      return "probe";
+    case NEIGH_STATE_FAILED:
+      return "failed";
+    case NEIGH_STATE_NOARP:
+      return "noarp";
+    case NEIGH_STATE_PERMANENT:
+      return "permanent";
+    default:
+      return "unknown";
     }
-
-  DEBUG_SDPLANE_LOG (NEIGH, "neighbor table %s created.", params.name);
 }
 
-static inline __attribute__ ((always_inline)) void
-neigh_manager_free_table (struct rte_hash **neigh_tables, int index)
+static inline __attribute__ ((always_inline)) uint32_t
+jenkins_hash (uint8_t *key, int key_len)
 {
-  struct neigh_entry_data *data;
-  void *key;
-  uint32_t iter = 0;
+  int i;
+  uint32_t hash = 0;
 
-  while (rte_hash_iterate (neigh_tables[index], (void *) &key, (void **) &data,
-                           &iter) >= 0)
-    free (data);
-  rte_hash_free (neigh_tables[index]);
+  hash = 0;
+  for (i = 0; i < key_len; i++)
+    {
+      hash += key[i];
+      hash += hash << 10;
+      hash ^= hash >> 6;
+    }
+  hash += hash << 3;
+  hash ^= hash >> 11;
+  hash += hash << 15;
 
-  DEBUG_SDPLANE_LOG (NEIGH, "neighbor table %s freed.",
-                     neigh_manager_str (index));
+  return hash % MAX_NEIGHBOR_TABLE_SIZE;
 }
 
 static inline __attribute__ ((always_inline)) int
-neigh_manager_add_entry (struct rte_hash **neigh_tables, const int index,
-                         const void *key, const struct neigh_entry_data *data)
+neigh_manager_add_entry (struct neigh_table *neigh_table, const int index,
+                         const void *key, const struct neigh_entry *data)
 {
-  struct neigh_entry_data *data_copy =
-      malloc (sizeof (struct neigh_entry_data));
-  if (! data_copy)
-    {
-      DEBUG_SDPLANE_LOG (NEIGH,
-                         "failed to allocate memory for neighbor entry data.");
-      return -1;
-    }
-  memcpy (data_copy, data, sizeof (struct neigh_entry_data));
+  uint32_t hash, offset;
 
-  return rte_hash_add_key_data (neigh_tables[index], key, (void *) data_copy);
+  hash = jenkins_hash ((uint8_t *) key, neigh_key_lengths[index]);
+  offset = hash;
+  while (neigh_table->entries[offset].state != NEIGH_STATE_NONE)
+    {
+      if (! memcmp (&neigh_table->entries[offset].ip_addr, key,
+                    neigh_key_lengths[index]))
+        {
+          DEBUG_SDPLANE_LOG (NEIGH, "duplicate entry at %s[%u]",
+                             neigh_manager_table_str (index), offset);
+          return -1;
+        }
+
+      ++offset;
+      if (offset >= MAX_NEIGHBOR_TABLE_SIZE)
+        offset = 0;
+      if (offset == hash)
+        {
+          DEBUG_SDPLANE_LOG (NEIGH, "neigh_table is full.");
+          return -1;
+        }
+    }
+  memcpy (&neigh_table->entries[offset], data, sizeof (struct neigh_entry));
+
+  DEBUG_SDPLANE_LOG (NEIGH, "added entry at %s[%u]",
+                     neigh_manager_table_str (index), offset);
+  return (int) offset;
 }
 
 static inline __attribute__ ((always_inline)) int
-neigh_manager_delete_entry (struct rte_hash **neigh_tables, const int index,
+neigh_manager_delete_entry (struct neigh_table *neigh_table, const int index,
                             const void *key)
 {
-  struct neigh_entry_data *data;
-  if (rte_hash_lookup_data (neigh_tables[index], key, (void *) &data) < 0)
-    {
-      DEBUG_SDPLANE_LOG (NEIGH, "neighbor entry not found for key.");
-      return -1;
-    }
-  free (data);
+  uint32_t hash, offset;
 
-  return rte_hash_del_key (neigh_tables[index], key);
+  hash = jenkins_hash ((uint8_t *) key, neigh_key_lengths[index]);
+  offset = hash;
+
+  while (neigh_table->entries[offset].state != NEIGH_STATE_NONE)
+    {
+      if (! memcmp (&neigh_table->entries[offset].ip_addr, key,
+                    neigh_key_lengths[index]))
+        {
+          memset (&neigh_table->entries[offset], 0,
+                  sizeof (struct neigh_entry));
+          DEBUG_SDPLANE_LOG (NEIGH, "deleted entry at %s[%u]",
+                             neigh_manager_table_str (index), offset);
+          return (int) offset;
+        }
+
+      ++offset;
+      if (offset >= MAX_NEIGHBOR_TABLE_SIZE)
+        offset = 0;
+      if (offset == hash)
+        break;
+    }
+
+  DEBUG_SDPLANE_LOG (NEIGH, "entry not found in %s",
+                     neigh_manager_table_str (index));
+  return -1;
 }
 
-/**
- * Usage example:
- *
- *   struct neigh_entry_data *entry;
- *   char buf[RTE_ETHER_ADDR_FMT_SIZE];
- *   int ret;
- *
- *   int ret = neigh_manager_lookup (index, key, &entry);
- *   if (ret < 0)
- *       return -1;
- *
- *   rte_ether_format_addr (buf, sizeof (buf), &entry->lladdr);
- *   fprintf (stderr, "result: %s\n", buf);
- */
 int
-neigh_manager_lookup (const int index, const void *key,
-                      struct neigh_entry_data **out)
+neigh_manager_lookup (const struct neigh_table *neigh_table, const int index,
+                      const void *key, struct neigh_entry *out)
 {
-  struct rib *rib = rib_tlocal;
+  uint32_t hash, offset;
+  size_t key_len = neigh_key_lengths[index];
 
-  return rte_hash_lookup_data (rib->rib_info->neigh_tables[index], key,
-                               (void **) out);
+  hash = jenkins_hash ((uint8_t *) key, key_len);
+  offset = hash;
+
+  while (neigh_table->entries[offset].state != NEIGH_STATE_NONE)
+    {
+      if (! memcmp (&neigh_table->entries[offset].ip_addr, key, key_len))
+        {
+          memcpy (out, &neigh_table->entries[offset],
+                  sizeof (struct neigh_entry));
+          DEBUG_SDPLANE_LOG (NEIGH, "lookup hit at %s[%u]",
+                             neigh_manager_table_str (index), offset);
+          return (int) offset;
+        }
+
+      ++offset;
+      if (offset >= MAX_NEIGHBOR_TABLE_SIZE)
+        offset = 0;
+      if (offset == hash)
+        break;
+    }
+
+  DEBUG_SDPLANE_LOG (NEIGH, "lookup failed in %s",
+                     neigh_manager_table_str (index));
+  return -1;
 }
 
 void
 neigh_manager_show_table (const int index, const struct shell *shell)
 {
-  struct neigh_entry_data *data;
-  void *key;
-  uint32_t iter = 0;
+  int i;
   char addr[64];
-  char buf[RTE_ETHER_ADDR_FMT_SIZE];
+  char lladdr[RTE_ETHER_ADDR_FMT_SIZE];
   struct rib *rib = rib_tlocal;
 
-  while (rte_hash_iterate (rib->rib_info->neigh_tables[index], (void *) &key,
-                           (void **) &data, &iter) >= 0)
+  for (i = 0; i < MAX_NEIGHBOR_TABLE_SIZE; i++)
     {
-      inet_ntop (data->family, key, addr, sizeof (addr));
-      rte_ether_format_addr (buf, sizeof (buf), &data->lladdr);
-      fprintf (shell->terminal, "%s lladdr %s\n", addr, buf);
+      if (rib->rib_info->neigh_tables[index].entries[i].state ==
+          NEIGH_STATE_NONE)
+        continue;
+      inet_ntop (rib->rib_info->neigh_tables[index].entries[i].family,
+                 &rib->rib_info->neigh_tables[index].entries[i].ip_addr, addr,
+                 sizeof (addr));
+      rte_ether_format_addr (
+          lladdr, sizeof (lladdr),
+          &rib->rib_info->neigh_tables[index].entries[i].mac_addr);
+      fprintf (shell->terminal, "%s lladdr %s state %s%s", addr, lladdr,
+               neigh_manager_state_str (
+                   rib->rib_info->neigh_tables[index].entries[i].state),
+               shell->NL);
     }
 }
 
 void
-neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables,
-                               struct rte_ring *msg_queue)
+neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
 {
   int i, ret;
   DEBUG_SDPLANE_LOG (NEIGH, "%s: msg: %p.", __func__, msgp);
 
-  bool forward_to_rib = false;
+  void *new_msgp;
   struct internal_msg_header *msg_header;
   struct internal_msg_neigh_entry *msg_neigh_entry;
 
   msg_header = (struct internal_msg_header *) msgp;
   switch (msg_header->type)
     {
-    case INTERNAL_MSG_TYPE_NEIGH_CREATE_TABLE:
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_create_table: %p.", msgp);
-      for (i = 0; i < NEIGH_NR_TABLES; i++)
-        neigh_manager_create_table (neigh_tables, i, neigh_key_lengths[i]);
-      forward_to_rib = true;
-      break;
-
-    case INTERNAL_MSG_TYPE_NEIGH_FREE_TABLE:
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_free_table: %p.", msgp);
-      for (i = 0; i < NEIGH_NR_TABLES; i++)
-        neigh_manager_free_table (neigh_tables, i);
-      forward_to_rib = true;
-      break;
-
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg_neigh_add_entry: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      ret = neigh_manager_add_entry (neigh_tables, msg_neigh_entry->index,
-                                     &msg_neigh_entry->ip_addr_key,
-                                     &msg_neigh_entry->data);
-      if (ret == EINVAL) /* entry already exists. */
-        DEBUG_SDPLANE_LOG (NEIGH, "neigh_manager_add_entry: EINVAL.");
-      else if (ret == ENOSPC) /* table is full. */
-        DEBUG_SDPLANE_LOG (NEIGH, "neigh_manager_add_entry: ENOSPC.");
-      forward_to_rib = true;
+      ret = neigh_manager_add_entry (
+          &neigh_tables[msg_neigh_entry->index], msg_neigh_entry->index,
+          &msg_neigh_entry->data.ip_addr, &msg_neigh_entry->data);
+      if (ret < 0)
+        return;
+      msg_neigh_entry->hash = ret;
+      new_msgp =
+          internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
+                               msg_neigh_entry, sizeof (*msg_neigh_entry));
+      internal_msg_send_to (msg_queue_rib, new_msgp, NULL);
       break;
 
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg_neigh_del_entry: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      neigh_manager_delete_entry (neigh_tables, msg_neigh_entry->index,
-                                  &msg_neigh_entry->ip_addr_key);
-      forward_to_rib = true;
+      neigh_manager_delete_entry (&neigh_tables[msg_neigh_entry->index],
+                                  msg_neigh_entry->index,
+                                  &msg_neigh_entry->data.ip_addr);
+      msg_neigh_entry->hash = ret;
+      new_msgp =
+          internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL,
+                               msg_neigh_entry, sizeof (*msg_neigh_entry));
+      internal_msg_send_to (msg_queue_rib, new_msgp, NULL);
       break;
 
       // address resolution requests, etc.
@@ -232,28 +271,13 @@ neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables,
       break;
     }
 
-
-  if (msg_queue == msg_queue_neigh)
-    {
-      if (forward_to_rib)
-        {
-          /* reflect updates from primary_neigh_tables into rib's copy.
-           * (rib->rib_info->neigh_tables) */
-          DEBUG_SDPLANE_LOG (NEIGH, "forwarding msg to rib: %p.", msgp);
-          /* msgp will be freed by rib_manager_process_message() */
-          internal_msg_send_to (msg_queue_rib, msgp, NULL);
-        }
-      else
-        free (msgp);
-    }
-
-  /* if msg_queue == msg_queue_rib, msgp will also be freed by
-   * rib_manager_process_message() */
+  free (msgp);
 }
 
 int
 neigh_manager (void *arg __rte_unused)
 {
+  int i;
   void *msgp;
   unsigned lcore_id = rte_lcore_id ();
 
@@ -268,9 +292,8 @@ neigh_manager (void *arg __rte_unused)
   thread_id = thread_lookup (neigh_manager);
   thread_register_loop_counter (thread_id, &loop_counter);
 
-  /* create the neighbor tables */
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_CREATE_TABLE, NULL, 0);
-  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+  /* initialize primary neigh tables */
+  memset(primary_neigh_tables, 0, sizeof(primary_neigh_tables));
 
   while (! force_quit && ! force_stop[lcore_id])
     {
@@ -279,15 +302,10 @@ neigh_manager (void *arg __rte_unused)
 
       msgp = internal_msg_recv (msg_queue_neigh);
       if (msgp)
-        neigh_manager_process_message (msgp, primary_neigh_tables,
-                                       msg_queue_neigh);
+        neigh_manager_process_message (msgp, primary_neigh_tables);
 
       loop_counter++;
     }
-
-  /* free the neighbor tables */
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_FREE_TABLE, NULL, 0);
-  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
 
   rte_ring_free (msg_queue_neigh);
 

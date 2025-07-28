@@ -402,6 +402,14 @@ CLI_COMMAND2 (show_neighbor, "show neighbor (ipv4|ipv6)", SHOW_HELP,
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
+  int thread_id;
+
+  thread_id = thread_lookup (neigh_manager);
+  if (thread_id < 0)
+    {
+      fprintf (t, "neigh_manager thread not found.%s", shell->NL);
+      return -1;
+    }
 
   if (argc < 3)
     {

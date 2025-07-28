@@ -29,10 +29,8 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_ROUTER_IF_DELETE      13
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_CREATE     14
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_DELETE     15
-#define INTERNAL_MSG_TYPE_NEIGH_CREATE_TABLE    16
-#define INTERNAL_MSG_TYPE_NEIGH_FREE_TABLE      17
-#define INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD       18
-#define INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL       19
+#define INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD       16
+#define INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL       17
 
 struct internal_msg_eth_link
 {
@@ -97,12 +95,8 @@ struct internal_msg_capture_if_delete
 struct internal_msg_neigh_entry
 {
   int index; // NEIGH_ARP_TABLE or NEIGH_ND_TABLE.
-  union
-  {
-    struct in_addr ipv4_addr;
-    struct in6_addr ipv6_addr;
-  } ip_addr_key;
-  struct neigh_entry_data data;
+  int hash;
+  struct neigh_entry data;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);

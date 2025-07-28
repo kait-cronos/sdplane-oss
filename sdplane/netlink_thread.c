@@ -280,18 +280,19 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
 
   inet_ntop (ndm->ndm_family, RTA_DATA (rtns[NDA_DST]), addr, sizeof (addr));
   msg_neigh_entry.data.family = ndm->ndm_family;
+  msg_neigh_entry.data.state = ndm->ndm_state;
   switch (ndm->ndm_family)
     {
     case AF_INET:
       msg_neigh_entry.index = NEIGH_ARP_TABLE;
-      memcpy (&msg_neigh_entry.ip_addr_key.ipv4_addr, RTA_DATA (rtns[NDA_DST]),
-              sizeof (struct in_addr));
+      memcpy (&msg_neigh_entry.data.ip_addr.ipv4_addr,
+              RTA_DATA (rtns[NDA_DST]), sizeof (struct in_addr));
       break;
 
     case AF_INET6:
       msg_neigh_entry.index = NEIGH_ND_TABLE;
-      memcpy (&msg_neigh_entry.ip_addr_key.ipv6_addr, RTA_DATA (rtns[NDA_DST]),
-              sizeof (struct in6_addr));
+      memcpy (&msg_neigh_entry.data.ip_addr.ipv6_addr,
+              RTA_DATA (rtns[NDA_DST]), sizeof (struct in6_addr));
       break;
 
     default:
@@ -306,7 +307,7 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
       rte_ether_format_addr (lladdr, sizeof (lladdr), etha);
       DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s lladdr=%s dev=%s", addr,
                          lladdr, ifname);
-      memcpy (&msg_neigh_entry.data.lladdr, etha,
+      memcpy (&msg_neigh_entry.data.mac_addr, etha,
               sizeof (struct rte_ether_addr));
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
                                   &msg_neigh_entry, sizeof (msg_neigh_entry));

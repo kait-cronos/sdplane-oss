@@ -5,6 +5,16 @@
 
 #define MAX_NEIGHBOR_TABLE_SIZE 1024
 
+#define NEIGH_STATE_NONE       0x00
+#define NEIGH_STATE_INCOMPLETE 0x01
+#define NEIGH_STATE_REACHABLE  0x02
+#define NEIGH_STATE_STALE      0x04
+#define NEIGH_STATE_DELAY      0x08
+#define NEIGH_STATE_PROBE      0x10
+#define NEIGH_STATE_FAILED     0x20
+#define NEIGH_STATE_NOARP      0x40
+#define NEIGH_STATE_PERMANENT  0x80
+
 struct neigh_entry_data
 {
   int family;
@@ -42,11 +52,12 @@ arp_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
     }
 }
 
-int neigh_manager_lookup (const int index, const void *key,
-                          struct neigh_entry_data **out);
+int neigh_manager_lookup (const struct neigh_table *neigh_table,
+                          const int index, const void *key,
+                          struct neigh_entry *out);
 void neigh_manager_show_table (const int index, const struct shell *shell);
-void neigh_manager_process_message (void *msgp, struct rte_hash **neigh_tables,
-                                    struct rte_ring *msg_queue);
+void neigh_manager_process_message (void *msgp,
+                                    struct neigh_table *neigh_tables);
 int neigh_manager (void *arg __rte_unused);
 
 #endif /*__NEIGH_MANAGER_H__*/

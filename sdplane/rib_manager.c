@@ -1040,12 +1040,19 @@ rib_manager_process_message (void *msgp)
       capture_if_delete (new->rib_info, msg_capture_if_delete->vswitch_id);
       break;
 
-    case INTERNAL_MSG_TYPE_NEIGH_CREATE_TABLE:
-    case INTERNAL_MSG_TYPE_NEIGH_FREE_TABLE:
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_add: %p.", msgp);
+      msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
+      memcpy (&new->rib_info->neigh_tables[msg_neigh_entry->index]
+                   .entries[msg_neigh_entry->hash],
+              &msg_neigh_entry->data, sizeof (struct neigh_entry));
+      break;
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL:
-      neigh_manager_process_message (msgp, new->rib_info->neigh_tables,
-                                     msg_queue_rib);
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_del: %p.", msgp);
+      msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
+      memset (&new->rib_info->neigh_tables[msg_neigh_entry->index]
+                   .entries[msg_neigh_entry->hash],
+              0, sizeof (struct neigh_entry));
       break;
 
     default:
