@@ -293,7 +293,7 @@ neigh_manager (void *arg __rte_unused)
   thread_register_loop_counter (thread_id, &loop_counter);
 
   /* initialize primary neigh tables */
-  memset(primary_neigh_tables, 0, sizeof(primary_neigh_tables));
+  memset (primary_neigh_tables, 0, sizeof (primary_neigh_tables));
 
   while (! force_quit && ! force_stop[lcore_id])
     {
