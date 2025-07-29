@@ -12,12 +12,15 @@
 
 #include "sdplane.h"
 #include "thread_info.h"
+#include "internal_message.h"
 
 /* for netlink */
 #include <asm/types.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <sys/socket.h>
+#include <net/if.h>
+#include <netinet/ether.h>
 
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
@@ -157,6 +160,12 @@ netlink_nlmsg_str (uint16_t nlmsg_type)
       return "RTM_DELROUTE";
     case RTM_GETROUTE:
       return "RTM_GETROUTE";
+    case RTM_NEWNEIGH:
+      return "RTM_NEWNEIGH";
+    case RTM_DELNEIGH:
+      return "RTM_DELNEIGH";
+    case RTM_GETNEIGH:
+      return "RTM_GETNEIGH";
     case RTM_NEWLINK:
       return "RTM_NEWLINK";
     case RTM_DELLINK:
@@ -174,6 +183,24 @@ netlink_nlmsg_str (uint16_t nlmsg_type)
     }
   /* not reached */
   return "Not-reached";
+}
+
+static inline __attribute__ ((always_inline)) int
+netlink_get_rtattr (struct rtattr **rtas, int max, void *head, int len)
+{
+  int counter = 0;
+  struct rtattr *rta = head;
+
+  for (; RTA_OK (rta, len); rta = RTA_NEXT (rta, len))
+    {
+      if (rta->rta_type <= max)
+        {
+          rtas[rta->rta_type] = rta;
+          counter++;
+        }
+    }
+
+  return counter;
 }
 
 int
@@ -215,6 +242,86 @@ netlink_read_nlmsg_error (struct netlink_sock *nlsock, struct nlmsghdr *h)
                      err->msg.nlmsg_pid);
 
   return -1;
+}
+
+int
+netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
+{
+  struct ndmsg *ndm = (struct ndmsg *) NLMSG_DATA (h);
+
+  if (h->nlmsg_len < NLMSG_LENGTH (sizeof (struct nlmsgerr)))
+    {
+      DEBUG_SDPLANE_LOG (NETLINK,
+                         "%s: invalid len: %d < "
+                         "NLMSG_LEN(nlmsgerr): %d",
+                         nlsock->name, h->nlmsg_len,
+                         NLMSG_LENGTH (sizeof (struct nlmsgerr)));
+      return -1;
+    }
+
+  /* New/Delete Neighbor Table */
+  struct rtattr *rtns[NDA_MAX + 1] = { 0 };
+  char ifname[16] = { 0 };
+  char addr[64] = { 0 };
+  char lladdr[RTE_ETHER_ADDR_FMT_SIZE] = { 0 };
+  struct rte_ether_addr *etha = NULL;
+  if_indextoname (ndm->ndm_ifindex, ifname);
+  struct rtattr *rta = (struct rtattr *) RTM_RTA (ndm);
+  netlink_get_rtattr (rtns, RTA_MAX, rta, RTM_PAYLOAD (h));
+  void *msgp;
+  struct internal_msg_neigh_entry msg_neigh_entry;
+
+  if (! rtns[NDA_DST])
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "%s: no destination address in message.",
+                         nlsock->name);
+      return -1;
+    }
+
+  inet_ntop (ndm->ndm_family, RTA_DATA (rtns[NDA_DST]), addr, sizeof (addr));
+  msg_neigh_entry.data.family = ndm->ndm_family;
+  msg_neigh_entry.data.state = ndm->ndm_state;
+  switch (ndm->ndm_family)
+    {
+    case AF_INET:
+      msg_neigh_entry.index = NEIGH_ARP_TABLE;
+      memcpy (&msg_neigh_entry.data.ip_addr.ipv4_addr,
+              RTA_DATA (rtns[NDA_DST]), sizeof (struct in_addr));
+      break;
+
+    case AF_INET6:
+      msg_neigh_entry.index = NEIGH_ND_TABLE;
+      memcpy (&msg_neigh_entry.data.ip_addr.ipv6_addr,
+              RTA_DATA (rtns[NDA_DST]), sizeof (struct in6_addr));
+      break;
+
+    default:
+      return -1;
+    }
+
+  if (h->nlmsg_type == RTM_NEWNEIGH)
+    {
+      if (! rtns[NDA_LLADDR])
+        return -1;
+      etha = (struct rte_ether_addr *) RTA_DATA (rtns[NDA_LLADDR]);
+      rte_ether_format_addr (lladdr, sizeof (lladdr), etha);
+      DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s lladdr=%s dev=%s", addr,
+                         lladdr, ifname);
+      memcpy (&msg_neigh_entry.data.mac_addr, etha,
+              sizeof (struct rte_ether_addr));
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
+                                  &msg_neigh_entry, sizeof (msg_neigh_entry));
+    }
+  else // RTM_DELNEIGH
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "[DEL] dst=%s dev=%s", addr, ifname);
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL,
+                                  &msg_neigh_entry, sizeof (msg_neigh_entry));
+    }
+
+  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+
+  return 0;
 }
 
 int
@@ -299,6 +406,10 @@ netlink_read (struct netlink_sock *nlsock)
             case NLMSG_DONE:
               netlink_read_done = true;
               break;
+            case RTM_NEWNEIGH:
+            case RTM_DELNEIGH:
+              netlink_read_nlmsg_neigh (nlsock, h);
+              break;
             default:
               break;
             }
@@ -366,6 +477,7 @@ netlink_thread (void *arg)
   listen_groups = RTMGRP_LINK;
   listen_groups |= RTMGRP_IPV4_ROUTE | RTMGRP_IPV4_IFADDR;
   listen_groups |= RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_IFADDR;
+  listen_groups |= RTMGRP_NEIGH;
   netlink_socket (&netlink_kernel, listen_groups);
   netlink_socket (&netlink_cmd, 0);
 
@@ -394,11 +506,18 @@ netlink_thread (void *arg)
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETROUTE, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
+  NETLINK_REQUEST_CMD (AF_INET, RTM_GETNEIGH, &netlink_cmd);
+  netlink_read_block (&netlink_cmd);
+
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETADDR, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETROUTE, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
+
+  NETLINK_REQUEST_CMD (AF_INET6, RTM_GETNEIGH, &netlink_cmd);
+  netlink_read_block (&netlink_cmd);
+
 
   while (! force_quit && ! force_stop[lthread_core])
     {

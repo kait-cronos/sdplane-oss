@@ -804,6 +804,7 @@ rib_manager_process_message (void *msgp)
   struct internal_msg_header *msg_header;
   struct internal_msg_eth_link *msg_eth_link;
   struct internal_msg_qconf *msg_qconf;
+  struct internal_msg_neigh_entry *msg_neigh_entry;
 
   msg_header = (struct internal_msg_header *) msgp;
   switch (msg_header->type)
@@ -1037,6 +1038,21 @@ rib_manager_process_message (void *msgp)
         break;
 
       capture_if_delete (new->rib_info, msg_capture_if_delete->vswitch_id);
+      break;
+
+    case INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_add: %p.", msgp);
+      msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
+      memcpy (&new->rib_info->neigh_tables[msg_neigh_entry->index]
+                   .entries[msg_neigh_entry->hash],
+              &msg_neigh_entry->data, sizeof (struct neigh_entry));
+      break;
+    case INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_del: %p.", msgp);
+      msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
+      memset (&new->rib_info->neigh_tables[msg_neigh_entry->index]
+                   .entries[msg_neigh_entry->hash],
+              0, sizeof (struct neigh_entry));
       break;
 
     default:

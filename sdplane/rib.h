@@ -1,13 +1,14 @@
 #ifndef __RIB_H__
 #define __RIB_H__
 
-#define MAX_TAP_IF        8
-#define MAX_ROUTER_IF     8
-#define MAX_VSWITCH_PORTS 4
-#define MAX_VSWITCH_ID    4
-#define MAX_VSWITCH_LINK  32
-#define MAX_VLAN_PER_PORT 4
-#define MAX_ETH_PORTS     8
+#define MAX_TAP_IF              8
+#define MAX_ROUTER_IF           8
+#define MAX_VSWITCH_PORTS       4
+#define MAX_VSWITCH_ID          4
+#define MAX_VSWITCH_LINK        32
+#define MAX_VLAN_PER_PORT       4
+#define MAX_ETH_PORTS           8
+#define MAX_NEIGHBOR_TABLE_SIZE 1024
 
 #include <rte_ether.h>
 
@@ -74,6 +75,33 @@ struct lcore_qconf
   struct port_queue_conf rx_queue_list[MAX_RX_QUEUE_PER_LCORE];
 };
 
+enum
+{
+  NEIGH_ARP_TABLE = 0,
+  NEIGH_ND_TABLE = 1,
+  NEIGH_NR_TABLES,
+};
+
+extern const int neigh_key_lengths[];
+
+struct neigh_entry
+{
+  int family;
+  union
+  {
+    struct in_addr ipv4_addr;
+    struct in6_addr ipv6_addr;
+  } ip_addr;
+  struct rte_ether_addr mac_addr;
+  uint8_t state;
+  // e.g. router_if, state, timer
+};
+
+struct neigh_table
+{
+  struct neigh_entry entries[MAX_NEIGHBOR_TABLE_SIZE];
+};
+
 struct rib_info
 {
   uint32_t ver;
@@ -86,6 +114,7 @@ struct rib_info
   struct vswitch_link vswitch_link[MAX_VSWITCH_LINK];
   struct port_conf port[MAX_ETH_PORTS];
   struct lcore_qconf lcore_qconf[RTE_MAX_LCORE];
+  struct neigh_table neigh_tables[NEIGH_NR_TABLES];
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);
