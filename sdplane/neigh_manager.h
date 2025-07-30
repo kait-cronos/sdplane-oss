@@ -3,8 +3,6 @@
 
 #include "rib_manager.h"
 
-#define MAX_NEIGHBOR_TABLE_SIZE 1024
-
 #define NEIGH_STATE_NONE       0x00
 #define NEIGH_STATE_INCOMPLETE 0x01
 #define NEIGH_STATE_REACHABLE  0x02
