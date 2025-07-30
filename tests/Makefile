@@ -78,10 +78,12 @@ COMMON_SOURCES = $(L3FWD_MODULE_DIR)/l3fwd_acl.c $(L3FWD_MODULE_DIR)/l3fwd_lpm.c
 	$(SDPLANE_DIR)/thread_info.c $(SDPLANE_DIR)/queue_config.c $(SDPLANE_DIR)/rib_manager.c \
 	$(SDPLANE_DIR)/internal_message.c $(SDPLANE_DIR)/rib.c $(SDPLANE_DIR)/nettlp.c $(SDPLANE_DIR)/nettlp_support.c $(SDPLANE_DIR)/tap_cmd.c \
 	$(SDPLANE_DIR)/dpdk_devbind.c $(SDPLANE_DIR)/netlink_thread.c $(SDPLANE_DIR)/stream_buf.c $(SDPLANE_DIR)/vlan_switch.c \
-	$(SDPLANE_DIR)/pktgen_cmd.c $(SDPLANE_DIR)/linkflap_generator.c
+	$(SDPLANE_DIR)/pktgen_cmd.c $(SDPLANE_DIR)/linkflap_generator.c \
+	$(SDPLANE_DIR)/neigh_manager.c $(SDPLANE_DIR)/l3_tap_handler.c \
+	$(SDPLANE_DIR)/enhanced_repeater.c
 COMMON_OBJECTS = $(COMMON_SOURCES:.c=.o)
 
-TEST_COMMON_SOURCES = $(TEST_COMMON_DIR)/test_util.c
+TEST_COMMON_SOURCES = $(TEST_COMMON_DIR)/test_util.c $(TEST_COMMON_DIR)/test_assert.c
 TEST_COMMON_OBJECTS = $(TEST_COMMON_SOURCES:.c=.o)
 
 OUTDIR = $(shell pwd)/build

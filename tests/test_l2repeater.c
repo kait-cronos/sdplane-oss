@@ -36,6 +36,7 @@
 #include "debug_sdplane.h"
 
 #include "test_util.h"
+#include "common/test_assert.h"
 
 char msg[256];
 
@@ -46,60 +47,21 @@ char msg[256];
 int
 test_l2_repeater (void *arg)
 {
-  int ret;
+  const char *payload = "Hello, R0!";
+  size_t payload_len = strlen (payload);
 
-  struct rte_mbuf *mbuf = rte_pktmbuf_alloc (test_mbuf_pool);
-  if (! mbuf)
-    {
-      printf ("Failed to allocate mbuf from pool: %s\n",
-              rte_strerror (rte_errno));
-      return -1;
-    }
+  SEND_TO_PORT (payload, payload_len, RX_PORT, 0);
 
-  mbuf->data_len = 13;
-  mbuf->pkt_len = mbuf->data_len;
-  memcpy (rte_pktmbuf_mtod (mbuf, void *), "Hello, R0!", 13);
-  ret = rte_ring_enqueue (test_rings[RXQ_TO_RING_IDX (RX_PORT, 0)], mbuf);
-  if (ret < 0)
-    {
-      printf ("Failed to enqueue message to R0: %s\n", rte_strerror (-ret));
-      return -1;
-    }
-  printf ("Message enqueued to R0.\n");
+  EXPECT_FROM_PORT (payload, payload_len, TX_PORT, LCORE_ID);
 
-  lthread_sleep (1000);
-  printf ("Dequeuing message from R3...\n");
-  struct rte_mbuf *received_mbuf;
-  ret = rte_ring_dequeue (test_rings[TXQ_TO_RING_IDX (TX_PORT, LCORE_ID)], &received_mbuf);
-  if (ret < 0)
-    {
-      printf ("Failed to dequeue message from R3: %s\n", rte_strerror (-ret));
-      return -1;
-    }
-  else
-    {
-      memcpy (msg, rte_pktmbuf_mtod (received_mbuf, void *),
-              received_mbuf->data_len);
-      printf ("Message dequeued from R3: %s\n", msg);
-
-      if (! strcmp (msg, "Hello, R0!"))
-        {
-          printf ("Message content matches expected: %s\n", msg);
-          return 0;
-        }
-      else
-        {
-          printf ("Message content does not match expected: %s\n", msg);
-          return -1;
-        }
-    }
+  return 0;
 }
 
 int
 main ()
 {
   struct test_config config = {
-    .name = "test_l2_repeater",
+    .name = "l2_repeater repeats any data to other ports",
     .test_func = test_l2_repeater,
     .config_path = "test_l2repeater.conf",
   };

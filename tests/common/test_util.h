@@ -1,3 +1,6 @@
+#ifndef TEST_UTIL_H
+#define TEST_UTIL_H
+
 #include <rte_ring.h>
 
 #define TEST_PORT_NUM 4
@@ -22,3 +25,44 @@ struct test_config
 
 int run_test (struct test_config *config);
 int apply_config (const char *config_path);
+
+#define TEST_DEFAULT_DEQ_TIMEOUT_MS 1000
+
+struct rte_mbuf *test_mbuf_from_bytes (const void *data, uint16_t len);
+
+int test_enqueue_packet (struct rte_mbuf *m, int port_id, int rx_queue_idx);
+
+int test_dequeue_packet (int port_id, int tx_queue_idx, struct rte_mbuf **out,
+                         int timeout_ms);
+
+int test_mbuf_compare (struct rte_mbuf *a, struct rte_mbuf *b);
+
+int test_expect_packet_equal (struct rte_mbuf *expected, int port_id,
+                              int tx_queue_idx, int timeout_ms);
+
+int test_enqueue_bytes (const void *data, uint16_t len, int port_id,
+                        int rx_queue_idx);
+int test_expect_bytes_equal (const void *data, uint16_t len, int port_id,
+                             int tx_queue_idx, int timeout_ms);
+
+#define SEND_TO_PORT(data_ptr, data_len, port_id, queue_idx)                    \
+  do                                                                            \
+    {                                                                           \
+      int __ret =                                                               \
+          test_enqueue_bytes ((const void *) (data_ptr), (uint16_t) (data_len), \
+                               (port_id), (queue_idx));                         \
+      SDPLANE_ASSERT (__ret >= 0);                                              \
+    }                                                                           \
+  while (0)
+
+#define EXPECT_FROM_PORT(data_ptr, data_len, port_id, queue_idx)                \
+  do                                                                            \
+    {                                                                           \
+      int __ret = test_expect_bytes_equal (                                     \
+          (const void *) (data_ptr), (uint16_t) (data_len), (port_id),          \
+          (queue_idx), TEST_DEFAULT_DEQ_TIMEOUT_MS);                            \
+      SDPLANE_ASSERT (__ret == 0);                                              \
+    }                                                                           \
+  while (0)
+
+#endif /* TEST_UTIL_H */

@@ -616,7 +616,6 @@ CLI_COMMAND2 (set_port_dev_configure,
   struct rte_eth_dev_info dev_info;
   struct rte_eth_conf port_conf =
     { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, },
-      .intr_conf = { .lsc = 1 },
     };
 
   uint16_t nb_rx_queue = 1;
@@ -651,6 +650,10 @@ CLI_COMMAND2 (set_port_dev_configure,
         }
       if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE)
         port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
+      if (*dev_info.dev_flags & RTE_ETH_DEV_INTR_LSC)
+      {
+        port_conf.intr_conf.lsc = 1;
+      }
 
       ret = rte_eth_dev_configure (port_id, nb_rx_queue, nb_tx_queue,
                                    &port_conf);

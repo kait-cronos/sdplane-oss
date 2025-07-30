@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include <lthread.h>
 
@@ -36,6 +37,9 @@
 
 #include "test_util.h"
 #include "sdplane_version_for_test.h"
+#include "test_assert.h"
+
+char *pid_path = "/var/run/sdplane.pid";
 
 struct rte_mempool *test_mbuf_pool = NULL;
 
@@ -45,6 +49,108 @@ char *test_rte_eal_argv[4] = { "sdplane", "-c", "0xf", "--no-pci" };
 int test_rte_eal_argc = 4;
 
 int test_ret;
+
+static inline uint64_t
+now_ms (void)
+{
+  struct timespec ts;
+  clock_gettime (CLOCK_MONOTONIC, &ts);
+  return ((uint64_t) ts.tv_sec) * 1000ULL + (ts.tv_nsec / 1000000ULL);
+}
+
+struct rte_mbuf *
+test_mbuf_from_bytes (const void *data, uint16_t len)
+{
+  struct rte_mbuf *m = rte_pktmbuf_alloc (test_mbuf_pool);
+  SDPLANE_ASSERT (m);
+
+  void *dst = rte_pktmbuf_mtod (m, void *);
+  memcpy (dst, data, len);
+  m->data_len = len;
+  m->pkt_len = len;
+  return m;
+}
+
+int
+test_enqueue_packet (struct rte_mbuf *m, int port_id, int rx_queue_idx)
+{
+  int ring_idx = RXQ_TO_RING_IDX (port_id, rx_queue_idx);
+  return rte_ring_enqueue (test_rings[ring_idx], m);
+}
+
+int
+test_dequeue_packet (int port_id, int tx_queue_idx, struct rte_mbuf **out,
+                     int timeout_ms)
+{
+  int ring_idx = TXQ_TO_RING_IDX (port_id, tx_queue_idx);
+  uint64_t deadline = now_ms () + (timeout_ms < 0 ? 0 : (uint64_t) timeout_ms);
+
+  while (1)
+    {
+      int ret = rte_ring_dequeue (test_rings[ring_idx], (void **) out);
+      if (ret == 0)
+        return 0;
+      if (timeout_ms >= 0 && now_ms () >= deadline)
+        return -ETIMEDOUT;
+      rte_pause ();
+    }
+}
+
+int
+test_mbuf_compare (struct rte_mbuf *a, struct rte_mbuf *b)
+{
+  if (! a || ! b)
+    return -EINVAL;
+
+  if (rte_pktmbuf_pkt_len (a) != rte_pktmbuf_pkt_len (b))
+    return -1;
+
+  uint16_t len = rte_pktmbuf_pkt_len (a);
+  void *pa = rte_pktmbuf_mtod (a, void *);
+  void *pb = rte_pktmbuf_mtod (b, void *);
+  if (memcmp (pa, pb, len) != 0)
+    return -1;
+  return 0;
+}
+
+int
+test_expect_packet_equal (struct rte_mbuf *expected, int port_id,
+                          int tx_queue_idx, int timeout_ms)
+{
+  struct rte_mbuf *got = NULL;
+  int ret = test_dequeue_packet (port_id, tx_queue_idx, &got, timeout_ms);
+  if (ret < 0)
+    return ret;
+  int cmp = test_mbuf_compare (expected, got);
+  rte_pktmbuf_free (got);
+  return cmp;
+}
+
+int
+test_enqueue_bytes (const void *data, uint16_t len, int port_id,
+                    int rx_queue_idx)
+{
+  struct rte_mbuf *m = test_mbuf_from_bytes (data, len);
+  if (! m)
+    return -ENOMEM;
+  int ret = test_enqueue_packet (m, port_id, rx_queue_idx);
+  if (ret < 0)
+    rte_pktmbuf_free (m);
+  return ret;
+}
+
+int
+test_expect_bytes_equal (const void *data, uint16_t len, int port_id,
+                         int tx_queue_idx, int timeout_ms)
+{
+  struct rte_mbuf *expected = test_mbuf_from_bytes (data, len);
+  if (! expected)
+    return -ENOMEM;
+  int ret = test_expect_packet_equal (expected, port_id, tx_queue_idx,
+                                      timeout_ms);
+  rte_pktmbuf_free (expected);
+  return ret;
+}
 
 int
 prepare_test (struct test_config *config)
