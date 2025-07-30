@@ -95,6 +95,12 @@ CLI_COMMAND2 (show_rib,
     {
       struct vswitch_conf *vswitch;
       vswitch = &rib->rib_info->vswitch[i];
+      if (vswitch->is_deleted)
+        {
+          fprintf (shell->terminal, "rib_info: vswitch[%d]: deleted%s", i,
+                  shell->NL);
+          continue;
+        }
       fprintf (shell->terminal, "rib_info: vswitch[%d]: port_size: %d%s", i,
                vswitch->vswitch_port_size, shell->NL);
       for (j = 0; j < vswitch->vswitch_port_size; j++)
@@ -217,6 +223,11 @@ CLI_COMMAND2 (show_vswitch_rib,
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
+      if (vswitch->is_deleted)
+        {
+          fprintf (shell->terminal, "vswitch[%d]: deleted%s", i, shell->NL);
+          continue;
+        }
       fprintf (shell->terminal, "vswitch[%d]: vlan %u, ports: %u%s",
                vswitch->vswitch_id, vswitch->vlan_id,
                vswitch->vswitch_port_size, shell->NL);
@@ -309,6 +320,11 @@ CLI_COMMAND2 (show_vswitch_link,
   for (i = 0; i < rib->rib_info->vswitch_link_size; i++)
     {
       struct vswitch_link *link = &rib->rib_info->vswitch_link[i];
+      if (link->is_deleted)
+        {
+          fprintf (shell->terminal, "link[%d]: deleted%s", i, shell->NL);
+          continue;
+        }
       fprintf (
           shell->terminal,
           "link[%d]: port %u -> vswitch %u (vlan:%u, tag:%u, vswport:%u)%s",
@@ -369,28 +385,15 @@ CLI_COMMAND2 (delete_router_if,
   return 0;
 }
 
-/* 🤖 生成AI (CLAUDE) */
 CLI_COMMAND2 (show_router_if,
-              "show router-if <0-3>",
+              "show router-if",
               SHOW_HELP,
-              "show router interface information\n",
-              "vswitch id\n")
+              "show router interface information\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
-  int i, target_vswitch = -1;
+  int i;
   char mac_str[18], ipv4_str[16], ipv6_str[40];
-
-  if (argc > 2)
-    {
-      target_vswitch = atoi (argv[2]);
-      if (target_vswitch < 0 || target_vswitch >= MAX_VSWITCH_ID)
-        {
-          fprintf (shell->terminal, "invalid vswitch id: %d%s", target_vswitch,
-                   shell->NL);
-          return 0;
-        }
-    }
 
   if (! rib || ! rib->rib_info)
     {
@@ -402,14 +405,7 @@ CLI_COMMAND2 (show_router_if,
 
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
-      struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
-
-      if (target_vswitch >= 0 && i != target_vswitch)
-        continue;
-      if (vswitch->vlan_id == 0)
-        continue;
-
-      struct router_if *rif = &vswitch->router_if;
+      struct router_if *rif = &rib->rib_info->vswitch[i].router_if;
       if (rif->sockfd < 0)
         continue;
 
@@ -423,11 +419,12 @@ CLI_COMMAND2 (show_router_if,
                ipv4_str, ipv6_str, shell->NL);
       fprintf (shell->terminal, "  sockfd: %d, tap_ring_id: %u%s", rif->sockfd,
                rif->tap_ring_id, shell->NL);
+      fprintf (shell->terminal, "  ring_up: %p, ring_dn: %p%s", rif->ring_up,
+               rif->ring_dn, shell->NL);
     }
 
   return 0;
 }
-/* End of 🤖 生成AI (CLAUDE) */
 
 CLI_COMMAND2 (set_capture_if,
               "set capture-if <0-3> <WORD>",
@@ -478,27 +475,14 @@ CLI_COMMAND2 (delete_capture_if,
   return 0;
 }
 
-/* 🤖 生成AI (CLAUDE) */
 CLI_COMMAND2 (show_capture_if,
-              "show capture-if <0-3>",
+              "show capture-if",
               SHOW_HELP,
-              "show capture interface information\n",
-              "vswitch id\n")
+              "show capture interface information\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
-  int i, target_vswitch = -1;
-
-  if (argc > 2)
-    {
-      target_vswitch = atoi (argv[2]);
-      if (target_vswitch < 0 || target_vswitch >= MAX_VSWITCH_ID)
-        {
-          fprintf (shell->terminal, "invalid vswitch id: %d%s", target_vswitch,
-                   shell->NL);
-          return 0;
-        }
-    }
+  int i;
 
   if (! rib || ! rib->rib_info)
     {
@@ -510,14 +494,7 @@ CLI_COMMAND2 (show_capture_if,
 
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
-      struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
-
-      if (target_vswitch >= 0 && i != target_vswitch)
-        continue;
-      if (vswitch->vlan_id == 0)
-        continue;
-
-      struct capture_if *cif = &vswitch->capture_if;
+      struct capture_if *cif = &rib->rib_info->vswitch[i].capture_if;
       if (cif->sockfd < 0)
         continue;
 
@@ -525,11 +502,12 @@ CLI_COMMAND2 (show_capture_if,
                i, shell->NL);
       fprintf (shell->terminal, "  sockfd: %d, tap_ring_id: %u%s", cif->sockfd,
                cif->tap_ring_id, shell->NL);
+      fprintf (shell->terminal, "  ring_up: %p, ring_dn: %p%s", cif->ring_up,
+               cif->ring_dn, shell->NL);
     }
 
   return 0;
 }
-/* End of 🤖 生成AI (CLAUDE) */
 
 void
 rib_cmd_init (struct command_set *cmdset)
