@@ -491,6 +491,7 @@ enhanced_repeater (__rte_unused void *dummy)
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
   uint16_t nb_ports;
+  bool ready;
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
 
@@ -517,6 +518,22 @@ enhanced_repeater (__rte_unused void *dummy)
       urcu_qsbr_read_lock ();
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
+
+      /* check port ready */
+      ready = true;
+      nb_ports = rte_eth_dev_count_avail ();
+      for (int i = 0; i < nb_ports; i++)
+        {
+          if (unlikely (rib->rib_info->port[i].is_stopped))
+            {
+              ready = false;
+              DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
+                                 "port %d link is down, waiting...", i);
+              break;
+            }
+        }
+      if (unlikely (! ready))
+        continue;
 
       diff_tsc = cur_tsc - prev_tsc;
       if (unlikely (diff_tsc > drain_tsc))

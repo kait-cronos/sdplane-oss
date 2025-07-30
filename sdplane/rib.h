@@ -60,6 +60,7 @@ struct port_conf
   uint16_t nb_txd;
   struct rte_eth_link link;
   struct rte_eth_dev_info dev_info;
+  bool is_stopped;
 
   /* vlan support. */
   uint16_t vlan_size; // configured vlan size.

@@ -786,6 +786,32 @@ update_port_status (struct rib *new)
 }
 
 void
+set_stop_flag (struct rib *old)
+{
+  uint16_t nb_ports, port_id;
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      old->rib_info->port[port_id].is_stopped = true;
+      DEBUG_SDPLANE_LOG (RIB, "port[%d]: is_stopped: %d", port_id,
+                         old->rib_info->port[port_id].is_stopped);
+    }
+}
+
+void
+delete_stop_flag (struct rib *old)
+{
+  uint16_t nb_ports, port_id;
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      old->rib_info->port[port_id].is_stopped = false;
+      DEBUG_SDPLANE_LOG (RIB, "port[%d]: is_stopped: %d", port_id,
+                         old->rib_info->port[port_id].is_stopped);
+    }
+}
+
+void
 rib_manager_process_message (void *msgp)
 {
   int ret;
@@ -848,12 +874,14 @@ rib_manager_process_message (void *msgp)
         }
 
       /* for qconf change, we need strict rib_check(). */
+      set_stop_flag (old);
       ret = rib_check (new);
       if (ret < 0)
         {
           DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
           return;
         }
+      delete_stop_flag (old);
 
       /* for qconf change, we need an intermittent state to avoid
          a conflict between different cores. */
@@ -977,12 +1005,14 @@ rib_manager_process_message (void *msgp)
                          msg_router_if_create->vswitch_id);
 
       // set router_if ring
+      set_stop_flag (old);
       ret = rib_check (new);
       if (ret < 0)
         {
           DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
           return;
         }
+      delete_stop_flag (old);
 
       break;
 
@@ -1020,12 +1050,14 @@ rib_manager_process_message (void *msgp)
                          msg_capture_if_create->vswitch_id);
 
       // set capture_if ring
+      set_stop_flag (old);
       ret = rib_check (new);
       if (ret < 0)
         {
           DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
           return;
         }
+      delete_stop_flag (old);
 
       break;
 
