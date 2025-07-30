@@ -56,9 +56,25 @@ vswitch_new (struct rib_info *new, uint16_t vlan_id)
 {
   uint16_t vswitch_id;
   struct vswitch_conf *vswitch;
-  if (new->vswitch_size >= MAX_VSWITCH_ID)
-    return NULL;
-  vswitch_id = new->vswitch_size++;
+  bool is_slot_found = false;
+
+  for (vswitch_id = 0; vswitch_id < new->vswitch_size; vswitch_id++)
+    {
+      if (new->vswitch[vswitch_id].is_deleted)
+        {
+          is_slot_found = true;
+          memset (&new->vswitch[vswitch_id], 0, sizeof (struct vswitch_conf));
+          break;
+        }
+    }
+
+  if (! is_slot_found)
+    {
+      if (new->vswitch_size >= MAX_VSWITCH_ID)
+        return NULL;
+      vswitch_id = new->vswitch_size++;
+    }
+
   vswitch = &new->vswitch[vswitch_id];
   vswitch->vswitch_id = vswitch_id;
   vswitch->vlan_id = vlan_id;
@@ -92,9 +108,27 @@ vswitch_link_new (struct rib_info *new, struct vswitch_conf *vswitch,
 {
   uint16_t vswitch_link_id;
   struct vswitch_link *vswitch_link;
-  if (new->vswitch_link_size >= MAX_VSWITCH_LINK)
-    return NULL;
-  vswitch_link_id = new->vswitch_link_size++;
+  bool is_slot_found = false;
+
+  for (vswitch_link_id = 0; vswitch_link_id < new->vswitch_link_size;
+       vswitch_link_id++)
+    {
+      if (new->vswitch_link[vswitch_link_id].is_deleted)
+        {
+          is_slot_found = true;
+          memset (&new->vswitch_link[vswitch_link_id], 0,
+                  sizeof (struct vswitch_link));
+          break;
+        }
+    }
+
+  if (! is_slot_found)
+    {
+      if (new->vswitch_link_size >= MAX_VSWITCH_LINK)
+        return NULL;
+      vswitch_link_id = new->vswitch_link_size++;
+    }
+
   vswitch_link = &new->vswitch_link[vswitch_link_id];
   vswitch_link->vswitch_link_id = vswitch_link_id;
   vswitch_link->port_id = port->dpdk_port_id;
@@ -192,7 +226,6 @@ vswitch_link_remove_from_port_vlan_array (struct port_conf *port,
       else if (port->vswitch_link_id_of_native_vlan == vswitch_link_id)
         {
           port->vswitch_link_id_of_native_vlan = -1;
-          port->vlan_size--;
           break;
         }
     }
@@ -230,7 +263,7 @@ vswitch_link_delete (struct rib_info *rib_info, uint16_t vswitch_link_id)
   vswitch_link_remove_from_port_vlan_array (&rib_info->port[port_id],
                                             vswitch_link_id);
 
-  for (int i = vswitch_link_id; i < rib_info->vswitch_link_size; i++)
+  for (i = vswitch_link_id; i < rib_info->vswitch_link_size; i++)
     {
       if (rib_info->vswitch_link[i].vswitch_id == vswitch_id)
         rib_info->vswitch_link[i].vswitch_port--;
@@ -893,8 +926,9 @@ rib_manager_process_message (void *msgp)
       msg_vswitch_create =
           (struct internal_msg_vswitch_create *) (msg_header + 1);
       new_vswitch = vswitch_new (new->rib_info, msg_vswitch_create->vlan_id);
-      DEBUG_SDPLANE_LOG (RIB, "create: vswitch: %u vlan_id: %u",
-                         new_vswitch->vswitch_id, new_vswitch->vlan_id);
+      if (new_vswitch)
+        DEBUG_SDPLANE_LOG (RIB, "create: vswitch: %u vlan_id: %u",
+                           new_vswitch->vswitch_id, new_vswitch->vlan_id);
       break;
 
     case INTERNAL_MSG_TYPE_VSWITCH_DELETE:
