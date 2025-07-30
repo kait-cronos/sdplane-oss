@@ -175,7 +175,8 @@ neigh_manager_lookup (const struct neigh_table *neigh_table, const int index,
 
   while (neigh_table->entries[offset].state != NEIGH_STATE_NONE)
     {
-      if (! memcmp (&neigh_table->entries[offset].ip_addr, key, neigh_key_lengths[index]))
+      if (! memcmp (&neigh_table->entries[offset].ip_addr, key,
+                    neigh_key_lengths[index]))
         {
           memcpy (out, &neigh_table->entries[offset],
                   sizeof (struct neigh_entry));
