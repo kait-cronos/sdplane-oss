@@ -66,6 +66,7 @@ vswitch_new (struct rib_info *new, uint16_t vlan_id)
   vswitch->capture_if.sockfd = -1;
   vswitch->router_if.tap_ring_id = -1;
   vswitch->capture_if.tap_ring_id = -1;
+  vswitch->is_deleted = false;
   return vswitch;
 }
 
@@ -100,6 +101,7 @@ vswitch_link_new (struct rib_info *new, struct vswitch_conf *vswitch,
   vswitch_link->vlan_id = vswitch->vlan_id;
   vswitch_link->tag_id = vswitch->vlan_id; // tagged.
   vswitch_link->vswitch_id = vswitch->vswitch_id;
+  vswitch_link->is_deleted = false;
 
   uint16_t vswitch_port;
   if (vswitch->vswitch_port_size < MAX_VSWITCH_PORTS)
@@ -179,21 +181,20 @@ vswitch_link_remove_from_port_vlan_array (struct port_conf *port,
   int i;
   for (i = 0; i < port->vlan_size; i++)
     {
-      if (port->vswitch_link_id_of_native_vlan == vswitch_link_id)
-        {
-          port->vswitch_link_id_of_native_vlan = -1;
-          port->vlan_size--;
-        }
-      else if (port->vswitch_link_id_of_vlan[i] == vswitch_link_id)
+      if (port->vswitch_link_id_of_vlan[i] == vswitch_link_id)
         {
           memmove (&port->vswitch_link_id_of_vlan[i],
                    &port->vswitch_link_id_of_vlan[i + 1],
                    (port->vlan_size - i - 1) * sizeof (uint16_t));
           port->vlan_size--;
+          break;
         }
-      /* decrement vswitch_link_id */
-      if (port->vswitch_link_id_of_vlan[i] >= vswitch_link_id)
-        port->vswitch_link_id_of_vlan[i]--;
+      else if (port->vswitch_link_id_of_native_vlan == vswitch_link_id)
+        {
+          port->vswitch_link_id_of_native_vlan = -1;
+          port->vlan_size--;
+          break;
+        }
     }
 }
 
@@ -211,9 +212,6 @@ vswitch_link_remove_from_vswitch_port_array (struct vswitch_conf *vswitch,
                    (vswitch->vswitch_port_size - i - 1) * sizeof (uint16_t));
           vswitch->vswitch_port_size--;
         }
-      /* decrement vswitch_link_id */
-      if (vswitch->vswitch_link_id[i] >= vswitch_link_id)
-        vswitch->vswitch_link_id[i]--;
     }
 }
 
@@ -222,32 +220,21 @@ vswitch_link_delete (struct rib_info *rib_info, uint16_t vswitch_link_id)
 {
   int i;
   uint16_t vswitch_id = rib_info->vswitch_link[vswitch_link_id].vswitch_id;
+  uint16_t port_id = rib_info->vswitch_link[vswitch_link_id].port_id;
 
-  /* delete vswitch_link from vswitch's port array */
-  for (i = 0; i < rib_info->vswitch_size; i++)
-    vswitch_link_remove_from_vswitch_port_array (&rib_info->vswitch[i],
-                                                 vswitch_link_id);
+  rib_info->vswitch_link[vswitch_link_id].is_deleted = true;
 
-  /* delete vswitch_link from port_conf */
-  for (i = 0; i < rib_info->port_size; i++)
-    vswitch_link_remove_from_port_vlan_array (&rib_info->port[i],
-                                              vswitch_link_id);
+  vswitch_link_remove_from_vswitch_port_array (&rib_info->vswitch[vswitch_id],
+                                               vswitch_link_id);
 
-  memmove (&rib_info->vswitch_link[vswitch_link_id],
-           &rib_info->vswitch_link[vswitch_link_id + 1],
-           (rib_info->vswitch_link_size - vswitch_link_id - 1) *
-               sizeof (struct vswitch_link));
-  rib_info->vswitch_link_size--;
+  vswitch_link_remove_from_port_vlan_array (&rib_info->port[port_id],
+                                            vswitch_link_id);
 
-  for (i = vswitch_link_id; i < rib_info->vswitch_link_size; i++)
+  for (int i = vswitch_link_id; i < rib_info->vswitch_link_size; i++)
     {
-      rib_info->vswitch_link[i].vswitch_link_id = i;
       if (rib_info->vswitch_link[i].vswitch_id == vswitch_id)
         rib_info->vswitch_link[i].vswitch_port--;
     }
-
-  memset (&rib_info->vswitch_link[rib_info->vswitch_link_size], 0,
-          sizeof (struct vswitch_link));
 
   DEBUG_SDPLANE_LOG (RIB, "delete: link_id: %u", vswitch_link_id);
   return 0;
@@ -256,6 +243,8 @@ vswitch_link_delete (struct rib_info *rib_info, uint16_t vswitch_link_id)
 static inline __attribute__ ((always_inline)) int
 vswitch_delete (struct rib_info *rib_info, uint16_t vswitch_id)
 {
+  rib_info->vswitch[vswitch_id].is_deleted = true;
+
   /* delete vswitch's router_if and capture_if */
   router_if_delete (rib_info, vswitch_id);
   capture_if_delete (rib_info, vswitch_id);
@@ -264,14 +253,6 @@ vswitch_delete (struct rib_info *rib_info, uint16_t vswitch_id)
   while (rib_info->vswitch[vswitch_id].vswitch_port_size > 0)
     vswitch_link_delete (rib_info,
                          rib_info->vswitch[vswitch_id].vswitch_link_id[0]);
-
-  memmove (&rib_info->vswitch[vswitch_id], &rib_info->vswitch[vswitch_id + 1],
-           (rib_info->vswitch_size - vswitch_id - 1) *
-               sizeof (struct vswitch_conf));
-  rib_info->vswitch_size--;
-
-  memset (&rib_info->vswitch[rib_info->vswitch_size], 0,
-          sizeof (struct vswitch_conf));
 
   DEBUG_SDPLANE_LOG (RIB, "delete: vswitch: %u", vswitch_id);
   return 0;
