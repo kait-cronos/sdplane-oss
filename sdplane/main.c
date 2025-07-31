@@ -54,11 +54,10 @@ signal_handler (int signum)
 }
 
 void
-pid_file_lock ()
+pid_file_lock (char *path)
 {
   pid_t pid;
   int fd;
-  char *path = "/var/run/sdplane.pid";
   char buf[32];
   char *p;
 
@@ -89,6 +88,7 @@ int
 main (int argc, char **argv)
 {
   lthread_t *lt = NULL;
+  char *pid_path = "/var/run/sdplane.pid";
 
   signal (SIGINT, signal_handler);
   signal (SIGTERM, signal_handler);
@@ -114,7 +114,7 @@ main (int argc, char **argv)
         }
     }
 
-  pid_file_lock ();
+  pid_file_lock (pid_path);
 
   debug_log_init (progname);
   sdplane_init ();
@@ -124,5 +124,6 @@ main (int argc, char **argv)
   lthread_run ();
 
   // l3fwd_terminate (argc, argv);
+  unlink (pid_path);
   return EXIT_SUCCESS;
 }
