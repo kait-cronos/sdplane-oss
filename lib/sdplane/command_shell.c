@@ -534,6 +534,10 @@ shell_read_nowait_paging (struct shell *shell)
             }
           else
             {
+              DEBUG_ZCMDSH_LOG (PAGER,
+                                "pager: read() from fd: %d returned %d: %s",
+                                readfd, ret, strerror (errno));
+
               nwrite = write (writefd, buf, ret);
               if (nwrite < 0)
                 DEBUG_ZCMDSH_LOG (PAGER, "write() failed: %s",

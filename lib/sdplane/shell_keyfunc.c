@@ -10,6 +10,8 @@
 #include "shell_keyfunc.h"
 #include "vector.h"
 
+#include "command_shell.h"
+
 shell_keyfunc_t default_keymap[256] = {
   NULL,                        /* Function for CONTROL('@') */
   shell_keyfunc_move_to_begin, /* Function for CONTROL('A') */
@@ -346,6 +348,25 @@ vty_shell_keyfunc_escape_2 (struct shell *shell)
   return 0;
 }
 
+int command_history_prev (struct shell *shell);
+int command_history_next (struct shell *shell);
+
+int
+vty_shell_keyfunc_arrow_up (struct shell *shell)
+{
+  command_history_prev (shell);
+  vty_shell_keyfunc_normal (shell);
+  return 0;
+}
+
+int
+vty_shell_keyfunc_arrow_down (struct shell *shell)
+{
+  command_history_next (shell);
+  vty_shell_keyfunc_normal (shell);
+  return 0;
+}
+
 void
 shell_escape_keyfunc_init (struct shell *shell)
 {
@@ -359,11 +380,23 @@ shell_escape_keyfunc_init (struct shell *shell)
       key_func_escape_2[i] = vty_shell_keyfunc_normal;
     }
 
+  FUNC_STR_REGISTER (vty_shell_keyfunc_escape_1);
+  FUNC_STR_REGISTER (vty_shell_keyfunc_escape_2);
+  FUNC_STR_REGISTER (vty_shell_move_word_backward);
+  FUNC_STR_REGISTER (vty_shell_move_word_forward);
+  FUNC_STR_REGISTER (vty_shell_delete_word_backward);
+  FUNC_STR_REGISTER (vty_shell_keyfunc_arrow_up);
+  FUNC_STR_REGISTER (vty_shell_keyfunc_arrow_down);
+
   key_func_escape_1['b'] = vty_shell_move_word_backward;
   key_func_escape_1['f'] = vty_shell_move_word_forward;
   key_func_escape_1[CONTROL ('H')] = vty_shell_delete_word_backward;
   key_func_escape_1[0x7f] = vty_shell_delete_word_backward;
   key_func_escape_1['['] = vty_shell_keyfunc_escape_2;
 
+  key_func_escape_2['A'] = vty_shell_keyfunc_arrow_up;
+  key_func_escape_2['B'] = vty_shell_keyfunc_arrow_down;
+
   shell->keymap[CONTROL ('[')] = vty_shell_keyfunc_escape_1;
 }
+
