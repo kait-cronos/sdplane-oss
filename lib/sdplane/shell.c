@@ -17,6 +17,39 @@
 
 #include "command.h"
 
+#define FUNC_STR_MAP(x)                                                       \
+  {                                                                           \
+    x, #x                                                            \
+  }
+struct funcp_str_map func2str[FUNC_TABLE_SIZE] = {
+  FUNC_STR_MAP (shell_terminate),
+  FUNC_STR_MAP (shell_format),
+  FUNC_STR_MAP (shell_linefeed),
+  FUNC_STR_MAP (shell_clear),
+  FUNC_STR_MAP (shell_delete_word_backward),
+  FUNC_STR_MAP (shell_move_word_backward),
+  FUNC_STR_MAP (shell_move_word_forward),
+  FUNC_STR_MAP (shell_refresh),
+  FUNC_STR_MAP (shell_read),
+  FUNC_STR_MAP (shell_read_nowait),
+  FUNC_STR_MAP (shell_keyfunc_forward_char),
+  FUNC_STR_MAP (shell_keyfunc_backward_char),
+  FUNC_STR_MAP (shell_keyfunc_move_to_begin),
+  FUNC_STR_MAP (shell_keyfunc_move_to_end),
+  FUNC_STR_MAP (shell_keyfunc_delete_char),
+  FUNC_STR_MAP (shell_keyfunc_backspace),
+  FUNC_STR_MAP (shell_keyfunc_kill_line),
+  FUNC_STR_MAP (shell_keyfunc_kill_all),
+  FUNC_STR_MAP (shell_keyfunc_yank),
+  FUNC_STR_MAP (shell_keyfunc_clear_screen),
+  FUNC_STR_MAP (shell_keyfunc_refresh),
+  FUNC_STR_MAP (shell_keyfunc_empty_enter),
+  FUNC_STR_MAP (shell_keyfunc_insert_tab),
+  FUNC_STR_MAP (shell_keyfunc_escape),
+  FUNC_STR_MAP (shell_keyfunc_delete_word_backward),
+  FUNC_STR_MAP (shell_input_char),
+};
+
 // static unsigned char inputch = 0;
 
 int

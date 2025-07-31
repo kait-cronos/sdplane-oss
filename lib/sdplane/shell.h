@@ -77,6 +77,36 @@ struct shell
 #define SHELL_FLAG_DEBUG       0x08
 #define SHELL_FLAG_INTERACTIVE 0x10
 
+#define FUNC_TABLE_SIZE 512
+struct funcp_str_map
+{
+  shell_keyfunc_t ptr;
+  char *str;
+};
+extern struct funcp_str_map func2str[];
+#define FUNC_STR_REGISTER(x)                                                  \
+  do                                                                          \
+    {                                                                         \
+      int i;                                                                  \
+      for (i = 0; i < FUNC_TABLE_SIZE; i++)                                   \
+        {                                                                     \
+          if (func2str[i].ptr == (void *) x)                                  \
+            {                                                                 \
+              func2str[i].str = #x;                                           \
+              break;                                                          \
+            }                                                                 \
+          if (! func2str[i].ptr)                                              \
+            {                                                                 \
+              func2str[i].ptr = (void *) x;                                   \
+              func2str[i].str = #x;                                           \
+              break;                                                          \
+            }                                                                 \
+        }                                                                     \
+    }                                                                         \
+  while (0)
+
+int func_table_lookup (shell_keyfunc_t ptr);
+
 int shell_terminate (struct shell *shell);
 int shell_format (struct shell *shell);
 int shell_format2 (struct shell *shell);

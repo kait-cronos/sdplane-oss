@@ -48,29 +48,4 @@ void command_history_add (char *command_line, struct command_history *history,
 int dirent_cmp (const void *va, const void *vb);
 void file_ls_candidate (struct shell *shell, char *file_path);
 
-#define FUNC_TABLE_SIZE 512
-struct funcp_str_map
-{
-  shell_keyfunc_t ptr;
-  char *str;
-};
-extern struct funcp_str_map func2str[];
-#define FUNC_STR_REGISTER(x)                                                  \
-  do                                                                          \
-    {                                                                         \
-      int i;                                                                  \
-      for (i = 0; i < FUNC_TABLE_SIZE; i++)                                   \
-        {                                                                     \
-          if (! func2str[i].ptr)                                              \
-            {                                                                 \
-              func2str[i].ptr = (void *) x;                                   \
-              func2str[i].str = #x;                                           \
-              break;                                                          \
-            }                                                                 \
-        }                                                                     \
-    }                                                                         \
-  while (0)
-
-int func_table_lookup (shell_keyfunc_t ptr);
-
 #endif /*__COMMAND_SHELL_H__*/

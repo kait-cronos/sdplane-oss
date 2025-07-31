@@ -979,45 +979,6 @@ func_table_lookup (shell_keyfunc_t ptr)
   return -1;
 }
 
-#define FUNC_STR_MAP(x)                                                       \
-  {                                                                           \
-    x, #x                                                            \
-  }
-struct funcp_str_map func2str[FUNC_TABLE_SIZE] = {
-  FUNC_STR_MAP (shell_terminate),
-  FUNC_STR_MAP (shell_format),
-  FUNC_STR_MAP (shell_linefeed),
-  FUNC_STR_MAP (shell_clear),
-  FUNC_STR_MAP (shell_delete_word_backward),
-  FUNC_STR_MAP (shell_move_word_backward),
-  FUNC_STR_MAP (shell_move_word_forward),
-  FUNC_STR_MAP (shell_refresh),
-  FUNC_STR_MAP (shell_read),
-  FUNC_STR_MAP (shell_read_nowait),
-  FUNC_STR_MAP (shell_keyfunc_forward_char),
-  FUNC_STR_MAP (shell_keyfunc_backward_char),
-  FUNC_STR_MAP (shell_keyfunc_move_to_begin),
-  FUNC_STR_MAP (shell_keyfunc_move_to_end),
-  FUNC_STR_MAP (shell_keyfunc_delete_char),
-  FUNC_STR_MAP (shell_keyfunc_backspace),
-  FUNC_STR_MAP (shell_keyfunc_kill_line),
-  FUNC_STR_MAP (shell_keyfunc_kill_all),
-  FUNC_STR_MAP (shell_keyfunc_yank),
-  FUNC_STR_MAP (shell_keyfunc_clear_screen),
-  FUNC_STR_MAP (shell_keyfunc_refresh),
-  FUNC_STR_MAP (shell_keyfunc_empty_enter),
-  FUNC_STR_MAP (shell_keyfunc_insert_tab),
-  FUNC_STR_MAP (shell_keyfunc_escape),
-  FUNC_STR_MAP (shell_keyfunc_delete_word_backward),
-  FUNC_STR_MAP (shell_input_char),
-
-  FUNC_STR_MAP (command_shell_execute),
-  FUNC_STR_MAP (command_shell_execute),
-  FUNC_STR_MAP (command_shell_completion),
-  FUNC_STR_MAP (command_shell_ls_candidate),
-  FUNC_STR_MAP (command_history_prev),
-  FUNC_STR_MAP (command_history_next),
-};
 
 DEFINE_COMMAND (list_keymaps, "list keymaps",
                 "list.\n"
@@ -1105,6 +1066,8 @@ DEFINE_COMMAND (list_keymaps, "list keymaps",
     }
   return 0;
 }
+
+
 
 DEFINE_COMMAND (set_pager, "(set|no|) pager",
                 "set command.\n"
@@ -1208,6 +1171,12 @@ command_shell_create ()
   shell_install (shell, '?', command_shell_ls_candidate);
   shell_install (shell, CONTROL ('P'), command_history_prev);
   shell_install (shell, CONTROL ('N'), command_history_next);
+
+  FUNC_STR_REGISTER (command_shell_execute);
+  FUNC_STR_REGISTER (command_shell_completion);
+  FUNC_STR_REGISTER (command_shell_ls_candidate);
+  FUNC_STR_REGISTER (command_history_prev);
+  FUNC_STR_REGISTER (command_history_next);
 
   shell->pager = true;
 
