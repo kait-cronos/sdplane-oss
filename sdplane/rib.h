@@ -41,6 +41,7 @@ struct vswitch_link
   uint16_t tag_id; // 0 indicates untag. tag_id != vlan_id is tag-modify.
   uint16_t vswitch_id;
   uint16_t vswitch_port;
+  bool is_deleted;
 };
 
 struct vswitch_conf
@@ -51,6 +52,7 @@ struct vswitch_conf
   uint16_t vswitch_link_id[MAX_VSWITCH_PORTS];
   struct router_if router_if;
   struct capture_if capture_if;
+  bool is_deleted;
 };
 
 struct port_conf
