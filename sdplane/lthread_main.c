@@ -200,6 +200,7 @@ lthread_main (__rte_unused void *dummy)
     {
       printf ("%s[%d]: %s: error in startup_config.\n", __FILE__, __LINE__,
               __func__);
+      unlink (pid_path);
       exit (-1);
     }
 

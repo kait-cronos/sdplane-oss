@@ -84,11 +84,12 @@ pid_file_lock (char *path)
   close (fd);
 }
 
+char *pid_path = "/var/run/sdplane.pid";
+
 int
 main (int argc, char **argv)
 {
   lthread_t *lt = NULL;
-  char *pid_path = "/var/run/sdplane.pid";
 
   signal (SIGINT, signal_handler);
   signal (SIGTERM, signal_handler);

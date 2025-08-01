@@ -35,6 +35,7 @@ startup_config (__rte_unused void *dummy)
   shell_set_prompt (shell, "startup-config> ");
   shell->pager = false;
   FLAG_UNSET (shell->flag, SHELL_FLAG_INTERACTIVE);
+  shell_set_terminal (shell, 0, 1);
 
   // INSTALL_COMMAND2 (shell->cmdset, show_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
@@ -54,11 +55,12 @@ startup_config (__rte_unused void *dummy)
 
   // termio_init ();
 
+  printf ("%s[%d]: %s: opening %s.\n", __FILE__, __LINE__, __func__,
+          config_file);
+
   shell_clear (shell);
   shell_prompt (shell);
 
-  printf ("%s[%d]: %s: opening %s.\n", __FILE__, __LINE__, __func__,
-          config_file);
   int fd;
   int ret = 0;
   fd = open (config_file, O_RDONLY);
