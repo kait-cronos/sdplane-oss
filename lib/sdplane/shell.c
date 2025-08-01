@@ -50,6 +50,18 @@ struct funcp_str_map func2str[FUNC_TABLE_SIZE] = {
   FUNC_STR_MAP (shell_input_char),
 };
 
+int
+func_table_lookup (shell_keyfunc_t ptr)
+{
+  int i;
+  for (i = 0; i < FUNC_TABLE_SIZE; i++)
+    {
+      if (func2str[i].ptr == ptr)
+        return i;
+    }
+  return -1;
+}
+
 // static unsigned char inputch = 0;
 
 int

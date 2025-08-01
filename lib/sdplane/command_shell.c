@@ -967,19 +967,6 @@ DEFINE_COMMAND (list_func_table, "list func-table",
   return 0;
 }
 
-int
-func_table_lookup (shell_keyfunc_t ptr)
-{
-  int i;
-  for (i = 0; i < FUNC_TABLE_SIZE; i++)
-    {
-      if (func2str[i].ptr == ptr)
-        return i;
-    }
-  return -1;
-}
-
-
 DEFINE_COMMAND (list_keymaps, "list keymaps",
                 "list.\n"
                 "list keymaps.\n")
@@ -1067,12 +1054,12 @@ DEFINE_COMMAND (list_keymaps, "list keymaps",
   return 0;
 }
 
-
-
-DEFINE_COMMAND (set_pager, "(set|no|) pager",
-                "set command.\n"
-                "no command.\n"
-                "pager command.\n")
+CLI_COMMAND2 (set_pager, "(set|no|enable|disable|) pager",
+                "set command.\n",
+                "no command.\n",
+                "enable command.\n",
+                "disable command.\n",
+                "enable/disable pager.\n")
 {
   struct shell *shell = (struct shell *) context;
   bool value = false;
@@ -1080,9 +1067,11 @@ DEFINE_COMMAND (set_pager, "(set|no|) pager",
   if (! strcmp (argv[0], "set"))
     value = true;
   else if (! strcmp (argv[0], "no"))
-    {
-      value = false;
-    }
+    value = false;
+  else if (! strcmp (argv[0], "enable"))
+    value = true;
+  else if (! strcmp (argv[0], "disable"))
+    value = false;
   else if (argc == 1)
     value = true;
   DEBUG_ZCMDSH_LOG (PAGER, "pager: %d", (int) value);
@@ -1096,9 +1085,9 @@ DEFINE_COMMAND (set_pager, "(set|no|) pager",
 
 DEFINE_COMMAND (set_pager_command, "set pager <FILE> (|<LINE>)",
                 "set.\n"
-                "pager.\n"
-                "pager command.\n"
-                "pager command option.\n")
+                "set pager.\n"
+                "set pager command.\n"
+                "set pager command option.\n")
 {
   struct shell *shell = (struct shell *) context;
 
@@ -1127,8 +1116,8 @@ DEFINE_COMMAND (set_pager_command, "set pager <FILE> (|<LINE>)",
 
 DEFINE_COMMAND (set_pager_default, "set pager default",
                 "set.\n"
-                "pager.\n"
-                "pager default.\n")
+                "set pager.\n"
+                "set pager default.\n")
 {
   struct shell *shell = (struct shell *) context;
   if (shell->pager_command)
@@ -1137,6 +1126,42 @@ DEFINE_COMMAND (set_pager_default, "set pager default",
       shell->pager_command = NULL;
     }
   return 0;
+}
+
+CLI_COMMAND2 (show_shell,
+              "show shell",
+              SHOW_HELP,
+              "shell information.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  fprintf (shell->terminal, "shell winsize row: %d col: %d%s",
+           shell->winsize.ws_row, shell->winsize.ws_col, shell->NL);
+  fprintf (shell->terminal, "shell pager %d pager_command: %s%s",
+           shell->pager,
+           shell->pager_command ? shell->pager_command : DEFAULT_PAGER,
+           shell->NL);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (set_shell_winsize,
+              "set shell winsize row <0-1024> col <0-1024>",
+              SHOW_HELP,
+              "shell information.\n",
+              "shell window size information.\n",
+              "set shell window row size.\n",
+              "set shell window column size.\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  int row, col;
+  char *endptr;
+  row = strtol (argv[4], &endptr, 0);
+  col = strtol (argv[6], &endptr, 0);
+  shell->winsize.ws_row = row;
+  shell->winsize.ws_col = col;
+  fprintf (shell->terminal, "shell winsize row: %d col: %d%s",
+           shell->winsize.ws_row, shell->winsize.ws_col, shell->NL);
+  return CMD_SUCCESS;
 }
 
 void
@@ -1151,6 +1176,8 @@ default_install_command (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_pager);
   INSTALL_COMMAND2 (cmdset, set_pager_command);
   INSTALL_COMMAND2 (cmdset, set_pager_default);
+  INSTALL_COMMAND2 (cmdset, show_shell);
+  INSTALL_COMMAND2 (cmdset, set_shell_winsize);
 
   INSTALL_COMMAND (cmdset, enable_shell_debugging);
   INSTALL_COMMAND (cmdset, disable_shell_debugging);
