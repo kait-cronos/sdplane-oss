@@ -260,8 +260,10 @@ shell_prompt (struct shell *shell)
   /* move cursor to beginning */
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
     writec (shell->writefd, '\r');
+#if 0
   else
     writec (shell->writefd, '\n');
+#endif
 
   /* print prompt */
   ret = write (shell->writefd, shell->prompt, strlen (shell->prompt));

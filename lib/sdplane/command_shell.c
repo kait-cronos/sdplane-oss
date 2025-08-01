@@ -597,8 +597,14 @@ command_shell_execute (struct shell *shell)
   int ret = 0;
   char *comment;
 
+  /* ignore blank-line in startup-config. */
+  if (! strlen (shell->command_line) &&
+      ! FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
+    return;
+
   /* send a line-feed to terminate the command line. */
   shell_linefeed (shell);
+
   /* without the below fflush(), the newline will be sent after the pager
      output, and will break the output: the executed command-line
      will be erased, and after the command-output, it appears as
