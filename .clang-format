@@ -18,4 +18,7 @@ SpaceAfterLogicalNot: true
 BreakBeforeBinaryOperators: None
 BreakStringLiterals: false
 SortIncludes:    false
-
+SpacesBeforeTrailingComments: 1
+SpacesInLineCommentPrefix:
+  Minimum: 0
+  Maximum: -1

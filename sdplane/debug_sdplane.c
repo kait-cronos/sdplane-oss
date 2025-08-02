@@ -39,7 +39,6 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_THREAD, "thread" },
   { DEBUG_SDPLANE_RIB, "rib" },
   { DEBUG_SDPLANE_VSWITCH, "vswitch" },
-  { DEBUG_SDPLANE_ALL, "all" },
   { DEBUG_SDPLANE_RIB_MESG, "rib-message" },
   { DEBUG_SDPLANE_RIB_CHECK, "rib-check" },
   { DEBUG_SDPLANE_IMESSAGE, "internal-message" },
@@ -47,6 +46,11 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_NETDEVICE, "netdevice" },
   { DEBUG_SDPLANE_NETLINK, "netlink" },
   { DEBUG_SDPLANE_VLAN_SWITCH, "vlan-switch" },
+  { DEBUG_SDPLANE_PKTGEN, "pktgen" },
+  { DEBUG_SDPLANE_LINKFLAP_GENERATOR, "linkflap-generator" },
+  { DEBUG_SDPLANE_STARTUP_CONFIG, "startup-config" },
+  { DEBUG_SDPLANE_ENHANCED_REPEATER, "enhanced-repeater" },
+  { DEBUG_SDPLANE_NEIGH, "neighbor" },
 };
 
 struct command_header debug_sdplane_cmd;

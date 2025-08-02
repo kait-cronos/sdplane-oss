@@ -51,8 +51,7 @@ internal_msg_delete (struct internal_msg_header *msgp)
 }
 
 int
-internal_msg_send_to (struct rte_ring *ring,
-                      struct internal_msg_header *msgp,
+internal_msg_send_to (struct rte_ring *ring, struct internal_msg_header *msgp,
                       struct shell *shell)
 {
   if (ring)
@@ -62,11 +61,17 @@ internal_msg_send_to (struct rte_ring *ring,
     }
   else
     {
+#define MSG1 "can't send message %p to ring-queue: NULL."
+#define MSG2                                                                  \
+  "sending internal message faild. "                                          \
+  "please start \"rib_manager\" beforehand."
       if (shell)
-        fprintf (shell->terminal, "can't send message %p to "
-                 "ring-queue: NULL.%s", msgp, shell->NL);
-      DEBUG_SDPLANE_LOG (IMESSAGE, "can't send message %p. "
-                 "ring-queue: NULL", msgp);
+        {
+          fprintf (shell->terminal, MSG1 "%s", msgp, shell->NL);
+          fprintf (shell->terminal, MSG2 "%s", shell->NL);
+        }
+      DEBUG_SDPLANE_LOG (IMESSAGE, MSG1, msgp);
+      DEBUG_SDPLANE_LOG (STARTUP_CONFIG, MSG2);
       return -1;
     }
   return 0;
@@ -88,4 +93,3 @@ internal_msg_recv (struct rte_ring *ring)
   DEBUG_SDPLANE_LOG (IMESSAGE, "receiving message %p.", msgp);
   return msgp;
 }
-

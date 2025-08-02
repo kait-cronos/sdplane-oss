@@ -80,8 +80,7 @@ stream_getl (struct stream_buf *s)
 /* get data from a particular position. do not proceed the getp */
 
 void
-stream_get_at (unsigned long pos,
-               void *dst, struct stream_buf *s, size_t size)
+stream_get_at (unsigned long pos, void *dst, struct stream_buf *s, size_t size)
 {
   size_t len = size;
   if (len > s->size - pos)
@@ -125,4 +124,3 @@ stream_getl_at (unsigned long pos, struct stream_buf *s)
     }
   return l;
 }
-

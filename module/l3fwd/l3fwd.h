@@ -303,4 +303,12 @@ void *fib_get_ipv6_l3fwd_lookup_struct (const int socketid);
 int l3fwd_init (int argc, char **argv, char **envp);
 int l3fwd_terminate (int argc, char **argv);
 
+extern int promiscuous_on;
+
+int parse_config(const char *q_arg);
+int parse_lookup(const char *q_arg);
+void l3fwd_set_rule_ipv4_name (const char *optarg);
+void l3fwd_set_rule_ipv6_name (const char *optarg);
+void parse_eth_dest (const char *optarg);
+
 #endif /* __L3_FWD_H__ */

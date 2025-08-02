@@ -38,6 +38,13 @@
 #include <pthread.h>
 #include <sched.h>
 
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
+#include "debug_sdplane.h"
+#include "sdplane.h"
+#include "thread_info.h"
+
 /* Allocated the pktgen structure for global use */
 pktgen_t pktgen;
 
@@ -1190,6 +1197,9 @@ port_map_info(const char *msg, uint8_t lid, port_mapinfo_t *pm)
     pktgen_log_info("%s", buf);
 }
 
+
+static __thread uint64_t loop_counter = 0;
+
 /**
  *
  * pktgen_main_rxtx_loop - Single thread loop for tx/rx packets
@@ -1254,7 +1264,8 @@ pktgen_main_rxtx_loop(uint8_t lid)
                 "*** port %u on socket ID %u has different socket ID than lcore %u socket ID %d\n",
                 pid, rte_eth_dev_socket_id(pid), rte_lcore_id(), rte_socket_id());
     }
-    while (pg_lcore_is_running(pktgen.l2p, lid)) {
+    while (pg_lcore_is_running(pktgen.l2p, lid) &&
+           ! force_quit && ! force_stop[lid]) {
         /* Read Packets */
         for (int i = 0; i < pmap.rx.cnt; i++) {
             port_info_t *info = pmap.rx.infos[i];
@@ -1290,6 +1301,7 @@ pktgen_main_rxtx_loop(uint8_t lid)
                     rte_eth_tx_burst(info->pid, pmap.tx.qids[i], NULL, 0);
             }
         }
+      loop_counter++;
     }
 
     pktgen_log_debug("Exit %d", lid);
@@ -1352,7 +1364,8 @@ pktgen_main_tx_loop(uint8_t lid)
                 pid, rte_eth_dev_socket_id(pid), rte_lcore_id(), rte_socket_id());
     }
 
-    while (pg_lcore_is_running(pktgen.l2p, lid)) {
+    while (pg_lcore_is_running(pktgen.l2p, lid) &&
+           ! force_quit && ! force_stop[lid]) {
         curr_tsc = pktgen_get_time();
 
         if (pmap.tx.infos[0]->tx_cycles == 0) {
@@ -1376,6 +1389,7 @@ pktgen_main_tx_loop(uint8_t lid)
                     rte_eth_tx_burst(pmap.tx.infos[i]->pid, pmap.tx.qids[i], NULL, 0);
             }
         }
+      loop_counter++;
     }
 
     pktgen_log_debug("Exit %d", lid);
@@ -1433,9 +1447,12 @@ pktgen_main_rx_loop(uint8_t lid)
                 "*** port %u on socket ID %u has different socket ID than lcore %u socket ID %d\n",
                 pid, rte_eth_dev_socket_id(pid), rte_lcore_id(), rte_socket_id());
     }
-    while (pg_lcore_is_running(pktgen.l2p, lid))
+    while (pg_lcore_is_running(pktgen.l2p, lid) &&
+           ! force_quit && ! force_stop[lid]) {
         for (int i = 0; i < pmap.rx.cnt; i++) /* Read packet */
             pktgen_main_receive(pmap.rx.infos[i], lid, pkts_burst, pmap.rx.infos[i]->rx_burst);
+      loop_counter++;
+    }
 
     pktgen_log_debug("Exit %d", lid);
 
@@ -1463,6 +1480,11 @@ pktgen_launch_one_lcore(void *arg __rte_unused)
         return 0;
 
     rte_delay_us_sleep((lid + 1) * 10021);
+
+  int thread_id;
+  thread_id = thread_lookup_by_lcore (pktgen_launch_one_lcore, lid);
+  thread_register_loop_counter (thread_id, &loop_counter);
+  DEBUG_SDPLANE_LOG (PKTGEN, "start pktgen pthread on lcore[%d].", lid);
 
     switch (get_type(pktgen.l2p, lid)) {
     case RX_TYPE:

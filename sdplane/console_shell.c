@@ -63,6 +63,7 @@
 #include "vty_shell.h"
 
 #include "thread_info.h"
+#include "rib_manager.h"
 
 extern int lthread_core;
 
@@ -80,8 +81,6 @@ CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
   int lcore_id;
   for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
     stop_lcore (shell, lcore_id);
-
-  lthread_cancel_all ();
 }
 
 bool reboot = false;
@@ -108,8 +107,10 @@ console_shell (void *arg)
 
   INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
 
+  INSTALL_COMMAND2 (shell->cmdset, enable_shell_debugging);
+  INSTALL_COMMAND2 (shell->cmdset, disable_shell_debugging);
+
   INSTALL_COMMAND2 (shell->cmdset, show_worker);
-  INSTALL_COMMAND2 (shell->cmdset, set_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
 
   INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);
@@ -144,12 +145,19 @@ console_shell (void *arg)
     {
       lthread_sleep (100); // yield.
 
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_read_lock ();
+      rib_tlocal = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+
       if (shell->is_paging)
         shell_read_nowait_paging (shell);
       else
         shell_read_nowait (shell);
 
 #if HAVE_LIBURCU_QSBR
+      rib_tlocal = NULL;
+      urcu_qsbr_read_unlock ();
       urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
 

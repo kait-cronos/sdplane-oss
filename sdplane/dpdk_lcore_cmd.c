@@ -22,8 +22,11 @@
 #include "sdplane.h"
 #include "tap_handler.h"
 #include "l2_repeater.h"
+#include "enhanced_repeater.h"
 
 #include "thread_info.h"
+
+// clang-format off
 
 volatile bool force_stop[RTE_MAX_LCORE];
 
@@ -33,6 +36,10 @@ extern int lthread_core;
 
 int nettlp_thread (void *arg);
 int vlan_switch (void *arg);
+#ifdef ENABLE_PKTGEN
+int pktgen_launch_one_lcore(void *arg __rte_unused);
+#endif
+int linkflap_generator (void *arg);
 
 void
 start_lcore (struct shell *shell, int lcore_id)
@@ -83,19 +90,27 @@ stop_lcore (struct shell *shell, int lcore_id)
 }
 
 CLI_COMMAND2 (set_worker,
-              "(set|reset|start|restart) worker lcore <0-16> "
-              "(|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater|nettlp-thread|vlan-switch)",
-              SET_HELP, RESET_HELP, START_HELP, RESTART_HELP, WORKER_HELP,
-              LCORE_HELP, LCORE_NUMBER_HELP,
-              "set lcore not to launch anything\n",
-              "set lcore to launch l2fwd\n",
-              "set lcore to launch l3fwd (default: lpm)\n",
-              "set lcore to launch l3fwd-lpm\n",
-              "set lcore to launch tap-handler\n",
-              "set lcore to launch l2-repeater\n",
-              "set lcore to launch nettlp-thread\n"
-              "set lcore to launch vlan-switch\n"
-              )
+    "(set|reset|start|restart) worker lcore <0-16> "
+    "(|none|l2fwd|l3fwd|l3fwd-lpm|"
+    "tap-handler|l2-repeater|nettlp-thread|vlan-switch|l3-tap-handler|enhanced-repeater"
+#ifdef ENABLE_PKTGEN
+    "|pktgen"
+#endif
+    "|linkflap-generator"
+    ")",
+    SET_HELP, RESET_HELP, START_HELP, RESTART_HELP,
+    WORKER_HELP, LCORE_HELP, LCORE_NUMBER_HELP,
+    "set lcore not to launch anything\n",
+    "set lcore to launch l2fwd\n",
+    "set lcore to launch l3fwd (default: lpm)\n",
+    "set lcore to launch l3fwd-lpm\n", "set lcore to launch tap-handler\n",
+    "set lcore to launch l2-repeater\n",
+    "set lcore to launch nettlp-thread\n"
+    "set lcore to launch vlan-switch\n"
+    "set lcore to launch l3-tap-handler\n"
+    "set lcore to launch enhanced-repeater\n"
+    "set lcore to launch pktgen\n"
+    )
 {
   struct shell *shell = (struct shell *) context;
   int lcore_id;
@@ -113,10 +128,22 @@ CLI_COMMAND2 (set_worker,
     func = tap_handler;
   else if (! strcmp (argv[4], "l2-repeater"))
     func = l2_repeater;
+  else if (! strcmp (argv[4], "linkflap-generator"))
+    func = linkflap_generator;
   else if (! strcmp (argv[4], "nettlp-thread"))
     func = nettlp_thread;
   else if (! strcmp (argv[4], "vlan-switch"))
     func = vlan_switch;
+  else if (! strcmp (argv[4], "l3-tap-handler"))
+    func = l3_tap_handler;
+  else if (! strcmp (argv[4], "enhanced-repeater"))
+    func = enhanced_repeater;
+#ifdef ENABLE_PKTGEN
+  else if (! strcmp (argv[4], "pktgen"))
+    func = pktgen_launch_one_lcore;
+#endif
+  else if (! strcmp (argv[4], "l3fwd-lpm"))
+    func = lpm_main_loop;
   else /* if (! strcmp (argv[4], "l3fwd")) */
     func = lpm_main_loop;
 
@@ -138,10 +165,20 @@ CLI_COMMAND2 (set_worker,
     func_name = "tap-handler";
   else if (func == l2_repeater)
     func_name = "l2-repeater";
+  else if (func == linkflap_generator)
+    func_name = "linkflap-generator";
   else if (func == nettlp_thread)
     func_name = "nettlp-thread";
   else if (func == vlan_switch)
     func_name = "vlan-switch";
+  else if (func == l3_tap_handler)
+    func_name = "l3-tap-handler";
+  else if (func == enhanced_repeater)
+    func_name = "enhanced-repeater";
+#ifdef ENABLE_PKTGEN
+  else if (func == pktgen_launch_one_lcore)
+    func_name = "pktgen";
+#endif
   else
     func_name = "none";
 
@@ -232,10 +269,7 @@ CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
   return 0;
 }
 
-CLI_COMMAND2 (set_mempool,
-              "set mempool",
-              SET_HELP,
-              "mempool\n")
+CLI_COMMAND2 (set_mempool, "set mempool", SET_HELP, "mempool\n")
 {
   struct shell *shell = (struct shell *) context;
   unsigned int nb_lcores = 0;
@@ -245,20 +279,21 @@ CLI_COMMAND2 (set_mempool,
   uint16_t nb_txd = 1024;
 
   nb_lcores = 4;
-  nb_ports = rte_eth_dev_count_avail();
+  nb_ports = rte_eth_dev_count_avail ();
 
-#define MAX_PKT_BURST 32
+#define MAX_PKT_BURST      32
 #define MEMPOOL_CACHE_SIZE 256
-  nb_mbufs = RTE_MAX(nb_ports * (nb_rxd + nb_txd + MAX_PKT_BURST +
-                     nb_lcores * MEMPOOL_CACHE_SIZE), 8192U);
+  nb_mbufs = RTE_MAX (nb_ports * (nb_rxd + nb_txd + MAX_PKT_BURST +
+                                  nb_lcores * MEMPOOL_CACHE_SIZE),
+                      8192U);
   fprintf (shell->terminal, "nb_mbufs: %u%s", nb_mbufs, shell->NL);
 
   if (l2fwd_pktmbuf_pool != NULL)
     rte_mempool_free (l2fwd_pktmbuf_pool);
 
-  l2fwd_pktmbuf_pool = rte_pktmbuf_pool_create("mbuf_pool", nb_mbufs,
-                MEMPOOL_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE,
-                rte_socket_id());
+  l2fwd_pktmbuf_pool =
+      rte_pktmbuf_pool_create ("mbuf_pool", nb_mbufs, MEMPOOL_CACHE_SIZE, 0,
+                               RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id ());
   if (l2fwd_pktmbuf_pool == NULL)
     {
       fprintf (shell->terminal, "Cannot init mbuf pool.%s", shell->NL);
@@ -274,16 +309,10 @@ int rte_eal_argc = 0;
 
 CLI_COMMAND2 (set_rte_eal_argv,
               "set rte_eal argv <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
-              SET_HELP,
-              "set rte_eal related information.\n",
-              "set command-line arguments.\n",
-              "arbitrary word\n",
-              "arbitrary word\n",
-              "arbitrary word\n",
-              "arbitrary word\n",
-              "arbitrary word\n",
-              "arbitrary word\n"
-             )
+              SET_HELP, "set rte_eal related information.\n",
+              "set command-line arguments.\n", "arbitrary word\n",
+              "arbitrary word\n", "arbitrary word\n", "arbitrary word\n",
+              "arbitrary word\n", "arbitrary word\n")
 {
   struct shell *shell = (struct shell *) context;
   int i;
@@ -304,24 +333,22 @@ CLI_COMMAND2 (set_rte_eal_argv,
     }
 
   for (i = 0; i < rte_eal_argc; i++)
-    fprintf (shell->terminal, "rte_eal_argv[%d]: %s%s",
-             i, rte_eal_argv[i], shell->NL);
+    fprintf (shell->terminal, "rte_eal_argv[%d]: %s%s", i, rte_eal_argv[i],
+             shell->NL);
 
   return 0;
 }
 
 ALIAS_COMMAND (set_rte_eal_argv_2,
-              set_rte_eal_argv,
-              "set rte_eal argv <WORD> <WORD>",
-              SET_HELP
-              "set rte_eal related information.\n"
-              "set command-line arguments.\n"
-              "arbitrary word\n"
-              "arbitrary word\n");
+               set_rte_eal_argv,
+               "set rte_eal argv <WORD> <WORD>",
+               SET_HELP
+               "set rte_eal related information.\n"
+               "set command-line arguments.\n"
+               "arbitrary word\n"
+               "arbitrary word\n");
 
-CLI_COMMAND2 (rte_eal_init,
-              "rte_eal_init",
-              "rte_eal_init command")
+CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command")
 {
   struct shell *shell = (struct shell *) context;
   int ret;
@@ -332,8 +359,8 @@ CLI_COMMAND2 (rte_eal_init,
       fprintf (shell->terminal, "Invalid EAL parameters.%s", shell->NL);
 
       for (i = 0; i < rte_eal_argc; i++)
-        fprintf (shell->terminal, "rte_eal_argv[%d]: %s%s",
-                 i, rte_eal_argv[i], shell->NL);
+        fprintf (shell->terminal, "rte_eal_argv[%d]: %s%s", i, rte_eal_argv[i],
+                 shell->NL);
       return -1;
     }
   return 0;

@@ -35,7 +35,8 @@
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
-extern struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+extern struct rte_eth_dev_tx_buffer
+    *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
 struct rte_ring *msg_queue_nettlp;
 
@@ -44,7 +45,8 @@ static __thread uint64_t loop_counter = 0;
 static __thread struct rib *rib = NULL;
 
 static inline __attribute__ ((always_inline)) void
-nettlp_send_packet_tap_up (struct rte_mbuf *m, unsigned portid, unsigned queueid)
+nettlp_send_packet_tap_up (struct rte_mbuf *m, unsigned portid,
+                           unsigned queueid)
 {
   struct rte_mbuf *c;
   uint32_t pkt_len;
@@ -82,7 +84,7 @@ uint16_t src_port;
 uint16_t dst_port;
 uint16_t bus_number;
 uint16_t dev_number;
-uint8_t pci_tag; /* PCI tag value */
+uint8_t pci_tag;       /* PCI tag value */
 uintptr_t memory_addr; /* DMA memory address */
 int payload_size;
 int max_payload_size; /*Max Payload Size */
@@ -92,8 +94,8 @@ uint16_t requester;
 
 uintptr_t psmem_addr = 0; /* Pseudo memory base address (BAR4) */
 char *psmem_memory = NULL;
-//uint32_t psmem_size = 256 * 1024 * 1024; //256MiB.
-uint32_t psmem_size = 8 * 1024 ; //8KiB.
+// uint32_t psmem_size = 256 * 1024 * 1024; //256MiB.
+uint32_t psmem_size = 8 * 1024; // 8KiB.
 
 void
 nettlp_send_dma_write ()
@@ -123,8 +125,8 @@ nettlp_send_dma_write ()
   if (tx_portid >= rib->rib_info->port_size ||
       tx_queueid >= rib->rib_info->port[tx_portid].dev_info.nb_tx_queues)
     {
-      DEBUG_SDPLANE_LOG (NETTLP, "port %d queue %d not yet.",
-		         tx_portid, tx_queueid);
+      DEBUG_SDPLANE_LOG (NETTLP, "port %d queue %d not yet.", tx_portid,
+                         tx_queueid);
       return;
     }
 
@@ -137,18 +139,19 @@ nettlp_send_dma_write ()
 
   mh->requester = rte_cpu_to_be_16 (requester);
   mh->tag = pci_tag;
-  mh->lstdw = tlp_calculate_lstdw(memory_addr, payload_size);
-  mh->fstdw = tlp_calculate_fstdw(memory_addr, payload_size);
-  tlp_set_length(mh->tlp.falen, tlp_calculate_length(memory_addr, payload_size));
+  mh->lstdw = tlp_calculate_lstdw (memory_addr, payload_size);
+  mh->fstdw = tlp_calculate_fstdw (memory_addr, payload_size);
+  tlp_set_length (mh->tlp.falen,
+                  tlp_calculate_length (memory_addr, payload_size));
 
   uint32_t *dst_addr32;
   uint64_t *dst_addr64;
   uint8_t *memory_addrp;
 
-  tlp_set_type(mh->tlp.fmt_type, TLP_TYPE_MWr);
+  tlp_set_type (mh->tlp.fmt_type, TLP_TYPE_MWr);
   if (memory_addr < UINT32_MAX)
     {
-      tlp_set_fmt(mh->tlp.fmt_type, TLP_FMT_3DW, TLP_FMT_W_DATA);
+      tlp_set_fmt (mh->tlp.fmt_type, TLP_FMT_3DW, TLP_FMT_W_DATA);
       length = sizeof (uint32_t);
       rte_pktmbuf_append (m, length);
       dst_addr32 = (uint32_t *) (mh + 1);
@@ -157,7 +160,7 @@ nettlp_send_dma_write ()
     }
   else
     {
-      tlp_set_fmt(mh->tlp.fmt_type, TLP_FMT_4DW, TLP_FMT_W_DATA);
+      tlp_set_fmt (mh->tlp.fmt_type, TLP_FMT_4DW, TLP_FMT_W_DATA);
       length = sizeof (uint64_t);
       rte_pktmbuf_append (m, length);
       dst_addr64 = (uint64_t *) (mh + 1);
@@ -233,7 +236,7 @@ nettlp_send_dma_write ()
 
   ipv4->version_ihl = 0x45;
   ipv4->total_length = rte_cpu_to_be_16 (length);
-  ipv4->packet_id = random();
+  ipv4->packet_id = random ();
   ipv4->src_addr = local_addr.s_addr;
   ipv4->dst_addr = remote_addr.s_addr;
   ipv4->next_proto_id = IPPROTO_UDP;
@@ -251,10 +254,9 @@ nettlp_send_dma_write ()
 
   if (! tx_buffer_per_q[tx_portid][tx_queueid])
     {
-      tx_buffer_per_q[tx_portid][tx_queueid] =
-        rte_zmalloc_socket ("tx_buffer",
-                        RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
-                        rte_eth_dev_socket_id (tx_portid));
+      tx_buffer_per_q[tx_portid][tx_queueid] = rte_zmalloc_socket (
+          "tx_buffer", RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
+          rte_eth_dev_socket_id (tx_portid));
       rte_eth_tx_buffer_init (tx_buffer_per_q[tx_portid][tx_queueid],
                               MAX_PKT_BURST);
     }
@@ -287,8 +289,8 @@ nettlp_send_dma_read ()
   struct tlp_mr_hdr *mh;
 
   tx_queueid = lcore_id;
-  DEBUG_SDPLANE_LOG (NETTLP, "send DMA read: to port: %d queue %d.",
-                     tx_portid, tx_queueid);
+  DEBUG_SDPLANE_LOG (NETTLP, "send DMA read: to port: %d queue %d.", tx_portid,
+                     tx_queueid);
 
   if (! rib || ! rib->rib_info)
     {
@@ -299,8 +301,8 @@ nettlp_send_dma_read ()
   if (tx_portid >= rib->rib_info->port_size ||
       tx_queueid >= rib->rib_info->port[tx_portid].dev_info.nb_tx_queues)
     {
-      DEBUG_SDPLANE_LOG (NETTLP, "port %d queue %d not yet.",
-		         tx_portid, tx_queueid);
+      DEBUG_SDPLANE_LOG (NETTLP, "port %d queue %d not yet.", tx_portid,
+                         tx_queueid);
       return;
     }
 
@@ -313,18 +315,19 @@ nettlp_send_dma_read ()
 
   mh->requester = rte_cpu_to_be_16 (requester);
   mh->tag = pci_tag;
-  mh->lstdw = tlp_calculate_lstdw(memory_addr, read_payload_size);
-  mh->fstdw = tlp_calculate_fstdw(memory_addr, read_payload_size);
-  tlp_set_length(mh->tlp.falen, tlp_calculate_length(memory_addr, read_payload_size));
+  mh->lstdw = tlp_calculate_lstdw (memory_addr, read_payload_size);
+  mh->fstdw = tlp_calculate_fstdw (memory_addr, read_payload_size);
+  tlp_set_length (mh->tlp.falen,
+                  tlp_calculate_length (memory_addr, read_payload_size));
 
   uint32_t *dst_addr32;
   uint64_t *dst_addr64;
   uint8_t *memory_addrp;
 
-  tlp_set_type(mh->tlp.fmt_type, TLP_TYPE_MRd);
+  tlp_set_type (mh->tlp.fmt_type, TLP_TYPE_MRd);
   if (memory_addr < UINT32_MAX)
     {
-      tlp_set_fmt(mh->tlp.fmt_type, TLP_FMT_3DW, TLP_FMT_WO_DATA);
+      tlp_set_fmt (mh->tlp.fmt_type, TLP_FMT_3DW, TLP_FMT_WO_DATA);
       length = sizeof (uint32_t);
       rte_pktmbuf_append (m, length);
       dst_addr32 = (uint32_t *) (mh + 1);
@@ -333,7 +336,7 @@ nettlp_send_dma_read ()
     }
   else
     {
-      tlp_set_fmt(mh->tlp.fmt_type, TLP_FMT_4DW, TLP_FMT_WO_DATA);
+      tlp_set_fmt (mh->tlp.fmt_type, TLP_FMT_4DW, TLP_FMT_WO_DATA);
       length = sizeof (uint64_t);
       rte_pktmbuf_append (m, length);
       dst_addr64 = (uint64_t *) (mh + 1);
@@ -426,10 +429,9 @@ nettlp_send_dma_read ()
 
   if (! tx_buffer_per_q[tx_portid][tx_queueid])
     {
-      tx_buffer_per_q[tx_portid][tx_queueid] =
-        rte_zmalloc_socket ("tx_buffer",
-                        RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
-                        rte_eth_dev_socket_id (tx_portid));
+      tx_buffer_per_q[tx_portid][tx_queueid] = rte_zmalloc_socket (
+          "tx_buffer", RTE_ETH_TX_BUFFER_SIZE (MAX_PKT_BURST), 0,
+          rte_eth_dev_socket_id (tx_portid));
       rte_eth_tx_buffer_init (tx_buffer_per_q[tx_portid][tx_queueid],
                               MAX_PKT_BURST);
     }
@@ -541,9 +543,9 @@ nettlp_psmem_mrd (struct nettlp_hdr *nh_recv, struct tlp_mr_hdr *mh)
   if (addr < psmem_addr || addr + len > psmem_addr + psmem_size)
     {
       DEBUG_SDPLANE_LOG (NETTLP,
-          "MRd request to 0x%lx which goes "
-          "out of the pseudo memory region: %lx -- %lx.",
-          addr, psmem_addr, psmem_addr + psmem_size);
+                         "MRd request to 0x%lx which goes "
+                         "out of the pseudo memory region: %lx -- %lx.",
+                         addr, psmem_addr, psmem_addr + psmem_size);
       return;
     }
 
@@ -553,7 +555,7 @@ nettlp_psmem_mrd (struct nettlp_hdr *nh_recv, struct tlp_mr_hdr *mh)
   void *data;
   void *from;
 
-#define MAXPAYLOADSIZE  256
+#define MAXPAYLOADSIZE 256
   do
     {
       ssize_t send_len;
@@ -572,11 +574,11 @@ nettlp_psmem_mrd (struct nettlp_hdr *nh_recv, struct tlp_mr_hdr *mh)
       memcpy (&ch->tlp, &mh->tlp, sizeof (struct tlp_cpl_hdr));
 
       /* Build CplD header */
-      tlp_set_fmt(ch->tlp.fmt_type, TLP_FMT_3DW, TLP_FMT_W_DATA);
-      tlp_set_type(ch->tlp.fmt_type, TLP_TYPE_Cpl);
-      tlp_set_length(ch->tlp.falen, send_len >> 2);
-      tlp_set_cpl_status(ch->stcnt, TLP_CPL_STATUS_SC);
-      tlp_set_cpl_bcnt(ch->stcnt, data_len);
+      tlp_set_fmt (ch->tlp.fmt_type, TLP_FMT_3DW, TLP_FMT_W_DATA);
+      tlp_set_type (ch->tlp.fmt_type, TLP_TYPE_Cpl);
+      tlp_set_length (ch->tlp.falen, send_len >> 2);
+      tlp_set_cpl_status (ch->stcnt, TLP_CPL_STATUS_SC);
+      tlp_set_cpl_bcnt (ch->stcnt, data_len);
       ch->completer = rte_cpu_to_be_16 (requester);
       ch->requester = mh->requester;
       ch->tag = mh->tag;
@@ -604,15 +606,15 @@ nettlp_psmem_mwr (struct nettlp_hdr *nh, struct tlp_mr_hdr *mh)
   void *ptr = tlp_mwr_data (mh);
   int len = tlp_mr_data_length (mh);
 
-  DEBUG_SDPLANE_LOG (NETTLP, "MWr to 0x%lx, tag 0x%02x, %lu byte",
-                     addr, mh->tag, len);
+  DEBUG_SDPLANE_LOG (NETTLP, "MWr to 0x%lx, tag 0x%02x, %lu byte", addr,
+                     mh->tag, len);
 
   if (addr < psmem_addr || addr + len > psmem_addr + psmem_size)
     {
       DEBUG_SDPLANE_LOG (NETTLP,
-          "MWr request to 0x%lx which goes "
-          "out of the pseudo memory region: %lx -- %lx.",
-          addr, psmem_addr, psmem_addr + psmem_size);
+                         "MWr request to 0x%lx which goes "
+                         "out of the pseudo memory region: %lx -- %lx.",
+                         addr, psmem_addr, psmem_addr + psmem_size);
       return;
     }
 
@@ -644,10 +646,8 @@ nettlp_psmem_receive (struct rte_mbuf *m)
   if (memcmp (&eth->dst_addr, &local_ether, RTE_ETHER_ADDR_LEN))
     {
       char eth_dst[32];
-      rte_ether_format_addr (eth_dst, sizeof (eth_dst),
-                             &eth->dst_addr);
-      DEBUG_SDPLANE_LOG (NETTLP, "different ether dst: %s",
-                         eth_dst);
+      rte_ether_format_addr (eth_dst, sizeof (eth_dst), &eth->dst_addr);
+      DEBUG_SDPLANE_LOG (NETTLP, "different ether dst: %s", eth_dst);
     }
   if (rte_be_to_cpu_16 (eth->ether_type) != 0x0800)
     {
@@ -657,13 +657,11 @@ nettlp_psmem_receive (struct rte_mbuf *m)
     }
 
   ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
-  if (memcmp (&ipv4->dst_addr, &local_addr,
-              sizeof (struct in_addr)))
+  if (memcmp (&ipv4->dst_addr, &local_addr, sizeof (struct in_addr)))
     {
       char ip_dst[16];
       inet_ntop (AF_INET, &ipv4->dst_addr, ip_dst, sizeof (ip_dst));
-      DEBUG_SDPLANE_LOG (NETTLP, "different ipv4 dst: %s",
-                         ip_dst);
+      DEBUG_SDPLANE_LOG (NETTLP, "different ipv4 dst: %s", ip_dst);
     }
   if (ipv4->next_proto_id != IPPROTO_UDP)
     {
@@ -681,36 +679,30 @@ nettlp_psmem_receive (struct rte_mbuf *m)
 
   if (tlp_is_mrd (th->fmt_type))
     {
-      DEBUG_SDPLANE_LOG (NETTLP, "MRd: addr: %p len: %d",
-                         tlp_mr_addr (mh),
+      DEBUG_SDPLANE_LOG (NETTLP, "MRd: addr: %p len: %d", tlp_mr_addr (mh),
                          tlp_mr_data_length (mh));
       nettlp_psmem_mrd (nh, mh);
     }
   else if (tlp_is_mwr (th->fmt_type))
     {
-      DEBUG_SDPLANE_LOG (NETTLP, "MWr: data: %p len: %d",
-                         tlp_mwr_data (mh),
+      DEBUG_SDPLANE_LOG (NETTLP, "MWr: data: %p len: %d", tlp_mwr_data (mh),
                          tlp_mr_data_length (mh));
       nettlp_psmem_mwr (nh, mh);
     }
-  else if (tlp_is_cpl (th->fmt_type) &&
-           tlp_is_wo_data (th->fmt_type))
+  else if (tlp_is_cpl (th->fmt_type) && tlp_is_wo_data (th->fmt_type))
     {
       DEBUG_SDPLANE_LOG (NETTLP, "Cpl without data");
       nettlp_psmem_cpl (nh, ch);
     }
-  else if (tlp_is_cpl (th->fmt_type) &&
-           tlp_is_w_data (th->fmt_type))
+  else if (tlp_is_cpl (th->fmt_type) && tlp_is_w_data (th->fmt_type))
     {
       DEBUG_SDPLANE_LOG (NETTLP, "Cpl with data: %p len: %d",
-                         tlp_cpld_data (ch),
-                         tlp_cpld_data_length (ch));
+                         tlp_cpld_data (ch), tlp_cpld_data_length (ch));
       nettlp_psmem_cpld (nh, ch);
     }
   else
     {
-      DEBUG_SDPLANE_LOG (NETTLP, "unknown TLP: fmt_type: %#x",
-                         th->fmt_type);
+      DEBUG_SDPLANE_LOG (NETTLP, "unknown TLP: fmt_type: %#x", th->fmt_type);
     }
 
   rte_pktmbuf_free (m);
@@ -758,7 +750,7 @@ nettlp_rx_burst ()
           if (rx_portid >= 0 && rx_queueid >= 0)
             nettlp_send_packet_tap_up (m, rx_portid, rx_queueid);
 
-          //log_packet (m, rx_portid, rx_queueid);
+          // log_packet (m, rx_portid, rx_queueid);
           nettlp_psmem_receive (m);
         }
     }
@@ -776,7 +768,7 @@ nettlp_thread (void *arg)
 
   /* initialize */
   msg_queue_nettlp =
-    rte_ring_create ("msg_queue_nettlp", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+      rte_ring_create ("msg_queue_nettlp", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
 
   int thread_id;
   thread_id = thread_lookup (nettlp_thread);
@@ -788,8 +780,8 @@ nettlp_thread (void *arg)
 
   while (! force_quit && ! force_stop[lthread_core])
     {
-      //lthread_sleep (100); // yield.
-      //DEBUG_SDPLANE_LOG (NETTLP, "%s: schedule.", __func__);
+      // lthread_sleep (100); // yield.
+      // DEBUG_SDPLANE_LOG (NETTLP, "%s: schedule.", __func__);
 
 #if HAVE_LIBURCU_QSBR
       urcu_qsbr_read_lock ();
@@ -817,12 +809,9 @@ nettlp_thread (void *arg)
 #endif /*HAVE_LIBURCU_QSBR*/
 }
 
-CLI_COMMAND2 (nettlp_send_dma_write_read,
-              "nettlp-send (dma-write|dma-read)",
-              "NetTLP send command\n",
-              "DMA write packet\n",
-              "DMA read packet\n"
-              )
+CLI_COMMAND2 (nettlp_send_dma_write_read, "nettlp-send (dma-write|dma-read)",
+              "NetTLP send command\n", "DMA write packet\n",
+              "DMA read packet\n")
 {
   struct shell *shell = (struct shell *) context;
   void *msgp;
@@ -839,10 +828,7 @@ CLI_COMMAND2 (nettlp_send_dma_write_read,
   return 0;
 }
 
-CLI_COMMAND2 (show_nettlp,
-              "show nettlp",
-              SHOW_HELP,
-              "NetTLP information.\n")
+CLI_COMMAND2 (show_nettlp, "show nettlp", SHOW_HELP, "NetTLP information.\n")
 {
   struct shell *shell = (struct shell *) context;
   char local[32], remote[32];
@@ -862,27 +848,24 @@ CLI_COMMAND2 (show_nettlp,
   fprintf (shell->terminal, "UDP src-port: %hu.%s", src_port, shell->NL);
   fprintf (shell->terminal, "UDP dst-port: %hu.%s", dst_port, shell->NL);
 
-  fprintf (shell->terminal, "bus_number: %hx:%hx.%s",
-           bus_number, dev_number, shell->NL);
+  fprintf (shell->terminal, "bus_number: %hx:%hx.%s", bus_number, dev_number,
+           shell->NL);
   fprintf (shell->terminal, "pci-tag: %d.%s", pci_tag, shell->NL);
-  fprintf (shell->terminal, "memory-addr: %p.%s",
-           (void *) memory_addr, shell->NL);
+  fprintf (shell->terminal, "memory-addr: %p.%s", (void *) memory_addr,
+           shell->NL);
   fprintf (shell->terminal, "payload-size: %d.%s", payload_size, shell->NL);
-  fprintf (shell->terminal, "MaxPayloadSize: %d.%s",
-           max_payload_size, shell->NL);
-  fprintf (shell->terminal, "payload-string: %s.%s",
-           payload_string, shell->NL);
+  fprintf (shell->terminal, "MaxPayloadSize: %d.%s", max_payload_size,
+           shell->NL);
+  fprintf (shell->terminal, "payload-string: %s.%s", payload_string,
+           shell->NL);
   return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_ether_local_remote,
-              "set nettlp ether (local-addr|remote-addr) <WORD>",
-              SET_HELP,
-              "NetTLP information.\n",
-              "local ethernet source address.\n",
+              "set nettlp ether (local-addr|remote-addr) <WORD>", SET_HELP,
+              "NetTLP information.\n", "local ethernet source address.\n",
               "remote ethernet destination address.\n",
-              "Specify ethernet address.\n"
-              )
+              "Specify ethernet address.\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rte_ether_addr *dst;
@@ -896,26 +879,21 @@ CLI_COMMAND2 (set_nettlp_ether_local_remote,
   ret = rte_ether_unformat_addr (argv[4], dst);
   if (ret < 0)
     {
-      fprintf (shell->terminal, "invalid address format: %s.%s",
-               argv[4], shell->NL);
+      fprintf (shell->terminal, "invalid address format: %s.%s", argv[4],
+               shell->NL);
       return -1;
     }
 
-  fprintf (shell->terminal, "set %s: %s%s",
-           argv[3], argv[4], shell->NL);
+  fprintf (shell->terminal, "set %s: %s%s", argv[3], argv[4], shell->NL);
   return 0;
 }
 
 
 CLI_COMMAND2 (set_nettlp_ipv4_local_remote,
-              "set nettlp ipv4 (local-addr|remote-addr) A.B.C.D",
-              SET_HELP,
-              "NetTLP information.\n",
-              "IPv information.\n",
+              "set nettlp ipv4 (local-addr|remote-addr) A.B.C.D", SET_HELP,
+              "NetTLP information.\n", "IPv information.\n",
               "local IPv4 source address.\n",
-              "remote IPv4 destination address.\n",
-              "Specify IPv4 address.\n"
-              )
+              "remote IPv4 destination address.\n", "Specify IPv4 address.\n")
 {
   struct shell *shell = (struct shell *) context;
   struct in_addr *dst;
@@ -929,31 +907,27 @@ CLI_COMMAND2 (set_nettlp_ipv4_local_remote,
   ret = inet_pton (AF_INET, argv[4], dst);
   if (ret == 0)
     {
-      fprintf (shell->terminal, "invalid address format: %s.%s",
-               argv[4], shell->NL);
+      fprintf (shell->terminal, "invalid address format: %s.%s", argv[4],
+               shell->NL);
       return -1;
     }
   if (ret < 0)
     {
-      fprintf (shell->terminal, "inet_pton() failed: %s.%s",
-               strerror (errno), shell->NL);
+      fprintf (shell->terminal, "inet_pton() failed: %s.%s", strerror (errno),
+               shell->NL);
       return -1;
     }
 
-  fprintf (shell->terminal, "set %s: %s%s",
-           argv[3], argv[4], shell->NL);
+  fprintf (shell->terminal, "set %s: %s%s", argv[3], argv[4], shell->NL);
   return 0;
 }
 
 CLI_COMMAND2 (set_nettlp_bus_number,
               "set nettlp bus-number <0-65535> device-number <0-65535>",
-              SET_HELP,
-              "NetTLP information.\n",
-              "Set bus-number.\n",
+              SET_HELP, "NetTLP information.\n", "Set bus-number.\n",
               "Specify bus-number (i.e. 0x1234 in Hex).\n",
               "Set device-number.\n",
-              "Specify device-number (i.e. 0x1234 in Hex).\n"
-              )
+              "Specify device-number (i.e. 0x1234 in Hex).\n")
 {
   struct shell *shell = (struct shell *) context;
   int ret;
@@ -962,18 +936,13 @@ CLI_COMMAND2 (set_nettlp_bus_number,
   dev_number = strtol (argv[5], NULL, 0);
   requester = (bus_number << 8 | dev_number);
 
-  fprintf (shell->terminal, "bus_number %hx:%hx%s",
-           bus_number, dev_number, shell->NL);
+  fprintf (shell->terminal, "bus_number %hx:%hx%s", bus_number, dev_number,
+           shell->NL);
   return 0;
 }
 
-CLI_COMMAND2 (set_nettlp_pci_tag,
-              "set nettlp pci-tag <0-255>",
-              SET_HELP,
-              "NetTLP information.\n",
-              "Set PCI tag.\n",
-              "Specify PCI tag.\n"
-              )
+CLI_COMMAND2 (set_nettlp_pci_tag, "set nettlp pci-tag <0-255>", SET_HELP,
+              "NetTLP information.\n", "Set PCI tag.\n", "Specify PCI tag.\n")
 {
   struct shell *shell = (struct shell *) context;
   pci_tag = strtol (argv[3], NULL, 0);
@@ -981,13 +950,9 @@ CLI_COMMAND2 (set_nettlp_pci_tag,
   return 0;
 }
 
-CLI_COMMAND2 (set_nettlp_txportid,
-              "set nettlp tx-portid <0-128>",
-              SET_HELP,
-              "NetTLP information.\n",
-              "Set transmission port-id.\n",
-              "Specify transmission port-id.\n"
-              )
+CLI_COMMAND2 (set_nettlp_txportid, "set nettlp tx-portid <0-128>", SET_HELP,
+              "NetTLP information.\n", "Set transmission port-id.\n",
+              "Specify transmission port-id.\n")
 {
   struct shell *shell = (struct shell *) context;
   tx_portid = strtol (argv[3], NULL, 0);
@@ -996,14 +961,10 @@ CLI_COMMAND2 (set_nettlp_txportid,
 }
 
 CLI_COMMAND2 (set_nettlp_udp_port,
-              "set nettlp udp (src-port|dst-port) <0-65535>",
-              SET_HELP,
-              "NetTLP information.\n",
-              "UDP information.\n",
-              "Set UDP src port.\n",
-              "Set UDP dst port.\n",
-              "Specify UDP port.\n"
-              )
+              "set nettlp udp (src-port|dst-port) <0-65535>", SET_HELP,
+              "NetTLP information.\n", "UDP information.\n",
+              "Set UDP src port.\n", "Set UDP dst port.\n",
+              "Specify UDP port.\n")
 {
   struct shell *shell = (struct shell *) context;
   uint16_t *dst;
@@ -1018,28 +979,20 @@ CLI_COMMAND2 (set_nettlp_udp_port,
   return 0;
 }
 
-CLI_COMMAND2 (set_nettlp_memory_addr,
-              "set nettlp memory-address <WORD>",
-              SET_HELP,
-              "NetTLP information.\n",
-              "Set core memory address.\n",
-              "Specify core memory address.\n"
-              )
+CLI_COMMAND2 (set_nettlp_memory_addr, "set nettlp memory-address <WORD>",
+              SET_HELP, "NetTLP information.\n", "Set core memory address.\n",
+              "Specify core memory address.\n")
 {
   struct shell *shell = (struct shell *) context;
   memory_addr = strtoul (argv[3], NULL, 0);
-  fprintf (shell->terminal, "memory-addr: %p%s",
-           (void *) memory_addr, shell->NL);
+  fprintf (shell->terminal, "memory-addr: %p%s", (void *) memory_addr,
+           shell->NL);
   return 0;
 }
 
-CLI_COMMAND2 (set_nettlp_payload_size,
-              "set nettlp payload-size <0-4096>",
-              SET_HELP,
-              "NetTLP information.\n",
-              "Set payload-size.\n",
-              "Specify size.\n"
-              )
+CLI_COMMAND2 (set_nettlp_payload_size, "set nettlp payload-size <0-4096>",
+              SET_HELP, "NetTLP information.\n", "Set payload-size.\n",
+              "Specify size.\n")
 {
   struct shell *shell = (struct shell *) context;
   payload_size = strtoul (argv[3], NULL, 0);
@@ -1048,45 +1001,33 @@ CLI_COMMAND2 (set_nettlp_payload_size,
 }
 
 CLI_COMMAND2 (set_nettlp_max_payload_size,
-              "set nettlp max-payload-size <0-4096>",
-              SET_HELP,
-              "NetTLP information.\n",
-              "Set Max Payload Size (mps).\n",
-              "Specify Max Payload Size.\n"
-              )
+              "set nettlp max-payload-size <0-4096>", SET_HELP,
+              "NetTLP information.\n", "Set Max Payload Size (mps).\n",
+              "Specify Max Payload Size.\n")
 {
   struct shell *shell = (struct shell *) context;
   max_payload_size = strtoul (argv[3], NULL, 0);
-  fprintf (shell->terminal, "MaxPayloadSize: %d%s",
-           max_payload_size, shell->NL);
+  fprintf (shell->terminal, "MaxPayloadSize: %d%s", max_payload_size,
+           shell->NL);
   return 0;
 }
 
-CLI_COMMAND2 (set_nettlp_payload_string,
-              "set nettlp payload-string <LINE>",
-              SET_HELP,
-              "NetTLP information.\n",
-              "Set payload string.\n",
-              "Specify payload string.\n"
-              )
+CLI_COMMAND2 (set_nettlp_payload_string, "set nettlp payload-string <LINE>",
+              SET_HELP, "NetTLP information.\n", "Set payload string.\n",
+              "Specify payload string.\n")
 {
   struct shell *shell = (struct shell *) context;
   memset (payload_string, 0, sizeof (payload_string));
-  snprintf (payload_string, sizeof (payload_string),
-            "%s", argv[3]);
+  snprintf (payload_string, sizeof (payload_string), "%s", argv[3]);
   payload_size = strlen (payload_string);
-  fprintf (shell->terminal, "payload-string: %s (size: %d)%s",
-           payload_string, payload_size, shell->NL);
+  fprintf (shell->terminal, "payload-string: %s (size: %d)%s", payload_string,
+           payload_size, shell->NL);
   return 0;
 }
 
-CLI_COMMAND2 (set_nettlp_psmem_addr,
-              "set nettlp psmem-address <WORD>",
-              SET_HELP,
-              "NetTLP information.\n",
-              "Set psmem address.\n",
-              "Specify memory address.\n"
-              )
+CLI_COMMAND2 (set_nettlp_psmem_addr, "set nettlp psmem-address <WORD>",
+              SET_HELP, "NetTLP information.\n", "Set psmem address.\n",
+              "Specify memory address.\n")
 {
   struct shell *shell = (struct shell *) context;
   char *endptr;
@@ -1095,13 +1036,12 @@ CLI_COMMAND2 (set_nettlp_psmem_addr,
   new_addr = strtoul (argv[3], &endptr, 0);
   if (*endptr != '\0')
     {
-      fprintf (shell->terminal, "invalid addr: %s%s",
-               argv[3], shell->NL);
+      fprintf (shell->terminal, "invalid addr: %s%s", argv[3], shell->NL);
       return -1;
     }
 
   /* if new_addr is set to 0, it indicates release. */
-  if (psmem_memory && (new_addr == 0 || !psmem_size))
+  if (psmem_memory && (new_addr == 0 || ! psmem_size))
     {
       free (psmem_memory);
       psmem_memory = NULL;
@@ -1111,8 +1051,8 @@ CLI_COMMAND2 (set_nettlp_psmem_addr,
       psmem_memory = realloc (psmem_memory, psmem_size);
       if (! psmem_memory)
         {
-          fprintf (shell->terminal, "realloc() failed: %s%s",
-                   strerror (errno), shell->NL);
+          fprintf (shell->terminal, "realloc() failed: %s%s", strerror (errno),
+                   shell->NL);
         }
       else
         {
@@ -1125,8 +1065,8 @@ CLI_COMMAND2 (set_nettlp_psmem_addr,
       psmem_memory = malloc (psmem_size);
       if (! psmem_memory)
         {
-          fprintf (shell->terminal, "malloc() failed: %s%s",
-                   strerror (errno), shell->NL);
+          fprintf (shell->terminal, "malloc() failed: %s%s", strerror (errno),
+                   shell->NL);
           return -1;
         }
       else
@@ -1141,14 +1081,10 @@ CLI_COMMAND2 (set_nettlp_psmem_addr,
   return 0;
 }
 
-CLI_COMMAND2 (set_nettlp_psmem_size,
-              "set nettlp psmem-size (<WORD>|256M)",
-              SET_HELP,
-              "NetTLP information.\n",
-              "Set psmem size.\n",
+CLI_COMMAND2 (set_nettlp_psmem_size, "set nettlp psmem-size (<WORD>|256M)",
+              SET_HELP, "NetTLP information.\n", "Set psmem size.\n",
               "Specify memory size.\n"
-              "Specify memory size as 256MiB.\n"
-              )
+              "Specify memory size as 256MiB.\n")
 {
   struct shell *shell = (struct shell *) context;
   char *endptr;
@@ -1161,14 +1097,13 @@ CLI_COMMAND2 (set_nettlp_psmem_size,
       new_size = strtoul (argv[3], &endptr, 0);
       if (*endptr != '\0')
         {
-          fprintf (shell->terminal, "invalid addr: %s%s",
-                   argv[3], shell->NL);
+          fprintf (shell->terminal, "invalid addr: %s%s", argv[3], shell->NL);
           return 0;
         }
     }
 
   /* if psmem_addr is set to 0, it indicates release. */
-  if (psmem_memory && (psmem_addr == 0 || !new_size))
+  if (psmem_memory && (psmem_addr == 0 || ! new_size))
     {
       free (psmem_memory);
       psmem_memory = NULL;
@@ -1179,8 +1114,8 @@ CLI_COMMAND2 (set_nettlp_psmem_size,
       psmem_memory = realloc (psmem_memory, new_size);
       if (! psmem_memory)
         {
-          fprintf (shell->terminal, "realloc() failed: %s%s",
-                   strerror (errno), shell->NL);
+          fprintf (shell->terminal, "realloc() failed: %s%s", strerror (errno),
+                   shell->NL);
         }
       else
         {
@@ -1193,8 +1128,8 @@ CLI_COMMAND2 (set_nettlp_psmem_size,
       psmem_memory = malloc (new_size);
       if (! psmem_memory)
         {
-          fprintf (shell->terminal, "malloc() failed: %s%s",
-                   strerror (errno), shell->NL);
+          fprintf (shell->terminal, "malloc() failed: %s%s", strerror (errno),
+                   shell->NL);
         }
       else
         {
@@ -1208,20 +1143,16 @@ CLI_COMMAND2 (set_nettlp_psmem_size,
   return 0;
 }
 
-CLI_COMMAND2 (show_nettlp_psmem,
-              "show nettlp psmem (|<WORD>)",
-              SHOW_HELP,
-              "NetTLP information.\n",
-              "Show psmem.\n",
-              "Show from the specified start offset.\n"
-              )
+CLI_COMMAND2 (show_nettlp_psmem, "show nettlp psmem (|<WORD>)", SHOW_HELP,
+              "NetTLP information.\n", "Show psmem.\n",
+              "Show from the specified start offset.\n")
 {
   struct shell *shell = (struct shell *) context;
   char *endptr;
   uintptr_t start_offset;
   uintptr_t end_offset;
   uint32_t i;
-  uint32_t psmem_show_size = 8 * 1024 ; //8KiB.
+  uint32_t psmem_show_size = 8 * 1024; // 8KiB.
   uint32_t show_size;
 
   start_offset = 0;
@@ -1230,8 +1161,7 @@ CLI_COMMAND2 (show_nettlp_psmem,
       start_offset = strtoul (argv[3], &endptr, 0);
       if (*endptr != '\0')
         {
-          fprintf (shell->terminal, "invalid addr: %s%s",
-                   argv[3], shell->NL);
+          fprintf (shell->terminal, "invalid addr: %s%s", argv[3], shell->NL);
           return 0;
         }
     }
@@ -1291,4 +1221,3 @@ nettlp_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_nettlp_psmem_size);
   INSTALL_COMMAND2 (cmdset, show_nettlp_psmem);
 }
-

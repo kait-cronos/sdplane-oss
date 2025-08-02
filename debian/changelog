@@ -1,3 +1,299 @@
+sdplane (0.1.3-167) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 2 Aug 2025 13:34:43 +0900
+
+sdplane (0.1.3-166) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 2 Aug 2025 13:34:35 +0900
+
+sdplane (0.1.3-165) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * pktgen compiles okay for both DPDK-23 and DPDK-24.
+  * fix COPYING.
+  * Merge pull request #81 from kait-cronos/develop/yasu-fix-startup
+  * fix startup_config.
+  * Merge pull request #80 from kait-cronos/develop/yasu-pid-file
+  * unlink() the pid_file.
+  * pid_file_lock().
+  * Merge pull request #79 from kait-cronos/feature/vswitch
+  * chore: reallocate vswitch and vswitch_link
+  * chore: implove show router_if/capture_if
+  * fix: improve process to delete vswitch and vswitch_link
+  * Merge pull request #78 from kait-cronos/develop/yykzm_neigh-table
+  * fix format
+  * fix: eliminate duplicate definition.
+  * Merge pull request #73 from kait-cronos/develop/k1yoto
+  * chore: add process to wait for worker thread
+  * Merge pull request #47 from kait-cronos/develop/yykzm_neigh-table
+  * remove unnecessary codes
+  * fix format
+  * re-implement  neighbor table with linear probing
+  * add RTM_GETNEIGH
+  * fix format
+  * update to handle neighbor_tables via internal messages.
+  * fix: minor fixes based on review comments
+  * fix format
+  * neighbor tables
+  * change default capture-I/F name: capture0.
+  * Merge pull request #77 from kait-cronos/develop/yasu-fix-show-port-pps
+  * fix show port statistics command: in some cases stats_array was used uninitialized.
+  * Merge pull request #76 from kait-cronos/develop/yasu-launch-rib-manager
+  * call lthread_sleep to exactly launch rib_manager just in time.
+  * Merge pull request #75 from kait-cronos/develop/yasu-support-old-cmd-failure
+  * support (and properly catch) old command failure in startup-config.
+  * Merge pull request #74 from kait-cronos/develop/yasu-getopt-long
+  * add getopt_long for the --config-file option.
+  * Merge pull request #70 from kait-cronos/report-format-diff
+  * remove unrequired file
+  * fix command
+  * fix format
+  * fix workflow
+  * break format to test
+  * remove checking format from CI
+  * chore: report format diff by comment instead of checking it by CI
+  * Merge pull request #46 from kait-cronos/develop/k1yoto_router
+  * chore: check gnu-format
+  * chore: fix process of vswitch delete
+  * fix: add initialisation for router_if/capture_if
+  * chore: check gnu-style
+  * chore: rename from l3-connector to enhanced-repeater
+  * chore: check gnu style
+  * docs: add l3-connector configuration
+  * chore: integrate l3 components into build system and thread management
+  * feat: add l3-specific tap handler for router_if
+  * feat: add l3 connector
+  * feat: implement router_if and capture_if backend processing in RIB manager
+  * feat: implement CLI commands for router_if and capture_if management
+  * feat: add router_if and capture_if data structures and message types
+  * feat: add management CLI for  vswitch and vswitch_link
+  * remove debug sdplane all, because the latest libsdplane library provides the debug-all function.
+  * Merge pull request #67 from kait-cronos/develop/yasu-shell-debug
+  * install shell-debugging cmd.
+  * Merge pull request #62 from kait-cronos/lsi
+  * Merge pull request #65 from kait-cronos/develop/yasu-error-in-startup
+  * stop in facing an error in startup_config. if the command in sdplane.conf ended in CMD_NOT_FOUND or CMD_FAILURE, the startup_config exits in failure and prevent sdplane from continuing. Now, for example, "set port all nrxdesc 1024" will result in failure when rib_manager hasn't been started earlier in the sdplane.conf.
+  * Merge pull request #66 from kait-cronos/develop/yasu-github-workflows-ci
+  * remove pull_request_template. update libsdplane to 0.3.37-11.
+  * Merge pull request #64 from kait-cronos/develop/yasu-rib-tlocal
+  * fix previous commit.
+  * accessing to the rib from a command_func is organized so that we should (need only to) prepare just like below:     struct rib *rib = rib_tlocal;
+  * feat: link status interrupt
+  * Merge pull request #61 from kait-cronos/develop/yasu-readme
+  * docs: simplify language label in README to English only
+  * docs: fix language link in README to use "Japanese"
+  * docs: update author name and fix manual links
+  * docs: restructure documentation with English as default
+  * docs: remove unused manual files from root directory
+  * docs: clean up README manual links for language consistency
+  * docs: complete bilingual documentation with README and English manuals
+  * docs: create bilingual documentation structure
+  * docs: add comprehensive user manual and improve CLAUDE.md
+  * sync.
+  * README update.
+  * Merge pull request #58 from kait-cronos/develop/yasu-licensing
+  * prep for MIT-licensed OSS release.
+  * Merge pull request #49 from kait-cronos/develop/yasu-quit-lthread-sockets
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 2 Aug 2025 13:29:56 +0900
+
+sdplane (0.1.3-79) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * quit using lthread_socket functions.
+  * Merge pull request #48 from kait-cronos/develop/yasu-linkflap-gen-fix2
+  * fix linkflap-gen. support for each ports' link-status.
+  * Merge pull request #40 from kait-cronos/develop/claude-changes
+  * fix the telnet part by hand.
+  * Merge pull request #45 from kait-cronos/develop/yasu-linkflapgen-fix
+  * linkflap-generator fix.
+  * docs: update project documentation and guidelines
+  * check_gnu_style.sh update by clang-format 18.1.3.
+  * Merge branch 'develop/claude-changes' of github.com:kait-cronos/sdplane-dev into claude-changes
+  * order Claude to reply in Japanese.
+  * fix: improve clang-format version checking in style script
+  * clang-format off to ai-workspace/templates. fix spaces in rib_manager.c.
+  * feat: implement comprehensive AI contribution tracking system
+  * fix: improve clang-format version checking in style script
+  * clang-format off to ai-workspace/templates. fix spaces in rib_manager.c.
+  * feat: implement comprehensive AI contribution tracking system
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 6 Jul 2025 17:49:19 +0900
+
+sdplane (0.1.3-61) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 26 Jun 2025 17:30:59 +0900
+
+sdplane (0.1.3-60) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge pull request #42 from kait-cronos/develop/yasu-linkflap
+  * check_gnu_style update.
+  * 100ms link flap generator.
+  * linkflap-generator. (WIP)
+  * Merge pull request #43 from kait-cronos/develop/yasu-vty-debug
+  * check_gnu_style update.
+  * vty_server loop_counter.
+  * Merge pull request #41 from kait-cronos/develop/yasu-src-release
+  * update make-src-release.sh for sdplane.
+  * Merge pull request #39 from kait-cronos/develop/wiretap-packaging
+  * install-memo.txt: (ver. 19: 2025/06/18 17:22) libsdplane_0.3.37-2_amd64.deb sdplane_0.1.3-48_amd64.deb
+  * update changelog for v0.1.3-48.
+  * packaging. etc/modules-load.d/*.conf.
+  * Merge pull request #31 from kait-cronos/feature/l3fwd
+  * change from example_conf to example_config
+  * fix lookup_mode string
+  * reduce differences with upstream
+  * Merge main branch into feature/l3fwd
+  * Merge pull request #37 from kait-cronos/develop-yasu-packaging
+  * sdplane.conf.sample updated for partaker.
+  * update changelog for v0.1.3-30.
+  * update changelog for v0.1.3-29.
+  * changelog update.
+  * Merge pull request #34 from kait-cronos/develop/yasu-enable-pktgen
+  * the --enable-pktgen's default is changed to "no".
+  * --enable-pktgen switch.
+  * Merge pull request #33 from kait-cronos/develop/yasu-install-doc
+  * doc/install-memo.txt update.
+  * Merge main branch into feature/l3fwd
+  * cleanup. removing obsolete codes.
+  * Merge pull request #26 from kait-cronos/develop/yasu-vlan
+  * check clang-format
+  * .clang-format update.
+  * Committing the Interop 2025 Tokyo version.
+  * check_gnu_style.
+  * vlan translation and strip.
+  * check_gnu_style.
+  * tagged vlan support ok.
+  * Merge branch 'develop/yasu-vlan' of github.com:kait-cronos/sdplane-dev into yasu-vlan
+  * bash style/check_gnu_style.sh update
+  * vlan support framework by hard-coding.
+  * update changelog for v0.1.3-9.
+  * update changelog for v0.1.3-8.
+  * update changelog for v0.1.3-7.
+  * commit debian/changelog generated by build-debian.sh on ipa@100g-gen-1.
+  * bash style/check_gnu_style.sh update
+  * vlan support framework by hard-coding.
+  * Merge pull request #24 from kait-cronos/develop/yasu-pktgen
+  * "show port stat" cmd update.
+  * pktgen support.
+  * clang-format off for the manually modified files.
+  * pktgen started to work, just as a start.
+  * Merge branch 'feature/l3fwd' of github.com:kait-cronos/sdplane-dev into feature/l3fwd
+  * Merge pull request #18 from kait-cronos/feature/l3fwd-yykzm
+  * fixed a bug about loading rule files
+  * Merge branch 'main' into feature/l3fwd
+  * feat(l3fwd): add implementation to run l3fwd from sdplane
+  * chore(l2fwd): Fix l2fwd loop counter
+  * chore(vty_shell): remove duplicate set-worker
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Thu, 26 Jun 2025 01:20:17 +0900
+
+sdplane (0.1.3-48) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * packaging. etc/modules-load.d/*.conf.
+  * Merge pull request #31 from kait-cronos/feature/l3fwd
+  * change from example_conf to example_config
+  * fix lookup_mode string
+  * reduce differences with upstream
+  * Merge main branch into feature/l3fwd
+  * Merge pull request #37 from kait-cronos/develop-yasu-packaging
+  * sdplane.conf.sample updated for partaker.
+  * Merge main branch into feature/l3fwd
+  * check clang-format
+  * Merge branch 'feature/l3fwd' of github.com:kait-cronos/sdplane-dev into feature/l3fwd
+  * Merge pull request #18 from kait-cronos/feature/l3fwd-yykzm
+  * fixed a bug about loading rule files
+  * Merge branch 'main' into feature/l3fwd
+  * feat(l3fwd): add implementation to run l3fwd from sdplane
+  * chore(l2fwd): Fix l2fwd loop counter
+  * chore(vty_shell): remove duplicate set-worker
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 18 Jun 2025 15:54:37 +0900
+
+sdplane (0.1.3-30) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 17 Jun 2025 15:05:43 +0900
+
+sdplane (0.1.3-29) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * changelog update.
+  * Merge pull request #34 from kait-cronos/develop/yasu-enable-pktgen
+  * the --enable-pktgen's default is changed to "no".
+  * --enable-pktgen switch.
+  * Merge pull request #33 from kait-cronos/develop/yasu-install-doc
+  * doc/install-memo.txt update.
+  * cleanup. removing obsolete codes.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Tue, 17 Jun 2025 15:01:59 +0900
+
+sdplane (0.1.3-22) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge pull request #26 from kait-cronos/develop/yasu-vlan
+  * .clang-format update.
+  * Committing the Interop 2025 Tokyo version.
+  * check_gnu_style.
+  * vlan translation and strip.
+  * check_gnu_style.
+  * tagged vlan support ok.
+  * Merge branch 'develop/yasu-vlan' of github.com:kait-cronos/sdplane-dev into yasu-vlan
+  * bash style/check_gnu_style.sh update
+  * vlan support framework by hard-coding.
+  * update changelog for v0.1.3-9.
+  * update changelog for v0.1.3-8.
+  * update changelog for v0.1.3-7.
+  * commit debian/changelog generated by build-debian.sh on ipa@100g-gen-1.
+  * bash style/check_gnu_style.sh update
+  * vlan support framework by hard-coding.
+  * Merge pull request #24 from kait-cronos/develop/yasu-pktgen
+  * "show port stat" cmd update.
+  * pktgen support.
+  * clang-format off for the manually modified files.
+  * pktgen started to work, just as a start.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 15 Jun 2025 12:08:25 +0900
+
+sdplane (0.1.3-9) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 7 Jun 2025 15:20:41 +0900
+
+sdplane (0.1.3-8) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 7 Jun 2025 15:18:58 +0900
+
+sdplane (0.1.3-7) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * commit debian/changelog generated by build-debian.sh on ipa@100g-gen-1.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 7 Jun 2025 15:17:41 +0900
+
+sdplane (0.1.3-6) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge pull request #24 from kait-cronos/develop/yasu-pktgen
+  * "show port stat" cmd update.
+  * pktgen support.
+  * clang-format off for the manually modified files.
+  * pktgen started to work, just as a start.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 7 Jun 2025 05:04:03 +0900
+
 sdplane (0.1.2-28) UNRELEASED; urgency=low
 
   * release. update changelog.

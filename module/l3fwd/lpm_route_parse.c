@@ -280,6 +280,7 @@ read_config_files_lpm(void)
 			lpm_free_routes();
 			rte_exit(EXIT_FAILURE, "Failed to add IPv4 rules\n");
 		}
+		free((void *)parm_config.rule_ipv4_name);
 
 		/* ipv6 check */
 		route_num_v6 = lpm_add_rules(parm_config.rule_ipv6_name,
@@ -288,6 +289,7 @@ read_config_files_lpm(void)
 			lpm_free_routes();
 			rte_exit(EXIT_FAILURE, "Failed to add IPv6 rules\n");
 		}
+		free((void *)parm_config.rule_ipv6_name);
 	} else {
 		RTE_LOG(INFO, L3FWD, "Missing 1 or more rule files, using default instead\n");
 		if (lpm_add_default_v4_rules() < 0) {

@@ -33,6 +33,7 @@
 #include "vty_shell.h"
 
 #include "sdplane_version.h"
+#include "rib_manager.h"
 
 int
 shell_keyfunc_clear_terminal (struct shell *shell)
@@ -107,11 +108,13 @@ vty_banner (struct shell *shell)
 {
   int ret;
   char signature[1024];
-  snprintf_signature (signature, sizeof (signature), "enp1s0");
   fprintf (shell->terminal, "welcome to sdplane vty_shell.%s", shell->NL);
   fprintf (shell->terminal, "sdplane version: %s%s", sdplane_version,
            shell->NL);
+#if 0
+  snprintf_signature (signature, sizeof (signature), "enp1s0");
   fprintf (shell->terminal, "signature: %s%s", signature, shell->NL);
+#endif
   fflush (shell->terminal);
 }
 
@@ -186,8 +189,10 @@ vty_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, vty_exit_cmd);
   INSTALL_COMMAND2 (shell->cmdset, shutdown_cmd);
 
+  INSTALL_COMMAND2 (shell->cmdset, enable_shell_debugging);
+  INSTALL_COMMAND2 (shell->cmdset, disable_shell_debugging);
+
   INSTALL_COMMAND2 (shell->cmdset, show_worker);
-  INSTALL_COMMAND2 (shell->cmdset, set_worker);
   INSTALL_COMMAND2 (shell->cmdset, start_stop_worker);
 
   INSTALL_COMMAND2 (shell->cmdset, debug_zcmdsh);
@@ -215,26 +220,30 @@ vty_shell (void *arg)
     {
       lthread_sleep (100); // yield.
 
+#if HAVE_LIBURCU_QSBR
+      urcu_qsbr_read_lock ();
+      rib_tlocal = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+
       if (shell->is_paging)
         {
-          DEBUG_ZCMDSH_LOG (PAGER, "nowait_pager");
+          DEBUG_ZCMDSH_LOG (PAGER, "nowait_paging");
           shell_read_nowait_paging (shell);
         }
       else
         shell_read_nowait (shell);
 
 #if HAVE_LIBURCU_QSBR
-      /* we define rcu_read_lock does not survibe between two
-      shell command execution. */
-      /* for the safety, we report to rcu system a quiescent state. */
+      rib_tlocal = NULL;
+      urcu_qsbr_read_unlock ();
       urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
 
       loop_vty_shell++;
     }
 
-  DEBUG_SDPLANE_LOG (VTY, "terminating %s[%d]: client[%d]: %s.",
-                     "vty", client->id, client->id, client_addr_str);
+  DEBUG_SDPLANE_LOG (VTY, "terminating %s[%d]: client[%d]: %s.", "vty",
+                     client->id, client->id, client_addr_str);
 
   lthread_close (client->fd);
   client->fd = -1;

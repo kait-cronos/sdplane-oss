@@ -21,8 +21,8 @@
 const char *drivers_path = "/sys/bus/pci/drivers";
 const char *devices_path = "/sys/bus/pci/devices";
 
-const char *dpdk_drivers[] =
-  { "uio_pci_generic", "igb_uio", "vfio-pci", NULL };
+const char *dpdk_drivers[] = { "uio_pci_generic", "igb_uio", "vfio-pci",
+                               NULL };
 int dpdk_driver_num = 3;
 
 int
@@ -48,8 +48,8 @@ is_net_device (char *device_dirname)
   snprintf (filename, sizeof (filename), "%s/net", device_dirname);
   ret = stat (filename, &statbuf);
 
-  //DEBUG_SDPLANE_LOG (NETDEVICE, "filename: %s stat ret: %d",
-  //                   filename, ret);
+  // DEBUG_SDPLANE_LOG (NETDEVICE, "filename: %s stat ret: %d",
+  //                    filename, ret);
 
   if (ret == -1)
     return -1;
@@ -68,12 +68,12 @@ get_net_devname (char *device_dirname)
   struct dirent *dirent;
   char *devname = NULL;
   snprintf (filename, sizeof (filename), "%s/net", device_dirname);
-  //DEBUG_SDPLANE_LOG (NETDEVICE, "directory: %s", filename);
+  // DEBUG_SDPLANE_LOG (NETDEVICE, "directory: %s", filename);
 
   dir = opendir (filename);
   if (dir == NULL)
     {
-      //fprintf (stderr, "can't open directory: %s\n", filename);
+      // fprintf (stderr, "can't open directory: %s\n", filename);
       return NULL;
     }
 
@@ -91,9 +91,7 @@ get_net_devname (char *device_dirname)
   return devname;
 }
 
-CLI_COMMAND2 (show_devices,
-              "show devices",
-              SHOW_HELP,
+CLI_COMMAND2 (show_devices, "show devices", SHOW_HELP,
               "Devices information.\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -109,8 +107,8 @@ CLI_COMMAND2 (show_devices,
   dir = opendir (drivers_path);
   if (dir == NULL)
     {
-      fprintf (shell->terminal, "can't open directory: %s%s",
-               drivers_path, shell->NL);
+      fprintf (shell->terminal, "can't open directory: %s%s", drivers_path,
+               shell->NL);
       return 0;
     }
 
@@ -124,14 +122,14 @@ CLI_COMMAND2 (show_devices,
       if (! is_dpdk_driver (module_name))
         continue;
 
-      snprintf (drvrpath, sizeof (drvrpath), "%s/%s",
-                drivers_path, module_name);
+      snprintf (drvrpath, sizeof (drvrpath), "%s/%s", drivers_path,
+                module_name);
 
       driver_dir = opendir (drvrpath);
       if (driver_dir == NULL)
         {
-          fprintf (shell->terminal, "can't open directory: %s%s",
-                   drvrpath, shell->NL);
+          fprintf (shell->terminal, "can't open directory: %s%s", drvrpath,
+                   shell->NL);
           return 0;
         }
 
@@ -142,15 +140,12 @@ CLI_COMMAND2 (show_devices,
             continue;
 
           char *device_name = &driver_ent->d_name[0];
-          if (strlen (device_name) != 12 ||
-              device_name[4] != ':' ||
-              device_name[7] != ':' ||
-              device_name[10] != '.')
+          if (strlen (device_name) != 12 || device_name[4] != ':' ||
+              device_name[7] != ':' || device_name[10] != '.')
             continue;
 
           fprintf (shell->terminal, "%s: %s%s%s", device_name,
-                 "dpdk: ", module_name,
-                 shell->NL);
+                   "dpdk: ", module_name, shell->NL);
         }
 
       closedir (driver_dir);
@@ -161,8 +156,8 @@ CLI_COMMAND2 (show_devices,
   dir = opendir (devices_path);
   if (dir == NULL)
     {
-      fprintf (shell->terminal, "can't open directory: %s%s",
-               devices_path, shell->NL);
+      fprintf (shell->terminal, "can't open directory: %s%s", devices_path,
+               shell->NL);
       return 0;
     }
 
@@ -187,8 +182,7 @@ CLI_COMMAND2 (show_devices,
       if (is_netdev)
         fprintf (shell->terminal, "%s: %s%s%s", devname,
                  (is_netdev ? is_netdev : ""),
-                 (netdev_name ? netdev_name : ""),
-                 shell->NL);
+                 (netdev_name ? netdev_name : ""), shell->NL);
 
       if (netdev_name)
         free (netdev_name);
@@ -209,54 +203,67 @@ pci_bus_number_match (char *spec, char *word)
 {
   if (strlen (word) == 7)
     {
-      if (! isdigit (word[0])) return 0;
-      if (! isdigit (word[1])) return 0;
-      if (word[2] != ':') return 0;
-      if (! isdigit (word[3])) return 0;
-      if (! isdigit (word[4])) return 0;
-      if (word[5] != '.') return 0;
-      if (! isdigit (word[6])) return 0;
+      if (! isdigit (word[0]))
+        return 0;
+      if (! isdigit (word[1]))
+        return 0;
+      if (word[2] != ':')
+        return 0;
+      if (! isdigit (word[3]))
+        return 0;
+      if (! isdigit (word[4]))
+        return 0;
+      if (word[5] != '.')
+        return 0;
+      if (! isdigit (word[6]))
+        return 0;
       return 1;
     }
 
   if (strlen (word) == 12)
     {
-      if (! isdigit (word[0])) return 0;
-      if (! isdigit (word[1])) return 0;
-      if (! isdigit (word[2])) return 0;
-      if (! isdigit (word[3])) return 0;
-      if (word[4] != ':') return 0;
-      if (! isdigit (word[5])) return 0;
-      if (! isdigit (word[6])) return 0;
-      if (word[7] != ':') return 0;
-      if (! isdigit (word[8])) return 0;
-      if (! isdigit (word[9])) return 0;
-      if (word[10] != '.') return 0;
-      if (! isdigit (word[11])) return 0;
+      if (! isdigit (word[0]))
+        return 0;
+      if (! isdigit (word[1]))
+        return 0;
+      if (! isdigit (word[2]))
+        return 0;
+      if (! isdigit (word[3]))
+        return 0;
+      if (word[4] != ':')
+        return 0;
+      if (! isdigit (word[5]))
+        return 0;
+      if (! isdigit (word[6]))
+        return 0;
+      if (word[7] != ':')
+        return 0;
+      if (! isdigit (word[8]))
+        return 0;
+      if (! isdigit (word[9]))
+        return 0;
+      if (word[10] != '.')
+        return 0;
+      if (! isdigit (word[11]))
+        return 0;
       return 1;
     }
 
   return 0;
 }
 
-CLI_COMMAND2 (set_device_driver,
-              "set device <WORD> "
-              "driver (ixgbe|igb|igc|uio_pci_generic|igb_uio|vfio-pci|unbound) "
-              " (|bind|driver_override)",
-              SET_HELP,
-              "Devices information.\n",
-              "Specify PCI Bus Number for the device.\n",
-              "DPDK driver information.\n",
-              "module: ixgbe.\n",
-              "module: igb.\n",
-              "module: igc.\n",
-              "module: uio_pci_generic.\n",
-              "module: igb_uio.\n",
-              "module: vfio-pci.\n",
-              "unbind the device.\n"
-              "use the bind method.\n"
-              "use the driver_override method.\n"
-              )
+CLI_COMMAND2 (
+    set_device_driver,
+    "set device <WORD> "
+    "driver (ixgbe|igb|igc|uio_pci_generic|igb_uio|vfio-pci|unbound) "
+    " (|bind|driver_override)",
+    SET_HELP, "Devices information.\n",
+    "Specify PCI Bus Number for the device.\n", "DPDK driver information.\n",
+    "module: ixgbe.\n", "module: igb.\n", "module: igc.\n",
+    "module: uio_pci_generic.\n", "module: igb_uio.\n", "module: vfio-pci.\n",
+    "unbind the device.\n"
+    "use the bind method.\n"
+    "use the driver_override method.\n")
 {
   struct shell *shell = (struct shell *) context;
   char driver_bind_path[256];
@@ -269,44 +276,40 @@ CLI_COMMAND2 (set_device_driver,
 
   if (! pci_bus_number_match ("<XXXX:XX:XX.X>", argv[2]))
     {
-      fprintf (shell->terminal, "unknown PCI number: %s%s",
-               argv[2], shell->NL);
+      fprintf (shell->terminal, "unknown PCI number: %s%s", argv[2],
+               shell->NL);
       return -1;
     }
 
   if (strlen (argv[2]) == 7)
-    snprintf (pci_number, sizeof (pci_number), "0000:%s",  argv[2]);
+    snprintf (pci_number, sizeof (pci_number), "0000:%s", argv[2]);
   else
-    snprintf (pci_number, sizeof (pci_number), "%s",  argv[2]);
+    snprintf (pci_number, sizeof (pci_number), "%s", argv[2]);
 
-  snprintf (driver_name , sizeof (driver_name), "%s", argv[4]);
+  snprintf (driver_name, sizeof (driver_name), "%s", argv[4]);
 
   if (! strcmp (driver_name, "unbound") && argc > 5)
     fprintf (shell->terminal, "unbinding driver, %s method ignored.%s",
              argv[5], shell->NL);
 
   if (! strcmp (driver_name, "unbound"))
-    snprintf (driver_bind_path, sizeof (driver_bind_path),
-              "%s/%s/%s/unbind",
+    snprintf (driver_bind_path, sizeof (driver_bind_path), "%s/%s/%s/unbind",
               devices_path, pci_number, "driver");
   else if (argc > 5 && ! strcmp (argv[5], "driver_override"))
     snprintf (driver_bind_path, sizeof (driver_bind_path),
-              "%s/%s/driver_override",
-              devices_path, pci_number);
+              "%s/%s/driver_override", devices_path, pci_number);
   else if (argc > 5 && ! strcmp (argv[5], "bind"))
-    snprintf (driver_bind_path, sizeof (driver_bind_path),
-              "%s/%s/bind",
+    snprintf (driver_bind_path, sizeof (driver_bind_path), "%s/%s/bind",
               drivers_path, driver_name);
   else
-    snprintf (driver_bind_path, sizeof (driver_bind_path),
-              "%s/%s/bind",
+    snprintf (driver_bind_path, sizeof (driver_bind_path), "%s/%s/bind",
               drivers_path, driver_name);
 
   fd = open (driver_bind_path, O_WRONLY, 0);
   if (fd < 0)
     {
-      fprintf (shell->terminal, "opening %s failed: %s%s",
-               driver_bind_path, strerror (errno), shell->NL);
+      fprintf (shell->terminal, "opening %s failed: %s%s", driver_bind_path,
+               strerror (errno), shell->NL);
       return -1;
     }
 
@@ -324,20 +327,20 @@ CLI_COMMAND2 (set_device_driver,
       target_len = strlen (pci_number);
     }
 
-  fprintf (shell->terminal, "write %s (len: %d) to %s%s",
-           target, target_len, driver_bind_path, shell->NL);
+  fprintf (shell->terminal, "write %s (len: %d) to %s%s", target, target_len,
+           driver_bind_path, shell->NL);
 
   ret = write (fd, target, target_len);
   if (ret < 0)
     {
       fprintf (shell->terminal, "write %s (len: %d) to %s failed: %s%s",
-               target, target_len, driver_bind_path,
-               strerror (errno), shell->NL);
+               target, target_len, driver_bind_path, strerror (errno),
+               shell->NL);
       return -1;
     }
 
-  fprintf (shell->terminal, "bind %s to dev: %s%s",
-           argv[4], argv[2], shell->NL);
+  fprintf (shell->terminal, "bind %s to dev: %s%s", argv[4], argv[2],
+           shell->NL);
   return 0;
 }
 
@@ -347,5 +350,3 @@ dpdk_devbind_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_devices);
   INSTALL_COMMAND2 (cmdset, set_device_driver);
 }
-
-

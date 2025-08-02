@@ -46,29 +46,126 @@
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
 
-#include "l2fwd_export.h"
-#include "l2fwd_cmd.h"
-
+#include "l3fwd_cmd.h"
 #include "l3fwd.h"
 #include "sdplane.h"
-
 #include "tap_handler.h"
 
-DEFINE_COMMAND (l3fwd_init,
-               "l3fwd init",
-               "l3fwd\n"
-               "init\n")
+DEFINE_COMMAND (set_l3fwd_vars_mask,
+                "set l3fwd l3fwd_enabled_port_mask <0x0-0xffffffff>",
+                SET_HELP
+                "l3fwd\n"
+                "l3fwd_enabled_port_mask\n"
+                "mask\n")
 {
   struct shell *shell = (struct shell *) context;
-  int i;
-  for (i = 0; i < l3fwd_argc; i++)
-    fprintf (shell->terminal, "l3fwd_argv[%d]: %s\n", i, l3fwd_argv[i]);
-  l3fwd_init (l3fwd_argc, l3fwd_argv, NULL);
+  uint32_t mask;
+  mask = strtoul (argv[3], NULL, 0);
+  enabled_port_mask = mask;
+  return 0;
+}
+
+DEFINE_COMMAND (set_l3fwd_vars_config,
+                "set l3fwd l3fwd_mapping_port_queue_lcore <WORD>",
+                SET_HELP
+                "l3fwd\n"
+                "l3fwd_mapping_port_queue_lcore\n"
+                "config_string .ex) (0,0,1),(1,0,2)\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+
+  ret = parse_config (argv[3]);
+  if (ret < 0)
+    {
+      fprintf (shell->terminal, "Invalid config string: %s%s", argv[3],
+               shell->NL);
+      return -1;
+    }
+
+  return 0;
+}
+
+DEFINE_COMMAND (set_l3fwd_lookup_mode,
+                "set l3fwd l3fwd_lookup_mode (em|lpm|fib|acl)",
+                SET_HELP
+                "l3fwd\n"
+                "l3fwd_lookup_mode\n"
+                "lookup_mode (em)\n"
+                "lookup_mode (lpm)\n"
+                "lookup_mode (fib)\n"
+                "lookup_mode (acl)\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+
+  ret = parse_lookup (argv[3]);
+  if (ret < 0)
+    {
+      fprintf (shell->terminal, "Invalid lookup mode: %s%s", argv[3],
+               shell->NL);
+      return -1;
+    }
+  return 0;
+}
+
+DEFINE_COMMAND (set_l3fwd_rule_ipv4,
+                "set l3fwd l3fwd_rule_ipv4 <FILE>",
+                SET_HELP
+                "l3fwd\n"
+                "l3fwd_rule_ipv4\n"
+                "rule_name\n")
+{
+  struct shell *shell = (struct shell *) context;
+  l3fwd_set_rule_ipv4_name (strdup (argv[3]));
+
+  return 0;
+}
+
+DEFINE_COMMAND (set_l3fwd_rule_ipv6,
+                "set l3fwd l3fwd_rule_ipv6 <FILE>",
+                SET_HELP
+                "l3fwd\n"
+                "l3fwd_rule_ipv6\n"
+                "rule_name\n")
+{
+  struct shell *shell = (struct shell *) context;
+  l3fwd_set_rule_ipv6_name (strdup (argv[3]));
+
+  return 0;
+}
+
+DEFINE_COMMAND (set_l3fwd_eth_dest,
+                "set l3fwd l3fwd_eth_dest <WORD>",
+                SET_HELP
+                "l3fwd\n"
+                "l3fwd_eth_dest\n"
+                "eth_dest (ex) 0,00:11:22:33:44:55)\n")
+{
+  struct shell *shell = (struct shell *) context;
+  parse_eth_dest (argv[3]);
+
+  return 0;
+}
+
+DEFINE_COMMAND (l3fwd_init,
+                "l3fwd init",
+                "l3fwd\n"
+                "init\n")
+{
+  struct shell *shell = (struct shell *) context;
+  l3fwd_init (0, NULL, NULL);
+  return 0;
 }
 
 void
 l3fwd_cmd_init (struct command_set *cmdset)
 {
+  INSTALL_COMMAND2 (cmdset, set_l3fwd_vars_mask);
+  INSTALL_COMMAND2 (cmdset, set_l3fwd_vars_config);
+  INSTALL_COMMAND2 (cmdset, set_l3fwd_lookup_mode);
+  INSTALL_COMMAND2 (cmdset, set_l3fwd_rule_ipv4);
+  INSTALL_COMMAND2 (cmdset, set_l3fwd_rule_ipv6);
+  INSTALL_COMMAND2 (cmdset, set_l3fwd_eth_dest);
   INSTALL_COMMAND2 (cmdset, l3fwd_init);
 }
-

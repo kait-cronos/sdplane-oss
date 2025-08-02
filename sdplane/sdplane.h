@@ -5,11 +5,13 @@
 #include <rte_ethdev.h>
 #include <sdplane/shell.h>
 
+extern char *pid_path;
+
 #define L3FWD_ARGV_MAX 16
 extern char *l3fwd_argv[L3FWD_ARGV_MAX];
 extern int l3fwd_argc;
 
-#define ARGV_LIST_MAX 8
+#define ARGV_LIST_MAX      8
 #define ARGV_LIST_ARGV_MAX 32
 extern char *argv_list[ARGV_LIST_MAX][ARGV_LIST_ARGV_MAX];
 extern int argv_list_argc[ARGV_LIST_MAX];
@@ -65,6 +67,7 @@ extern struct fdb_entry fdb[FDB_SIZE];
 // #define SHOW_HELP "show information\n"
 #define CLEAR_HELP        "clear information\n"
 #define SET_HELP          "set information\n"
+#define DELETE_HELP       "delete information\n"
 #define RESET_HELP        "reset information\n"
 #define START_HELP        "start information\n"
 #define STOP_HELP         "stop information\n"
@@ -78,7 +81,7 @@ extern struct fdb_entry fdb[FDB_SIZE];
 #define PORT_NUMBER_HELP "specify port number\n"
 #define PORT_ALL_HELP    "do for all ports\n"
 
-#define QUEUE_HELP       "queue information\n"
+#define QUEUE_HELP        "queue information\n"
 #define QUEUE_NUMBER_HELP "specify queue number\n"
 
 #define ALL_HELP  "all variables\n"
@@ -104,30 +107,34 @@ EXTERN_COMMAND (show_port_promiscuous);
 EXTERN_COMMAND (show_port_flowcontrol);
 EXTERN_COMMAND (set_port_flowcontrol);
 
-int lthread_main (__rte_unused void *dummy);
+void lthread_main (__rte_unused void *dummy);
 
 void sdplane_cmd_init (struct command_set *cmdset);
 void sdplane_init ();
 
 extern struct rte_ring *msg_queue_rib;
+extern struct rte_ring *msg_queue_neigh;
 
 #include <rte_ethdev.h>
 #include "queue_config.h"
 
-struct stream_msg_header {
+struct stream_msg_header
+{
   uint16_t type;
   uint16_t length; // not including the header size.
 };
 
-#define STREAM_MSG_TYPE_NONE      0
-#define STREAM_MSG_TYPE_QCONF     1
-#define STREAM_MSG_TYPE_ETH_LINK  2
+#define STREAM_MSG_TYPE_NONE     0
+#define STREAM_MSG_TYPE_QCONF    1
+#define STREAM_MSG_TYPE_ETH_LINK 2
 
-struct stream_msg_eth_link {
+struct stream_msg_eth_link
+{
   struct rte_eth_link link[RTE_MAX_ETHPORTS];
 };
 
-struct stream_msg_qconf {
+struct stream_msg_qconf
+{
   struct sdplane_queue_conf qconf[RTE_MAX_LCORE];
 };
 

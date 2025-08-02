@@ -75,9 +75,8 @@ tap_admin_up (char *ifname)
         {
           DEBUG_SDPLANE_LOG (TAPHANDLER, "ioctl (SOICSIFFLAG) failed: %s",
                              strerror (errno));
-          close (sockfd);
-          sockfd = -1;
         }
+      close (sockfd);
+      sockfd = -1;
     }
 }
-
