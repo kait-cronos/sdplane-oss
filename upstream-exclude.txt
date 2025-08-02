@@ -1,0 +1,14 @@
+#.git/*
+autom4te.cache*
+*.o
+*.a
+*.lo
+*.la
+*.so
+*.so.[0-9]
+*.so.[0-9].[0-9].[0-9]
+.libs
+.dirstamp
+.tmp
+.deps
+*.Po

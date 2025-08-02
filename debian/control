@@ -1,0 +1,17 @@
+Source: libsdplane
+Section: devel
+Priority: optional
+Maintainer: Yasuhiro Ohara <yasu1976@gmail.com>
+Build-Depends: debhelper-compat (= 12), dh-autoreconf
+Standards-Version: 4.5.0
+
+Package: libsdplane
+Section: libs
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Zebra-like command shell library.
+  It contributes to implement the shell key-bindings, command-line
+  completion, log, debug switch, and so on.
+

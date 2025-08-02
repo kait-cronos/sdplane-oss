@@ -1,0 +1,7 @@
+libzcmdsh for Debian
+
+Description: Zebra-like command shell library.
+  It contributes to implement the shell key-bindings, command-line
+  completion, log, debug switch, and so on.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Fri, 08 Mar 2024 00:27:45 +0900
