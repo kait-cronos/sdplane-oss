@@ -1,0 +1,301 @@
+
+(ver. 19: 2025/06/18 17:22)
+libsdplane_0.3.37-2_amd64.deb
+sdplane_0.1.3-48_amd64.deb
+
+- passwd 生成方法:
+$ pwgen -cnB 12 1
+$ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
+
+***********************
+* MacBook で Ubuntu 24.04 Server のインストール用USB作成
+***********************
+  - https://qiita.com/kapibarasensei/items/9fb81f0102f9ccc31559
+  macbook pro で
+  % diskutil list
+      :
+  /dev/disk4 (external, physical):
+   #:                       TYPE NAME                    SIZE       IDENTIFIER
+   0:     FDisk_partition_scheme                        *62.5 GB    disk4
+   1:                 DOS_FAT_32                         62.5 GB    disk4s1
+
+  % diskutil eraseDisk MS-DOS UBUNTU /dev/disk4
+  Started erase on disk4
+  Unmounting disk
+  Creating the partition map
+  Waiting for partitions to activate
+  Formatting disk4s2 as MS-DOS (FAT) with name UBUNTU
+  512 bytes per physical sector
+  /dev/rdisk4s2: 121617344 sectors in 1900271 FAT32 clusters (32768 bytes/cluster)
+  bps=512 spc=64 res=32 nft=2 mid=0xf8 spt=32 hds=255 hid=411648 drv=0x80 bsec=121647104 bspf=14846 rdcl=2 infs=1 bkbs=6
+  Mounting disk
+  Finished erase on disk4
+
+  % diskutil list
+  /dev/disk4 (external, physical):
+   #:                       TYPE NAME                    SIZE       IDENTIFIER
+   0:      GUID_partition_scheme                        *62.5 GB    disk4
+   1:                        EFI EFI                     209.7 MB   disk4s1
+   2:       Microsoft Basic Data UBUNTU                  62.3 GB    disk4s2
+  % diskutil unmountDisk /dev/disk4
+
+  % sudo dd if=ubuntu-24.04-live-server-amd64.iso of=/dev/rdisk4 bs=16m status=progress
+  Password:
+    2701131776 bytes (2701 MB, 2576 MiB) transferred 74.112s, 36 MB/s
+  164+1 records in
+  164+1 records out
+  2754981888 bytes transferred in 74.833016 secs (36815059 bytes/sec)
+
+***********************
+* Disk partition の書き換え
+***********************
+// help -> shell から parted する
+* Ubuntu 22.04 live server iso で USB から起動。
+
+  - American Megatrend の BIOS 画面で ESC or DEL を押す
+  - Boot タブで USB を選ぶ (#3 の [UEFI: I-O DATAUSB F...] を
+    上に移動して #1 に)。F4: Save & Exit.
+  - GNU GRUB version 2.12 の画面で、
+    *Try or Install Ubuntu Server を選ぶ
+  - select your language の画面で、右上にある [ Help ] まで
+    カーソルを移動して選択、3番目の Enter shell を選ぶ。
+    シェルが出てくる。
+  - parted
+  - print all
+  - select /dev/sda
+  - rm 1
+  - mkpart primary ext4 1049KB 256GB
+  - quit, exit で parted と shell を抜ける
+  - 再起動
+
+***********************
+* Ubuntu 24.04 Server のインストール
+***********************
+* BIOS 設定変更
+  Prompt timeout: 5
+  Numlock state: off
+  Quite Boot: disabled
+  Boot Option: #1, #2 を USB に。(USB 挿した状態で選んだ)
+  save configuration and exit.
+
+* Ubuntu 24.04 live server iso で USB から起動。
+  - English を選ぶ。
+  - Installer update available で Continue without updating
+  - keyboard layout: English / English で Done.
+  - Ubuntu Server で Done.
+  - DHCP アドレス取れてることを確認して Done.
+  - Proxy 空白で Done.
+  - Mirror: jp.archive で Done.
+
+  - Use an entire disk, LVM group 無しで Done.
+  - Storage Configuration
+    そのまま(part1: 1G /boot/efi, part2: 237GB /)で Done.
+  - Confirm destructive action で continue.
+  - Profile setup:
+    Name: wireuser
+    Host: wiretap1/2/3/4
+    Username: wireuser
+    Password: wirepass / yG2CK82dYLFm
+
+  - Upgrade to ubuntu pro: skip for now で continue.
+  - SSH Setup: Install OpenSSH server
+    No authorized key
+    で Done.
+  - Featured Server snaps:
+    何も無しで Done.
+  - Installation Complete: reboot now.
+
+***********************
+* Ubuntu Setup
+***********************
+* timezone 設定
+  # timedatectl set-timezone Asia/Tokyo
+
+* unattended upgrades を無効化
+  # vi /etc/apt/apt.conf.d/20auto-upgrades
+  APT::Periodic::Unattended-Upgrade "0";
+
+* apt install
+  $ sudo apt install screen ripgrep tig 
+  $ sudo apt install cmake build-essential devscripts debhelper
+  $ sudo apt install dmidecode etckeeper fail2ban iptables-persistent
+
+  - etckeeper
+  - tig
+  - build-essential
+  - bridge-utils
+  - cmake
+  - iptables-persistent
+    + save current IPv4 rules: yes.
+    + save current IPv6 rules: yes.
+  - fail2ban
+  - devscripts
+  - debhelper
+
+  (以下は optional だが、install しておくと良い)
+
+  - dmidecode (入ってる)
+  - screen (入ってる)
+  - ripgrep
+
+* lthread を compile & install
+  $ git clone https://github.com/yasuhironet/lthread.git
+  $ cd lthread
+  $ cmake .
+  $ make
+  # make install
+
+* sdplane prerequisites
+  $ sudo apt install liburcu-dev libpcap-dev
+  (libpcap for pktgen)
+
+* DPDK prerequisites:
+  $ sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
+
+  - python3 (もう入ってる)
+  - python3-pip
+  - meson ninja-build
+  - python3-pyelftools
+  - libnuma-dev
+  - pkgconf
+
+* DPDK 23.11.1 を install
+  $ wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
+  $ tar vxJf dpdk-23.11.1.tar.xz
+  $ cd dpdk-stable-23.11.1
+  $ meson setup build
+  $ cd build
+  $ ninja (コンパイル、結構時間かかる)
+  # meson install
+  # ldconfig
+
+  確認:
+  $ pkg-config --modversion libdpdk
+  23.11.1
+
+* Hugepage メモリ設定
+  (2MB hugepage を1500, 1GbE x 2 で必要。NICによってもっと必要かも。)
+  # vi /etc/default/grub:
+    GRUB_CMDLINE_LINUX="hugepages=1536"
+  # update-grub
+
+#* zcmdsh の install
+#  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.28-1_amd64.deb
+#  $ sudo apt install ./zcmdsh_0.3.28-1_amd64.deb
+
+* libsdplane の install
+  $ wget https://www.yasuhironet.net/download/partaker/2025-06/libsdplane_0.3.37-2_amd64.deb
+  $ sudo apt install ./libsdplane_0.3.37-2_amd64.deb
+
+* sdplane の install
+  $ wget https://www.yasuhironet.net/download/partaker/2025-06/sdplane_0.1.3-48_amd64.deb
+  $ sudo apt install ./sdplane_0.1.3-48_amd64.deb
+
+* netplan config install:
+  # rm -f /etc/netplan/*.yaml
+  # cp -f /etc/sdplane/60-netplan-sdplane.yaml /etc/netplan/
+
+* iptables rules files install:
+  # cp -f /etc/sdplane/iptables-rules.v4 /etc/iptables/rules.v4
+  # cp -f /etc/sdplane/iptables-rules.v6 /etc/iptables/rules.v6
+
+* sshd config file install:
+  # cp -f /etc/sdplane/sshd_config /etc/sshd/
+  - PasswordAuthentication no
+  - コメントアウト(無効化)してあるが、末尾に
+    192.168.0.0/8 10.0.0.0/8 172.16.0.0/16 からのみ PasswordAuth の設定。
+
+* sdplane startup config:
+  # cp -f /etc/sdplane/modules-load.d/*.conf /etc/modules-load.d/
+  # cp -f /etc/sdplane/sdplane.conf.sample /etc/sdplane/sdplane.conf
+
+* systemd enable
+  # systemctl enable sdplane
+  # systemctl start sdplane
+
+* screen and .screenrc のインストール
+  $ wget http://www.yasuhironet.net/download/dot.screenrc
+  $ mv dot.screenrc ~/.screenrc
+
+* tailscale install
+  - curl -fsSL https://tailscale.com/install.sh | sh
+
+* wireadmin アカウント設定
+  # adduser wireadmin
+    New password: dm9Fo6acPuDn
+    Full Name []: wiretap admin
+  # gpasswd -a wireadmin sudo
+  wireadminでlogin
+  $ wget http://www.yasuhironet.net/download/dot.screenrc
+  $ mv dot.screenrc ~/.screenrc
+  - 公開鍵を設定
+  $ mkdir .ssh
+  $ wget http://www.yasuhironet.net/download/wireadmin.pub
+  $ wget https://github.com/yasuhironet.keys
+  $ mv wireadmin.pub .ssh/authorized_keys
+  $ sudo -s
+  # git config --global user.email "yasu1976@gmail.com"
+  # git config --global user.name "wiretap root user"
+  # echo "export EDITOR=vi" >> ~/.bashrc
+
+* wireadmin アカウント無効化
+  # sudo usermod --expiredate 1 wireadmin
+
+* etckeeper commit
+  # etckeeper commit
+
+***********************
+* Ubuntu 再起動と確認。
+***********************
+* 再起動。
+
+* Hugepage メモリ確認
+  - yasu@partaker:~$ cat /proc/cmdline 
+    BOOT_IMAGE=/boot/vmlinuz-5.15.0-105-generic root=UUID=3f88f6e6-e21e-4e77-97be-c4182f46240c ro hugepages=1536
+
+  - yasu@partaker:~$ cat /proc/meminfo  | grep -i huge
+    AnonHugePages:         0 kB
+    ShmemHugePages:        0 kB
+    FileHugePages:         0 kB
+    HugePages_Total:    1536
+    HugePages_Free:      289
+    HugePages_Rsvd:        0
+    HugePages_Surp:        0
+    Hugepagesize:       2048 kB
+    Hugetlb:         3145728 kB
+
+* sdplaneの起動を確認
+  $ systemctl status sdplane
+
+* sdplaneシェルにアクセス、バナーを確認・保存
+  telnet localhost 9882
+  Trying 127.0.0.1...
+  Connected to localhost.
+  Escape character is '^]'.
+  welcome to sdplane vty_shell.
+  sdplane version: 0.0.9e
+  signature: partaker x86_64 enp1s0: 00:e0:67:30:d9:ba
+  vty[1]> 
+
+***********************
+* 検収作業
+***********************
+* tailscale
+  - tailscale up
+  - To authenticate, visit:
+	https://login.tailscale.com/a/14f4cdf3014b2b
+    検収作業でこのURLを小原に通知する。
+    小原が yasuhironet の tailnet に接続し、確認。　
+  - 検収完了。
+
+***********************
+* tailscale 無効化
+***********************
+* tailscale down
+  コンソールで tailscale down する
+  tailscale down
+  systemctl disable tailscaled
+
+以上で完了です。
+
+

@@ -2,9 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([libsdplane],[m4_esyscmd_s([git describe --abbrev=7 --dirty=-modified --always --tags])],[yasu1976@gmail.com])
-AC_CONFIG_SRCDIR([lib/sdplane/command_shell.c])
-AC_CONFIG_MACRO_DIRS([m4])
+AC_INIT([sdplane],[m4_esyscmd_s([. sdplane/sdplane-version.sh])],[yasu1976@gmail.com])
+AC_CONFIG_SRCDIR([sdplane/sdplane.c])
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_CONFIG_HEADERS([config.h])
 AC_PREFIX_DEFAULT(/usr/local)
@@ -27,52 +26,77 @@ fi
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_LN_S
 
 # Checks for libraries.
 AC_CHECK_LIB(m, main)
+AC_CHECK_LIB([lthread], [lthread_create], ,
+             [AC_MSG_ERROR([lthread library not found.])])
+AC_CHECK_LIB([urcu-qsbr], [urcu_qsbr_quiescent_state], ,
+             [AC_MSG_ERROR([urcu-qsbr library not found.])])
+
+AC_ARG_WITH([libsdplane],
+            [AS_HELP_STRING([--with-libsdplane=DIR],
+                            [libsdplane libdir (/usr/lib)])],
+[
+        libsdplanedir="$withval"
+        LDLFAGS="$LDFLAGS -L$withval"
+], [
+        libsdplanedir="/usr/lib"
+])
+AC_SUBST([libsdplanedir], [$libsdplanedir])
+
+AC_ARG_ENABLE([pktgen],
+        [AS_HELP_STRING([--enable-pktgen], [enable pktgen])],
+[
+        case "${enableval}" in
+        yes) enable_pktgen=yes ;;
+        no) enable_pktgen=no ;;
+        esac],
+        enable_pktgen=no)
+AC_SUBST([enable_pktgen], [$enable_pktgen])
+AM_CONDITIONAL([ENABLE_PKTGEN], [test "$enable_pktgen" = yes])
+if test "$enable_pktgen" = yes; then
+AC_DEFINE([ENABLE_PKTGEN], [1], [enable support for pktgen])
+fi
 
 # AC_CHECK_INCLUDES_DEFAULT
 AC_PROG_EGREP
+# FIXME: Replace `main' with a function in `-lzcmdsh':
+AC_CHECK_LIB([sdplane], [main])
 
+# Checks for header files.
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/param.h sys/socket.h sys/time.h syslog.h termios.h unistd.h execinfo.h pty.h util.h])
+AC_CHECK_HEADERS([fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/param.h sys/socket.h sys/time.h syslog.h termios.h unistd.h execinfo.h pty.h util.h arpa/inet.h inttypes.h locale.h stddef.h stdint.h stdlib.h string.h sys/ioctl.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_CHECK_HEADERS_ONCE([sys/time.h])
 AC_STRUCT_TM
+AC_CHECK_HEADER_STDBOOL
+AC_C_INLINE
+AC_TYPE_INT16_T
+AC_TYPE_INT32_T
+AC_TYPE_SIZE_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
+AC_TYPE_UINT8_T
 
 # Checks for library functions.
-#AC_FUNC_MALLOC
+AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 #AC_FUNC_REALLOC
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gettimeofday memmove memset strdup strerror strstr ppoll])
+AC_CHECK_FUNCS([gettimeofday memmove memset strdup strerror strstr ppoll setlocale socket strchr strerror strtol strtoul strtoull])
 
 AC_SUBST(LIBTOOL_DEPS)
+PKG_CHECK_MODULES(DPDK, [libdpdk])
 
-opensh_version=`bash app/opensh-version.sh`
-AC_DEFINE_UNQUOTED([OPENSH_VERSION],["$opensh_version"],[opensh version.])
-AC_SUBST(OPENSH_VERSION)
+AC_SUBST([systemdsystemunitdir], [$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
 
-
-case $host in
-x86_64-*-linux-gnu*)
-    test "x${CFLAGS}" = "x" && CFLAGS="-O0 -g -Wall";
-    linux=true;
-    ;;
-*-apple-darwin*)
-    prefix=$HOME/macos
-    test "x${CFLAGS}" = "x" && CFLAGS="-O0 -g -Wall";
-    macos=true;
-    ;;
-*)
-    ;;
-esac
-AM_CONDITIONAL(WANT_VTYD, test x$linux = xtrue)
-
-AC_CONFIG_FILES([Makefile lib/Makefile app/Makefile])
+AC_CONFIG_FILES([Makefile lib/Makefile sdplane/Makefile])
 AC_OUTPUT
 
 echo "
@@ -85,6 +109,5 @@ compiler flags          : ${CFLAGS}
 linker flags            : ${LDFLAGS}
 link libraries          : ${LIBS}
 prefix                  : ${prefix}
-opensh-version          : $opensh_version
 "
 

@@ -7,7 +7,7 @@
 # and prepare the lightweight tag fot the name (e.g., 0.3.36-2).
 # then we can generate changelog entry for 0.3.36-1..0.3.36-2.
 
-packagename=libsdplane
+packagename=sdplane
 
 function logentry() {
     local previous=$1
@@ -56,7 +56,7 @@ origname: $origname
 EOHD
 
 if [ ${previous} = ${version} && $1 != "-f" ]; then
-    echo "nothing to release. (previous == version: ${version})"
+    echo "nothing to release (previous = version: ${version})."
     exit
 fi
 
