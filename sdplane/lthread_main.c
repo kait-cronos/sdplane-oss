@@ -156,7 +156,7 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
 }
 
-int
+void
 lthread_main (__rte_unused void *dummy)
 {
   lthread_t *lt = NULL;
@@ -166,7 +166,7 @@ lthread_main (__rte_unused void *dummy)
 
   /* timer set */
   // timer_init (60 * 60, "2024/12/31 23:59:59");
-  timer_init (0, NULL);
+  //timer_init (0, NULL);
 
   /* initialize workers */
   for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++)

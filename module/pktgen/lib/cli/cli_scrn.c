@@ -202,6 +202,7 @@ scrn_destroy(void)
     this_scrn = NULL;
 }
 
+#if 0
 RTE_INIT(scrn_constructor)
 {
     struct cli_scrn *scrn;
@@ -220,3 +221,4 @@ RTE_INIT(scrn_constructor)
         exit(-1);
     }
 }
+#endif
