@@ -30,7 +30,7 @@ sdplane_SOURCES = \
         linkflap_generator.c \
         enhanced_repeater.c l3_tap_handler.c neigh_manager.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
-sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
+sdplane_LDADD = ../lib/libsdplane.la @DPDK_LIBS@ -llthread -lurcu-qsbr -lm -lrte_net_bond -lpcap
 
 if ENABLE_PKTGEN
   sdplane_SOURCES += \
