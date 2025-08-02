@@ -1,0 +1,10 @@
+--- l3fwd.orig.h	2024-05-08 14:14:08.883728401 +0900
++++ l3fwd.h	2024-05-04 23:43:21.595006597 +0900
+@@ -94,6 +94,7 @@
+ } __rte_cache_aligned;
+ 
+ extern volatile bool force_quit;
++extern volatile bool force_stop[RTE_MAX_LCORE];
+ 
+ /* RX and TX queue depths */
+ extern uint16_t nb_rxd;

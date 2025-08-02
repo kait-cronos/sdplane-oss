@@ -1,17 +1,14 @@
-Source: libsdplane
-Section: devel
+Source: sdplane
+Section: net
 Priority: optional
 Maintainer: Yasuhiro Ohara <yasu1976@gmail.com>
-Build-Depends: debhelper-compat (= 12), dh-autoreconf
+Build-Depends: debhelper-compat (= 12), libsdplane (>= 0.3.36-31), liburcu-dev (>= 0.13.1-1)
 Standards-Version: 4.5.0
+Homepage: http://www.yasuhironet.net/
 
-Package: libsdplane
-Section: libs
+Package: sdplane
 Architecture: any
-Multi-Arch: same
-Pre-Depends: ${misc:Pre-Depends}
+Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Zebra-like command shell library.
-  It contributes to implement the shell key-bindings, command-line
-  completion, log, debug switch, and so on.
-
+Description: DPDK software data-plane,
+  with interactive command shell.

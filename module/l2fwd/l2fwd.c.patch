@@ -1,0 +1,154 @@
+--- ../../../l2fwd/main.c	2024-11-10 02:37:29.086801664 +0900
++++ ./l2fwd.c	2024-11-10 04:54:24.815705851 +0900
+@@ -38,10 +38,23 @@
+ #include <rte_mbuf.h>
+ #include <rte_string_fns.h>
+ 
+-static volatile bool force_quit;
++#include "tap_handler.h"
++#include "rte_override.h"
++
++#include <zcmdsh/debug.h>
++#include <zcmdsh/debug_log.h>
++#include <zcmdsh/debug_category.h>
++#include <zcmdsh/debug_zcmdsh.h>
++#include <zcmdsh/debug_cmd.h>
++#include "debug_sdplane.h"
++#include "stat_collector.h"
++
++extern volatile bool force_quit;
++
++__thread uint64_t loop_l2fwd = 0;
+ 
+ /* MAC updating enabled by default */
+-static int mac_updating = 1;
++int mac_updating = 1;
+ 
+ /* Ports set in promiscuous mode off by default. */
+ static int promiscuous_on;
+@@ -64,10 +77,10 @@
+ static struct rte_ether_addr l2fwd_ports_eth_addr[RTE_MAX_ETHPORTS];
+ 
+ /* mask of enabled ports */
+-static uint32_t l2fwd_enabled_port_mask = 0;
++uint32_t l2fwd_enabled_port_mask = 0;
+ 
+ /* list of enabled ports */
+-static uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
++uint32_t l2fwd_dst_ports[RTE_MAX_ETHPORTS];
+ 
+ struct port_pair_params {
+ #define NUM_PORTS	2
+@@ -78,7 +91,7 @@
+ static struct port_pair_params *port_pair_params;
+ static uint16_t nb_port_pair_params;
+ 
+-static unsigned int l2fwd_rx_queue_per_lcore = 1;
++unsigned int l2fwd_rx_queue_per_lcore = 1;
+ 
+ #define MAX_RX_QUEUE_PER_LCORE 16
+ #define MAX_TX_QUEUE_PER_PORT 16
+@@ -113,7 +126,7 @@
+ static uint64_t timer_period = 10; /* default period is 10 seconds */
+ 
+ /* Print out statistics on packets dropped */
+-static void
++void
+ print_stats(void)
+ {
+ 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
+@@ -217,6 +230,10 @@
+ 	lcore_id = rte_lcore_id();
+ 	qconf = &lcore_queue_conf[lcore_id];
+ 
++        per_thread_tap_ring_init ();
++        /* MAC updating disabled for sdplane. */
++        mac_updating = 0;
++
+ 	if (qconf->n_rx_port == 0) {
+ 		RTE_LOG(INFO, L2FWD, "lcore %u has nothing to do\n", lcore_id);
+ 		return;
+@@ -232,7 +249,14 @@
+ 
+ 	}
+ 
+-	while (!force_quit) {
++        loop_l2fwd_ptr[lcore_id] = &loop_l2fwd;
++
++	while (! force_quit && ! force_stop[lcore_id]) {
++               loop_l2fwd++;
++               if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE),
++                               DEBUG_SDPLANE_L2FWD))
++                 printf ("%s[%d]: %s: l2fwd scheduled.\n",
++                         __FILE__, __LINE__, __func__);
+ 
+ 		/* Drains TX queue in its main loop. 8< */
+ 		cur_tsc = rte_rdtsc();
+@@ -291,6 +315,8 @@
+ 			for (j = 0; j < nb_rx; j++) {
+ 				m = pkts_burst[j];
+ 				rte_prefetch0(rte_pktmbuf_mtod(m, void *));
++				if (enable_tap_copy)
++				  l2fwd_copy_to_tap_ring (m, portid);
+ 				l2fwd_simple_forward(m, portid);
+ 			}
+ 		}
+@@ -298,7 +324,7 @@
+ 	}
+ }
+ 
+-static int
++int
+ l2fwd_launch_one_lcore(__rte_unused void *dummy)
+ {
+ 	l2fwd_main_loop();
+@@ -647,7 +673,7 @@
+ }
+ 
+ int
+-main(int argc, char **argv)
++l2fwd_init (int argc, char **argv)
+ {
+ 	struct lcore_queue_conf *qconf;
+ 	int ret;
+@@ -659,6 +685,7 @@
+ 	unsigned int nb_lcores = 0;
+ 	unsigned int nb_mbufs;
+ 
++#if 0
+ 	/* Init EAL. 8< */
+ 	ret = rte_eal_init(argc, argv);
+ 	if (ret < 0)
+@@ -677,6 +704,7 @@
+ 	/* >8 End of init EAL. */
+ 
+ 	printf("MAC updating %s\n", mac_updating ? "enabled" : "disabled");
++#endif
+ 
+ 	/* convert to number of cycles */
+ 	timer_period *= rte_get_timer_hz();
+@@ -745,6 +773,8 @@
+ 
+ 		/* get the lcore_id for this port */
+ 		while (rte_lcore_is_enabled(rx_lcore_id) == 0 ||
++		       lcore_workers[rx_lcore_id].func !=
++		       l2fwd_launch_one_lcore ||
+ 		       lcore_queue_conf[rx_lcore_id].n_rx_port ==
+ 		       l2fwd_rx_queue_per_lcore) {
+ 			rx_lcore_id++;
+@@ -900,6 +930,7 @@
+ 			"All available ports are disabled. Please set portmask.\n");
+ 	}
+ 
++#if 0
+ 	check_all_ports_link_status(l2fwd_enabled_port_mask);
+ 
+ 	ret = 0;
+@@ -927,6 +958,7 @@
+ 	/* clean up the EAL */
+ 	rte_eal_cleanup();
+ 	printf("Bye...\n");
++#endif
+ 
+ 	return ret;
+ }

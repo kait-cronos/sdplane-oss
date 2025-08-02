@@ -1,0 +1,18 @@
+*filter
+:INPUT DROP [803:94404]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -p igmp -j ACCEPT
+-A INPUT -p ospf -j ACCEPT
+-A INPUT -p isis -j ACCEPT
+-A INPUT -p pim -j ACCEPT
+-A INPUT -p udp --sport bootps --dport bootpc -j ACCEPT
+-A INPUT -p udp --sport 53 -j ACCEPT
+-A INPUT -p tcp --sport 53 -j ACCEPT
+-A INPUT -p udp --sport 5353 -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 179 -j ACCEPT
+-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+COMMIT

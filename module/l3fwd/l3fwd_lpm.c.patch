@@ -1,0 +1,20 @@
+--- l3fwd_lpm.orig.c	2024-05-08 14:15:12.021703367 +0900
++++ l3fwd_lpm.c	2024-05-04 23:43:21.599006469 +0900
+@@ -184,7 +184,7 @@
+   cur_tsc = rte_rdtsc ();
+   prev_tsc = cur_tsc;
+ 
+-  while (! force_quit)
++  while (! force_quit && ! force_stop[lcore_id])
+     {
+ 
+       /*
+@@ -727,6 +727,8 @@
+ {
+   unsigned int i;
+ 
++  printf ("%s: %d packets.\n", __func__, nb_pkts);
++
+   if (unlikely (nb_pkts == 0))
+     return nb_pkts;
+   rte_prefetch0 (rte_pktmbuf_mtod (pkts[0], struct ether_hdr *));

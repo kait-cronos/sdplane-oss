@@ -1,224 +1,85 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: zcmdsh
-Upstream-Contact: yasu1976@gmail.com
-Source: http://www.yasuhironet.net/
+Upstream-Name: soft
+Upstream-Contact: <preferred name and address to reach the upstream project>
+Source: <url://example.com>
 #
 # Please double check copyright with the licensecheck(1) command.
 
-Files:     .github/CODEOWNERS
-           .gitignore
-           AUTHORS
-           Makefile.am
-           NEWS
-           README
-           README.md
-           app/.deps/opensh.Po
-           app/.deps/opensh_ver.Po
-           app/Makefile.am
-           app/opensh
-           app/opensh-version-c.sh
-           app/opensh-version.sh
-           app/opensh-version.txt
-           app/opensh.o
-           app/opensh_ver.c
-           app/opensh_ver.h
-           app/opensh_ver.o
-           autogen.sh
-           autom4te.cache/output.2
-           autom4te.cache/requests
-           autom4te.cache/traces.0
-           autom4te.cache/traces.1
-           autom4te.cache/traces.4
-           config.h
-           config.h.in
-           config.h.in~
-           configure.ac
-           debian.old/control
-           lib/.deps/command.Plo
-           lib/.deps/command.Po
-           lib/.deps/command_shell.Plo
-           lib/.deps/command_shell.Po
-           lib/.deps/debug.Plo
-           lib/.deps/debug.Po
-           lib/.deps/debug_cmd.Plo
-           lib/.deps/debug_cmd.Po
-           lib/.deps/file.Plo
-           lib/.deps/file.Po
-           lib/.deps/log.Plo
-           lib/.deps/log.Po
-           lib/.deps/shell.Plo
-           lib/.deps/shell.Po
-           lib/.deps/shell_fselect.Plo
-           lib/.deps/shell_fselect.Po
-           lib/.deps/termio.Plo
-           lib/.deps/termio.Po
-           lib/.deps/vector.Plo
-           lib/.deps/vector.Po
-           lib/.libs/command.o
-           lib/.libs/command_shell.o
-           lib/.libs/debug.o
-           lib/.libs/debug_cmd.o
-           lib/.libs/file.o
-           lib/.libs/libzcmdsh.a
-           lib/.libs/libzcmdsh.lai
-           lib/.libs/libzcmdsh.so.0.0.0
-           lib/.libs/log.o
-           lib/.libs/shell.o
-           lib/.libs/shell_fselect.o
-           lib/.libs/termio.o
-           lib/.libs/vector.o
-           lib/Makefile.am
-           lib/command.lo
-           lib/command.o
-           lib/command_shell.lo
-           lib/command_shell.o
-           lib/debug.lo
-           lib/debug.o
-           lib/debug_cmd.lo
-           lib/debug_cmd.o
-           lib/file.lo
-           lib/file.o
-           lib/libzcmdsh.a
-           lib/libzcmdsh.la
-           lib/log.lo
-           lib/log.o
-           lib/shell.lo
-           lib/shell.o
-           lib/shell_fselect.lo
-           lib/shell_fselect.o
-           lib/termio.lo
-           lib/termio.o
-           lib/vector.lo
-           lib/vector.o
-           macos/build-all.sh
-           macos/build-arm64.sh
-           macos/build-pkg-notarization.sh
-           macos/build-pkg.sh
-           macos/build-universal.sh
-           macos/build-x86_64.sh
-           stamp-h1
+Files:     debug_cmd.h
+           em_route_parse.c
+           l2fwd_main.c
+           l3fwd.h
+           l3fwd_acl.c
+           l3fwd_acl.h
+           l3fwd_acl_scalar.h
+           l3fwd_altivec.h
+           l3fwd_common.h
+           l3fwd_em.c
+           l3fwd_em.h
+           l3fwd_em_hlm.h
+           l3fwd_em_hlm_neon.h
+           l3fwd_em_hlm_sse.h
+           l3fwd_em_sequential.h
+           l3fwd_event.c
+           l3fwd_event.h
+           l3fwd_event_generic.c
+           l3fwd_event_internal_port.c
+           l3fwd_fib.c
+           l3fwd_lpm.c
+           l3fwd_lpm.h
+           l3fwd_lpm_altivec.h
+           l3fwd_lpm_neon.h
+           l3fwd_lpm_sse.h
+           l3fwd_neon.h
+           l3fwd_sse.h
+           lpm_route_parse.c
+           main.c
+Copyright: 2007-2023 Yasuhiro Ohara.
+           2010-2018 Intel Corporation.
+           2010-2022 Intel Corporation
+           2017 IBM Corporation.
+           2017-2018 Linaro Limited.
+           2019 Marvell International Ltd.
+License:   __NO_LICENSE__
+
+Files:     build-debian.sh
+           em_default_v4.cfg
+           em_default_v6.cfg
+           l2fwd.h
+           l2fwd_cmd.c
+           l2fwd_cmd.h
+           l2fwd_init.c
+           lpm_default_v4.cfg
+           lpm_default_v6.cfg
+           lthread_main.c
+           run-l3fwd.sh
+           soft_dplane.c
+           soft_dplane.h
 Copyright: __NO_COPYRIGHT_NOR_LICENSE__
 License:   __NO_COPYRIGHT_NOR_LICENSE__
 
-Files:     app/opensh.c
-           app/opensh.h
-           autom4te.cache/traces.2
-           lib/command.c
-           lib/command.h
-           lib/command_shell.c
-           lib/command_shell.h
-           lib/debug.c
-           lib/debug.h
-           lib/debug_cmd.c
-           lib/debug_cmd.h
-           lib/file.c
-           lib/file.h
-           lib/flag.h
-           lib/includes.h
-           lib/log.c
-           lib/log.h
-           lib/shell.c
-           lib/shell.h
-           lib/shell_fselect.c
-           lib/shell_fselect.h
-           lib/termio.c
-           lib/termio.h
-           lib/vector.c
-           lib/vector.h
-Copyright: 1992-2012 Free Software Foundation, Inc.
-           2007-2023 Yasuhiro Ohara.
-License:   __NO_LICENSE__
-
-Files:     Makefile.in
-           aclocal.m4
-           app/Makefile.in
-           compile
-           config.guess
-           config.sub
-           configure
-           depcomp
-           install-sh
-           lib/Makefile.in
-           libtool
-           ltmain.sh
-           m4/libtool.m4
-           m4/ltoptions.m4
-           m4/ltsugar.m4
-           m4/ltversion.m4
-           m4/lt~obsolete.m4
-           missing
-Copyright: 1992-2018 Free Software Foundation, Inc.
-           1994 X Consortium
-License:   __AUTO_PERMISSIVE__
- Autogenerated files with permissive licenses.
-
-Files:     autom4te.cache/output.0
-           autom4te.cache/output.1
-           autom4te.cache/output.3
-           autom4te.cache/output.4
-Copyright: 1992-2012 Free Software Foundation, Inc.
-License:   PERMISSIVE
- This configure script is free software; the Free Software Foundation
- gives unlimited permission to copy, distribute and modify it.
-
 Files:     Makefile
-           app/Makefile
-           lib/Makefile
-Copyright: 1994-2018 Free Software Foundation, Inc.
-License:   PERMISSIVE
- This Makefile.in is free software; the Free Software Foundation
- gives unlimited permission to copy and/or distribute it,
- with or without modifications, as long as this notice is preserved.
+Copyright: 2010-2016 Intel Corporation
+License:   __UNKNOWN__
+ binary name
+
+Files:     l3fwd_route.h
+Copyright: 2021 Intel Corporation
+License:   __UNKNOWN__
+ Log file related character defs.
+
+Files:     meson.build
+Copyright: 2017 Intel Corporation
+License:   __UNKNOWN__
+ meson file, for building this example as part of a main DPDK build.
  .
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY, to the extent permitted by law; without
- even the implied warranty of MERCHANTABILITY or FITNESS FOR A
- PARTICULAR PURPOSE.
-
-Files:     INSTALL
-Copyright: 1994-2016 Free Software Foundation, Inc.
-License:   PERMISSIVE
- Copying and distribution of this file, with or without modification,
- are permitted in any medium without royalty provided the copyright
- notice and this notice are preserved.  This file is offered as-is,
- without warranty of any kind.
- .
- Basic Installation
-
-Files:     config.log
-Copyright: 2019 Free Software Foundation, Inc.
-License:   __UNKNOWN__
- This is free software; see the source for copying conditions.  There is NO
- warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-Files:     config.status
-Copyright: 2012 Free Software Foundation, Inc.
-License:   __UNKNOWN__
- This config.status script is free software; the Free Software Foundation
- gives unlimited permission to copy, distribute and modify it."
-
-Files:     autom4te.cache/traces.3
-Copyright: 2011 Free Software Foundation, Inc.
-License:   __UNKNOWN__
- This config.lt script is free software; the Free Software Foundation
- gives unlimited permision to copy, distribute and modify it."
+ To build this example as a standalone application with an already-installed
+ DPDK instance, use 'make'
 
 #----------------------------------------------------------------------------
-# xml and html files (skipped):
-#         macos/openshCommand.entitlements
+# huge files   (skipped):
+#         build/l3fwd-shared
 
 #----------------------------------------------------------------------------
 # Files marked as NO_LICENSE_TEXT_FOUND may be covered by the following
 # license/copyright files.
-
-#----------------------------------------------------------------------------
-# License file: COPYING
- /*
-  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
-  */
-
-#----------------------------------------------------------------------------
-# License file: LICENSE
- /*
-  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
-  */
