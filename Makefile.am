@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = lib app
+SUBDIRS = lib
 
 ACLOCAL_AMFLAGS = -I m4
 
