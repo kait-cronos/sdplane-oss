@@ -31,12 +31,12 @@ struct command_set *cmdset_default = NULL;
 DEFINE_COMMAND (exit, "exit", "exit\n")
 {
   struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "exit !\n");
+  fprintf (shell->terminal, "exit !%s", shell->NL);
   FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
   /* don't do shell_close() here: it closes stdout,
      and breaks safe termination. */
   // shell_close (shell);
-  return 0;
+  return CMD_SUCCESS;
 }
 
 ALIAS_COMMAND (logout, exit, "logout", "logout\n");
@@ -48,9 +48,9 @@ DEFINE_COMMAND (enable_shell_debugging, "enable shell debugging",
                 "enable shell debugging\n")
 {
   struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "enable shell debugging.\n");
+  fprintf (shell->terminal, "enable shell debugging.%s", shell->NL);
   FLAG_SET (shell->flag, SHELL_FLAG_DEBUG);
-  return 0;
+  return CMD_SUCCESS;
 }
 
 DEFINE_COMMAND (disable_shell_debugging, "disable shell debugging",
@@ -59,9 +59,9 @@ DEFINE_COMMAND (disable_shell_debugging, "disable shell debugging",
                 "disable shell debugging\n")
 {
   struct shell *shell = (struct shell *) context;
-  fprintf (shell->terminal, "disable shell debugging.\n");
+  fprintf (shell->terminal, "disable shell debugging.%s", shell->NL);
   FLAG_CLEAR (shell->flag, SHELL_FLAG_DEBUG);
-  return 0;
+  return CMD_SUCCESS;
 }
 
 void
@@ -87,6 +87,17 @@ command_history_add (char *command_line, struct command_history *history,
   if (history->array[history->last])
     history->current = HISTORY_NEXT (history->last);
   assert (! history->array[history->current]);
+
+  /* update the time the command was added in the history */
+  if (history->array[history->last] &&
+      ! strcmp (history->array[history->last], command_line))
+    {
+      /* ommit adding identical command_line. */
+      time (&history->clock[history->last]);
+      return;
+    }
+
+  time (&history->clock[history->current]);
   history->array[history->current] = strdup (command_line);
   history->last = history->current;
   history->current = HISTORY_NEXT (history->current);
@@ -106,11 +117,6 @@ command_history_prev (struct shell *shell)
 
   ceil = HISTORY_NEXT (history->last);
   start = HISTORY_NEXT (ceil);
-
-#if 0
-  printf ("last: %d ceil: %d start: %d current: %d\n",
-          history->last, ceil, start, history->current);
-#endif
 
   /* wrapping */
   if (history->current == start)
@@ -138,11 +144,6 @@ command_history_next (struct shell *shell)
   floor = HISTORY_NEXT (history->last);
   start = HISTORY_NEXT (floor);
 
-#if 0
-  printf ("last: %d floor: %d start: %d current: %d\n",
-          history->last, floor, start, history->current);
-#endif
-
   /* wrapping */
   if (history->current == floor)
     return 0;
@@ -152,6 +153,11 @@ command_history_next (struct shell *shell)
     {
       shell_delete_string (shell, 0, shell->end);
       shell_insert (shell, history->array[next]);
+      history->current = next;
+    }
+  if (next == floor)
+    {
+      shell_delete_string (shell, 0, shell->end);
       history->current = next;
     }
   return 0;
@@ -164,125 +170,25 @@ DEFINE_COMMAND (show_history, "show history",
   struct shell *shell = (struct shell *) context;
   struct command_history *history = shell->history;
   int floor, start, i;
+  struct tm *tm;
+#define TIMEBUFSIZ 32
+  char timebuf[TIMEBUFSIZ];
 
   if (! history)
-    return;
+    return CMD_SUCCESS;
 
   floor = HISTORY_NEXT (history->last);
   start = HISTORY_NEXT (floor);
 
   for (i = start; i != floor; i = HISTORY_NEXT (i))
     if (history->array[i])
-      fprintf (shell->terminal, "[%3d] %s\n", i, history->array[i]);
-  return 0;
-}
-
-int duration_limit = 0;
-time_t start = 0;
-time_t end = 0;
-time_t limit = 0;
-char start_str[64], end_str[64], limit_str[64];
-
-struct tm start_tm_buf, end_tm_buf, limit_tm_buf;
-struct tm *start_tm, *end_tm, *limit_tm;
-
-void
-timer_init (int dura_limit, char *date_limit)
-{
-  int ret;
-
-  /* reset all */
-  duration_limit = 0;
-  start = end = limit = 0;
-  memset (start_str, 0, sizeof (start_str));
-  memset (start_str, 0, sizeof (start_str));
-
-  /* start time */
-  time (&start);
-  start_tm = localtime_r (&start, &start_tm_buf);
-  strftime (start_str, sizeof (start_str), "%Y/%m/%d %H:%M:%S", start_tm);
-
-  if (dura_limit)
-    {
-      duration_limit = dura_limit;
-      end = start + duration_limit;
-      end_tm = localtime_r (&end, &end_tm_buf);
-      strftime (end_str, sizeof (end_str), "%Y/%m/%d %H:%M:%S", end_tm);
-    }
-
-  if (date_limit)
-    {
-      ret = sscanf (date_limit, "%d/%d/%d %d:%d:%d", &limit_tm_buf.tm_year,
-                    &limit_tm_buf.tm_mon, &limit_tm_buf.tm_mday,
-                    &limit_tm_buf.tm_hour, &limit_tm_buf.tm_min,
-                    &limit_tm_buf.tm_sec);
-      assert (ret == 6);
-      limit_tm = &limit_tm_buf;
-
-      /* adjust year and month. */
-      limit_tm->tm_year -= 1900;
-      limit_tm->tm_mon -= 1;
-
-      limit = mktime (limit_tm);
-      strftime (limit_str, sizeof (limit_str), "%Y/%m/%d %H:%M:%S", limit_tm);
-    }
-}
-
-void
-timer_check ()
-{
-  time_t current;
-  char current_str[64];
-  struct tm *current_tm, current_tm_buf;
-
-  time (&current);
-  current_tm = localtime_r (&current, &current_tm_buf);
-  strftime (current_str, sizeof (current_str), "%Y/%m/%d %H:%M:%S",
-            current_tm);
-
-  if (FLAG_CHECK (debug_config, DEBUG_TIMER))
-    {
-      printf ("%9s %d sec\n", "duration:", duration_limit);
-      printf ("%9s %s\n", "start:", start_str);
-      printf ("%9s %s\n", "current:", current_str);
-      printf ("%9s %s\n", "end:", end_str);
-      printf ("%9s %s\n", "limit:", limit_str);
-    }
-
-  double diff_end, diff_limit;
-
-  if (end)
-    {
-      diff_end = difftime (end, current);
-      if (FLAG_CHECK (debug_config, DEBUG_TIMER))
-        printf ("end diff: %.1lf\n", diff_end);
-      if (diff_end < 0)
-        {
-          printf ("zcmdsh: beta-version: duration-limit: %'d secs\n",
-                  duration_limit);
-          printf ("zcmdsh: shutdown.\n");
-          termio_finish ();
-          exit (1);
-        }
-    }
-  else if (FLAG_CHECK (debug_config, DEBUG_TIMER))
-    printf ("end diff: not set\n");
-
-  if (limit)
-    {
-      diff_limit = difftime (limit, current);
-      if (FLAG_CHECK (debug_config, DEBUG_TIMER))
-        printf ("limit diff: %.1lf\n", diff_limit);
-      if (diff_limit < 0)
-        {
-          printf ("zcmdsh: beta-version: date-limit: %s\n", limit_str);
-          printf ("zcmdsh: shutdown.\n");
-          termio_finish ();
-          exit (1);
-        }
-    }
-  else if (FLAG_CHECK (debug_config, DEBUG_TIMER))
-    printf ("limit diff: not set\n");
+      {
+        tm = localtime (&history->clock[i]);
+        strftime (timebuf, sizeof (timebuf), "%Y/%m/%d %H:%M:%S", tm);
+        fprintf (shell->terminal, "[%3d] %s %s\n",
+                 i, timebuf, history->array[i]);
+      }
+  return CMD_SUCCESS;
 }
 
 #include <poll.h>
@@ -454,7 +360,7 @@ pager_end (struct shell *shell)
     }
 
 #if ! PAGER_USE_POPEN
-  DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
+  //DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
   int ret, nwrite;
   struct pollfd fds[2];
   nfds_t nfds = 2;
@@ -480,11 +386,6 @@ pager_end (struct shell *shell)
       for (i = 0; i < nfds; i++)
         {
           int readfd, writefd;
-          DEBUG_ZCMDSH_LOG (
-              PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x", i, fds[i].fd,
-              (fds[i].revents & POLLIN ? " POLLIN" : ""),
-              (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
-              (fds[i].revents & POLLERR ? " POLLERR" : ""), fds[i].revents);
 
 #if 0
           if (fds[i].revents & POLLHUP)
@@ -493,6 +394,12 @@ pager_end (struct shell *shell)
 
           if (! (fds[i].revents & (POLLIN | POLLHUP)))
             continue;
+
+          DEBUG_ZCMDSH_LOG (
+              PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x", i, fds[i].fd,
+              (fds[i].revents & POLLIN ? " POLLIN" : ""),
+              (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
+              (fds[i].revents & POLLERR ? " POLLERR" : ""), fds[i].revents);
 
           readfd = fds[i].fd;
           j = (i & 0x01) ^ 0x01;
@@ -550,6 +457,7 @@ void
 shell_read_nowait_paging (struct shell *shell)
 {
   int wstatus;
+
   close (shell->pipefd[1]);
 
   if (shell->pager_saved_terminal)
@@ -563,7 +471,7 @@ shell_read_nowait_paging (struct shell *shell)
       shell->pager_saved_writefd = -1;
     }
 
-  DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
+  //DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
 
   int ret, nwrite;
   struct pollfd fds[2];
@@ -591,17 +499,18 @@ shell_read_nowait_paging (struct shell *shell)
       for (i = 0; i < nfds; i++)
         {
           int readfd, writefd;
-          DEBUG_ZCMDSH_LOG (
-              PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x", i, fds[i].fd,
-              (fds[i].revents & POLLIN ? " POLLIN" : ""),
-              (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
-              (fds[i].revents & POLLERR ? " POLLERR" : ""), fds[i].revents);
 
           if (! (fds[i].revents & (POLLIN | POLLHUP)))
             continue;
 
           if (fds[i].revents & POLLHUP)
             closed++;
+
+          DEBUG_ZCMDSH_LOG (
+              PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x", i, fds[i].fd,
+              (fds[i].revents & POLLIN ? " POLLIN" : ""),
+              (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
+              (fds[i].revents & POLLERR ? " POLLERR" : ""), fds[i].revents);
 
           readfd = fds[i].fd;
           j = (i & 0x01) ^ 0x01;
@@ -625,12 +534,36 @@ shell_read_nowait_paging (struct shell *shell)
             }
           else
             {
+              DEBUG_ZCMDSH_LOG (PAGER,
+                                "pager: read() from fd: %d returned %d: %s",
+                                readfd, ret, strerror (errno));
+
               nwrite = write (writefd, buf, ret);
               if (nwrite < 0)
                 DEBUG_ZCMDSH_LOG (PAGER, "write() failed: %s",
                                   strerror (errno));
               DEBUG_ZCMDSH_LOG (PAGER, "pager: fd: %d -> fd: %d, %d bytes",
                                 readfd, writefd, ret);
+#ifndef NO_PAGER_CONTENTS
+              if (FLAG_CHECK (DEBUG_CONFIG (ZCMDSH),
+                              DEBUG_TYPE (ZCMDSH, PAGER_CONTENTS)))
+                {
+                  char str_buf[1024];
+                  char *curr = str_buf;
+                  char *end = str_buf + sizeof (str_buf);
+                  int nwrite;
+                  for (i = 0; i < ret; i++)
+                    {
+                      nwrite = 0;
+                      if (isascii ((int) buf[i]))
+                        nwrite = snprintf (curr, end - curr, "%c", buf[i]);
+                      else
+                        nwrite = snprintf (curr, end - curr, "%#x", buf[i]);
+                      curr += nwrite;
+                    }
+                  DEBUG_ZCMDSH_LOG (PAGER_CONTENTS, "pager: buf: %s", str_buf);
+                }
+#endif /*NO_PAGER_CONTENTS*/
             }
         }
     }
@@ -664,7 +597,21 @@ command_shell_execute (struct shell *shell)
   int ret = 0;
   char *comment;
 
-  /* comment handling */
+  /* ignore blank-line in startup-config. */
+  if (! strlen (shell->command_line) &&
+      ! FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
+    return;
+
+  /* send a line-feed to terminate the command line. */
+  shell_linefeed (shell);
+
+  /* without the below fflush(), the newline will be sent after the pager
+     output, and will break the output: the executed command-line
+     will be erased, and after the command-output, it appears as
+     the additional newline which seems to be redundant. */
+  fflush (shell->terminal);
+
+  /* remove the comment part, until the line-end. */
   comment = strpbrk (shell->command_line, "#!");
   if (comment)
     {
@@ -674,34 +621,59 @@ command_shell_execute (struct shell *shell)
       shell_terminate (shell);
     }
 
-  shell_format (shell);
-  shell_linefeed (shell);
-  fflush (shell->terminal);
-
-  timer_check ();
-
-  if (! strlen (shell->command_line))
+  if (strlen (shell->command_line))
     {
-      shell_clear (shell);
-      shell_prompt (shell);
-      shell_refresh (shell);
-      return 0;
-    }
+      /* remove unnecessary spaces. */
+      shell_format2 (shell);
 
-  if (shell->pager)
-    pager_start (shell);
+      if (shell->pager)
+        pager_start (shell);
 
-  ret = command_execute (shell->command_line, shell->cmdset, shell);
+      //shell_linefeed (shell);
 
-  if (ret < 0)
-    fprintf (shell->terminal, "no such command: %s%s", shell->command_line,
-             shell->NL);
-  command_history_add (shell->command_line, shell->history, shell);
+#if 0
+      if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
+        fprintf (shell->terminal, "command started: %s%s",
+                 shell->command_line, shell->NL);
+#endif
 
-  if (shell->is_paging)
-    {
-      fflush (shell->terminal);
-      shell_read_nowait_paging (shell);
+      ret = command_execute (shell->command_line, shell->cmdset, shell);
+
+#if 0
+      if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
+        fprintf (shell->terminal, "command finished: %s%s",
+                 shell->command_line, shell->NL);
+#endif
+
+      /* record the execution of the command. */
+      DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: %s",
+                        shell->command_line);
+
+      shell->cmd_status = ret;
+      if (ret == CMD_NOT_FOUND)
+        {
+          DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: command not found");
+          fprintf (shell->terminal, "no such command: %s%s",
+                   shell->command_line, shell->NL);
+          ret = -1;
+        }
+      if (ret == CMD_FAILURE)
+        {
+          DEBUG_ZCMDSH_LOG (COMMAND_LOG, "command-log: command failed");
+          fprintf (shell->terminal, "command failed: %s%s",
+                   shell->command_line, shell->NL);
+          ret = -1;
+        }
+
+      command_history_add (shell->command_line, shell->history, shell);
+
+      if (shell->is_paging)
+        {
+          /* fflush() is mandatory before closing the pager.*/
+          fflush (shell->terminal);
+
+          shell_read_nowait_paging (shell);
+        }
     }
 
   if (! shell_running (shell))
@@ -711,7 +683,8 @@ command_shell_execute (struct shell *shell)
     {
       shell_clear (shell);
       shell_prompt (shell);
-      shell_refresh (shell);
+      if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
+        shell_refresh (shell);
     }
 
   return ret;
@@ -880,51 +853,108 @@ command_shell_ls_candidate (struct shell *shell)
   char *last;
   int last_head;
   struct command_node *match;
+  struct command_node *exact_match;
   struct command_node *node;
   struct vector_node *vn;
+
+  shell_terminate (shell);
+  shell_linefeed (shell);
 
   if (shell->cursor != shell->end)
     {
       shell->cursor = shell->end;
       shell_refresh (shell);
-      shell_format (shell);
-      shell_linefeed (shell);
-      shell_refresh (shell);
-      // return;
     }
 
-  last_head = shell_word_head (shell, shell->cursor);
-  cmd_dup = strdup (shell->command_line);
-  cmd_dup[last_head] = '\0';
-  last = strdup (&shell->command_line[last_head]);
+  char *command_line_dup;
+  int argc;
+  char **argv;
+  struct command_node **cmdnodes;
+  struct command_set *cmdset;
 
-  shell_linefeed (shell);
+  command_line_dup = strdup (shell->command_line);
 
-  match = command_match_node (cmd_dup, shell->cmdset);
-  if (match)
+  /* parse current command-line's argv. */
+  command_argv_parse (command_line_dup, &argc, &argv);
+
+  /* find matching command nodes. */
+  command_matched_nodes (argc, argv, shell->command_line,
+                         shell->cmdset, &cmdnodes);
+
+  cmdset = shell->cmdset;
+  int index;
+  int curr, upper;
+
+  assert (argc > 0);
+  index = argc - 1;
+
+  if (index == 0)
     {
-      if (last_head == shell->cursor && match->func)
-        fprintf (shell->terminal, "  %-16s %s%s", "<cr>", match->helpstr,
-                 shell->NL);
+      if (cmdnodes[0])
+        match = cmdnodes[0];
+      else
+        match = cmdset->root;
+    }
+  else
+    {
+      match = cmdnodes[index - 1];
+    }
 
+  curr = argc - 1;
+  upper = (curr > 0 ? upper = curr - 1 : -1);
+
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
+    {
+      fprintf (shell->terminal, "upper: %d curr: %d%s",
+               upper, curr, shell->NL);
+      fprintf (shell->terminal, "argv[%d]: \"%s\" (strlen: %lu)%s",
+               index, argv[index], strlen (argv[index]), shell->NL);
+      fprintf (shell->terminal, "cmdnodes[upper]: %p cmdnodes[curr]: %p%s",
+               cmdnodes[upper], cmdnodes[curr], shell->NL);
+      if (upper >= 0 && cmdnodes[upper])
+      fprintf (shell->terminal, "cmdnodes[upper]: %s%s",
+               cmdnodes[upper]->cmdstr, shell->NL);
+      if (cmdnodes[curr])
+      fprintf (shell->terminal, "cmdnodes[curr]: %s%s",
+               cmdnodes[curr]->cmdstr, shell->NL);
+    }
+
+  if (upper >= 0 && cmdnodes[upper])
+    {
+      match = cmdnodes[upper];
+      if (! strlen (argv[curr]) && match->func)
+        fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
+                 match->helpstr, shell->NL);
       for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
         {
           node = (struct command_node *) vn->data;
-          if (is_command_match (node->cmdstr, last))
+          if (is_command_match (node->cmdstr, argv[index]))
             fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
                      node->helpstr, shell->NL);
 
           if (file_spec (node->cmdstr))
-            file_ls_candidate (shell, last);
+            file_ls_candidate (shell, argv[index]);
+        }
+    }
+  else if (argc == 1)
+    {
+      match = cmdset->root;
+      for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
+        {
+          node = (struct command_node *) vn->data;
+          if (is_command_match (node->cmdstr, argv[index]))
+            fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
+                     node->helpstr, shell->NL);
         }
     }
 
-  free (last);
-  free (cmd_dup);
+  free (command_line_dup);
+  free (argv);
+  free (cmdnodes);
 
-  // shell_format (shell);
-  shell_linefeed (shell);
+  //shell_linefeed (shell);
   shell_refresh (shell);
+
   return 0;
 }
 
@@ -942,58 +972,6 @@ DEFINE_COMMAND (list_func_table, "list func-table",
     }
   return 0;
 }
-
-int
-func_table_lookup (shell_keyfunc_t ptr)
-{
-  int i;
-  for (i = 0; i < FUNC_TABLE_SIZE; i++)
-    {
-      if (func2str[i].ptr == ptr)
-        return i;
-    }
-  return -1;
-}
-
-#define FUNC_STR_MAP(x)                                                       \
-  {                                                                           \
-    x, #x                                                            \
-  }
-struct funcp_str_map func2str[FUNC_TABLE_SIZE] = {
-  FUNC_STR_MAP (shell_terminate),
-  FUNC_STR_MAP (shell_format),
-  FUNC_STR_MAP (shell_linefeed),
-  FUNC_STR_MAP (shell_clear),
-  FUNC_STR_MAP (shell_delete_word_backward),
-  FUNC_STR_MAP (shell_move_word_backward),
-  FUNC_STR_MAP (shell_move_word_forward),
-  FUNC_STR_MAP (shell_refresh),
-  FUNC_STR_MAP (shell_read),
-  FUNC_STR_MAP (shell_read_nowait),
-  FUNC_STR_MAP (shell_keyfunc_forward_char),
-  FUNC_STR_MAP (shell_keyfunc_backward_char),
-  FUNC_STR_MAP (shell_keyfunc_move_to_begin),
-  FUNC_STR_MAP (shell_keyfunc_move_to_end),
-  FUNC_STR_MAP (shell_keyfunc_delete_char),
-  FUNC_STR_MAP (shell_keyfunc_backspace),
-  FUNC_STR_MAP (shell_keyfunc_kill_line),
-  FUNC_STR_MAP (shell_keyfunc_kill_all),
-  FUNC_STR_MAP (shell_keyfunc_yank),
-  FUNC_STR_MAP (shell_keyfunc_clear_screen),
-  FUNC_STR_MAP (shell_keyfunc_refresh),
-  FUNC_STR_MAP (shell_keyfunc_empty_enter),
-  FUNC_STR_MAP (shell_keyfunc_insert_tab),
-  FUNC_STR_MAP (shell_keyfunc_escape),
-  FUNC_STR_MAP (shell_keyfunc_delete_word_backward),
-  FUNC_STR_MAP (shell_input_char),
-
-  FUNC_STR_MAP (command_shell_execute),
-  FUNC_STR_MAP (command_shell_execute),
-  FUNC_STR_MAP (command_shell_completion),
-  FUNC_STR_MAP (command_shell_ls_candidate),
-  FUNC_STR_MAP (command_history_prev),
-  FUNC_STR_MAP (command_history_next),
-};
 
 DEFINE_COMMAND (list_keymaps, "list keymaps",
                 "list.\n"
@@ -1082,10 +1060,12 @@ DEFINE_COMMAND (list_keymaps, "list keymaps",
   return 0;
 }
 
-DEFINE_COMMAND (set_pager, "(set|no|) pager",
-                "set command.\n"
-                "no command.\n"
-                "pager command.\n")
+CLI_COMMAND2 (set_pager, "(set|no|enable|disable|) pager",
+                "set command.\n",
+                "no command.\n",
+                "enable command.\n",
+                "disable command.\n",
+                "enable/disable pager.\n")
 {
   struct shell *shell = (struct shell *) context;
   bool value = false;
@@ -1093,9 +1073,11 @@ DEFINE_COMMAND (set_pager, "(set|no|) pager",
   if (! strcmp (argv[0], "set"))
     value = true;
   else if (! strcmp (argv[0], "no"))
-    {
-      value = false;
-    }
+    value = false;
+  else if (! strcmp (argv[0], "enable"))
+    value = true;
+  else if (! strcmp (argv[0], "disable"))
+    value = false;
   else if (argc == 1)
     value = true;
   DEBUG_ZCMDSH_LOG (PAGER, "pager: %d", (int) value);
@@ -1109,9 +1091,9 @@ DEFINE_COMMAND (set_pager, "(set|no|) pager",
 
 DEFINE_COMMAND (set_pager_command, "set pager <FILE> (|<LINE>)",
                 "set.\n"
-                "pager.\n"
-                "pager command.\n"
-                "pager command option.\n")
+                "set pager.\n"
+                "set pager command.\n"
+                "set pager command option.\n")
 {
   struct shell *shell = (struct shell *) context;
 
@@ -1140,8 +1122,8 @@ DEFINE_COMMAND (set_pager_command, "set pager <FILE> (|<LINE>)",
 
 DEFINE_COMMAND (set_pager_default, "set pager default",
                 "set.\n"
-                "pager.\n"
-                "pager default.\n")
+                "set pager.\n"
+                "set pager default.\n")
 {
   struct shell *shell = (struct shell *) context;
   if (shell->pager_command)
@@ -1150,6 +1132,42 @@ DEFINE_COMMAND (set_pager_default, "set pager default",
       shell->pager_command = NULL;
     }
   return 0;
+}
+
+CLI_COMMAND2 (show_shell,
+              "show shell",
+              SHOW_HELP,
+              "shell information.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  fprintf (shell->terminal, "shell winsize row: %d col: %d%s",
+           shell->winsize.ws_row, shell->winsize.ws_col, shell->NL);
+  fprintf (shell->terminal, "shell pager %d pager_command: %s%s",
+           shell->pager,
+           shell->pager_command ? shell->pager_command : DEFAULT_PAGER,
+           shell->NL);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (set_shell_winsize,
+              "set shell winsize row <0-1024> col <0-1024>",
+              SHOW_HELP,
+              "shell information.\n",
+              "shell window size information.\n",
+              "set shell window row size.\n",
+              "set shell window column size.\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  int row, col;
+  char *endptr;
+  row = strtol (argv[4], &endptr, 0);
+  col = strtol (argv[6], &endptr, 0);
+  shell->winsize.ws_row = row;
+  shell->winsize.ws_col = col;
+  fprintf (shell->terminal, "shell winsize row: %d col: %d%s",
+           shell->winsize.ws_row, shell->winsize.ws_col, shell->NL);
+  return CMD_SUCCESS;
 }
 
 void
@@ -1164,11 +1182,11 @@ default_install_command (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_pager);
   INSTALL_COMMAND2 (cmdset, set_pager_command);
   INSTALL_COMMAND2 (cmdset, set_pager_default);
+  INSTALL_COMMAND2 (cmdset, show_shell);
+  INSTALL_COMMAND2 (cmdset, set_shell_winsize);
 
-#if 0
   INSTALL_COMMAND (cmdset, enable_shell_debugging);
   INSTALL_COMMAND (cmdset, disable_shell_debugging);
-#endif
 }
 
 struct shell *
@@ -1187,6 +1205,12 @@ command_shell_create ()
   shell_install (shell, CONTROL ('P'), command_history_prev);
   shell_install (shell, CONTROL ('N'), command_history_next);
 
+  FUNC_STR_REGISTER (command_shell_execute);
+  FUNC_STR_REGISTER (command_shell_completion);
+  FUNC_STR_REGISTER (command_shell_ls_candidate);
+  FUNC_STR_REGISTER (command_history_prev);
+  FUNC_STR_REGISTER (command_history_next);
+
   shell->pager = true;
 
   return shell;
@@ -1203,6 +1227,7 @@ command_shell_delete (struct shell *shell)
 void
 command_shell_init ()
 {
+  command_func_name_init ();
   cmdset_default = command_set_create ();
   default_install_command (cmdset_default);
 }
@@ -1211,4 +1236,5 @@ void
 command_shell_finish ()
 {
   command_set_delete (cmdset_default);
+  command_func_name_finish ();
 }

@@ -53,6 +53,11 @@ debug_cmdstr_init (char *cate, char *cmdstr, int size,
       p += ret;
       len -= ret;
     }
+
+  ret = snprintf (p, len, "all|");
+  p += ret;
+  len -= ret;
+
   for (i = 0; i < debug_type_size; i++)
     {
       if (i + 1 < debug_type_size)
@@ -100,6 +105,10 @@ debug_helpstr_init (char *cate, char *helpstr, int size,
   len -= ret;
 
   ret = snprintf (p, len, "debug %s.\n", cate);
+  p += ret;
+  len -= ret;
+
+  ret = snprintf (p, len, "all types.\n");
   p += ret;
   len -= ret;
 

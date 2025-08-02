@@ -6,13 +6,61 @@
 
 #include "debug.h"
 #include "flag.h"
+#include "vector.h"
 #include "shell.h"
 #include "shell_keyfunc.h"
-#include "vector.h"
+#include "shell_debug.h"
 
 #include "debug_category.h"
 #include "debug_log.h"
 #include "debug_zcmdsh.h"
+
+#include "command.h"
+
+#define FUNC_STR_MAP(x)                                                       \
+  {                                                                           \
+    x, #x                                                            \
+  }
+struct funcp_str_map func2str[FUNC_TABLE_SIZE] = {
+  FUNC_STR_MAP (shell_terminate),
+  FUNC_STR_MAP (shell_format),
+  FUNC_STR_MAP (shell_linefeed),
+  FUNC_STR_MAP (shell_clear),
+  FUNC_STR_MAP (shell_delete_word_backward),
+  FUNC_STR_MAP (shell_move_word_backward),
+  FUNC_STR_MAP (shell_move_word_forward),
+  FUNC_STR_MAP (shell_refresh),
+  FUNC_STR_MAP (shell_read),
+  FUNC_STR_MAP (shell_read_nowait),
+  FUNC_STR_MAP (shell_keyfunc_forward_char),
+  FUNC_STR_MAP (shell_keyfunc_backward_char),
+  FUNC_STR_MAP (shell_keyfunc_move_to_begin),
+  FUNC_STR_MAP (shell_keyfunc_move_to_end),
+  FUNC_STR_MAP (shell_keyfunc_delete_char),
+  FUNC_STR_MAP (shell_keyfunc_backspace),
+  FUNC_STR_MAP (shell_keyfunc_kill_line),
+  FUNC_STR_MAP (shell_keyfunc_kill_all),
+  FUNC_STR_MAP (shell_keyfunc_yank),
+  FUNC_STR_MAP (shell_keyfunc_clear_screen),
+  FUNC_STR_MAP (shell_keyfunc_refresh),
+  FUNC_STR_MAP (shell_keyfunc_empty_enter),
+  FUNC_STR_MAP (shell_keyfunc_insert_tab),
+  FUNC_STR_MAP (shell_keyfunc_escape),
+  FUNC_STR_MAP (shell_keyfunc_delete_word_backward),
+  FUNC_STR_MAP (shell_input_char),
+};
+
+int
+func_table_lookup (shell_keyfunc_t ptr)
+{
+  int i;
+  for (i = 0; i < FUNC_TABLE_SIZE; i++)
+    {
+      if (func2str[i].ptr == ptr)
+        return i;
+    }
+  return -1;
+}
 
 // static unsigned char inputch = 0;
 
@@ -68,40 +116,90 @@ shell_format (struct shell *shell)
         count = 0;
     }
 
-#if 0
-  fprintf (shell->terminal, "back from %d to 0%s",
-           shell->cursor, shell->NL);
-  fprintf (shell->terminal, "write new command_line (%d bytes)%s",
-           strlen (command_line), shell->NL);
-  fprintf (shell->terminal, "write extra space (%d bytes)%s",
-           shell->end - end, shell->NL);
-  fprintf (shell->terminal, "go back from %d to %d%s",
-           shell->end,  cursor, shell->NL);
-#endif
-
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
     {
-  /* move to the beginning. */
-  for (i = shell->cursor; 0 < i; i--)
-    writec (shell->writefd, CONTROL ('H'));
+      /* move to the beginning. */
+      for (i = shell->cursor; 0 < i; i--)
+        writec (shell->writefd, CONTROL ('H'));
+
+      /* re-write the new command-line. */
+      ret = write (shell->writefd, command_line, strlen (command_line));
+      if (ret < 0)
+        DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
+
+      /* erase the last part. */
+      for (i = end; i < shell->end; i++)
+        writec (shell->writefd, ' ');
+
+      /* move back to the cursor. */
+      for (i = shell->end; cursor < i; i--)
+        writec (shell->writefd, CONTROL ('H'));
     }
-  else
-    writec (shell->writefd, '\n');
 
-  /* re-write the new command-line. */
-  ret = write (shell->writefd, command_line, strlen (command_line));
-  if (ret < 0)
-    DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
+  free (shell->command_line);
+  shell->command_line = command_line;
+  shell->cursor = cursor;
+  shell->end = end;
+  return 0;
+}
+
+int
+shell_format2 (struct shell *shell)
+{
+  char *command_line;
+  int i, cursor, end;
+  int count = 0;
+  int ret;
+
+  end = 0;
+  cursor = 0;
+  command_line = (char *) malloc (shell->size);
+  if (command_line == NULL)
+    return 0;
+  memset (command_line, 0, shell->size);
+
+  /* filter out the duplicated consecutive spaces. */
+  for (i = 0; i < shell->end; i++)
+    {
+      if (shell->command_line[i] == ' ')
+        count++;
+
+      /* omit redundant spaces */
+      if (shell->command_line[i] == ' ' && count > 1)
+        continue;
+
+      /* omit even first space if it is the beginning of the line */
+      if (shell->command_line[i] == ' ' && i == 0)
+        continue;
+
+      command_line[end++] = shell->command_line[i];
+      if (i < shell->cursor)
+        cursor++;
+
+      if (shell->command_line[i] != ' ')
+        count = 0;
+    }
 
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
     {
-  /* erase the last part. */
-  for (i = end; i < shell->end; i++)
-    writec (shell->writefd, ' ');
+#if 0
+      /* move to the beginning. */
+      for (i = shell->cursor; 0 < i; i--)
+        writec (shell->writefd, CONTROL ('H'));
 
-  /* move back to the cursor. */
-  for (i = shell->end; cursor < i; i--)
-    writec (shell->writefd, CONTROL ('H'));
+      /* re-write the new command-line. */
+      ret = write (shell->writefd, command_line, strlen (command_line));
+      if (ret < 0)
+        DEBUG_ZCMDSH_LOG (SHELL, "write(): failed: %s", strerror (errno));
+
+      /* erase the last part. */
+      for (i = end; i < shell->end; i++)
+        writec (shell->writefd, ' ');
+
+      /* move back to the cursor. */
+      for (i = shell->end; cursor < i; i--)
+        writec (shell->writefd, CONTROL ('H'));
+#endif
     }
 
   free (shell->command_line);
@@ -162,8 +260,10 @@ shell_prompt (struct shell *shell)
   /* move cursor to beginning */
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
     writec (shell->writefd, '\r');
+#if 0
   else
     writec (shell->writefd, '\n');
+#endif
 
   /* print prompt */
   ret = write (shell->writefd, shell->prompt, strlen (shell->prompt));
@@ -346,6 +446,40 @@ shell_moveto (struct shell *shell, int index)
   else if (index < shell->cursor)
     shell_backward (shell, shell->cursor - index);
 }
+
+char *
+shell_word_dup (struct shell *shell, int point)
+{
+  char *start;
+  char *stringp;
+  char *word, *next;
+  int head = 0;
+  char *word_ret;
+
+  assert (0 <= point && point <= shell->end);
+
+  shell_terminate (shell);
+  start = strdup (shell->command_line);
+  stringp = start;
+
+  word = start;
+  while ((next = strsep (&stringp, SHELL_WORD_DELIMITERS)) != NULL)
+    {
+      if (word - start <= point && point < next - start)
+        break;
+      if (*next != '\0')
+        word = next;
+    }
+
+  if (word - start + strlen (word) < point)
+    word_ret = NULL;
+  else
+    word_ret = strdup (word);
+
+  free (start);
+  return word_ret;
+}
+
 
 /* used for command line tokenize */
 int
@@ -573,67 +707,11 @@ shell_move_word_forward (struct shell *shell)
   return 0;
 }
 
-#define DEBUG_POS 82
-void
-shell_debug (struct shell *shell)
-{
-  int i;
-  char debug[64];
-  //int ret;
-
-  shell_terminate (shell);
-
-  fprintf (shell->terminal, "cmd: [");
-  for (i = 0; i < shell->end; i++)
-    fprintf (shell->terminal, " %#02x", shell->command_line[i]);
-  fprintf (shell->terminal, " ]%s", shell->NL);
-  fprintf (shell->terminal, "size: %d cursor: %d end: %d%s", shell->size,
-           shell->cursor, shell->end, shell->NL);
-  fflush (shell->terminal);
-
-  snprintf (
-      debug, sizeof (debug),
-      "prevhead=%d whead=%d wend=%d cursor=%d end=%d inputch=%#02x size=%d",
-      shell_word_prev_head (shell, shell->cursor),
-      shell_word_head (shell, shell->cursor),
-      shell_word_end (shell, shell->cursor), shell->cursor, shell->end,
-      shell->inputch, shell->size);
-  fprintf (shell->terminal, "%s%s", debug, shell->NL);
-  fflush (shell->terminal);
-  // ret = write (shell->writefd, debug, strlen (debug));
-
-#if 0
-  for (i = 0; i < shell->end; i++)
-    {
-      int cmdch;
-      cmdch = shell->command_line[i];
-      if (isascii (cmdch))
-        write (shell->writefd, (char)cmdch, 1);
-      else
-        {
-          snprintf (debug, sizeof (debug), "(%02x|%d)", cmdch, cmdch);
-          write (shell->writefd, debug, strlen (debug));
-        }
-    }
-  snprintf (debug, sizeof (debug), "%s", shell->NL);
-  write (shell->writefd, debug, strlen (debug));
-#endif
-
-#if 0
-  ret = write (shell->writefd, &shell->command_line[shell->cursor],
-               strlen (&shell->command_line[shell->cursor]));
-#endif
-}
-
 int
 shell_refresh (struct shell *shell)
 {
   int i;
   int ret;
-
-  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG) ||
-      FLAG_CHECK (DEBUG_CONFIG (ZCMDSH), DEBUG_TYPE (ZCMDSH, SHELL)))
-    shell_debug (shell);
 
   /* print prompt */
   shell_prompt (shell);
@@ -661,26 +739,12 @@ shell_input (struct shell *shell, unsigned char ch)
   /* save input char */
   shell->inputch = ch;
 
-#if 1
-  if (FLAG_CHECK (DEBUG_CONFIG (ZCMDSH), DEBUG_TYPE (ZCMDSH, SHELL)))
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
     {
-      fprintf (shell->terminal, "%s", shell->NL);
-      fprintf (shell->terminal, "%s: inputch: %d/%#o/%#x", __func__, ch, ch,
-               ch);
-      if (CONTROL ('@') <= ch && ch <= CONTROL ('_'))
-        fprintf (shell->terminal, " CONTROL('%c')%s", ch + '@', shell->NL);
-      else if (ch == 127)
-        fprintf (shell->terminal, " DEL%s", shell->NL);
-      else if (isascii (ch))
-        fprintf (shell->terminal, " '%c'%s", ch, shell->NL);
-      else
-        fprintf (shell->terminal, "%s", shell->NL);
-      fprintf (shell->terminal, "keymap: %p, keymap[%d]: %p%s",
-               (void *) shell->keymap, ch, (void *) shell->keymap[ch],
-               shell->NL);
+      shell_linefeed (shell);
+      shell_debug (shell);
       shell_refresh (shell);
     }
-#endif
 
   int ret = 0;
   if (shell->keymap[ch])
@@ -688,9 +752,6 @@ shell_input (struct shell *shell, unsigned char ch)
 
   if (escaped)
     FLAG_CLEAR (shell->flag, SHELL_FLAG_ESCAPE);
-
-  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
-    shell_refresh (shell);
 
   return ret;
 }
@@ -741,6 +802,17 @@ shell_close (struct shell *shell)
     }
 }
 
+char *
+shell_input_str (char c)
+{
+  static char buf[8];
+  if (c == '\n')
+    snprintf (buf, sizeof (buf), "\\n");
+  else
+    snprintf (buf, sizeof (buf), "%c", c);
+  return buf;
+}
+
 int
 shell_read (struct shell *shell)
 {
@@ -761,14 +833,21 @@ shell_read (struct shell *shell)
       return ret;
     }
 
+#if 0
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
+    {
+      fprintf (shell->terminal, "read: size: %d%s", ret, shell->NL);
+    }
+#endif
+
   int ret_shell = 0;
   for (i = 0; i < ret; i++)
     {
       ret_shell = shell_input (shell, buf[i]);
       if (ret_shell < 0)
         {
-          printf ("shell_input: %d input char: '%c'\n",
-                  ret_shell, buf[i]);
+          DEBUG_ZCMDSH_LOG (SHELL, "shell_input: ret: %d input char: '%s'",
+                  ret_shell, shell_input_str (buf[i]));
           break;
         }
     }
@@ -783,12 +862,14 @@ shell_read_nowait (struct shell *shell)
 {
   int ret;
   struct pollfd pollfds[1];
+
   pollfds[0].fd = shell->readfd;
   pollfds[0].events = POLLIN;
   pollfds[0].revents = 0;
   ret = poll (pollfds, 1, 0);
   if (ret > 0)
-    return shell_read (shell);
+    ret = shell_read (shell);
+
   return ret;
 }
 

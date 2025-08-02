@@ -21,6 +21,9 @@ struct debug_type debug_zcmdsh_types[] = {
   { DEBUG_ZCMDSH_PAGER, "pager" },     { DEBUG_ZCMDSH_TIMER, "timer" },
   { DEBUG_ZCMDSH_UNICODE, "unicode" }, { DEBUG_ZCMDSH_TERMIO, "termio" },
   { DEBUG_ZCMDSH_TELNET, "telnet" },
+  { DEBUG_ZCMDSH_COMMAND_SHELL, "command-shell" },
+  { DEBUG_ZCMDSH_COMMAND_LOG, "command-log" },
+  { DEBUG_ZCMDSH_PAGER_CONTENTS, "pager-contents" },
 };
 
 struct command_header debug_zcmdsh_cmd;
@@ -58,7 +61,8 @@ debug_zcmdsh_func (void *context, int argc, char **argv)
 
   for (i = 0; i < debug_type_size; i++)
     {
-      if (! strcmp (argv[2], debug_types[i].name))
+      if (! strcmp (argv[2], debug_types[i].name) ||
+          ! strcmp (argv[2], "all"))
         {
           if (negate)
             {

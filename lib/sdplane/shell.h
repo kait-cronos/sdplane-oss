@@ -45,6 +45,8 @@ struct shell
   shell_keyfunc_t *keymap;
   shell_keyfunc_t keymap_normal[256];
 
+  int cmd_status; /* command.h: CMD_SUCCESS, CMD_NOT_FOUND, etc. */
+
   void *cmdset;
   void *history;
 
@@ -75,8 +77,40 @@ struct shell
 #define SHELL_FLAG_DEBUG       0x08
 #define SHELL_FLAG_INTERACTIVE 0x10
 
+#define FUNC_TABLE_SIZE 512
+struct funcp_str_map
+{
+  shell_keyfunc_t ptr;
+  char *str;
+};
+extern struct funcp_str_map func2str[];
+#define FUNC_STR_REGISTER(x)                                                  \
+  do                                                                          \
+    {                                                                         \
+      int i;                                                                  \
+      for (i = 0; i < FUNC_TABLE_SIZE; i++)                                   \
+        {                                                                     \
+          if (func2str[i].ptr == (void *) x)                                  \
+            {                                                                 \
+              func2str[i].str = #x;                                           \
+              break;                                                          \
+            }                                                                 \
+          if (! func2str[i].ptr)                                              \
+            {                                                                 \
+              func2str[i].ptr = (void *) x;                                   \
+              func2str[i].str = #x;                                           \
+              break;                                                          \
+            }                                                                 \
+        }                                                                     \
+    }                                                                         \
+  while (0)
+
+int func_table_lookup (shell_keyfunc_t ptr);
+
 int shell_terminate (struct shell *shell);
 int shell_format (struct shell *shell);
+int shell_format2 (struct shell *shell);
+
 int shell_linefeed (struct shell *shell);
 int shell_clear (struct shell *shell);
 void shell_set_prompt (struct shell *shell, char *prompt);
@@ -93,8 +127,12 @@ void shell_forward (struct shell *shell, int num);
 void shell_backward (struct shell *shell, int num);
 
 void shell_moveto (struct shell *shell, int index);
+char *shell_word_dup (struct shell *shell, int point);
 int shell_word_head (struct shell *shell, int point);
 int shell_word_end (struct shell *shell, int point);
+
+int shell_word_prev_head (struct shell *shell, int point);
+int shell_subword_prev_head (struct shell *shell, int point);
 
 int shell_subword_head (struct shell *shell, int point);
 int shell_delete_word_backward (struct shell *shell);

@@ -12,7 +12,8 @@ libsdplane_la_SOURCES = \
 	sdplane/debug.c sdplane/debug_cmd.c \
 	sdplane/log_cmd.c sdplane/shell_keyfunc.c sdplane/debug_log.c \
 	sdplane/debug_zcmdsh.c \
-	sdplane/shell_telnet.c
+	sdplane/shell_telnet.c sdplane/exec_limit.c \
+        sdplane/shell_debug.c
 
 nobase_include_HEADERS = \
 	sdplane/log.h sdplane/vector.h sdplane/termio.h sdplane/flag.h \
@@ -21,4 +22,5 @@ nobase_include_HEADERS = \
 	sdplane/log_cmd.h sdplane/shell_keyfunc.h \
         sdplane/debug_log.h sdplane/debug_category.h sdplane/debug_zcmdsh.h \
 	sdplane/debug_backtrace.h \
-        sdplane/shell_telnet.h
+        sdplane/shell_telnet.h sdplane/exec_limit.h \
+        sdplane/shell_debug.h

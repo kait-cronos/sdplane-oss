@@ -18,6 +18,7 @@ struct command_history
   char *array[HISTORY_SIZE];
   int last;
   int current;
+  time_t clock[HISTORY_SIZE];
 };
 
 EXTERN_COMMAND (exit);
@@ -44,32 +45,7 @@ void command_shell_finish ();
 void command_history_add (char *command_line, struct command_history *history,
                           struct shell *shell);
 
-void timer_init (int duration_limit, char *date_limit);
-
 int dirent_cmp (const void *va, const void *vb);
 void file_ls_candidate (struct shell *shell, char *file_path);
-
-#define FUNC_TABLE_SIZE 512
-struct funcp_str_map
-{
-  shell_keyfunc_t ptr;
-  char *str;
-};
-extern struct funcp_str_map func2str[];
-#define FUNC_STR_REGISTER(x)                                                  \
-  do                                                                          \
-    {                                                                         \
-      int i;                                                                  \
-      for (i = 0; i < FUNC_TABLE_SIZE; i++)                                   \
-        {                                                                     \
-          if (! func2str[i].ptr)                                              \
-            {                                                                 \
-              func2str[i].ptr = (void *) x;                                   \
-              func2str[i].str = #x;                                           \
-              break;                                                          \
-            }                                                                 \
-        }                                                                     \
-    }                                                                         \
-  while (0)
 
 #endif /*__COMMAND_SHELL_H__*/
