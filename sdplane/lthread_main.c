@@ -103,8 +103,20 @@ CLI_COMMAND2 (set_worker_lthread_rib_manager, "set worker lthread rib-manager",
   thread_register (lthread_core, lt, (lthread_func) rib_manager, "rib_manager",
                    NULL);
   lthread_detach2 (lt);
+
+  /* rib_manager is an important worker, and it needs to be
+     started immediately.
+     If it is a lthread, lthread_sleep() is necessary. */
   lthread_sleep (0);
-  return 0;
+
+  /* check whether the rib_manager is actually started. */
+  if (! msg_queue_rib)
+    {
+      fprintf (shell->terminal, "Can't start rib_manager.%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  return CMD_SUCCESS;
 }
 
 CLI_COMMAND2 (set_worker_lthread_netlink_thread,
