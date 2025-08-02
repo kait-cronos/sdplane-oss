@@ -128,23 +128,111 @@ CLI_COMMAND2 (pktgen_init,
 
 int start_stop_cmd(int argc, char **argv);
 
-CLI_COMMAND2 (pktgen_do,
-              "pktgen do (start|stop) (<0-7>|all)",
+CLI_COMMAND2 (pktgen_do_start_stop,
+              "pktgen do (start|stop) port (<0-7>|all)",
               "pktgen\n",
               "pktgen do\n",
               "pktgen start cmd\n",
               "pktgen stop cmd\n",
-              "specify port.\n"
+              "specify port.\n",
+              "specify port.\n",
               "specify for all ports.\n"
              )
 {
   struct shell *shell = (struct shell *) context;
+  int ret;
   int pktgen_argc;
-  char **pktgen_argv;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = argv[2];
+  pktgen_argv[1] = argv[4];
   pktgen_argc = 2;
-  pktgen_argv = (char **) &argv[2];
-  start_stop_cmd (pktgen_argc, pktgen_argv);
-  return 0;
+  ret = start_stop_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+int set_cmd(int argc, char **argv);
+
+CLI_COMMAND2 (pktgen_do_set_count,
+              "pktgen do set port (<0-7>|all) count <0-4000000000>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet count.\n",
+              "set packet count.\n"
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "set";
+  pktgen_argv[1] = argv[4];
+  pktgen_argv[2] = "count";
+  pktgen_argv[3] = argv[6];
+  pktgen_argc = 4;
+  ret = set_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_set_size,
+              "pktgen do set port (<0-7>|all) size <0-9999>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet size.\n",
+              "set packet size.\n"
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "set";
+  pktgen_argv[1] = argv[4];
+  pktgen_argv[2] = "size";
+  pktgen_argv[3] = argv[6];
+  pktgen_argc = 4;
+  ret = set_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_set_rate,
+              "pktgen do set port (<0-7>|all) rate <0-100>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet rate.\n",
+              "set packet rate in percentage.\n"
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "set";
+  pktgen_argv[1] = argv[4];
+  pktgen_argv[2] = "rate";
+  pktgen_argv[3] = argv[6];
+  pktgen_argc = 4;
+  ret = set_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
 }
 
 void
@@ -152,6 +240,9 @@ pktgen_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, show_pktgen);
   INSTALL_COMMAND2 (cmdset, pktgen_init);
-  INSTALL_COMMAND2 (cmdset, pktgen_do);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_start_stop);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_count);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_size);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_rate);
 }
 #endif /*ENABLE_PKTGEN*/

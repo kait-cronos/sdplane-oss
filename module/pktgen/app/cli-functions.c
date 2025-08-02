@@ -596,7 +596,7 @@ static const char *set_help[] = {
     CLI_HELP_PAUSE,
     NULL};
 
-static int
+int
 set_cmd(int argc, char **argv)
 {
     portlist_t portlist;

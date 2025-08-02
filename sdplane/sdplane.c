@@ -85,8 +85,11 @@ CLI_COMMAND2 (set_l3fwd_argv,
 char *argv_list[ARGV_LIST_MAX][ARGV_LIST_ARGV_MAX];
 int argv_list_argc[ARGV_LIST_MAX];
 
-CLI_COMMAND2 (set_argv_list_1, "set argv-list <0-7> <WORD>", SET_HELP,
-              "set argv-list.\n", "specify argv-list index.\n",
+CLI_COMMAND2 (set_argv_list_1,
+              "set argv-list <0-7> <WORD>",
+              SET_HELP,
+              "set argv-list.\n",
+              "specify argv-list index.\n",
               "set command-line arguments.\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -118,8 +121,8 @@ CLI_COMMAND2 (set_argv_list_1, "set argv-list <0-7> <WORD>", SET_HELP,
     }
 
   for (i = 0; i < *argcp; i++)
-    fprintf (shell->terminal, "argv_list[%d][%d]: %s\n", index, i,
-             argv_list[index][i]);
+    fprintf (shell->terminal, "argv_list[%d][%d]: %s%s",
+             index, i, argv_list[index][i], shell->NL);
 
   return 0;
 }
@@ -133,12 +136,364 @@ ALIAS_COMMAND (set_argv_list_2,
                "set command-line arguments.\n"
                "set command-line arguments.\n");
 
-ALIAS_COMMAND (set_argv_list_8,
+ALIAS_COMMAND (set_argv_list_3,
                set_argv_list_1,
-               "set argv-list <0-7> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD>",
                SET_HELP
                "set argv-list.\n"
                "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_4,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_5,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_6,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_7,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_8,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_9,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_10,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_11,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_12,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_13,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_14,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_15,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_16,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_17,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_18,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_19,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_20,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
                "set command-line arguments.\n"
                "set command-line arguments.\n"
                "set command-line arguments.\n"
@@ -179,6 +534,38 @@ ALIAS_COMMAND (set_argv_list_21,
                "set command-line arguments.\n"
                "set command-line arguments.\n");
 
+ALIAS_COMMAND (set_argv_list_22,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
 ALIAS_COMMAND (set_argv_list_23,
                set_argv_list_1,
                "set argv-list <0-7> "
@@ -188,6 +575,40 @@ ALIAS_COMMAND (set_argv_list_23,
                SET_HELP
                "set argv-list.\n"
                "specify argv-list index.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n"
+               "set command-line arguments.\n");
+
+ALIAS_COMMAND (set_argv_list_24,
+               set_argv_list_1,
+               "set argv-list <0-7> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> "
+               "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set argv-list.\n"
+               "specify argv-list index.\n"
+               "set command-line arguments.\n"
                "set command-line arguments.\n"
                "set command-line arguments.\n"
                "set command-line arguments.\n"
@@ -448,9 +869,28 @@ sdplane_cmd_init (struct command_set *cmdset)
 #endif
   INSTALL_COMMAND2 (cmdset, set_argv_list_1);
   INSTALL_COMMAND2 (cmdset, set_argv_list_2);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_3);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_4);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_5);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_6);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_7);
   INSTALL_COMMAND2 (cmdset, set_argv_list_8);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_9);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_10);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_11);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_12);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_13);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_14);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_15);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_16);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_17);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_18);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_19);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_20);
   INSTALL_COMMAND2 (cmdset, set_argv_list_21);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_22);
   INSTALL_COMMAND2 (cmdset, set_argv_list_23);
+  INSTALL_COMMAND2 (cmdset, set_argv_list_24);
   INSTALL_COMMAND2 (cmdset, show_argv_list);
 
   INSTALL_COMMAND2 (cmdset, show_loop_count);
