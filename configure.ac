@@ -53,7 +53,7 @@ AC_ARG_ENABLE([pktgen],
         yes) enable_pktgen=yes ;;
         no) enable_pktgen=no ;;
         esac],
-        enable_pktgen=no)
+        enable_pktgen=yes)
 AC_SUBST([enable_pktgen], [$enable_pktgen])
 AM_CONDITIONAL([ENABLE_PKTGEN], [test "$enable_pktgen" = yes])
 if test "$enable_pktgen" = yes; then

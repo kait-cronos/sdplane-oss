@@ -1,67 +1,74 @@
 
 log file /var/log/sdplane.log
-log stdout
+#log stdout
 
+#debug zcmdsh command
+#debug zcmdsh command-shell
+#debug zcmdsh pager
+#debug zcmdsh command-log
 #debug sdplane fdb-change
 #debug sdplane rib
 #debug sdplane netlink
 #debug sdplane vlan-switch
+#debug sdplane linkflap-generator
+#debug sdplane vty-server
+#debug sdplane lthread
+#debug sdplane startup-config
+#debug sdplane l2-repeater
 
-set device 02:00.0 driver unbound
-set device 02:00.0 driver uio_pci_generic driver_override
-set device 02:00.0 driver uio_pci_generic bind
+set device 01:00.0 driver unbound
+set device 01:00.0 driver vfio-pci driver_override
+set device 01:00.0 driver vfio-pci bind
+
+set device 01:00.1 driver unbound
+set device 01:00.1 driver vfio-pci driver_override
+set device 01:00.1 driver vfio-pci bind
 
 set device 03:00.0 driver unbound
 set device 03:00.0 driver uio_pci_generic driver_override
 set device 03:00.0 driver uio_pci_generic bind
 
-set device 04:00.0 driver unbound
-set device 04:00.0 driver uio_pci_generic driver_override
-set device 04:00.0 driver uio_pci_generic bind
-
-# set argv-list 2 ./usr/local/bin/pktgen -l 2-7 -n 4 --proc-type auto --log-level 7 --file-prefix pg -- -v -T -P -l yasu.log -m [4:5].0 -m [6:7].1 -f themes/black-yellow.theme
-
-# set pktgen argv -c 0xf -- -p 0x3 --config="(0,0,1),(1,0,2)"
-# pktgen init
-
-set rte_eal argv -c 0xf
-rte_eal_init
-set mempool
-
+#set argv-list 2 ./usr/local/bin/pktgen -l 0-7 -n 4 --proc-type auto --log-level 7 --file-prefix pg -- -v -T -P -l yasu.log -m [6:7].0 -f themes/black-yellow.theme
 #pktgen init argv-list 2
 
-set tap capture persistent
-set tap capture ifname capture0
+set rte_eal argv -c 0xff
+rte_eal_init
+
+set mempool
+
+set worker lthread rib-manager
+set worker lthread stat-collector
+set worker lthread netlink-thread
+#set worker lthread neigh-manager
+
+# in VMs, sleep seems to be necessary to start lthread immediately.
+sleep 0
 
 # need to stop port before changing ports.
 stop port all
+
+# hogehoge
+
+# set port should be after rib-manager.
 set port all dev-configure 1 4
 set port all nrxdesc 1024
 set port all ntxdesc 1024
 
-set worker lthread stat-collector
-set worker lthread rib-manager
-set worker lthread netlink-thread
-
-# in VM, sleep is necessary to start lthread immediately.
-sleep 0
-
-#set worker lcore 1 vlan-switch
-#set worker lcore 2 vlan-switch
 set worker lcore 1 l2-repeater
 set worker lcore 2 l2-repeater
 set worker lcore 3 tap-handler
 
-set port all promiscuous enable
-start port all
-
 # queue config should be after rib-manager.
 set thread 1 port 0 queue 0
 set thread 2 port 1 queue 0
-set thread 2 port 2 queue 0
+set thread 3 port 2 queue 0
+
+set port all promiscuous enable
+start port all
 
 # waiting for the port to come up.
-sleep 5
+sleep 2
+
 start worker lcore all
-update port status
+#update port status
 
