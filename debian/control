@@ -2,7 +2,7 @@ Source: sdplane
 Section: net
 Priority: optional
 Maintainer: Yasuhiro Ohara <yasu1976@gmail.com>
-Build-Depends: debhelper-compat (= 12), libsdplane (>= 0.3.36-31), liburcu-dev (>= 0.13.1-1)
+Build-Depends: debhelper-compat (= 12), liburcu-dev (>= 0.13.1-1)
 Standards-Version: 4.5.0
 Homepage: http://www.yasuhironet.net/
 
