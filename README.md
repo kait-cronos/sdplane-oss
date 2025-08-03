@@ -180,7 +180,3 @@ The project follows GNU coding standards. Use the provided scripts to check and 
 
 This project is open source. See the LICENSE file for license details.
 
-## Author
-
-Yasuhiro Ohara (yasu1976@gmail.com)
-

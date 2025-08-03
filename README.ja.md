@@ -177,6 +177,3 @@ telnet localhost 9882
 
 本プロジェクトはオープンソースです。ライセンスの詳細についてはLICENSEファイルをご覧ください。
 
-## 作者
-
-小原泰弘（Yasuhiro Ohara）(yasu1976@gmail.com)
