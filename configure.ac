@@ -7,9 +7,7 @@ AC_CONFIG_SRCDIR([sdplane/sdplane.c])
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_CONFIG_HEADERS([config.h])
 AC_PREFIX_DEFAULT(/usr/local)
-LT_INIT
-AC_ENABLE_SHARED
-AC_ENABLE_STATIC
+LT_INIT([disable-shared])
 
 dnl ------------
 dnl Check CFLAGS
