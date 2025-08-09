@@ -34,9 +34,9 @@ DPDK（Data Plane Development Kit）を基盤とした高性能オープンソ�
 
 ### システム要件
 - **OS**：
-  Ubuntu Linux（現在サポート中）
+  Ubuntu 24.04 LTS（現在サポート中）
 - **NIC**：
-  4つのネットワークインターフェース（仮想環境ではvirtio-net対応）
+  [DPDKサポートNIC](https://doc.dpdk.org/guides/nics/)
 - **メモリ**：
   ヒュージページサポートが必要
 - **CPU**：
@@ -45,16 +45,29 @@ DPDK（Data Plane Development Kit）を基盤とした高性能オープンソ�
 ## ハードウェアプラットフォーム
 
 本プロジェクトは以下でテスト済みです：
-- **Topton**：10G NIC搭載ミニPC
-- **Wiretap**：1G NIC搭載ミニPC
+- **Topton (N305/N100)**：10G NIC搭載ミニPC
+- **Partaker (N100)**：1G NIC搭載ミニPC
 
 ### 必須Ubuntuパッケージ
+
+#### ソースからのビルド用
 ```bash
-sudo apt install build-essential cmake \
-                 autotools-dev autoconf automake libtool pkg-config
+# コアビルドツール
+sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
+
+# DPDK前提パッケージ
+sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
+
+# sdplane依存関係
+sudo apt install liburcu-dev libpcap-dev
 ```
 
-### オプションUbuntuパッケージ
+#### Debianパッケージビルド用
+```bash
+sudo apt install build-essential cmake devscripts debhelper
+```
+
+#### オプションパッケージ
 ```bash
 sudo apt install etckeeper tig bridge-utils \
                  iptables-persistent fail2ban dmidecode screen ripgrep
@@ -73,7 +86,9 @@ sudo apt install etckeeper tig bridge-utils \
 # lthreadのインストール
 git clone https://github.com/yasuhironet/lthread
 cd lthread
-# そのリポジトリのビルド手順に従ってください
+cmake .
+make
+sudo make install
 ```
 
 ### 2. sdplane-ossのビルド
@@ -126,7 +141,6 @@ telnet localhost 9882
 - `example-config/sdplane_l2_repeater.conf`：L2リピーター設定
 - `example-config/sdplane_l2fwd.conf`：L2フォワーディング設定
 - `example-config/sdplane_l3fwd-lpm.conf`：LPM付きL3フォワーディング設定
-- `example-config/sdplane-nettlp.conf`：NetTLP設定
 
 ## ユーザーガイド（マニュアル）
 
@@ -143,7 +157,6 @@ telnet localhost 9882
 - [パケット生成](doc/manual/ja/packet-generation.md) - PKTGENを使用したパケット生成
 - [スレッド情報](doc/manual/ja/thread-information.md) - スレッドの情報と監視
 - [TAPインターフェース](doc/manual/ja/tap-interface.md) - TAPインターフェースの管理
-- [NetTLP](doc/manual/ja/nettlp.md) - Network TLP機能
 - [lthread管理](doc/manual/ja/lthread-management.md) - lthreadの管理
 - [デバイス管理](doc/manual/ja/device-management.md) - デバイスとドライバーの管理
 
@@ -153,7 +166,6 @@ telnet localhost 9882
 
 - [Topton インストールガイド](doc/install-memo-topton.txt) - 10G NICシステム用
 - [一般インストールガイド](doc/install-memo.txt) - 1G NICシステム用
-- [NetTLP 設定ガイド](doc/nettlp-memo.txt) - NetTLP設定手順
 - [技術プレゼンテーション](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf)（日本語）
 
 ### コードスタイル

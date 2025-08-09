@@ -36,9 +36,9 @@ software-defined networking applications.
 
 ### System Requirements
 - **OS**:
-  Ubuntu Linux (currently supported)
+  Ubuntu 24.04 LTS (currently supported)
 - **NICs**:
-  4 network interfaces (virtio-net supported for virtual environments)
+  [DPDK supported NICs](https://doc.dpdk.org/guides/nics/)
 - **Memory**:
   Hugepage support required
 - **CPU**:
@@ -47,17 +47,30 @@ software-defined networking applications.
 ## Hardware Platforms
 
 The project has been tested on:
-- **Topton**: Mini-PC with 10G NICs
-- **Wiretap**: Mini-PC with 1G NICs
+- **Topton (N305/N100)**: Mini-PC with 10G NICs
+- **Partaker (N100)**: Mini-PC with 1G NICs
 
 
 ### Prerequisite Ubuntu Packages
+
+#### For Build from Source
 ```bash
-sudo apt install build-essential cmake \
-                 autotools-dev autoconf automake libtool pkg-config
+# Core build tools
+sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
+
+# DPDK prerequisites
+sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
+
+# sdplane dependencies
+sudo apt install liburcu-dev libpcap-dev
 ```
 
-### Optional Ubuntu Packages
+#### For Debian Package Build
+```bash
+sudo apt install build-essential cmake devscripts debhelper
+```
+
+#### Optional Packages
 ```bash
 sudo apt install etckeeper tig bridge-utils \
                  iptables-persistent fail2ban dmidecode screen ripgrep
@@ -76,7 +89,9 @@ First, install the required lthread library:
 # Install lthread
 git clone https://github.com/yasuhironet/lthread
 cd lthread
-# Follow build instructions in that repository
+cmake .
+make
+sudo make install
 ```
 
 ### 2. Build sdplane-oss
@@ -129,7 +144,6 @@ telnet localhost 9882
 - `example-config/sdplane_l2_repeater.conf`: L2 repeater configuration
 - `example-config/sdplane_l2fwd.conf`: L2 forwarding configuration
 - `example-config/sdplane_l3fwd-lpm.conf`: L3 forwarding with LPM configuration
-- `example-config/sdplane-nettlp.conf`: NetTLP configuration
 
 ## User's Guide (Manual)
 
@@ -146,7 +160,6 @@ Comprehensive user guides and command references are available:
 - [Packet Generation](doc/manual/packet-generation.md) - Packet generation using PKTGEN
 - [Thread Information](doc/manual/thread-information.md) - Thread information and monitoring
 - [TAP Interface](doc/manual/tap-interface.md) - TAP interface management
-- [NetTLP](doc/manual/nettlp.md) - Network TLP functions
 - [lthread Management](doc/manual/lthread-management.md) - lthread management
 - [Device Management](doc/manual/device-management.md) - Device and driver management
 
@@ -156,7 +169,6 @@ Comprehensive user guides and command references are available:
 
 - [Topton Installation Guide](doc/install-memo-topton.txt) - For 10G NIC systems
 - [General Installation Guide](doc/install-memo.txt) - For 1G NIC systems
-- [NetTLP Configuration Guide](doc/nettlp-memo.txt) - NetTLP setup instructions
 - [Technical Presentation](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf) (Japanese)
 
 ### Code Style

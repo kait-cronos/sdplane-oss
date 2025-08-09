@@ -16,9 +16,8 @@ sdplane-ossは高性能なDPDKベースのソフトウェアルーターです�
 8. [パケット生成](packet-generation.md) - PKTGENを使用したパケット生成
 9. [スレッド情報](thread-information.md) - スレッドの情報と監視
 10. [TAPインターフェース](tap-interface.md) - TAPインターフェースの管理
-11. [NetTLP](nettlp.md) - Network TLP機能
-12. [lthread管理](lthread-management.md) - lthreadの管理
-13. [デバイス管理](device-management.md) - デバイスとドライバーの管理
+11. [lthread管理](lthread-management.md) - lthreadの管理
+12. [デバイス管理](device-management.md) - デバイスとドライバーの管理
 
 ## 基本的な使い方
 
@@ -65,8 +64,7 @@ sdplaneには79個のコマンドが定義されており、以下の13の機能
 8. **パケット生成** (3コマンド) - PKTGENによるパケット生成
 9. **スレッド情報** (2コマンド) - スレッドの監視
 10. **TAPインターフェース** (2コマンド) - TAPインターフェースの管理
-11. **NetTLP** (16コマンド) - Network TLP機能
-12. **lthread管理** (3コマンド) - lthreadの管理
-13. **デバイス管理** (2コマンド) - デバイスとドライバーの管理
+11. **lthread管理** (3コマンド) - lthreadの管理
+12. **デバイス管理** (2コマンド) - デバイスとドライバーの管理
 
 詳細な使用方法については、各カテゴリのドキュメントを参照してください。
