@@ -6,23 +6,61 @@ DPDKポートの管理と統計情報を扱うコマンドです。
 
 ## コマンド一覧
 
-### start_stop_port - ポートの開始・停止・リセット
+### start_port - ポート開始
 ```
-(start|stop|reset) port (|<0-16>|all)
+start port (|<0-16>|all)
 ```
 
-DPDKポートを開始、停止、またはリセットします。
+DPDKポートを開始します。
 
 **使用例：**
 ```bash
 # ポート0を開始
 start port 0
 
+# 全ポートを開始
+start port all
+
+# ポートを開始（デフォルト）
+start port
+```
+
+### stop_port - ポート停止
+```
+stop port (|<0-16>|all)
+```
+
+DPDKポートを停止します。
+
+**使用例：**
+```bash
+# ポート0を停止
+stop port 0
+
 # 全ポートを停止
 stop port all
 
-# ポート1をリセット
-reset port 1
+# ポートを停止（デフォルト）
+stop port
+```
+
+### reset_port - ポートリセット
+```
+reset port (|<0-16>|all)
+```
+
+DPDKポートをリセットします。
+
+**使用例：**
+```bash
+# ポート0をリセット
+reset port 0
+
+# 全ポートをリセット
+reset port all
+
+# ポートをリセット（デフォルト）
+reset port
 ```
 
 ### show_port - ポート情報の表示
@@ -161,21 +199,33 @@ set port 0 dev-configure 4 4
 set port all dev-configure 1 1
 ```
 
-### set_port_txrx_desc - 送受信ディスクリプタ数設定
+### set_port_nrxdesc - 受信ディスクリプタ数設定
 ```
-set port (<0-16>|all) (nrxdesc|ntxdesc) <0-16384>
+set port (<0-16>|all) nrxdesc <0-16384>
 ```
 
-送受信ディスクリプタ数を設定します。
-
-**オプション：**
-- `nrxdesc` - 受信ディスクリプタ数
-- `ntxdesc` - 送信ディスクリプタ数
+指定したポートの受信ディスクリプタ数を設定します。
 
 **使用例：**
 ```bash
 # ポート0の受信ディスクリプタ数を1024に設定
 set port 0 nrxdesc 1024
+
+# 全ポートの受信ディスクリプタ数を512に設定
+set port all nrxdesc 512
+```
+
+### set_port_ntxdesc - 送信ディスクリプタ数設定
+```
+set port (<0-16>|all) ntxdesc <0-16384>
+```
+
+指定したポートの送信ディスクリプタ数を設定します。
+
+**使用例：**
+```bash
+# ポート0の送信ディスクリプタ数を1024に設定
+set port 0 ntxdesc 1024
 
 # 全ポートの送信ディスクリプタ数を512に設定
 set port all ntxdesc 512

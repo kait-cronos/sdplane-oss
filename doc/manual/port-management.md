@@ -6,23 +6,61 @@ Commands for managing DPDK ports and handling statistics.
 
 ## Command List
 
-### start_stop_port - Start/Stop/Reset Ports
+### start_port - Start Port
 ```
-(start|stop|reset) port (|<0-16>|all)
+start port (|<0-16>|all)
 ```
 
-Start, stop, or reset DPDK ports.
+Start DPDK ports.
 
 **Examples:**
 ```bash
 # Start port 0
 start port 0
 
+# Start all ports
+start port all
+
+# Start port (current default)
+start port
+```
+
+### stop_port - Stop Port
+```
+stop port (|<0-16>|all)
+```
+
+Stop DPDK ports.
+
+**Examples:**
+```bash
+# Stop port 0
+stop port 0
+
 # Stop all ports
 stop port all
 
-# Reset port 1
-reset port 1
+# Stop port (current default)
+stop port
+```
+
+### reset_port - Reset Port
+```
+reset port (|<0-16>|all)
+```
+
+Reset DPDK ports.
+
+**Examples:**
+```bash
+# Reset port 0
+reset port 0
+
+# Reset all ports
+reset port all
+
+# Reset port (current default)
+reset port
 ```
 
 ### show_port - Display Port Information
@@ -161,21 +199,33 @@ set port 0 dev-configure 4 4
 set port all dev-configure 1 1
 ```
 
-### set_port_txrx_desc - Set TX/RX Descriptor Count
+### set_port_nrxdesc - Set RX Descriptor Count
 ```
-set port (<0-16>|all) (nrxdesc|ntxdesc) <0-16384>
+set port (<0-16>|all) nrxdesc <0-16384>
 ```
 
-Set the number of transmit/receive descriptors.
-
-**Options:**
-- `nrxdesc` - Number of receive descriptors
-- `ntxdesc` - Number of transmit descriptors
+Set the number of receive descriptors for specified ports.
 
 **Examples:**
 ```bash
 # Set receive descriptor count to 1024 for port 0
 set port 0 nrxdesc 1024
+
+# Set receive descriptor count to 512 for all ports
+set port all nrxdesc 512
+```
+
+### set_port_ntxdesc - Set TX Descriptor Count
+```
+set port (<0-16>|all) ntxdesc <0-16384>
+```
+
+Set the number of transmit descriptors for specified ports.
+
+**Examples:**
+```bash
+# Set transmit descriptor count to 1024 for port 0
+set port 0 ntxdesc 1024
 
 # Set transmit descriptor count to 512 for all ports
 set port all ntxdesc 512
