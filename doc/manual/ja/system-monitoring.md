@@ -60,10 +60,7 @@ set argv-list 0 "--verbose"
 set argv-list 1 "--config"
 ```
 
-### show_argv_list - argv-list表示
-```
-show argv-list
-```
+### **show argv-list**
 
 設定された全てのコマンドライン引数リストを表示します。
 
@@ -73,10 +70,9 @@ show argv-list
 show argv-list
 ```
 
-### show_argv_list_specific - 特定argv-list表示
-```
-show argv-list <0-7>
-```
+---
+
+### **show argv-list \<0-7\>**
 
 特定のインデックスのargv-listを表示します。
 

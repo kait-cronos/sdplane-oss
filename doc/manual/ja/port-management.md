@@ -6,10 +6,7 @@ DPDKポートの管理と統計情報を扱うコマンドです。
 
 ## コマンド一覧
 
-### start_port - ポート開始
-```
-start port
-```
+### **start port**
 
 DPDKポートを開始します（デフォルト動作）。
 
@@ -19,10 +16,9 @@ DPDKポートを開始します（デフォルト動作）。
 start port
 ```
 
-### start_port_specific - 特定ポート開始
-```
-start port <0-16>
-```
+---
+
+### **start port \<0-16\>**
 
 特定のDPDKポートを開始します。
 
@@ -35,10 +31,9 @@ start port 0
 start port 1
 ```
 
-### start_port_all - 全ポート開始
-```
-start port all
-```
+---
+
+### **start port all**
 
 全てのDPDKポートを開始します。
 
@@ -48,10 +43,9 @@ start port all
 start port all
 ```
 
-### stop_port - ポート停止
-```
-stop port
-```
+---
+
+### **stop port**
 
 DPDKポートを停止します（デフォルト動作）。
 
@@ -61,10 +55,9 @@ DPDKポートを停止します（デフォルト動作）。
 stop port
 ```
 
-### stop_port_specific - 特定ポート停止
-```
-stop port <0-16>
-```
+---
+
+### **stop port \<0-16\>**
 
 特定のDPDKポートを停止します。
 
@@ -77,10 +70,9 @@ stop port 0
 stop port 1
 ```
 
-### stop_port_all - 全ポート停止
-```
-stop port all
-```
+---
+
+### **stop port all**
 
 全てのDPDKポートを停止します。
 
@@ -90,10 +82,9 @@ stop port all
 stop port all
 ```
 
-### reset_port - ポートリセット
-```
-reset port
-```
+---
+
+### **reset port**
 
 DPDKポートをリセットします（デフォルト動作）。
 
@@ -103,10 +94,9 @@ DPDKポートをリセットします（デフォルト動作）。
 reset port
 ```
 
-### reset_port_specific - 特定ポートリセット
-```
-reset port <0-16>
-```
+---
+
+### **reset port \<0-16\>**
 
 特定のDPDKポートをリセットします。
 
@@ -119,10 +109,9 @@ reset port 0
 reset port 1
 ```
 
-### reset_port_all - 全ポートリセット
-```
-reset port all
-```
+---
+
+### **reset port all**
 
 全てのDPDKポートをリセットします。
 
@@ -132,10 +121,9 @@ reset port all
 reset port all
 ```
 
-### show_port - ポート情報の表示
-```
-show port
-```
+---
+
+### **show port**
 
 全ポートの基本情報を表示します（デフォルト動作）。
 
@@ -145,10 +133,9 @@ show port
 show port
 ```
 
-### show_port_specific - 特定ポート情報の表示
-```
-show port <0-16>
-```
+---
+
+### **show port \<0-16\>**
 
 特定のポートの基本情報を表示します。
 
@@ -161,10 +148,9 @@ show port 0
 show port 1
 ```
 
-### show_port_all - 全ポート情報の表示
-```
-show port all
-```
+---
+
+### **show port all**
 
 全ポートの情報を明示的に表示します。
 
@@ -174,10 +160,9 @@ show port all
 show port all
 ```
 
-### show_port_statistics - ポート統計情報の表示
-```
-show port statistics
-```
+---
+
+### **show port statistics**
 
 全てのポート統計情報を表示します。
 
@@ -187,10 +172,9 @@ show port statistics
 show port statistics
 ```
 
-### show_port_statistics_pps - PPS統計表示
-```
-show port statistics pps
-```
+---
+
+### **show port statistics pps**
 
 パケット/秒の統計を表示します。
 
@@ -200,10 +184,9 @@ show port statistics pps
 show port statistics pps
 ```
 
-### show_port_statistics_total - 総パケット統計表示
-```
-show port statistics total
-```
+---
+
+### **show port statistics total**
 
 総パケット数の統計を表示します。
 
@@ -213,10 +196,9 @@ show port statistics total
 show port statistics total
 ```
 
-### show_port_statistics_bps - BPS統計表示
-```
-show port statistics bps
-```
+---
+
+### **show port statistics bps**
 
 ビット/秒の統計を表示します。
 
@@ -226,10 +208,9 @@ show port statistics bps
 show port statistics bps
 ```
 
-### show_port_statistics_Bps - バイト/秒統計表示
-```
-show port statistics Bps
-```
+---
+
+### **show port statistics Bps**
 
 バイト/秒の統計を表示します。
 
@@ -239,10 +220,9 @@ show port statistics Bps
 show port statistics Bps
 ```
 
-### show_port_statistics_total_bytes - 総バイト数統計表示
-```
-show port statistics total-bytes
-```
+---
+
+### **show port statistics total-bytes**
 
 総バイト数の統計を表示します。
 

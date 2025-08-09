@@ -60,10 +60,7 @@ set argv-list 0 "--verbose"
 set argv-list 1 "--config"
 ```
 
-### show_argv_list - Display argv-list
-```
-show argv-list
-```
+### **show argv-list**
 
 Display all configured command line argument list.
 
@@ -73,10 +70,9 @@ Display all configured command line argument list.
 show argv-list
 ```
 
-### show_argv_list_specific - Display Specific argv-list
-```
-show argv-list <0-7>
-```
+---
+
+### **show argv-list \<0-7\>**
 
 Display specific index argv-list.
 

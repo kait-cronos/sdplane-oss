@@ -6,10 +6,7 @@ Commands for managing DPDK ports and handling statistics.
 
 ## Command List
 
-### start_port - Start Port
-```
-start port
-```
+### **start port**
 
 Start DPDK ports (default behavior).
 
@@ -19,10 +16,9 @@ Start DPDK ports (default behavior).
 start port
 ```
 
-### start_port_specific - Start Specific Port
-```
-start port <0-16>
-```
+---
+
+### **start port \<0-16\>**
 
 Start a specific DPDK port.
 
@@ -35,10 +31,9 @@ start port 0
 start port 1
 ```
 
-### start_port_all - Start All Ports
-```
-start port all
-```
+---
+
+### **start port all**
 
 Start all DPDK ports.
 
@@ -48,10 +43,9 @@ Start all DPDK ports.
 start port all
 ```
 
-### stop_port - Stop Port
-```
-stop port
-```
+---
+
+### **stop port**
 
 Stop DPDK ports (default behavior).
 
@@ -61,10 +55,9 @@ Stop DPDK ports (default behavior).
 stop port
 ```
 
-### stop_port_specific - Stop Specific Port
-```
-stop port <0-16>
-```
+---
+
+### **stop port \<0-16\>**
 
 Stop a specific DPDK port.
 
@@ -77,10 +70,9 @@ stop port 0
 stop port 1
 ```
 
-### stop_port_all - Stop All Ports
-```
-stop port all
-```
+---
+
+### **stop port all**
 
 Stop all DPDK ports.
 
@@ -90,10 +82,9 @@ Stop all DPDK ports.
 stop port all
 ```
 
-### reset_port - Reset Port
-```
-reset port
-```
+---
+
+### **reset port**
 
 Reset DPDK ports (default behavior).
 
@@ -103,10 +94,9 @@ Reset DPDK ports (default behavior).
 reset port
 ```
 
-### reset_port_specific - Reset Specific Port
-```
-reset port <0-16>
-```
+---
+
+### **reset port \<0-16\>**
 
 Reset a specific DPDK port.
 
@@ -119,10 +109,9 @@ reset port 0
 reset port 1
 ```
 
-### reset_port_all - Reset All Ports
-```
-reset port all
-```
+---
+
+### **reset port all**
 
 Reset all DPDK ports.
 
@@ -132,10 +121,9 @@ Reset all DPDK ports.
 reset port all
 ```
 
-### show_port - Display Port Information
-```
-show port
-```
+---
+
+### **show port**
 
 Display basic information for all ports (default behavior).
 
@@ -145,10 +133,9 @@ Display basic information for all ports (default behavior).
 show port
 ```
 
-### show_port_specific - Display Specific Port Information
-```
-show port <0-16>
-```
+---
+
+### **show port \<0-16\>**
 
 Display basic information for a specific port.
 
@@ -161,10 +148,9 @@ show port 0
 show port 1
 ```
 
-### show_port_all - Display All Port Information
-```
-show port all
-```
+---
+
+### **show port all**
 
 Explicitly display information for all ports.
 
@@ -174,10 +160,9 @@ Explicitly display information for all ports.
 show port all
 ```
 
-### show_port_statistics - Display Port Statistics
-```
-show port statistics
-```
+---
+
+### **show port statistics**
 
 Display all port statistics information.
 
@@ -187,10 +172,9 @@ Display all port statistics information.
 show port statistics
 ```
 
-### show_port_statistics_pps - Display PPS Statistics
-```
-show port statistics pps
-```
+---
+
+### **show port statistics pps**
 
 Display packets per second statistics.
 
@@ -200,10 +184,9 @@ Display packets per second statistics.
 show port statistics pps
 ```
 
-### show_port_statistics_total - Display Total Packet Statistics
-```
-show port statistics total
-```
+---
+
+### **show port statistics total**
 
 Display total packet count statistics.
 
@@ -213,10 +196,9 @@ Display total packet count statistics.
 show port statistics total
 ```
 
-### show_port_statistics_bps - Display BPS Statistics
-```
-show port statistics bps
-```
+---
+
+### **show port statistics bps**
 
 Display bits per second statistics.
 
@@ -226,10 +208,9 @@ Display bits per second statistics.
 show port statistics bps
 ```
 
-### show_port_statistics_Bps - Display Bytes Per Second Statistics
-```
-show port statistics Bps
-```
+---
+
+### **show port statistics Bps**
 
 Display bytes per second statistics.
 
@@ -239,10 +220,9 @@ Display bytes per second statistics.
 show port statistics Bps
 ```
 
-### show_port_statistics_total_bytes - Display Total Bytes Statistics
-```
-show port statistics total-bytes
-```
+---
+
+### **show port statistics total-bytes**
 
 Display total byte count statistics.
 
