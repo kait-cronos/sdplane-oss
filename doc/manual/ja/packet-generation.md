@@ -43,16 +43,12 @@ pktgen init argv-list 0
 pktgen init argv-list 2
 ```
 
-### pktgen_do - PKTGENコマンド実行
+### pktgen_do_start - PKTGEN開始
 ```
-pktgen do (start|stop) (<0-7>|all)
+pktgen do start (<0-7>|all)
 ```
 
-PKTGENの開始または停止を実行します。
-
-**コマンド：**
-- `start` - パケット生成を開始
-- `stop` - パケット生成を停止
+指定されたポートでパケット生成を開始します。
 
 **対象：**
 - `<0-7>` - 特定のポート番号
@@ -65,7 +61,21 @@ pktgen do start 0
 
 # 全ポートでパケット生成を開始
 pktgen do start all
+```
 
+### pktgen_do_stop - PKTGEN停止
+```
+pktgen do stop (<0-7>|all)
+```
+
+指定されたポートでパケット生成を停止します。
+
+**対象：**
+- `<0-7>` - 特定のポート番号
+- `all` - 全ポート
+
+**使用例：**
+```bash
 # ポート1でパケット生成を停止
 pktgen do stop 1
 

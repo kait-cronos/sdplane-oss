@@ -25,26 +25,41 @@ set tap capture ifname tap0
 set tap capture ifname tap1
 ```
 
-### set_tap_capture_persistent - TAPキャプチャ永続化設定
+### set_tap_capture_persistent - TAPキャプチャ永続化有効化
 ```
-(set|no|unset) tap capture persistent
+set tap capture persistent
 ```
 
-TAPキャプチャの永続化設定を行います。
-
-**コマンド：**
-- `set` - 永続化を有効化
-- `no` - 永続化を無効化
-- `unset` - 永続化設定を削除
+TAPキャプチャの永続化を有効化します。
 
 **使用例：**
 ```bash
 # 永続化を有効化
 set tap capture persistent
+```
 
+### no_tap_capture_persistent - TAPキャプチャ永続化無効化
+```
+no tap capture persistent
+```
+
+TAPキャプチャの永続化を無効化します。
+
+**使用例：**
+```bash
 # 永続化を無効化
 no tap capture persistent
+```
 
+### unset_tap_capture_persistent - TAPキャプチャ永続化設定削除
+```
+unset tap capture persistent
+```
+
+TAPキャプチャの永続化設定を削除します。
+
+**使用例：**
+```bash
 # 永続化設定を削除
 unset tap capture persistent
 ```

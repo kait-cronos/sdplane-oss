@@ -26,57 +26,145 @@ DPDK（Data Plane Development Kit）を基盤とした高性能オープンソ�
 - **スレッド**：lthreadベースの協調マルチタスク
 - **仮想化**：TAPインターフェースと仮想スイッチング
 
-## クイックスタート（Debianパッケージ）
+## サポートシステム
 
-（準備中）
-
-## ソースからのビルド
-
-### システム要件
+### ソフトウェア要件
 - **OS**：
-  Ubuntu Linux（現在サポート中）
+  Ubuntu 24.04 LTS（現在サポート中）
 - **NIC**：
-  4つのネットワークインターフェース（仮想環境ではvirtio-net対応）
+  [ドライバー](https://doc.dpdk.org/guides/nics/) | [サポートNIC](https://core.dpdk.org/supported/)
 - **メモリ**：
   ヒュージページサポートが必要
 - **CPU**：
   マルチコアプロセッサ推奨
 
-## ハードウェアプラットフォーム
+### 対象ハードウェアプラットフォーム
 
 本プロジェクトは以下でテスト済みです：
-- **Topton**：10G NIC搭載ミニPC
-- **Wiretap**：1G NIC搭載ミニPC
+- **Topton (N305/N100)**：10G NIC搭載ミニPC
+- **Partaker (N100)**：1G NIC搭載ミニPC
 
-### 必須Ubuntuパッケージ
+Intel (Core i7/9、Xeon)、AMD、ARM CPU等のほかのCPUでも動かない理由はありません。
+
+## クイックスタート（Debianパッケージ）
+
+簡単インストールのため、ビルド済みDebianパッケージをダウンロード・インストールします：
+
 ```bash
-sudo apt install build-essential cmake \
-                 autotools-dev autoconf automake libtool pkg-config
+# 最新パッケージのダウンロード
+wget https://www.yasuhironet.net/download/partaker/2025-06/sdplane_0.1.3-48_amd64.deb
+
+# パッケージのインストール
+sudo apt install ./sdplane_0.1.3-48_amd64.deb
+
+# サービスの開始
+sudo systemctl enable sdplane
+sudo systemctl start sdplane
+
+# CLIに接続
+telnet localhost 9882
 ```
 
-### オプションUbuntuパッケージ
+**注意**: 最新パッケージバージョンについては [yasuhironet.net ダウンロード](https://www.yasuhironet.net/download/)を確認してください。
+
+## ソースからのビルド
+
+### 依存関係
+- **liburcu-qsbr**：ユーザー空間RCUライブラリ
+- **libpcap**：パケットキャプチャライブラリ
+- **lthread**：[yasuhironet/lthread](https://github.com/yasuhironet/lthread)（軽量協調スレッド）
+- **DPDK**：Data Plane Development Kit
+
+### 必須Ubuntuパッケージ
+
+#### ソースからのビルド用
+```bash
+# コアビルドツール
+sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
+
+# DPDK前提パッケージ
+sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
+
+# sdplane依存関係
+sudo apt install liburcu-dev libpcap-dev
+```
+
+#### Debianパッケージビルド用
+```bash
+sudo apt install build-essential cmake devscripts debhelper
+```
+
+#### オプションパッケージ
 ```bash
 sudo apt install etckeeper tig bridge-utils \
                  iptables-persistent fail2ban dmidecode screen ripgrep
 ```
 
-### 依存関係
-- **DPDK**：Data Plane Development Kit
-- **lthread**：[yasuhironet/lthread](https://github.com/yasuhironet/lthread)（DPDKベース協調スレッド）
-- **liburcu-qsbr**：ユーザー空間RCUライブラリ
-- **libpcap**：パケットキャプチャライブラリ
-
 ### 1. 依存関係のインストール
 
-まず、必要なlthreadライブラリをインストールします：
+#### lthreadのインストール
 ```bash
 # lthreadのインストール
 git clone https://github.com/yasuhironet/lthread
 cd lthread
-# そのリポジトリのビルド手順に従ってください
+cmake .
+make
+sudo make install
 ```
 
-### 2. sdplane-ossのビルド
+#### DPDK 23.11.1のインストール
+```bash
+# DPDKのダウンロードと展開
+wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
+tar vxJf dpdk-23.11.1.tar.xz
+cd dpdk-stable-23.11.1
+
+# DPDKのビルドとインストール
+meson setup build
+cd build
+ninja
+sudo meson install
+sudo ldconfig
+
+# インストールの確認
+pkg-config --modversion libdpdk
+# 出力例: 23.11.1
+```
+
+### 2. システム設定
+
+#### ヒュージページの設定
+```bash
+# GRUB設定の編集
+sudo vi /etc/default/grub
+
+# 以下のいずれかの行を追加:
+# 2MBヒュージページの場合 (1536ページ = 約3GB):
+GRUB_CMDLINE_LINUX="hugepages=1536"
+
+# または1GBヒュージページの場合 (8ページ = 8GB):
+GRUB_CMDLINE_LINUX="default_hugepagesz=1G hugepagesz=1G hugepages=8"
+
+# GRUBを更新して再起動
+sudo update-grub
+sudo reboot
+```
+
+#### DPDK IGBカーネルモジュールのインストール（オプション）
+```bash
+# 方法1: パッケージからインストール
+sudo apt-get install -y dpdk-igb-uio-dkms
+
+# 方法2: ソースからビルド
+git clone http://dpdk.org/git/dpdk-kmods
+cd dpdk-kmods/linux/igb_uio
+make
+sudo mkdir -p /lib/modules/`uname -r`/extra/dpdk/
+sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
+echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
+```
+
+### 3. ソースからsdplane-ossのビルド
 
 ```bash
 # リポジトリのクローン
@@ -93,7 +181,18 @@ CFLAGS="-g -O0" sh ../configure
 make
 ```
 
-### 3. ソフトウェアルーターの実行
+### 4. sdplane-oss Debianパッケージのビルド（オプション）
+
+```bash
+# ソースからDebianパッケージをビルド
+cd sdplane-oss
+./build-debian.sh
+
+# 生成されたパッケージをインストール
+sudo apt install ../sdplane_*.deb
+```
+
+### 5. ソフトウェアルーターの実行
 
 ```bash
 # フォアグラウンドで実行
@@ -116,17 +215,15 @@ telnet localhost 9882
 ### 設定ファイル
 
 #### OS設定（`etc/`）
-- `etc/sdplane.conf.sample`：メイン設定テンプレート
-- `etc/sdplane.service`：systemdサービスファイル
-- `etc/modules-load.d/`：カーネルモジュール読み込み設定
+- [`etc/sdplane.conf.sample`](etc/sdplane.conf.sample)：メイン設定テンプレート
+- [`etc/sdplane.service`](etc/sdplane.service)：systemdサービスファイル
+- [`etc/modules-load.d/`](etc/modules-load.d/)：カーネルモジュール読み込み設定
 
 #### アプリケーション設定（`example-config/`）
-- `example-config/sdplane-pktgen.conf`：パケットジェネレーター設定
-- `example-config/sdplane-topton.conf`：Toptonハードウェア設定
-- `example-config/sdplane_l2_repeater.conf`：L2リピーター設定
-- `example-config/sdplane_l2fwd.conf`：L2フォワーディング設定
-- `example-config/sdplane_l3fwd-lpm.conf`：LPM付きL3フォワーディング設定
-- `example-config/sdplane-nettlp.conf`：NetTLP設定
+- [`example-config/sdplane-pktgen.conf`](example-config/sdplane-pktgen.conf)：パケットジェネレーター設定
+- [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf)：Toptonハードウェア設定
+- [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf)：L2リピーター設定
+- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf)：拡張リピーター設定
 
 ## ユーザーガイド（マニュアル）
 
@@ -143,7 +240,6 @@ telnet localhost 9882
 - [パケット生成](doc/manual/ja/packet-generation.md) - PKTGENを使用したパケット生成
 - [スレッド情報](doc/manual/ja/thread-information.md) - スレッドの情報と監視
 - [TAPインターフェース](doc/manual/ja/tap-interface.md) - TAPインターフェースの管理
-- [NetTLP](doc/manual/ja/nettlp.md) - Network TLP機能
 - [lthread管理](doc/manual/ja/lthread-management.md) - lthreadの管理
 - [デバイス管理](doc/manual/ja/device-management.md) - デバイスとドライバーの管理
 
@@ -151,9 +247,7 @@ telnet localhost 9882
 
 ### ドキュメント
 
-- [Topton インストールガイド](doc/install-memo-topton.txt) - 10G NICシステム用
 - [一般インストールガイド](doc/install-memo.txt) - 1G NICシステム用
-- [NetTLP 設定ガイド](doc/nettlp-memo.txt) - NetTLP設定手順
 - [技術プレゼンテーション](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf)（日本語）
 
 ### コードスタイル
@@ -172,5 +266,5 @@ telnet localhost 9882
 
 ## ライセンス
 
-本プロジェクトはオープンソースです。ライセンスの詳細についてはLICENSEファイルをご覧ください。
+本プロジェクトはMITライセンスの下でライセンスされています。詳細については[LICENSE](LICENSE)ファイルをご覧ください。
 

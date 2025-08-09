@@ -6,12 +6,12 @@ DPDKワーカースレッドとlcoreの管理を行うコマンドです。
 
 ## コマンド一覧
 
-### set_worker - ワーカーの設定
+### set_worker - ワーカータイプ設定
 ```
-(set|reset|start|restart) worker lcore <0-16> (|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater|nettlp-thread|vlan-switch|pktgen|linkflap-generator)
+set worker lcore <0-16> (|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater|vlan-switch|pktgen|linkflap-generator)
 ```
 
-指定されたlcoreにワーカーを設定・リセット・開始・再開始します。
+指定されたlcoreにワーカータイプを設定します。
 
 **ワーカータイプ：**
 - `none` - ワーカーなし
@@ -20,7 +20,6 @@ DPDKワーカースレッドとlcoreの管理を行うコマンドです。
 - `l3fwd-lpm` - Layer 3フォワーディング (LPM)
 - `tap-handler` - TAPインターフェースハンドラー
 - `l2-repeater` - Layer 2リピーター
-- `nettlp-thread` - NetTLPスレッド
 - `vlan-switch` - VLANスイッチ
 - `pktgen` - パケットジェネレーター
 - `linkflap-generator` - リンクフラップジェネレーター
@@ -30,36 +29,114 @@ DPDKワーカースレッドとlcoreの管理を行うコマンドです。
 # lcore 1にL2フォワーディングワーカーを設定
 set worker lcore 1 l2fwd
 
+# lcore 2にワーカーなしを設定
+set worker lcore 2 none
+
+# lcore 3にL3フォワーディング(LPM)ワーカーを設定
+set worker lcore 3 l3fwd-lpm
+```
+
+### reset_worker - ワーカーリセット
+```
+reset worker lcore <0-16>
+```
+
+指定されたlcoreのワーカーをリセットします。
+
+**使用例：**
+```bash
 # lcore 2のワーカーをリセット
 reset worker lcore 2
+```
 
-# lcore 3にL3フォワーディング(LPM)ワーカーを開始
-start worker lcore 3 l3fwd-lpm
+### start_worker - ワーカー開始
+```
+start worker lcore <0-16>
+```
 
+指定されたlcoreのワーカーを開始します。
+
+**使用例：**
+```bash
+# lcore 1のワーカーを開始
+start worker lcore 1
+```
+
+### restart_worker - ワーカー再開始
+```
+restart worker lcore <0-16>
+```
+
+指定されたlcoreのワーカーを再開始します。
+
+**使用例：**
+```bash
 # lcore 4のワーカーを再開始
 restart worker lcore 4
 ```
 
-### start_stop_worker - ワーカーの開始・停止
+### start_worker_all - ワーカー開始（allオプション付き）
 ```
-(start|stop|reset|restart) worker lcore (<0-16>|all)
+start worker lcore (<0-16>|all)
 ```
 
-指定されたlcoreのワーカーを開始・停止・リセット・再開始します。
+指定されたlcoreまたは全lcoreのワーカーを開始します。
 
 **使用例：**
 ```bash
 # lcore 1のワーカーを開始
 start worker lcore 1
 
+# 全ワーカーを開始
+start worker lcore all
+```
+
+### stop_worker - ワーカー停止
+```
+stop worker lcore (<0-16>|all)
+```
+
+指定されたlcoreまたは全lcoreのワーカーを停止します。
+
+**使用例：**
+```bash
+# lcore 1のワーカーを停止
+stop worker lcore 1
+
 # 全ワーカーを停止
 stop worker lcore all
+```
 
+### reset_worker_all - ワーカーリセット（allオプション付き）
+```
+reset worker lcore (<0-16>|all)
+```
+
+指定されたlcoreまたは全lcoreのワーカーをリセットします。
+
+**使用例：**
+```bash
 # lcore 2のワーカーをリセット
 reset worker lcore 2
 
+# 全ワーカーをリセット
+reset worker lcore all
+```
+
+### restart_worker_all - ワーカー再開始（allオプション付き）
+```
+restart worker lcore (<0-16>|all)
+```
+
+指定されたlcoreまたは全lcoreのワーカーを再開始します。
+
+**使用例：**
+```bash
 # lcore 3のワーカーを再開始
 restart worker lcore 3
+
+# 全ワーカーを再開始
+restart worker lcore all
 ```
 
 ### show_worker - ワーカー情報の表示
@@ -128,8 +205,6 @@ TAPインターフェースとDPDKポート間でのパケット転送を行う�
 ### L2リピーター (l2-repeater)
 Layer 2レベルでのパケット複製・リピートを行うワーカーです。
 
-### NetTLPスレッド (nettlp-thread)
-Network TLP（Transaction Layer Protocol）機能を処理するワーカーです。
 
 ### VLANスイッチ (vlan-switch)
 VLAN（Virtual LAN）機能を提供するスイッチングワーカーです。

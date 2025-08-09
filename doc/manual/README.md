@@ -16,9 +16,8 @@ sdplane-oss is a high-performance DPDK-based software router. This user guide de
 8. [Packet Generation](packet-generation.md) - Packet generation using PKTGEN
 9. [Thread Information](thread-information.md) - Thread information and monitoring
 10. [TAP Interface](tap-interface.md) - TAP interface management
-11. [NetTLP](nettlp.md) - Network TLP functions
-12. [lthread Management](lthread-management.md) - lthread management
-13. [Device Management](device-management.md) - Device and driver management
+11. [lthread Management](lthread-management.md) - lthread management
+12. [Device Management](device-management.md) - Device and driver management
 
 ## Basic Usage
 
@@ -65,8 +64,7 @@ sdplane has 79 commands defined, classified into the following 13 functional cat
 8. **Packet Generation** (3 commands) - Packet generation using PKTGEN
 9. **Thread Information** (2 commands) - Thread monitoring
 10. **TAP Interface** (2 commands) - TAP interface management
-11. **NetTLP** (16 commands) - Network TLP functions
-12. **lthread Management** (3 commands) - lthread management
-13. **Device Management** (2 commands) - Device and driver management
+11. **lthread Management** (3 commands) - lthread management
+12. **Device Management** (2 commands) - Device and driver management
 
 For detailed usage instructions, please refer to the documentation for each category.

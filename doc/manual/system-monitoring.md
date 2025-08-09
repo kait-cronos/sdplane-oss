@@ -60,20 +60,29 @@ set argv-list 0 "--verbose"
 set argv-list 1 "--config"
 ```
 
-### show_argv_list - Display argv-list
-```
-show argv-list (|<0-7>)
-```
+### **show argv-list**
 
-Display configured command line argument list.
+Display all configured command line argument list.
 
 **Examples:**
 ```bash
 # Display all argv-list
 show argv-list
+```
 
+---
+
+### **show argv-list \<0-7\>**
+
+Display specific index argv-list.
+
+**Examples:**
+```bash
 # Display specific index argv-list
 show argv-list 0
+
+# Display argv-list index 3
+show argv-list 3
 ```
 
 ### show_loop_count - Display Loop Counter
