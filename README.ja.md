@@ -1,4 +1,4 @@
-# sdplane-dev (ソフトデータプレーン)
+# sdplane-oss (ソフトデータプレーン)
 
 DPDK（Data Plane Development Kit）を基盤とした高性能オープンソースソフトウェアルーターで、ソフトウェア定義ネットワークアプリケーション向けに設計されています。
 
@@ -62,32 +62,26 @@ sudo apt install etckeeper tig bridge-utils \
 
 ### 依存関係
 - **DPDK**：Data Plane Development Kit
-- **libsdplane-dev**：[kait-cronos/libsdplane-dev](https://github.com/kait-cronos/libsdplane-dev)（別途ビルド・インストール）
 - **lthread**：[yasuhironet/lthread](https://github.com/yasuhironet/lthread)（DPDKベース協調スレッド）
 - **liburcu-qsbr**：ユーザー空間RCUライブラリ
 - **libpcap**：パケットキャプチャライブラリ
 
 ### 1. 依存関係のインストール
 
-まず、必要なライブラリをインストール・ビルドします：
+まず、必要なlthreadライブラリをインストールします：
 ```bash
-# libsdplane-devのインストール（ソースからビルド）
-git clone https://github.com/kait-cronos/libsdplane-dev
-cd libsdplane-dev
-# そのリポジトリのビルド手順に従ってください
-
 # lthreadのインストール
 git clone https://github.com/yasuhironet/lthread
 cd lthread
 # そのリポジトリのビルド手順に従ってください
 ```
 
-### 2. sdplane-devのビルド
+### 2. sdplane-ossのビルド
 
 ```bash
 # リポジトリのクローン
-git clone https://github.com/kait-cronos/sdplane-dev
-cd sdplane-dev
+git clone https://github.com/kait-cronos/sdplane-oss
+cd sdplane-oss
 
 # ビルドファイルの生成
 ./autogen.sh

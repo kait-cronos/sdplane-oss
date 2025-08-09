@@ -1,8 +1,8 @@
-# sdplane-dev User's Guide
+# sdplane-oss User's Guide
 
 **Language / 言語:** **English** | [Japanese](ja/README.md)
 
-sdplane-dev is a high-performance DPDK-based software router. This user guide describes all commands and features of sdplane.
+sdplane-oss is a high-performance DPDK-based software router. This user guide describes all commands and features of sdplane.
 
 ## Table of Contents
 

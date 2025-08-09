@@ -1,8 +1,8 @@
-# sdplane-dev ユーザーガイド
+# sdplane-oss ユーザーガイド
 
 **言語 / Language:** [English](../README.md) | **日本語**
 
-sdplane-devは高性能なDPDKベースのソフトウェアルーターです。このユーザーガイドでは、sdplaneの全コマンドと機能について説明します。
+sdplane-ossは高性能なDPDKベースのソフトウェアルーターです。このユーザーガイドでは、sdplaneの全コマンドと機能について説明します。
 
 ## 目次
 
