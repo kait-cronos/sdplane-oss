@@ -44,6 +44,8 @@ DPDK（Data Plane Development Kit）を基盤とした高性能オープンソ�
 - **Topton (N305/N100)**：10G NIC搭載ミニPC
 - **Partaker (N100)**：1G NIC搭載ミニPC
 
+Intel (Core i7/9、Xeon)、AMD、ARM CPU等のほかのCPUでも動かない理由はありません。
+
 ## クイックスタート（Debianパッケージ）
 
 簡単インストールのため、ビルド済みDebianパッケージをダウンロード・インストールします：
@@ -213,15 +215,15 @@ telnet localhost 9882
 ### 設定ファイル
 
 #### OS設定（`etc/`）
-- `etc/sdplane.conf.sample`：メイン設定テンプレート
-- `etc/sdplane.service`：systemdサービスファイル
-- `etc/modules-load.d/`：カーネルモジュール読み込み設定
+- [`etc/sdplane.conf.sample`](etc/sdplane.conf.sample)：メイン設定テンプレート
+- [`etc/sdplane.service`](etc/sdplane.service)：systemdサービスファイル
+- [`etc/modules-load.d/`](etc/modules-load.d/)：カーネルモジュール読み込み設定
 
 #### アプリケーション設定（`example-config/`）
-- `example-config/sdplane-pktgen.conf`：パケットジェネレーター設定
-- `example-config/sdplane-topton.conf`：Toptonハードウェア設定
-- `example-config/sdplane_l2_repeater.conf`：L2リピーター設定
-- `example-config/sdplane_enhanced_repeater.conf`：拡張リピーター設定
+- [`example-config/sdplane-pktgen.conf`](example-config/sdplane-pktgen.conf)：パケットジェネレーター設定
+- [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf)：Toptonハードウェア設定
+- [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf)：L2リピーター設定
+- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf)：拡張リピーター設定
 
 ## ユーザーガイド（マニュアル）
 

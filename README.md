@@ -47,6 +47,8 @@ The project has been tested on:
 - **Topton (N305/N100)**: Mini-PC with 10G NICs
 - **Partaker (N100)**: Mini-PC with 1G NICs
 
+There is no reason to believe the sdplane-oss doesn't work on other CPUs such as Intel (Core i7/9, Xeon), AMD, ARM processors, etc.
+
 ## Quick Start by Debian Package
 
 For quick installation, download and install the pre-built Debian package:
@@ -218,15 +220,15 @@ telnet localhost 9882
 ### Configuration Files
 
 #### OS Setup Configuration (`etc/`)
-- `etc/sdplane.conf.sample`: Main configuration template
-- `etc/sdplane.service`: systemd service file
-- `etc/modules-load.d/`: Kernel module loading configuration
+- [`etc/sdplane.conf.sample`](etc/sdplane.conf.sample): Main configuration template
+- [`etc/sdplane.service`](etc/sdplane.service): systemd service file
+- [`etc/modules-load.d/`](etc/modules-load.d/): Kernel module loading configuration
 
 #### Application Configuration (`example-config/`)
-- `example-config/sdplane-pktgen.conf`: Packet generator configuration
-- `example-config/sdplane-topton.conf`: Topton hardware configuration
-- `example-config/sdplane_l2_repeater.conf`: L2 repeater configuration
-- `example-config/sdplane_enhanced_repeater.conf`: Enhanced repeater configuration
+- [`example-config/sdplane-pktgen.conf`](example-config/sdplane-pktgen.conf): Packet generator configuration
+- [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf): Topton hardware configuration
+- [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf): L2 repeater configuration
+- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf): Enhanced repeater configuration
 
 ## User's Guide (Manual)
 
