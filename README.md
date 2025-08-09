@@ -29,12 +29,9 @@ software-defined networking applications.
 - **Threading**: lthread-based cooperative multitasking
 - **Virtualization**: TAP interfaces and virtual switching
 
-## Quick Start by Debian Package
+## Supported System
 
-
-## Build from Source
-
-### System Requirements
+### Software Requirements
 - **OS**:
   Ubuntu 24.04 LTS (currently supported)
 - **NICs**:
@@ -44,11 +41,35 @@ software-defined networking applications.
 - **CPU**:
   Multi-core processor recommended
 
-## Hardware Platforms
+### Target Hardware Platforms
 
 The project has been tested on:
 - **Topton (N305/N100)**: Mini-PC with 10G NICs
 - **Partaker (N100)**: Mini-PC with 1G NICs
+
+## Quick Start by Debian Package
+
+For quick installation, download and install the pre-built Debian package:
+
+```bash
+# Download the latest package
+wget https://www.yasuhironet.net/download/partaker/2025-06/sdplane_0.1.3-48_amd64.deb
+
+# Install the package
+sudo apt install ./sdplane_0.1.3-48_amd64.deb
+
+# Start the service
+sudo systemctl enable sdplane
+sudo systemctl start sdplane
+
+# Connect to CLI
+telnet localhost 9882
+```
+
+**Note**: Check [yasuhironet.net downloads](https://www.yasuhironet.net/download/) for the latest package version.
+
+
+## Build from Source
 
 
 ### Prerequisite Ubuntu Packages
@@ -84,7 +105,7 @@ sudo apt install etckeeper tig bridge-utils \
 
 ### 1. Install Dependencies
 
-First, install the required lthread library:
+#### Install lthread
 ```bash
 # Install lthread
 git clone https://github.com/yasuhironet/lthread
@@ -94,7 +115,59 @@ make
 sudo make install
 ```
 
-### 2. Build sdplane-oss
+#### Install DPDK 23.11.1
+```bash
+# Download and extract DPDK
+wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
+tar vxJf dpdk-23.11.1.tar.xz
+cd dpdk-stable-23.11.1
+
+# Build and install DPDK
+meson setup build
+cd build
+ninja
+sudo meson install
+sudo ldconfig
+
+# Verify installation
+pkg-config --modversion libdpdk
+# Should output: 23.11.1
+```
+
+### 2. System Configuration
+
+#### Configure Hugepages
+```bash
+# Edit GRUB configuration
+sudo vi /etc/default/grub
+
+# Add one of the following lines:
+# For 2MB hugepages (1536 pages = ~3GB):
+GRUB_CMDLINE_LINUX="hugepages=1536"
+
+# Or for 1GB hugepages (8 pages = 8GB):
+GRUB_CMDLINE_LINUX="default_hugepagesz=1G hugepagesz=1G hugepages=8"
+
+# Update GRUB and reboot
+sudo update-grub
+sudo reboot
+```
+
+#### Install DPDK Kernel Modules (Optional)
+```bash
+# Option 1: Install from package
+sudo apt-get install -y dpdk-igb-uio-dkms
+
+# Option 2: Build from source
+git clone http://dpdk.org/git/dpdk-kmods
+cd dpdk-kmods/linux/igb_uio
+make
+sudo mkdir -p /lib/modules/`uname -r`/extra/dpdk/
+sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
+echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
+```
+
+### 3. Build sdplane-oss
 
 ```bash
 # Clone the repository

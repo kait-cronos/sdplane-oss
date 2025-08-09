@@ -26,13 +26,9 @@ DPDK（Data Plane Development Kit）を基盤とした高性能オープンソ�
 - **スレッド**：lthreadベースの協調マルチタスク
 - **仮想化**：TAPインターフェースと仮想スイッチング
 
-## クイックスタート（Debianパッケージ）
+## サポートシステム
 
-（準備中）
-
-## ソースからのビルド
-
-### システム要件
+### ソフトウェア要件
 - **OS**：
   Ubuntu 24.04 LTS（現在サポート中）
 - **NIC**：
@@ -42,11 +38,34 @@ DPDK（Data Plane Development Kit）を基盤とした高性能オープンソ�
 - **CPU**：
   マルチコアプロセッサ推奨
 
-## ハードウェアプラットフォーム
+### 対象ハードウェアプラットフォーム
 
 本プロジェクトは以下でテスト済みです：
 - **Topton (N305/N100)**：10G NIC搭載ミニPC
 - **Partaker (N100)**：1G NIC搭載ミニPC
+
+## クイックスタート（Debianパッケージ）
+
+簡単インストールのため、ビルド済みDebianパッケージをダウンロード・インストールします：
+
+```bash
+# 最新パッケージのダウンロード
+wget https://www.yasuhironet.net/download/partaker/2025-06/sdplane_0.1.3-48_amd64.deb
+
+# パッケージのインストール
+sudo apt install ./sdplane_0.1.3-48_amd64.deb
+
+# サービスの開始
+sudo systemctl enable sdplane
+sudo systemctl start sdplane
+
+# CLIに接続
+telnet localhost 9882
+```
+
+**注意**: 最新パッケージバージョンについては [yasuhironet.net ダウンロード](https://www.yasuhironet.net/download/)を確認してください。
+
+## ソースからのビルド
 
 ### 必須Ubuntuパッケージ
 
@@ -81,7 +100,7 @@ sudo apt install etckeeper tig bridge-utils \
 
 ### 1. 依存関係のインストール
 
-まず、必要なlthreadライブラリをインストールします：
+#### lthreadのインストール
 ```bash
 # lthreadのインストール
 git clone https://github.com/yasuhironet/lthread
@@ -91,7 +110,59 @@ make
 sudo make install
 ```
 
-### 2. sdplane-ossのビルド
+#### DPDK 23.11.1のインストール
+```bash
+# DPDKのダウンロードと展開
+wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
+tar vxJf dpdk-23.11.1.tar.xz
+cd dpdk-stable-23.11.1
+
+# DPDKのビルドとインストール
+meson setup build
+cd build
+ninja
+sudo meson install
+sudo ldconfig
+
+# インストールの確認
+pkg-config --modversion libdpdk
+# 出力例: 23.11.1
+```
+
+### 2. システム設定
+
+#### ヒュージページの設定
+```bash
+# GRUB設定の編集
+sudo vi /etc/default/grub
+
+# 以下のいずれかの行を追加:
+# 2MBヒュージページの場合 (1536ページ = 約3GB):
+GRUB_CMDLINE_LINUX="hugepages=1536"
+
+# または1GBヒュージページの場合 (8ページ = 8GB):
+GRUB_CMDLINE_LINUX="default_hugepagesz=1G hugepagesz=1G hugepages=8"
+
+# GRUBを更新して再起動
+sudo update-grub
+sudo reboot
+```
+
+#### DPDKカーネルモジュールのインストール（オプション）
+```bash
+# 方法1: パッケージからインストール
+sudo apt-get install -y dpdk-igb-uio-dkms
+
+# 方法2: ソースからビルド
+git clone http://dpdk.org/git/dpdk-kmods
+cd dpdk-kmods/linux/igb_uio
+make
+sudo mkdir -p /lib/modules/`uname -r`/extra/dpdk/
+sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
+echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
+```
+
+### 3. sdplane-ossのビルド
 
 ```bash
 # リポジトリのクローン
