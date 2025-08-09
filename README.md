@@ -73,6 +73,11 @@ telnet localhost 9882
 
 ## Build from Source
 
+### Dependencies
+- **liburcu-qsbr**: Userspace RCU library
+- **libpcap**: Packet capture library
+- **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (lightweight cooperative threading)
+- **DPDK**: Data Plane Development Kit
 
 ### Prerequisite Ubuntu Packages
 
@@ -98,12 +103,6 @@ sudo apt install build-essential cmake devscripts debhelper
 sudo apt install etckeeper tig bridge-utils \
                  iptables-persistent fail2ban dmidecode screen ripgrep
 ```
-
-### Dependencies
-- **DPDK**: Data Plane Development Kit
-- **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (DPDK-based cooperative threading)
-- **liburcu-qsbr**: Userspace RCU library
-- **libpcap**: Packet capture library
 
 ### 1. Install Dependencies
 

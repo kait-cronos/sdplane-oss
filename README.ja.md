@@ -69,6 +69,12 @@ telnet localhost 9882
 
 ## ソースからのビルド
 
+### 依存関係
+- **liburcu-qsbr**：ユーザー空間RCUライブラリ
+- **libpcap**：パケットキャプチャライブラリ
+- **lthread**：[yasuhironet/lthread](https://github.com/yasuhironet/lthread)（軽量協調スレッド）
+- **DPDK**：Data Plane Development Kit
+
 ### 必須Ubuntuパッケージ
 
 #### ソースからのビルド用
@@ -93,12 +99,6 @@ sudo apt install build-essential cmake devscripts debhelper
 sudo apt install etckeeper tig bridge-utils \
                  iptables-persistent fail2ban dmidecode screen ripgrep
 ```
-
-### 依存関係
-- **DPDK**：Data Plane Development Kit
-- **lthread**：[yasuhironet/lthread](https://github.com/yasuhironet/lthread)（DPDKベース協調スレッド）
-- **liburcu-qsbr**：ユーザー空間RCUライブラリ
-- **libpcap**：パケットキャプチャライブラリ
 
 ### 1. 依存関係のインストール
 
