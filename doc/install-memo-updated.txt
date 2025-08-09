@@ -1,0 +1,166 @@
+
+***********************
+* Ubuntu Setup
+***********************
+* timezone 設定
+  # timedatectl set-timezone Asia/Tokyo
+
+* locale
+  # locale-gen en_US.UTF-8
+  # update-locale LANG=en_US.utf8 LC_ALL=en_US.utf8
+
+* unattended upgrades を無効化
+  # vi /etc/apt/apt.conf.d/20auto-upgrades
+  APT::Periodic::Unattended-Upgrade "0";
+
+* apt install
+  $ sudo apt install screen ripgrep tig 
+  $ sudo apt install cmake build-essential devscripts debhelper
+  $ sudo apt install dmidecode etckeeper fail2ban iptables-persistent
+
+  - etckeeper
+  - tig
+  - build-essential
+  - bridge-utils
+  - cmake
+  - iptables-persistent
+    + save current IPv4 rules: yes.
+    + save current IPv6 rules: yes.
+  - fail2ban
+  - devscripts
+  - debhelper
+
+  (以下は optional だが、install しておくと良い)
+
+  - dmidecode (入ってる)
+  - screen (入ってる)
+  - ripgrep
+
+* lthread を compile & install
+  $ git clone https://github.com/yasuhironet/lthread.git
+  $ cd lthread
+  $ cmake .
+  $ make
+  # make install
+
+* sdplane prerequisites
+  $ sudo apt install liburcu-dev libpcap-dev
+  (libpcap for pktgen)
+
+* DPDK prerequisites:
+  $ sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
+
+  - python3 (もう入ってる)
+  - python3-pip
+  - meson ninja-build
+  - python3-pyelftools
+  - libnuma-dev
+  - pkgconf
+
+* DPDK 23.11.1 を install
+  $ wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
+  $ tar vxJf dpdk-23.11.1.tar.xz
+  $ cd dpdk-stable-23.11.1
+  $ meson setup build
+  $ cd build
+  $ ninja (コンパイル、結構時間かかる)
+  # meson install
+  # ldconfig
+
+  確認:
+  $ pkg-config --modversion libdpdk
+  23.11.1
+
+* Hugepage メモリ設定
+  (2MB hugepage を1500, 1GbE x 2 で必要。NICによってもっと必要かも。)
+  # vi /etc/default/grub:
+    GRUB_CMDLINE_LINUX="hugepages=1536"
+         or
+    GRUB_CMDLINE_LINUX="default_hugepagesz=1G hugepagesz=1G hugepages=8"
+  # update-grub
+
+* igb_uio の install
+  $ sudo apt-get install -y dpdk-igb-uio-dkms
+     or
+  $ git clone http://dpdk.org/git/dpdk-kmods
+  $ cd dpdk-kmods/linux/igb_uio
+  $ make
+  # mkdir -p /lib/modules/`uname -r`/extra/dpdk/
+  # cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
+  # echo igb_uio > /etc/modules-load.d/igb_uio.conf
+
+* sdplane の install
+  $ wget https://www.yasuhironet.net/download/partaker/2025-06/sdplane_0.1.3-48_amd64.deb
+  $ sudo apt install ./sdplane_0.1.3-48_amd64.deb
+
+* netplan config install:
+  # rm -f /etc/netplan/*.yaml
+  # cp -f /etc/sdplane/60-netplan-sdplane.yaml /etc/netplan/
+
+* iptables rules files install:
+  # cp -f /etc/sdplane/iptables-rules.v4 /etc/iptables/rules.v4
+  # cp -f /etc/sdplane/iptables-rules.v6 /etc/iptables/rules.v6
+
+* sshd config file install:
+  # cp -f /etc/sdplane/sshd_config /etc/sshd/
+  - PasswordAuthentication no
+  - コメントアウト(無効化)してあるが、末尾に
+    192.168.0.0/8 10.0.0.0/8 172.16.0.0/16 からのみ PasswordAuth の設定。
+
+* sdplane startup config:
+  # cp -f /etc/sdplane/modules-load.d/*.conf /etc/modules-load.d/
+  # cp -f /etc/sdplane/sdplane.conf.sample /etc/sdplane/sdplane.conf
+
+* systemd enable
+  # systemctl enable sdplane
+  # systemctl start sdplane
+
+* etckeeper commit
+  # etckeeper commit
+
+***********************
+* Ubuntu 再起動と確認。
+***********************
+* 再起動。
+
+* Hugepage メモリ確認
+  - yasu@partaker:~$ cat /proc/cmdline 
+    BOOT_IMAGE=/boot/vmlinuz-5.15.0-105-generic root=UUID=3f88f6e6-e21e-4e77-97be-c4182f46240c ro hugepages=1536
+
+  - yasu@partaker:~$ cat /proc/meminfo  | grep -i huge
+    AnonHugePages:         0 kB
+    ShmemHugePages:        0 kB
+    FileHugePages:         0 kB
+    HugePages_Total:    1536
+    HugePages_Free:      289
+    HugePages_Rsvd:        0
+    HugePages_Surp:        0
+    Hugepagesize:       2048 kB
+    Hugetlb:         3145728 kB
+
+* NIC を DPDK に attach (必要であれば)
+  $ sudo modprobe vfio-pci
+  $ sudo dpdk-devbind.py -b vfio-pci 01:00.0 01:00.1 03:00.0
+
+* sdplane の起動 (systemctl は dpkg 版installの場合)
+  $ sudo systemctl start sdplane
+
+* sdplaneの起動を確認
+  $ systemctl status sdplane
+
+* sdplaneシェルにアクセス、バナーを確認・保存
+  telnet localhost 9882
+  Trying 127.0.0.1...
+  Connected to localhost.
+  Escape character is '^]'.
+  welcome to sdplane vty_shell.
+  sdplane version: 0.0.9e
+  signature: partaker x86_64 enp1s0: 00:e0:67:30:d9:ba
+  vty[1]> 
+
+***********************
+* 温度・消費電力監視
+***********************
+sudo turbostat --Summary --quiet --show Busy%,Avg_MHz,PkgTmp,PkgWatt --interval 10
+
+
