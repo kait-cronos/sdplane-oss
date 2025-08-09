@@ -163,6 +163,9 @@ telnet localhost 9882
 # フォーマットの確認
 ./style/check_gnu_style.sh check
 
+# フォーマットの差分表示
+./style/check_gnu_style.sh diff
+
 # コードの自動フォーマット
 ./style/check_gnu_style.sh update
 ```
