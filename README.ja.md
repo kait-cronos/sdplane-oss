@@ -148,7 +148,7 @@ sudo update-grub
 sudo reboot
 ```
 
-#### DPDKカーネルモジュールのインストール（オプション）
+#### DPDK IGBカーネルモジュールのインストール（オプション）
 ```bash
 # 方法1: パッケージからインストール
 sudo apt-get install -y dpdk-igb-uio-dkms
@@ -221,6 +221,7 @@ telnet localhost 9882
 - `example-config/sdplane-pktgen.conf`：パケットジェネレーター設定
 - `example-config/sdplane-topton.conf`：Toptonハードウェア設定
 - `example-config/sdplane_l2_repeater.conf`：L2リピーター設定
+- `example-config/sdplane_enhanced_repeater.conf`：拡張リピーター設定
 
 ## ユーザーガイド（マニュアル）
 
@@ -244,7 +245,6 @@ telnet localhost 9882
 
 ### ドキュメント
 
-- [Topton インストールガイド](doc/install-memo-topton.txt) - 10G NICシステム用
 - [一般インストールガイド](doc/install-memo.txt) - 1G NICシステム用
 - [技術プレゼンテーション](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf)（日本語）
 
@@ -264,5 +264,5 @@ telnet localhost 9882
 
 ## ライセンス
 
-本プロジェクトはオープンソースです。ライセンスの詳細についてはLICENSEファイルをご覧ください。
+本プロジェクトはMITライセンスの下でライセンスされています。詳細については[LICENSE](LICENSE)ファイルをご覧ください。
 

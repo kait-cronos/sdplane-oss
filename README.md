@@ -153,7 +153,7 @@ sudo update-grub
 sudo reboot
 ```
 
-#### Install DPDK Kernel Modules (Optional)
+#### Install DPDK IGB Kernel Module (Optional)
 ```bash
 # Option 1: Install from package
 sudo apt-get install -y dpdk-igb-uio-dkms
@@ -226,6 +226,7 @@ telnet localhost 9882
 - `example-config/sdplane-pktgen.conf`: Packet generator configuration
 - `example-config/sdplane-topton.conf`: Topton hardware configuration
 - `example-config/sdplane_l2_repeater.conf`: L2 repeater configuration
+- `example-config/sdplane_enhanced_repeater.conf`: Enhanced repeater configuration
 
 ## User's Guide (Manual)
 
@@ -249,7 +250,6 @@ Comprehensive user guides and command references are available:
 
 ### Documentation
 
-- [Topton Installation Guide](doc/install-memo-topton.txt) - For 10G NIC systems
 - [General Installation Guide](doc/install-memo.txt) - For 1G NIC systems
 - [Technical Presentation](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf) (Japanese)
 
@@ -269,5 +269,5 @@ The project follows GNU coding standards. Use the provided scripts to check and 
 
 ## License
 
-This project is open source. See the LICENSE file for license details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for license details.
 
