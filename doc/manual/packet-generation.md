@@ -43,16 +43,12 @@ pktgen init argv-list 0
 pktgen init argv-list 2
 ```
 
-### pktgen_do - Execute PKTGEN Commands
+### pktgen_do_start - Start PKTGEN
 ```
-pktgen do (start|stop) (<0-7>|all)
+pktgen do start (<0-7>|all)
 ```
 
-Start or stop packet generation.
-
-**Commands:**
-- `start` - Start packet generation
-- `stop` - Stop packet generation
+Start packet generation on specified ports.
 
 **Target:**
 - `<0-7>` - Specific port number
@@ -65,7 +61,21 @@ pktgen do start 0
 
 # Start packet generation on all ports
 pktgen do start all
+```
 
+### pktgen_do_stop - Stop PKTGEN
+```
+pktgen do stop (<0-7>|all)
+```
+
+Stop packet generation on specified ports.
+
+**Target:**
+- `<0-7>` - Specific port number
+- `all` - All ports
+
+**Examples:**
+```bash
 # Stop packet generation on port 1
 pktgen do stop 1
 

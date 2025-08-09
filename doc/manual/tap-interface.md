@@ -25,26 +25,41 @@ set tap capture ifname tap0
 set tap capture ifname tap1
 ```
 
-### set_tap_capture_persistent - Set TAP Capture Persistence
+### set_tap_capture_persistent - Enable TAP Capture Persistence
 ```
-(set|no|unset) tap capture persistent
+set tap capture persistent
 ```
 
-Configure TAP capture persistence settings.
-
-**Commands:**
-- `set` - Enable persistence
-- `no` - Disable persistence
-- `unset` - Remove persistence setting
+Enable TAP capture persistence.
 
 **Examples:**
 ```bash
 # Enable persistence
 set tap capture persistent
+```
 
+### no_tap_capture_persistent - Disable TAP Capture Persistence
+```
+no tap capture persistent
+```
+
+Disable TAP capture persistence.
+
+**Examples:**
+```bash
 # Disable persistence
 no tap capture persistent
+```
 
+### unset_tap_capture_persistent - Remove TAP Capture Persistence Setting
+```
+unset tap capture persistent
+```
+
+Remove TAP capture persistence setting.
+
+**Examples:**
+```bash
 # Remove persistence setting
 unset tap capture persistent
 ```
