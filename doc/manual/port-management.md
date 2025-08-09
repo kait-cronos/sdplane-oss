@@ -8,102 +8,246 @@ Commands for managing DPDK ports and handling statistics.
 
 ### start_port - Start Port
 ```
-start port (|<0-16>|all)
+start port
 ```
 
-Start DPDK ports.
+Start DPDK ports (default behavior).
+
+**Examples:**
+```bash
+# Start port (default)
+start port
+```
+
+### start_port_specific - Start Specific Port
+```
+start port <0-16>
+```
+
+Start a specific DPDK port.
 
 **Examples:**
 ```bash
 # Start port 0
 start port 0
 
+# Start port 1
+start port 1
+```
+
+### start_port_all - Start All Ports
+```
+start port all
+```
+
+Start all DPDK ports.
+
+**Examples:**
+```bash
 # Start all ports
 start port all
-
-# Start port (current default)
-start port
 ```
 
 ### stop_port - Stop Port
 ```
-stop port (|<0-16>|all)
+stop port
 ```
 
-Stop DPDK ports.
+Stop DPDK ports (default behavior).
+
+**Examples:**
+```bash
+# Stop port (default)
+stop port
+```
+
+### stop_port_specific - Stop Specific Port
+```
+stop port <0-16>
+```
+
+Stop a specific DPDK port.
 
 **Examples:**
 ```bash
 # Stop port 0
 stop port 0
 
+# Stop port 1
+stop port 1
+```
+
+### stop_port_all - Stop All Ports
+```
+stop port all
+```
+
+Stop all DPDK ports.
+
+**Examples:**
+```bash
 # Stop all ports
 stop port all
-
-# Stop port (current default)
-stop port
 ```
 
 ### reset_port - Reset Port
 ```
-reset port (|<0-16>|all)
+reset port
 ```
 
-Reset DPDK ports.
+Reset DPDK ports (default behavior).
+
+**Examples:**
+```bash
+# Reset port (default)
+reset port
+```
+
+### reset_port_specific - Reset Specific Port
+```
+reset port <0-16>
+```
+
+Reset a specific DPDK port.
 
 **Examples:**
 ```bash
 # Reset port 0
 reset port 0
 
+# Reset port 1
+reset port 1
+```
+
+### reset_port_all - Reset All Ports
+```
+reset port all
+```
+
+Reset all DPDK ports.
+
+**Examples:**
+```bash
 # Reset all ports
 reset port all
-
-# Reset port (current default)
-reset port
 ```
 
 ### show_port - Display Port Information
 ```
-show port (|<0-16>|all)
+show port
 ```
 
-Display basic information for specified ports.
+Display basic information for all ports (default behavior).
 
 **Examples:**
 ```bash
 # Display information for all ports
 show port
+```
 
+### show_port_specific - Display Specific Port Information
+```
+show port <0-16>
+```
+
+Display basic information for a specific port.
+
+**Examples:**
+```bash
 # Display information for port 0
 show port 0
 
+# Display information for port 1
+show port 1
+```
+
+### show_port_all - Display All Port Information
+```
+show port all
+```
+
+Explicitly display information for all ports.
+
+**Examples:**
+```bash
 # Explicitly display information for all ports
 show port all
 ```
 
 ### show_port_statistics - Display Port Statistics
 ```
-show port statistics (|pps|total|bps|Bps|total-bytes)
+show port statistics
 ```
 
-Display port statistics information.
-
-**Options:**
-- `pps` - Packets per second
-- `total` - Total packet count
-- `bps` - Bits per second
-- `Bps` - Bytes per second
-- `total-bytes` - Total byte count
+Display all port statistics information.
 
 **Examples:**
 ```bash
 # Display all statistics
 show port statistics
+```
 
+### show_port_statistics_pps - Display PPS Statistics
+```
+show port statistics pps
+```
+
+Display packets per second statistics.
+
+**Examples:**
+```bash
 # Display only PPS statistics
 show port statistics pps
+```
 
+### show_port_statistics_total - Display Total Packet Statistics
+```
+show port statistics total
+```
+
+Display total packet count statistics.
+
+**Examples:**
+```bash
+# Display total packet count
+show port statistics total
+```
+
+### show_port_statistics_bps - Display BPS Statistics
+```
+show port statistics bps
+```
+
+Display bits per second statistics.
+
+**Examples:**
+```bash
+# Display bits per second
+show port statistics bps
+```
+
+### show_port_statistics_Bps - Display Bytes Per Second Statistics
+```
+show port statistics Bps
+```
+
+Display bytes per second statistics.
+
+**Examples:**
+```bash
+# Display bytes per second
+show port statistics Bps
+```
+
+### show_port_statistics_total_bytes - Display Total Bytes Statistics
+```
+show port statistics total-bytes
+```
+
+Display total byte count statistics.
+
+**Examples:**
+```bash
 # Display total bytes
 show port statistics total-bytes
 ```

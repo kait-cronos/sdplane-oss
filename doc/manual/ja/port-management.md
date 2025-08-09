@@ -8,102 +8,246 @@ DPDKポートの管理と統計情報を扱うコマンドです。
 
 ### start_port - ポート開始
 ```
-start port (|<0-16>|all)
+start port
 ```
 
-DPDKポートを開始します。
+DPDKポートを開始します（デフォルト動作）。
+
+**使用例：**
+```bash
+# ポートを開始（デフォルト）
+start port
+```
+
+### start_port_specific - 特定ポート開始
+```
+start port <0-16>
+```
+
+特定のDPDKポートを開始します。
 
 **使用例：**
 ```bash
 # ポート0を開始
 start port 0
 
+# ポート1を開始
+start port 1
+```
+
+### start_port_all - 全ポート開始
+```
+start port all
+```
+
+全てのDPDKポートを開始します。
+
+**使用例：**
+```bash
 # 全ポートを開始
 start port all
-
-# ポートを開始（デフォルト）
-start port
 ```
 
 ### stop_port - ポート停止
 ```
-stop port (|<0-16>|all)
+stop port
 ```
 
-DPDKポートを停止します。
+DPDKポートを停止します（デフォルト動作）。
+
+**使用例：**
+```bash
+# ポートを停止（デフォルト）
+stop port
+```
+
+### stop_port_specific - 特定ポート停止
+```
+stop port <0-16>
+```
+
+特定のDPDKポートを停止します。
 
 **使用例：**
 ```bash
 # ポート0を停止
 stop port 0
 
+# ポート1を停止
+stop port 1
+```
+
+### stop_port_all - 全ポート停止
+```
+stop port all
+```
+
+全てのDPDKポートを停止します。
+
+**使用例：**
+```bash
 # 全ポートを停止
 stop port all
-
-# ポートを停止（デフォルト）
-stop port
 ```
 
 ### reset_port - ポートリセット
 ```
-reset port (|<0-16>|all)
+reset port
 ```
 
-DPDKポートをリセットします。
+DPDKポートをリセットします（デフォルト動作）。
+
+**使用例：**
+```bash
+# ポートをリセット（デフォルト）
+reset port
+```
+
+### reset_port_specific - 特定ポートリセット
+```
+reset port <0-16>
+```
+
+特定のDPDKポートをリセットします。
 
 **使用例：**
 ```bash
 # ポート0をリセット
 reset port 0
 
+# ポート1をリセット
+reset port 1
+```
+
+### reset_port_all - 全ポートリセット
+```
+reset port all
+```
+
+全てのDPDKポートをリセットします。
+
+**使用例：**
+```bash
 # 全ポートをリセット
 reset port all
-
-# ポートをリセット（デフォルト）
-reset port
 ```
 
 ### show_port - ポート情報の表示
 ```
-show port (|<0-16>|all)
+show port
 ```
 
-指定されたポートの基本情報を表示します。
+全ポートの基本情報を表示します（デフォルト動作）。
 
 **使用例：**
 ```bash
 # 全ポートの情報を表示
 show port
+```
 
+### show_port_specific - 特定ポート情報の表示
+```
+show port <0-16>
+```
+
+特定のポートの基本情報を表示します。
+
+**使用例：**
+```bash
 # ポート0の情報を表示
 show port 0
 
+# ポート1の情報を表示
+show port 1
+```
+
+### show_port_all - 全ポート情報の表示
+```
+show port all
+```
+
+全ポートの情報を明示的に表示します。
+
+**使用例：**
+```bash
 # 全ポートの情報を明示的に表示
 show port all
 ```
 
 ### show_port_statistics - ポート統計情報の表示
 ```
-show port statistics (|pps|total|bps|Bps|total-bytes)
+show port statistics
 ```
 
-ポートの統計情報を表示します。
-
-**オプション：**
-- `pps` - パケット/秒
-- `total` - 総パケット数
-- `bps` - ビット/秒
-- `Bps` - バイト/秒
-- `total-bytes` - 総バイト数
+全てのポート統計情報を表示します。
 
 **使用例：**
 ```bash
 # 全統計情報を表示
 show port statistics
+```
 
+### show_port_statistics_pps - PPS統計表示
+```
+show port statistics pps
+```
+
+パケット/秒の統計を表示します。
+
+**使用例：**
+```bash
 # PPS統計のみ表示
 show port statistics pps
+```
 
+### show_port_statistics_total - 総パケット統計表示
+```
+show port statistics total
+```
+
+総パケット数の統計を表示します。
+
+**使用例：**
+```bash
+# 総パケット数を表示
+show port statistics total
+```
+
+### show_port_statistics_bps - BPS統計表示
+```
+show port statistics bps
+```
+
+ビット/秒の統計を表示します。
+
+**使用例：**
+```bash
+# ビット/秒を表示
+show port statistics bps
+```
+
+### show_port_statistics_Bps - バイト/秒統計表示
+```
+show port statistics Bps
+```
+
+バイト/秒の統計を表示します。
+
+**使用例：**
+```bash
+# バイト/秒を表示
+show port statistics Bps
+```
+
+### show_port_statistics_total_bytes - 総バイト数統計表示
+```
+show port statistics total-bytes
+```
+
+総バイト数の統計を表示します。
+
+**使用例：**
+```bash
 # 総バイト数を表示
 show port statistics total-bytes
 ```

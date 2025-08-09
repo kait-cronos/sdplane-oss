@@ -62,18 +62,31 @@ set argv-list 1 "--config"
 
 ### show_argv_list - argv-list表示
 ```
-show argv-list (|<0-7>)
+show argv-list
 ```
 
-設定されたコマンドライン引数リストを表示します。
+設定された全てのコマンドライン引数リストを表示します。
 
 **使用例：**
 ```bash
 # 全てのargv-listを表示
 show argv-list
+```
 
+### show_argv_list_specific - 特定argv-list表示
+```
+show argv-list <0-7>
+```
+
+特定のインデックスのargv-listを表示します。
+
+**使用例：**
+```bash
 # 特定のインデックスのargv-listを表示
 show argv-list 0
+
+# argv-listインデックス3を表示
+show argv-list 3
 ```
 
 ### show_loop_count - ループカウンター表示
