@@ -166,6 +166,9 @@ The project follows GNU coding standards. Use the provided scripts to check and 
 # Check formatting
 ./style/check_gnu_style.sh check
 
+# Show formatting differences
+./style/check_gnu_style.sh diff
+
 # Auto-format code
 ./style/check_gnu_style.sh update
 ```
