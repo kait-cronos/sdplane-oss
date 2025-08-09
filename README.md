@@ -35,7 +35,7 @@ software-defined networking applications.
 - **OS**:
   Ubuntu 24.04 LTS (currently supported)
 - **NICs**:
-  [DPDK supported NICs](https://doc.dpdk.org/guides/nics/)
+  [Drivers](https://doc.dpdk.org/guides/nics/) | [Supported NICs](https://core.dpdk.org/supported/)
 - **Memory**:
   Hugepage support required
 - **CPU**:
@@ -167,7 +167,7 @@ sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
 echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 ```
 
-### 3. Build sdplane-oss
+### 3. Build sdplane-oss from Source
 
 ```bash
 # Clone the repository
@@ -184,7 +184,18 @@ CFLAGS="-g -O0" sh ../configure
 make
 ```
 
-### 3. Run the Software Router
+### 4. Build sdplane-oss Debian Package (Optional)
+
+```bash
+# Build Debian package from source
+cd sdplane-oss
+./build-debian.sh
+
+# Install the generated package
+sudo apt install ../sdplane_*.deb
+```
+
+### 5. Run the Software Router
 
 ```bash
 # Run in foreground
@@ -215,8 +226,6 @@ telnet localhost 9882
 - `example-config/sdplane-pktgen.conf`: Packet generator configuration
 - `example-config/sdplane-topton.conf`: Topton hardware configuration
 - `example-config/sdplane_l2_repeater.conf`: L2 repeater configuration
-- `example-config/sdplane_l2fwd.conf`: L2 forwarding configuration
-- `example-config/sdplane_l3fwd-lpm.conf`: L3 forwarding with LPM configuration
 
 ## User's Guide (Manual)
 

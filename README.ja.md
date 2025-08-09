@@ -32,7 +32,7 @@ DPDK（Data Plane Development Kit）を基盤とした高性能オープンソ�
 - **OS**：
   Ubuntu 24.04 LTS（現在サポート中）
 - **NIC**：
-  [DPDKサポートNIC](https://doc.dpdk.org/guides/nics/)
+  [ドライバー](https://doc.dpdk.org/guides/nics/) | [サポートNIC](https://core.dpdk.org/supported/)
 - **メモリ**：
   ヒュージページサポートが必要
 - **CPU**：
@@ -162,7 +162,7 @@ sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
 echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 ```
 
-### 3. sdplane-ossのビルド
+### 3. ソースからsdplane-ossのビルド
 
 ```bash
 # リポジトリのクローン
@@ -179,7 +179,18 @@ CFLAGS="-g -O0" sh ../configure
 make
 ```
 
-### 3. ソフトウェアルーターの実行
+### 4. sdplane-oss Debianパッケージのビルド（オプション）
+
+```bash
+# ソースからDebianパッケージをビルド
+cd sdplane-oss
+./build-debian.sh
+
+# 生成されたパッケージをインストール
+sudo apt install ../sdplane_*.deb
+```
+
+### 5. ソフトウェアルーターの実行
 
 ```bash
 # フォアグラウンドで実行
@@ -210,8 +221,6 @@ telnet localhost 9882
 - `example-config/sdplane-pktgen.conf`：パケットジェネレーター設定
 - `example-config/sdplane-topton.conf`：Toptonハードウェア設定
 - `example-config/sdplane_l2_repeater.conf`：L2リピーター設定
-- `example-config/sdplane_l2fwd.conf`：L2フォワーディング設定
-- `example-config/sdplane_l3fwd-lpm.conf`：LPM付きL3フォワーディング設定
 
 ## ユーザーガイド（マニュアル）
 
