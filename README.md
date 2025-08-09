@@ -1,5 +1,5 @@
 
-# sdplane-dev (Soft Data Plane)
+# sdplane-oss (Soft Data Plane)
 
 A high-performance open-source software router built on
 DPDK (Data Plane Development Kit), designed for
@@ -65,32 +65,26 @@ sudo apt install etckeeper tig bridge-utils \
 
 ### Dependencies
 - **DPDK**: Data Plane Development Kit
-- **libsdplane-dev**: [kait-cronos/libsdplane-dev](https://github.com/kait-cronos/libsdplane-dev) (build and install separately)
 - **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (DPDK-based cooperative threading)
 - **liburcu-qsbr**: Userspace RCU library
 - **libpcap**: Packet capture library
 
 ### 1. Install Dependencies
 
-First, install and build the required libraries:
+First, install the required lthread library:
 ```bash
-# Install libsdplane-dev (build from source)
-git clone https://github.com/kait-cronos/libsdplane-dev
-cd libsdplane-dev
-# Follow build instructions in that repository
-
 # Install lthread
 git clone https://github.com/yasuhironet/lthread
 cd lthread
 # Follow build instructions in that repository
 ```
 
-### 2. Build sdplane-dev
+### 2. Build sdplane-oss
 
 ```bash
 # Clone the repository
-git clone https://github.com/kait-cronos/sdplane-dev
-cd sdplane-dev
+git clone https://github.com/kait-cronos/sdplane-oss
+cd sdplane-oss
 
 # Generate build files
 ./autogen.sh
@@ -171,6 +165,9 @@ The project follows GNU coding standards. Use the provided scripts to check and 
 ```bash
 # Check formatting
 ./style/check_gnu_style.sh check
+
+# Show formatting differences
+./style/check_gnu_style.sh diff
 
 # Auto-format code
 ./style/check_gnu_style.sh update
