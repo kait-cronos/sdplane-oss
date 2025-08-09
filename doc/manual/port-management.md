@@ -232,60 +232,119 @@ Display total byte count statistics.
 show port statistics total-bytes
 ```
 
-### show_port_promiscuous - Display Promiscuous Mode
-```
-show port (<0-16>|all) promiscuous
-```
+---
 
-Display the promiscuous mode status for specified ports.
+### **show port \<0-16\> promiscuous**
+
+Display the promiscuous mode status for specified port.
 
 **Examples:**
 ```bash
 # Display promiscuous mode for port 0
 show port 0 promiscuous
 
+# Display promiscuous mode for port 1
+show port 1 promiscuous
+```
+
+---
+
+### **show port all promiscuous**
+
+Display the promiscuous mode status for all ports.
+
+**Examples:**
+```bash
 # Display promiscuous mode for all ports
 show port all promiscuous
 ```
 
-### show_port_flowcontrol - Display Flow Control Settings
-```
-show port (<0-16>|all) flowcontrol
-```
+---
 
-Display flow control settings for specified ports.
+### **show port \<0-16\> flowcontrol**
+
+Display flow control settings for specified port.
 
 **Examples:**
 ```bash
 # Display flow control settings for port 0
 show port 0 flowcontrol
 
+# Display flow control settings for port 1
+show port 1 flowcontrol
+```
+
+---
+
+### **show port all flowcontrol**
+
+Display flow control settings for all ports.
+
+**Examples:**
+```bash
 # Display flow control settings for all ports
 show port all flowcontrol
 ```
 
-### set_port_promiscuous - Set Promiscuous Mode
-```
-set port (<0-16>|all) promiscuous (enable|disable)
-```
+---
 
-Enable or disable promiscuous mode for specified ports.
+### **set port \<0-16\> promiscuous enable**
+
+Enable promiscuous mode for specified port.
 
 **Examples:**
 ```bash
 # Enable promiscuous mode for port 0
 set port 0 promiscuous enable
 
+# Enable promiscuous mode for port 1
+set port 1 promiscuous enable
+```
+
+---
+
+### **set port \<0-16\> promiscuous disable**
+
+Disable promiscuous mode for specified port.
+
+**Examples:**
+```bash
+# Disable promiscuous mode for port 0
+set port 0 promiscuous disable
+
+# Disable promiscuous mode for port 1
+set port 1 promiscuous disable
+```
+
+---
+
+### **set port all promiscuous enable**
+
+Enable promiscuous mode for all ports.
+
+**Examples:**
+```bash
+# Enable promiscuous mode for all ports
+set port all promiscuous enable
+```
+
+---
+
+### **set port all promiscuous disable**
+
+Disable promiscuous mode for all ports.
+
+**Examples:**
+```bash
 # Disable promiscuous mode for all ports
 set port all promiscuous disable
 ```
 
-### set_port_flowcontrol - Set Flow Control
-```
-set port (<0-16>|all) flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)
-```
+---
 
-Configure flow control settings for specified ports.
+### **set port \<0-16\> flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)**
+
+Configure flow control settings for specified port.
 
 **Options:**
 - `rx` - Receive flow control
@@ -299,16 +358,37 @@ Configure flow control settings for specified ports.
 # Enable receive flow control for port 0
 set port 0 flowcontrol rx on
 
+# Disable auto-negotiation for port 1
+set port 1 flowcontrol autoneg off
+```
+
+---
+
+### **set port all flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)**
+
+Configure flow control settings for all ports.
+
+**Options:**
+- `rx` - Receive flow control
+- `tx` - Transmit flow control
+- `autoneg` - Auto-negotiation
+- `send-xon` - XON transmission
+- `fwd-mac-ctrl` - MAC control frame forwarding
+
+**Examples:**
+```bash
 # Disable auto-negotiation for all ports
 set port all flowcontrol autoneg off
+
+# Enable transmit flow control for all ports
+set port all flowcontrol tx on
 ```
 
-### set_port_dev_configure - Device Configuration
-```
-set port (<0-16>|all) dev-configure <0-64> <0-64>
-```
+---
 
-Configure DPDK port device settings.
+### **set port \<0-16\> dev-configure \<0-64\> \<0-64\>**
+
+Configure DPDK port device settings for specified port.
 
 **Parameters:**
 - 1st argument: Number of receive queues (0-64)
@@ -319,54 +399,130 @@ Configure DPDK port device settings.
 # Configure port 0 with 4 RX queues and 4 TX queues
 set port 0 dev-configure 4 4
 
+# Configure port 1 with 2 RX queues and 2 TX queues
+set port 1 dev-configure 2 2
+```
+
+---
+
+### **set port all dev-configure \<0-64\> \<0-64\>**
+
+Configure DPDK port device settings for all ports.
+
+**Parameters:**
+- 1st argument: Number of receive queues (0-64)
+- 2nd argument: Number of transmit queues (0-64)
+
+**Examples:**
+```bash
 # Configure all ports with 1 RX queue and 1 TX queue
 set port all dev-configure 1 1
 ```
 
-### set_port_nrxdesc - Set RX Descriptor Count
-```
-set port (<0-16>|all) nrxdesc <0-16384>
-```
+---
 
-Set the number of receive descriptors for specified ports.
+### **set port \<0-16\> nrxdesc \<0-16384\>**
+
+Set the number of receive descriptors for specified port.
 
 **Examples:**
 ```bash
 # Set receive descriptor count to 1024 for port 0
 set port 0 nrxdesc 1024
 
+# Set receive descriptor count to 512 for port 1
+set port 1 nrxdesc 512
+```
+
+---
+
+### **set port all nrxdesc \<0-16384\>**
+
+Set the number of receive descriptors for all ports.
+
+**Examples:**
+```bash
 # Set receive descriptor count to 512 for all ports
 set port all nrxdesc 512
 ```
 
-### set_port_ntxdesc - Set TX Descriptor Count
-```
-set port (<0-16>|all) ntxdesc <0-16384>
-```
+---
 
-Set the number of transmit descriptors for specified ports.
+### **set port \<0-16\> ntxdesc \<0-16384\>**
+
+Set the number of transmit descriptors for specified port.
 
 **Examples:**
 ```bash
 # Set transmit descriptor count to 1024 for port 0
 set port 0 ntxdesc 1024
 
+# Set transmit descriptor count to 512 for port 1
+set port 1 ntxdesc 512
+```
+
+---
+
+### **set port all ntxdesc \<0-16384\>**
+
+Set the number of transmit descriptors for all ports.
+
+**Examples:**
+```bash
 # Set transmit descriptor count to 512 for all ports
 set port all ntxdesc 512
 ```
 
-### set_port_link_updown - Set Link Up/Down
-```
-set port (<0-16>|all) link (up|down)
-```
+---
 
-Force the link status up or down for specified ports.
+### **set port \<0-16\> link up**
+
+Bring the link up for specified port.
 
 **Examples:**
 ```bash
 # Bring port 0 link up
 set port 0 link up
 
+# Bring port 1 link up
+set port 1 link up
+```
+
+---
+
+### **set port \<0-16\> link down**
+
+Bring the link down for specified port.
+
+**Examples:**
+```bash
+# Bring port 0 link down
+set port 0 link down
+
+# Bring port 1 link down
+set port 1 link down
+```
+
+---
+
+### **set port all link up**
+
+Bring the link up for all ports.
+
+**Examples:**
+```bash
+# Bring all ports link up
+set port all link up
+```
+
+---
+
+### **set port all link down**
+
+Bring the link down for all ports.
+
+**Examples:**
+```bash
 # Bring all ports link down
 set port all link down
 ```

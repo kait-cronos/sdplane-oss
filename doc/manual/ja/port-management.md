@@ -232,10 +232,9 @@ show port statistics Bps
 show port statistics total-bytes
 ```
 
-### show_port_promiscuous - プロミスキャスモード表示
-```
-show port (<0-16>|all) promiscuous
-```
+---
+
+### **show port \<0-16\> promiscuous**
 
 指定されたポートのプロミスキャスモードの状態を表示します。
 
@@ -244,14 +243,25 @@ show port (<0-16>|all) promiscuous
 # ポート0のプロミスキャスモードを表示
 show port 0 promiscuous
 
+# ポート1のプロミスキャスモードを表示
+show port 1 promiscuous
+```
+
+---
+
+### **show port all promiscuous**
+
+全ポートのプロミスキャスモードの状態を表示します。
+
+**使用例：**
+```bash
 # 全ポートのプロミスキャスモードを表示
 show port all promiscuous
 ```
 
-### show_port_flowcontrol - フロー制御設定表示
-```
-show port (<0-16>|all) flowcontrol
-```
+---
+
+### **show port \<0-16\> flowcontrol**
 
 指定されたポートのフロー制御設定を表示します。
 
@@ -260,30 +270,79 @@ show port (<0-16>|all) flowcontrol
 # ポート0のフロー制御設定を表示
 show port 0 flowcontrol
 
+# ポート1のフロー制御設定を表示
+show port 1 flowcontrol
+```
+
+---
+
+### **show port all flowcontrol**
+
+全ポートのフロー制御設定を表示します。
+
+**使用例：**
+```bash
 # 全ポートのフロー制御設定を表示
 show port all flowcontrol
 ```
 
-### set_port_promiscuous - プロミスキャスモード設定
-```
-set port (<0-16>|all) promiscuous (enable|disable)
-```
+---
 
-指定されたポートのプロミスキャスモードを有効または無効にします。
+### **set port \<0-16\> promiscuous enable**
+
+指定されたポートのプロミスキャスモードを有効化します。
 
 **使用例：**
 ```bash
 # ポート0のプロミスキャスモードを有効化
 set port 0 promiscuous enable
 
+# ポート1のプロミスキャスモードを有効化
+set port 1 promiscuous enable
+```
+
+---
+
+### **set port \<0-16\> promiscuous disable**
+
+指定されたポートのプロミスキャスモードを無効化します。
+
+**使用例：**
+```bash
+# ポート0のプロミスキャスモードを無効化
+set port 0 promiscuous disable
+
+# ポート1のプロミスキャスモードを無効化
+set port 1 promiscuous disable
+```
+
+---
+
+### **set port all promiscuous enable**
+
+全ポートのプロミスキャスモードを有効化します。
+
+**使用例：**
+```bash
+# 全ポートのプロミスキャスモードを有効化
+set port all promiscuous enable
+```
+
+---
+
+### **set port all promiscuous disable**
+
+全ポートのプロミスキャスモードを無効化します。
+
+**使用例：**
+```bash
 # 全ポートのプロミスキャスモードを無効化
 set port all promiscuous disable
 ```
 
-### set_port_flowcontrol - フロー制御設定
-```
-set port (<0-16>|all) flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)
-```
+---
+
+### **set port \<0-16\> flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)**
 
 指定されたポートのフロー制御設定を変更します。
 
@@ -299,16 +358,38 @@ set port (<0-16>|all) flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)
 # ポート0の受信フロー制御を有効化
 set port 0 flowcontrol rx on
 
+# ポート1の自動ネゴシエーションを無効化
+set port 1 flowcontrol autoneg off
+```
+
+---
+
+### **set port all flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)**
+
+全ポートのフロー制御設定を変更します。
+
+**オプション：**
+- `rx` - 受信フロー制御
+- `tx` - 送信フロー制御
+- `autoneg` - 自動ネゴシエーション
+- `send-xon` - XON送信
+- `fwd-mac-ctrl` - MAC制御フレーム転送
+
+**使用例：**
+```bash
 # 全ポートの自動ネゴシエーションを無効化
 set port all flowcontrol autoneg off
+
+# 全ポートの送信フロー制御を有効化
+set port all flowcontrol tx on
 ```
 
-### set_port_dev_configure - デバイス設定
-```
-set port (<0-16>|all) dev-configure <0-64> <0-64>
-```
+---
 
-DPDKポートのデバイス設定を行います。
+### **set port \<0-16\> dev-configure \<0-64\> \<0-64\>**
+
+
+指定されたポートのDPDKデバイス設定を行います。
 
 **パラメータ：**
 - 第1引数: 受信キュー数 (0-64)
@@ -319,14 +400,30 @@ DPDKポートのデバイス設定を行います。
 # ポート0を受信キュー4、送信キュー4で設定
 set port 0 dev-configure 4 4
 
+# ポート1を受信キュー2、送信キュー2で設定
+set port 1 dev-configure 2 2
+```
+
+---
+
+### **set port all dev-configure \<0-64\> \<0-64\>**
+
+全ポートのDPDKデバイス設定を行います。
+
+**パラメータ：**
+- 第1引数: 受信キュー数 (0-64)
+- 第2引数: 送信キュー数 (0-64)
+
+**使用例：**
+```bash
 # 全ポートを受信キュー1、送信キュー1で設定
 set port all dev-configure 1 1
 ```
 
-### set_port_nrxdesc - 受信ディスクリプタ数設定
-```
-set port (<0-16>|all) nrxdesc <0-16384>
-```
+---
+
+### **set port \<0-16\> nrxdesc \<0-16384\>**
+
 
 指定したポートの受信ディスクリプタ数を設定します。
 
@@ -335,14 +432,26 @@ set port (<0-16>|all) nrxdesc <0-16384>
 # ポート0の受信ディスクリプタ数を1024に設定
 set port 0 nrxdesc 1024
 
+# ポート1の受信ディスクリプタ数を512に設定
+set port 1 nrxdesc 512
+```
+
+---
+
+### **set port all nrxdesc \<0-16384\>**
+
+全ポートの受信ディスクリプタ数を設定します。
+
+**使用例：**
+```bash
 # 全ポートの受信ディスクリプタ数を512に設定
 set port all nrxdesc 512
 ```
 
-### set_port_ntxdesc - 送信ディスクリプタ数設定
-```
-set port (<0-16>|all) ntxdesc <0-16384>
-```
+---
+
+### **set port \<0-16\> ntxdesc \<0-16384\>**
+
 
 指定したポートの送信ディスクリプタ数を設定します。
 
@@ -351,22 +460,73 @@ set port (<0-16>|all) ntxdesc <0-16384>
 # ポート0の送信ディスクリプタ数を1024に設定
 set port 0 ntxdesc 1024
 
+# ポート1の送信ディスクリプタ数を512に設定
+set port 1 ntxdesc 512
+```
+
+---
+
+### **set port all ntxdesc \<0-16384\>**
+
+全ポートの送信ディスクリプタ数を設定します。
+
+**使用例：**
+```bash
 # 全ポートの送信ディスクリプタ数を512に設定
 set port all ntxdesc 512
 ```
 
-### set_port_link_updown - リンクアップ・ダウン設定
-```
-set port (<0-16>|all) link (up|down)
-```
+---
 
-指定されたポートのリンクを強制的にアップまたはダウンします。
+### **set port \<0-16\> link up**
+
+
+指定されたポートのリンクをアップします。
 
 **使用例：**
 ```bash
 # ポート0のリンクをアップ
 set port 0 link up
 
+# ポート1のリンクをアップ
+set port 1 link up
+```
+
+---
+
+### **set port \<0-16\> link down**
+
+指定されたポートのリンクをダウンします。
+
+**使用例：**
+```bash
+# ポート0のリンクをダウン
+set port 0 link down
+
+# ポート1のリンクをダウン
+set port 1 link down
+```
+
+---
+
+### **set port all link up**
+
+全ポートのリンクをアップします。
+
+**使用例：**
+```bash
+# 全ポートのリンクをアップ
+set port all link up
+```
+
+---
+
+### **set port all link down**
+
+全ポートのリンクをダウンします。
+
+**使用例：**
+```bash
 # 全ポートのリンクをダウン
 set port all link down
 ```
