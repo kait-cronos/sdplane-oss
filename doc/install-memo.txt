@@ -111,6 +111,10 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
 * timezone 設定
   # timedatectl set-timezone Asia/Tokyo
 
+* locale
+  # locale-gen en_US.UTF-8
+  # update-locale LANG=en_US.utf8 LC_ALL=en_US.utf8
+
 * unattended upgrades を無効化
   # vi /etc/apt/apt.conf.d/20auto-upgrades
   APT::Periodic::Unattended-Upgrade "0";
@@ -177,11 +181,19 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   (2MB hugepage を1500, 1GbE x 2 で必要。NICによってもっと必要かも。)
   # vi /etc/default/grub:
     GRUB_CMDLINE_LINUX="hugepages=1536"
+         or
+    GRUB_CMDLINE_LINUX="default_hugepagesz=1G hugepagesz=1G hugepages=8"
   # update-grub
 
-#* zcmdsh の install
-#  $ wget https://www.yasuhironet.net/download/zcmdsh_0.3.28-1_amd64.deb
-#  $ sudo apt install ./zcmdsh_0.3.28-1_amd64.deb
+* igb_uio の install
+  $ sudo apt-get install -y dpdk-igb-uio-dkms
+     or
+  $ git clone http://dpdk.org/git/dpdk-kmods
+  $ cd dpdk-kmods/linux/igb_uio
+  $ make
+  # mkdir -p /lib/modules/`uname -r`/extra/dpdk/
+  # cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
+  # echo igb_uio > /etc/modules-load.d/igb_uio.conf
 
 * libsdplane の install
   $ wget https://www.yasuhironet.net/download/partaker/2025-06/libsdplane_0.3.37-2_amd64.deb
@@ -264,6 +276,13 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
     Hugepagesize:       2048 kB
     Hugetlb:         3145728 kB
 
+* NIC を DPDK に attach
+  $ sudo modprobe vfio-pci
+  $ sudo dpdk-devbind.py -b vfio-pci 01:00.0 01:00.1 03:00.0
+
+* sdplane の再起動
+  $ sudo systemctl start sdplane
+
 * sdplaneの起動を確認
   $ systemctl status sdplane
 
@@ -297,5 +316,10 @@ $ openssl rand -base64 24 | tr '1iIl0OZBU' '^$@#=%~?-' | fold -w 12 | head -1
   systemctl disable tailscaled
 
 以上で完了です。
+
+***********************
+* 温度・消費電力監視
+***********************
+sudo turbostat --Summary --quiet --show Busy%,Avg_MHz,PkgTmp,PkgWatt --interval 10
 
 
