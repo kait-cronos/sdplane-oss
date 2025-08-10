@@ -55,10 +55,12 @@ For quick installation, download and install the pre-built Debian package:
 
 ```bash
 # Download the latest package
-wget https://www.yasuhironet.net/download/partaker/2025-06/sdplane_0.1.3-48_amd64.deb
+wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-29_amd64.deb
+wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-29_amd64.ddeb
 
 # Install the package
-sudo apt install ./sdplane_0.1.3-48_amd64.deb
+sudo apt install ./sdplane_0.1.4-29_amd64.deb
+sudo apt install ./sdplane-dbgsym_0.1.4-29_amd64.ddeb
 
 # Start the service
 sudo systemctl enable sdplane

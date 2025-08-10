@@ -52,10 +52,12 @@ Intel (Core i7/9、Xeon)、AMD、ARM CPU等のほかのCPUでも動かない理�
 
 ```bash
 # 最新パッケージのダウンロード
-wget https://www.yasuhironet.net/download/partaker/2025-06/sdplane_0.1.3-48_amd64.deb
+wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-29_amd64.deb
+wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-29_amd64.ddeb
 
 # パッケージのインストール
-sudo apt install ./sdplane_0.1.3-48_amd64.deb
+sudo apt install ./sdplane_0.1.4-29_amd64.deb
+sudo apt install ./sdplane-dbgsym_0.1.4-29_amd64.ddeb
 
 # サービスの開始
 sudo systemctl enable sdplane
