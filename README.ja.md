@@ -51,13 +51,17 @@ Intel (Core i7/9、Xeon)、AMD、ARM CPU等のほかのCPUでも動かない理�
 簡単インストールのため、ビルド済みDebianパッケージをダウンロード・インストールします：
 
 ```bash
-# 最新パッケージのダウンロード
+# 最新パッケージのダウンロード (n305用)
 wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-29_amd64.deb
 wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-29_amd64.ddeb
 
+# もしくは (n100用)
+wget https://www.yasuhironet.net/download/n100/sdplane_0.1.4-31_amd64.deb
+wget https://www.yasuhironet.net/download/n100/sdplane-dbgsym_0.1.4-31_amd64.ddeb
+
 # パッケージのインストール
-sudo apt install ./sdplane_0.1.4-29_amd64.deb
-sudo apt install ./sdplane-dbgsym_0.1.4-29_amd64.ddeb
+sudo apt install ./sdplane_0.1.4-*_amd64.deb
+sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 
 # サービスの開始
 sudo systemctl enable sdplane
