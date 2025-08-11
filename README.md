@@ -49,35 +49,7 @@ The project has been tested on:
 
 There is no reason to believe the sdplane-oss doesn't work on other CPUs such as Intel (Core i7/9, Xeon), AMD, ARM processors, etc.
 
-## Quick Start by Debian Package
-
-For quick installation, download and install the pre-built Debian package:
-
-```bash
-# Download the latest package for n305
-wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-36_amd64.deb
-wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-36_amd64.ddeb
-
-# or for n100
-wget https://www.yasuhironet.net/download/n100/sdplane_0.1.4-35_amd64.deb
-wget https://www.yasuhironet.net/download/n100/sdplane-dbgsym_0.1.4-35_amd64.ddeb
-
-# Install the package
-sudo apt install ./sdplane_0.1.4-*_amd64.deb
-sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
-
-# Start the service
-sudo systemctl enable sdplane
-sudo systemctl start sdplane
-
-# Connect to CLI
-telnet localhost 9882
-```
-
-**Note**: Check [yasuhironet.net downloads](https://www.yasuhironet.net/download/) for the latest package version.
-
-
-## Build from Source
+## 1. Install Dependencies
 
 ### Dependencies
 - **liburcu-qsbr**: Userspace RCU library
@@ -85,34 +57,12 @@ telnet localhost 9882
 - **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (lightweight cooperative threading)
 - **DPDK**: Data Plane Development Kit
 
-### Prerequisite Ubuntu Packages
-
-#### For Build from Source
-```bash
-# Core build tools
-sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
-
-# DPDK prerequisites
-sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
-
-# sdplane dependencies
+### Install sdplane dependencies debian packages
+```
 sudo apt install liburcu-dev libpcap-dev
 ```
 
-#### For Debian Package Build
-```bash
-sudo apt install build-essential cmake devscripts debhelper
-```
-
-#### Optional Packages
-```bash
-sudo apt install etckeeper tig bridge-utils \
-                 iptables-persistent fail2ban dmidecode screen ripgrep
-```
-
-### 1. Install Dependencies
-
-#### Install lthread
+### Install lthread
 ```bash
 # Install lthread
 git clone https://github.com/yasuhironet/lthread
@@ -121,8 +71,7 @@ cmake .
 make
 sudo make install
 ```
-
-#### Install DPDK 23.11.1
+### Install DPDK 23.11.1
 ```bash
 # Download and extract DPDK
 wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
@@ -141,9 +90,91 @@ pkg-config --modversion libdpdk
 # Should output: 23.11.1
 ```
 
-### 2. System Configuration
+## 2. Quick Start by Debian Package
 
-#### Configure Hugepages
+For quick installation, download and install the pre-built Debian package:
+
+```bash
+# Download the latest package for n305
+wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-36_amd64.deb
+wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-36_amd64.ddeb
+
+# or for n100
+wget https://www.yasuhironet.net/download/n100/sdplane_0.1.4-35_amd64.deb
+wget https://www.yasuhironet.net/download/n100/sdplane-dbgsym_0.1.4-35_amd64.ddeb
+
+# Install the package
+sudo apt install ./sdplane_0.1.4-*_amd64.deb
+sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
+```
+
+**Note**: Check [yasuhironet.net downloads](https://www.yasuhironet.net/download/) for the latest package version.
+
+Jump to 5. System Configuration.
+
+## 3. Build from Source
+
+### Install Prerequisite Ubuntu Packages
+
+#### For Build from Source
+```bash
+# Core build tools
+sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
+
+# DPDK prerequisites
+sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
+```
+
+#### Optional Packages
+```bash
+sudo apt install etckeeper tig bridge-utils \
+                 iptables-persistent fail2ban dmidecode screen ripgrep
+```
+
+### Build sdplane-oss from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/kait-cronos/sdplane-oss
+cd sdplane-oss
+
+# Generate build files
+sh autogen.sh
+
+# Configure and build
+mkdir build
+cd build
+CFLAGS="-g -O0" sh ../configure
+make
+```
+
+## 4. Build sdplane-oss Debian Package (Optional)
+
+### Install prerequisite package
+```bash
+sudo apt install build-essential cmake devscripts debhelper
+```
+
+### Build sdplane-oss Debian Package
+```bash
+# First make sure to start in a clean space.
+(cd build && make distclean)
+make distclean
+
+# Build Debian package from source
+bash build-debian.sh
+
+# Install the generated package (will be produced in parent dir)
+sudo apt install ../sdplane_*.deb
+```
+
+## 5. System Configuration
+
+- **Hugepages**: Configure system hugepages for DPDK
+- **Network**: Use netplan for network interface configuration
+- **Firewall**: Configure iptables rules as needed
+
+### Configure Hugepages
 ```bash
 # Edit GRUB configuration
 sudo vi /etc/default/grub
@@ -160,7 +191,7 @@ sudo update-grub
 sudo reboot
 ```
 
-#### Install DPDK IGB Kernel Module (Optional)
+### Install DPDK IGB Kernel Module (Optional)
 ```bash
 # Option 1: Install from package
 sudo apt-get install -y dpdk-igb-uio-dkms
@@ -174,55 +205,12 @@ sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
 echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 ```
 
-### 3. Build sdplane-oss from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/kait-cronos/sdplane-oss
-cd sdplane-oss
-
-# Generate build files
-./autogen.sh
-
-# Configure and build
-mkdir build
-cd build
-CFLAGS="-g -O0" sh ../configure
-make
-```
-
-### 4. Build sdplane-oss Debian Package (Optional)
-
-```bash
-# Build Debian package from source
-cd sdplane-oss
-./build-debian.sh
-
-# Install the generated package
-sudo apt install ../sdplane_*.deb
-```
-
-### 5. Run the Software Router
-
-```bash
-# Run in foreground
-sudo ./sdplane/sdplane
-  or
-# Run in background, when you installed the dpkg.
-sudo systemctl start sdplane
-
-# connect to CLI
-telnet localhost 9882
-```
-
-## Configuration
-
-### System Configuration
-- **Hugepages**: Configure system hugepages for DPDK
-- **Network**: Use netplan for network interface configuration
-- **Firewall**: Configure iptables rules as needed
+## 6. sdplane Configuration
 
 ### Configuration Files
+
+Place one of the following configuration files as
+/etc/sdplane/sdplane.conf
 
 #### OS Setup Configuration (`etc/`)
 - [`etc/sdplane.conf.sample`](etc/sdplane.conf.sample): Main configuration template
@@ -234,6 +222,20 @@ telnet localhost 9882
 - [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf): Topton hardware configuration
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf): L2 repeater configuration
 - [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf): Enhanced repeater configuration
+
+## 7. Run the Software Router
+
+```bash
+# Run in foreground
+sudo ./sdplane/sdplane
+  or
+# Run via systemd, when you installed the dpkg.
+sudo systemctl enable sdplane
+sudo systemctl start sdplane
+
+# Connect to CLI
+telnet localhost 9882
+```
 
 ## User's Guide (Manual)
 
