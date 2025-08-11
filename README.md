@@ -57,8 +57,10 @@ There is no reason to believe the sdplane-oss doesn't work on other CPUs such as
 - **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (lightweight cooperative threading)
 - **DPDK**: Data Plane Development Kit
 
-### sdplane dependencies debian packages
+### Install sdplane dependencies debian packages
+```
 sudo apt install liburcu-dev libpcap-dev
+```
 
 ### Install lthread
 ```bash
@@ -104,13 +106,6 @@ wget https://www.yasuhironet.net/download/n100/sdplane-dbgsym_0.1.4-35_amd64.dde
 # Install the package
 sudo apt install ./sdplane_0.1.4-*_amd64.deb
 sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
-
-# Start the service
-sudo systemctl enable sdplane
-sudo systemctl start sdplane
-
-# Connect to CLI
-telnet localhost 9882
 ```
 
 **Note**: Check [yasuhironet.net downloads](https://www.yasuhironet.net/download/) for the latest package version.
@@ -142,7 +137,7 @@ git clone https://github.com/kait-cronos/sdplane-oss
 cd sdplane-oss
 
 # Generate build files
-./autogen.sh
+sh autogen.sh
 
 # Configure and build
 mkdir build
@@ -157,14 +152,17 @@ make
 ```bash
 sudo apt install build-essential cmake devscripts debhelper
 ```
+
 ### Build sdplane-oss Debian Package
-
 ```bash
-# Build Debian package from source
-cd sdplane-oss
-./build-debian.sh
+# First make sure to start in a clean space.
+(cd build && make distclean)
+make distclean
 
-# Install the generated package
+# Build Debian package from source
+bash build-debian.sh
+
+# Install the generated package (will be produced in parent dir)
 sudo apt install ../sdplane_*.deb
 ```
 
@@ -226,10 +224,11 @@ echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 # Run in foreground
 sudo ./sdplane/sdplane
   or
-# Run in background, when you installed the dpkg.
+# Run via systemd, when you installed the dpkg.
+sudo systemctl enable sdplane
 sudo systemctl start sdplane
 
-# connect to CLI
+# Connect to CLI
 telnet localhost 9882
 ```
 
