@@ -55,12 +55,12 @@ For quick installation, download and install the pre-built Debian package:
 
 ```bash
 # Download the latest package for n305
-wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-29_amd64.deb
-wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-29_amd64.ddeb
+wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-36_amd64.deb
+wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-36_amd64.ddeb
 
 # or for n100
-wget https://www.yasuhironet.net/download/n100/sdplane_0.1.4-31_amd64.deb
-wget https://www.yasuhironet.net/download/n100/sdplane-dbgsym_0.1.4-31_amd64.ddeb
+wget https://www.yasuhironet.net/download/n100/sdplane_0.1.4-35_amd64.deb
+wget https://www.yasuhironet.net/download/n100/sdplane-dbgsym_0.1.4-35_amd64.ddeb
 
 # Install the package
 sudo apt install ./sdplane_0.1.4-*_amd64.deb
