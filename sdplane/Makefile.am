@@ -87,7 +87,7 @@ if ENABLE_PKTGEN
         $(PKTGEN_MODULE_DIR)/lib/utils/_atoip.c \
         $(PKTGEN_MODULE_DIR)/lib/plugin/plugin.c \
         pktgen_cmd.c
-  sdplane_CFLAGS += -I$(PKTGEN_MODULE_DIR)/lib/common -I$(PKTGEN_MODULE_DIR)/lib/lua -I$(PKTGEN_MODULE_DIR)/lib/cli -I$(PKTGEN_MODULE_DIR)/lib/utils -I$(PKTGEN_MODULE_DIR)/lib/plugin -I$(top_srcdir)/lib
+  sdplane_CFLAGS += -D_GNU_SOURCE -I$(PKTGEN_MODULE_DIR)/lib/common -I$(PKTGEN_MODULE_DIR)/lib/lua -I$(PKTGEN_MODULE_DIR)/lib/cli -I$(PKTGEN_MODULE_DIR)/lib/utils -I$(PKTGEN_MODULE_DIR)/lib/plugin -I$(top_srcdir)/lib
 endif
 
 FORCE:
