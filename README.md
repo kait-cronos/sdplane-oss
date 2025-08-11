@@ -49,7 +49,7 @@ The project has been tested on:
 
 There is no reason to believe the sdplane-oss doesn't work on other CPUs such as Intel (Core i7/9, Xeon), AMD, ARM processors, etc.
 
-## Install Dependencies
+## 1. Install Dependencies
 
 ### Dependencies
 - **liburcu-qsbr**: Userspace RCU library
@@ -90,7 +90,7 @@ pkg-config --modversion libdpdk
 # Should output: 23.11.1
 ```
 
-## Quick Start by Debian Package
+## 2. Quick Start by Debian Package
 
 For quick installation, download and install the pre-built Debian package:
 
@@ -110,7 +110,9 @@ sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 
 **Note**: Check [yasuhironet.net downloads](https://www.yasuhironet.net/download/) for the latest package version.
 
-## Build from Source
+Jump to 5. System Configuration.
+
+## 3. Build from Source
 
 ### Install Prerequisite Ubuntu Packages
 
@@ -146,7 +148,7 @@ CFLAGS="-g -O0" sh ../configure
 make
 ```
 
-## Build sdplane-oss Debian Package (Optional)
+## 4. Build sdplane-oss Debian Package (Optional)
 
 ### Install prerequisite package
 ```bash
@@ -166,7 +168,7 @@ bash build-debian.sh
 sudo apt install ../sdplane_*.deb
 ```
 
-## System Configuration
+## 5. System Configuration
 
 - **Hugepages**: Configure system hugepages for DPDK
 - **Network**: Use netplan for network interface configuration
@@ -203,9 +205,12 @@ sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
 echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 ```
 
-## sdplane Configuration
+## 6. sdplane Configuration
 
 ### Configuration Files
+
+Place one of the following configuration files as
+/etc/sdplane/sdplane.conf
 
 #### OS Setup Configuration (`etc/`)
 - [`etc/sdplane.conf.sample`](etc/sdplane.conf.sample): Main configuration template
@@ -218,7 +223,7 @@ echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf): L2 repeater configuration
 - [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf): Enhanced repeater configuration
 
-## Run the Software Router
+## 7. Run the Software Router
 
 ```bash
 # Run in foreground
