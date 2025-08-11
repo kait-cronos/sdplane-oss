@@ -49,6 +49,45 @@ The project has been tested on:
 
 There is no reason to believe the sdplane-oss doesn't work on other CPUs such as Intel (Core i7/9, Xeon), AMD, ARM processors, etc.
 
+## Install Dependencies
+
+### Dependencies
+- **liburcu-qsbr**: Userspace RCU library
+- **libpcap**: Packet capture library
+- **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (lightweight cooperative threading)
+- **DPDK**: Data Plane Development Kit
+
+### sdplane dependencies debian packages
+sudo apt install liburcu-dev libpcap-dev
+
+### Install lthread
+```bash
+# Install lthread
+git clone https://github.com/yasuhironet/lthread
+cd lthread
+cmake .
+make
+sudo make install
+```
+### Install DPDK 23.11.1
+```bash
+# Download and extract DPDK
+wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
+tar vxJf dpdk-23.11.1.tar.xz
+cd dpdk-stable-23.11.1
+
+# Build and install DPDK
+meson setup build
+cd build
+ninja
+sudo meson install
+sudo ldconfig
+
+# Verify installation
+pkg-config --modversion libdpdk
+# Should output: 23.11.1
+```
+
 ## Quick Start by Debian Package
 
 For quick installation, download and install the pre-built Debian package:
@@ -76,16 +115,9 @@ telnet localhost 9882
 
 **Note**: Check [yasuhironet.net downloads](https://www.yasuhironet.net/download/) for the latest package version.
 
-
 ## Build from Source
 
-### Dependencies
-- **liburcu-qsbr**: Userspace RCU library
-- **libpcap**: Packet capture library
-- **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (lightweight cooperative threading)
-- **DPDK**: Data Plane Development Kit
-
-### Prerequisite Ubuntu Packages
+### Install Prerequisite Ubuntu Packages
 
 #### For Build from Source
 ```bash
@@ -94,14 +126,6 @@ sudo apt install build-essential cmake autotools-dev autoconf automake libtool p
 
 # DPDK prerequisites
 sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
-
-# sdplane dependencies
-sudo apt install liburcu-dev libpcap-dev
-```
-
-#### For Debian Package Build
-```bash
-sudo apt install build-essential cmake devscripts debhelper
 ```
 
 #### Optional Packages
@@ -110,71 +134,7 @@ sudo apt install etckeeper tig bridge-utils \
                  iptables-persistent fail2ban dmidecode screen ripgrep
 ```
 
-### 1. Install Dependencies
-
-#### Install lthread
-```bash
-# Install lthread
-git clone https://github.com/yasuhironet/lthread
-cd lthread
-cmake .
-make
-sudo make install
-```
-
-#### Install DPDK 23.11.1
-```bash
-# Download and extract DPDK
-wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
-tar vxJf dpdk-23.11.1.tar.xz
-cd dpdk-stable-23.11.1
-
-# Build and install DPDK
-meson setup build
-cd build
-ninja
-sudo meson install
-sudo ldconfig
-
-# Verify installation
-pkg-config --modversion libdpdk
-# Should output: 23.11.1
-```
-
-### 2. System Configuration
-
-#### Configure Hugepages
-```bash
-# Edit GRUB configuration
-sudo vi /etc/default/grub
-
-# Add one of the following lines:
-# For 2MB hugepages (1536 pages = ~3GB):
-GRUB_CMDLINE_LINUX="hugepages=1536"
-
-# Or for 1GB hugepages (8 pages = 8GB):
-GRUB_CMDLINE_LINUX="default_hugepagesz=1G hugepagesz=1G hugepages=8"
-
-# Update GRUB and reboot
-sudo update-grub
-sudo reboot
-```
-
-#### Install DPDK IGB Kernel Module (Optional)
-```bash
-# Option 1: Install from package
-sudo apt-get install -y dpdk-igb-uio-dkms
-
-# Option 2: Build from source
-git clone http://dpdk.org/git/dpdk-kmods
-cd dpdk-kmods/linux/igb_uio
-make
-sudo mkdir -p /lib/modules/`uname -r`/extra/dpdk/
-sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
-echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
-```
-
-### 3. Build sdplane-oss from Source
+### Build sdplane-oss from Source
 
 ```bash
 # Clone the repository
@@ -191,7 +151,13 @@ CFLAGS="-g -O0" sh ../configure
 make
 ```
 
-### 4. Build sdplane-oss Debian Package (Optional)
+## Build sdplane-oss Debian Package (Optional)
+
+### Install prerequisite package
+```bash
+sudo apt install build-essential cmake devscripts debhelper
+```
+### Build sdplane-oss Debian Package
 
 ```bash
 # Build Debian package from source
@@ -202,25 +168,44 @@ cd sdplane-oss
 sudo apt install ../sdplane_*.deb
 ```
 
-### 5. Run the Software Router
+## System Configuration
 
-```bash
-# Run in foreground
-sudo ./sdplane/sdplane
-  or
-# Run in background, when you installed the dpkg.
-sudo systemctl start sdplane
-
-# connect to CLI
-telnet localhost 9882
-```
-
-## Configuration
-
-### System Configuration
 - **Hugepages**: Configure system hugepages for DPDK
 - **Network**: Use netplan for network interface configuration
 - **Firewall**: Configure iptables rules as needed
+
+### Configure Hugepages
+```bash
+# Edit GRUB configuration
+sudo vi /etc/default/grub
+
+# Add one of the following lines:
+# For 2MB hugepages (1536 pages = ~3GB):
+GRUB_CMDLINE_LINUX="hugepages=1536"
+
+# Or for 1GB hugepages (8 pages = 8GB):
+GRUB_CMDLINE_LINUX="default_hugepagesz=1G hugepagesz=1G hugepages=8"
+
+# Update GRUB and reboot
+sudo update-grub
+sudo reboot
+```
+
+### Install DPDK IGB Kernel Module (Optional)
+```bash
+# Option 1: Install from package
+sudo apt-get install -y dpdk-igb-uio-dkms
+
+# Option 2: Build from source
+git clone http://dpdk.org/git/dpdk-kmods
+cd dpdk-kmods/linux/igb_uio
+make
+sudo mkdir -p /lib/modules/`uname -r`/extra/dpdk/
+sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
+echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
+```
+
+## sdplane Configuration
 
 ### Configuration Files
 
@@ -234,6 +219,19 @@ telnet localhost 9882
 - [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf): Topton hardware configuration
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf): L2 repeater configuration
 - [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf): Enhanced repeater configuration
+
+## Run the Software Router
+
+```bash
+# Run in foreground
+sudo ./sdplane/sdplane
+  or
+# Run in background, when you installed the dpkg.
+sudo systemctl start sdplane
+
+# connect to CLI
+telnet localhost 9882
+```
 
 ## User's Guide (Manual)
 
