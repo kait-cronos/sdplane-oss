@@ -138,8 +138,6 @@ CLI_COMMAND2 (set_worker,
     func = l2_repeater;
   else if (! strcmp (argv[4], "linkflap-generator"))
     func = linkflap_generator;
-  else if (! strcmp (argv[4], "nettlp-thread"))
-    func = nettlp_thread;
   else if (! strcmp (argv[4], "vlan-switch"))
     func = vlan_switch;
   else if (! strcmp (argv[4], "l3-tap-handler"))
@@ -175,8 +173,6 @@ CLI_COMMAND2 (set_worker,
     func_name = "l2-repeater";
   else if (func == linkflap_generator)
     func_name = "linkflap-generator";
-  else if (func == nettlp_thread)
-    func_name = "nettlp-thread";
   else if (func == vlan_switch)
     func_name = "vlan-switch";
   else if (func == l3_tap_handler)
