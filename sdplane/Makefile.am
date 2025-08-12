@@ -25,7 +25,7 @@ sdplane_SOURCES = \
         main.c lthread_main.c sdplane.h sdplane.c debug_sdplane.c \
         console_shell.c l2_repeater.c \
         sdplane_version.c thread_info.c queue_config.c rib_manager.c \
-        internal_message.c rib.c nettlp.c nettlp_support.c tap_cmd.c \
+        internal_message.c rib.c tap_cmd.c \
         dpdk_devbind.c netlink_thread.c stream_buf.c vlan_switch.c \
         linkflap_generator.c \
         enhanced_repeater.c l3_tap_handler.c neigh_manager.c
