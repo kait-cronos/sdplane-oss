@@ -862,7 +862,6 @@ void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
 void lthread_cmd_init (struct command_set *cmdset);
 void queue_config_cmd_init (struct command_set *cmdset);
-void nettlp_cmd_init (struct command_set *cmdset);
 void dpdk_devbind_cmd_init (struct command_set *cmdset);
 void pktgen_cmd_init (struct command_set *cmdset);
 
@@ -919,8 +918,6 @@ sdplane_cmd_init (struct command_set *cmdset)
 #ifdef ENABLE_PKTGEN
   pktgen_cmd_init (cmdset);
 #endif
-
-  nettlp_cmd_init (cmdset);
 }
 
 void

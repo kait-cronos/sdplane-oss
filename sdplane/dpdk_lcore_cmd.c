@@ -42,7 +42,6 @@ struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 
 extern int lthread_core;
 
-int nettlp_thread (void *arg);
 int vlan_switch (void *arg);
 #ifdef ENABLE_PKTGEN
 int pktgen_launch_one_lcore(void *arg __rte_unused);
@@ -100,7 +99,7 @@ stop_lcore (struct shell *shell, int lcore_id)
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore <0-16> "
     "(|none|l2fwd|l3fwd|l3fwd-lpm|"
-    "tap-handler|l2-repeater|nettlp-thread|vlan-switch|l3-tap-handler|enhanced-repeater"
+    "tap-handler|l2-repeater|vlan-switch|l3-tap-handler|enhanced-repeater"
 #ifdef ENABLE_PKTGEN
     "|pktgen"
 #endif
@@ -111,13 +110,14 @@ CLI_COMMAND2 (set_worker,
     "set lcore not to launch anything\n",
     "set lcore to launch l2fwd\n",
     "set lcore to launch l3fwd (default: lpm)\n",
-    "set lcore to launch l3fwd-lpm\n", "set lcore to launch tap-handler\n",
+    "set lcore to launch l3fwd-lpm\n",
+    "set lcore to launch tap-handler\n",
     "set lcore to launch l2-repeater\n",
-    "set lcore to launch nettlp-thread\n"
-    "set lcore to launch vlan-switch\n"
-    "set lcore to launch l3-tap-handler\n"
-    "set lcore to launch enhanced-repeater\n"
-    "set lcore to launch pktgen\n"
+    "set lcore to launch vlan-switch\n",
+    "set lcore to launch l3-tap-handler\n",
+    "set lcore to launch enhanced-repeater\n",
+    "set lcore to launch pktgen\n",
+    "set lcore to launch linkflap-generator\n"
     )
 {
   struct shell *shell = (struct shell *) context;
