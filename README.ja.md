@@ -46,34 +46,7 @@ DPDK（Data Plane Development Kit）を基盤とした高性能オープンソ�
 
 Intel (Core i7/9、Xeon)、AMD、ARM CPU等のほかのCPUでも動かない理由はありません。
 
-## クイックスタート（Debianパッケージ）
-
-簡単インストールのため、ビルド済みDebianパッケージをダウンロード・インストールします：
-
-```bash
-# 最新パッケージのダウンロード (n305用)
-wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-36_amd64.deb
-wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-36_amd64.ddeb
-
-# もしくは (n100用)
-wget https://www.yasuhironet.net/download/n100/sdplane_0.1.4-35_amd64.deb
-wget https://www.yasuhironet.net/download/n100/sdplane-dbgsym_0.1.4-35_amd64.ddeb
-
-# パッケージのインストール
-sudo apt install ./sdplane_0.1.4-*_amd64.deb
-sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
-
-# サービスの開始
-sudo systemctl enable sdplane
-sudo systemctl start sdplane
-
-# CLIに接続
-telnet localhost 9882
-```
-
-**注意**: 最新パッケージバージョンについては [yasuhironet.net ダウンロード](https://www.yasuhironet.net/download/)を確認してください。
-
-## ソースからのビルド
+## 1. 依存関係のインストール
 
 ### 依存関係
 - **liburcu-qsbr**：ユーザー空間RCUライブラリ
@@ -81,34 +54,12 @@ telnet localhost 9882
 - **lthread**：[yasuhironet/lthread](https://github.com/yasuhironet/lthread)（軽量協調スレッド）
 - **DPDK**：Data Plane Development Kit
 
-### 必須Ubuntuパッケージ
-
-#### ソースからのビルド用
-```bash
-# コアビルドツール
-sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
-
-# DPDK前提パッケージ
-sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
-
-# sdplane依存関係
+### sdplane依存関係debianパッケージのインストール
+```
 sudo apt install liburcu-dev libpcap-dev
 ```
 
-#### Debianパッケージビルド用
-```bash
-sudo apt install build-essential cmake devscripts debhelper
-```
-
-#### オプションパッケージ
-```bash
-sudo apt install etckeeper tig bridge-utils \
-                 iptables-persistent fail2ban dmidecode screen ripgrep
-```
-
-### 1. 依存関係のインストール
-
-#### lthreadのインストール
+### lthreadのインストール
 ```bash
 # lthreadのインストール
 git clone https://github.com/yasuhironet/lthread
@@ -117,8 +68,7 @@ cmake .
 make
 sudo make install
 ```
-
-#### DPDK 23.11.1のインストール
+### DPDK 23.11.1のインストール
 ```bash
 # DPDKのダウンロードと展開
 wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
@@ -137,9 +87,91 @@ pkg-config --modversion libdpdk
 # 出力例: 23.11.1
 ```
 
-### 2. システム設定
+## 2. Debianパッケージによるクイックスタート
 
-#### ヒュージページの設定
+簡単インストールのため、ビルド済みDebianパッケージをダウンロード・インストールします：
+
+```bash
+# 最新パッケージのダウンロード (n305用)
+wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-36_amd64.deb
+wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-36_amd64.ddeb
+
+# もしくは (n100用)
+wget https://www.yasuhironet.net/download/n100/sdplane_0.1.4-35_amd64.deb
+wget https://www.yasuhironet.net/download/n100/sdplane-dbgsym_0.1.4-35_amd64.ddeb
+
+# パッケージのインストール
+sudo apt install ./sdplane_0.1.4-*_amd64.deb
+sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
+```
+
+**注意**: 最新パッケージバージョンについては [yasuhironet.net ダウンロード](https://www.yasuhironet.net/download/)を確認してください。
+
+5. システム設定 にジャンプしてください。
+
+## 3. ソースからのビルド
+
+### 必須Ubuntuパッケージのインストール
+
+#### ソースからのビルド用
+```bash
+# コアビルドツール
+sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
+
+# DPDK前提パッケージ
+sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
+```
+
+#### オプションパッケージ
+```bash
+sudo apt install etckeeper tig bridge-utils \
+                 iptables-persistent fail2ban dmidecode screen ripgrep
+```
+
+### ソースからsdplane-ossのビルド
+
+```bash
+# リポジトリのクローン
+git clone https://github.com/kait-cronos/sdplane-oss
+cd sdplane-oss
+
+# ビルドファイルの生成
+sh autogen.sh
+
+# 設定とビルド
+mkdir build
+cd build
+CFLAGS="-g -O0" sh ../configure
+make
+```
+
+## 4. sdplane-oss Debianパッケージのビルド（オプション）
+
+### 前提パッケージのインストール
+```bash
+sudo apt install build-essential cmake devscripts debhelper
+```
+
+### sdplane-oss Debianパッケージのビルド
+```bash
+# まずクリーンな状態から始める
+(cd build && make distclean)
+make distclean
+
+# ソースからDebianパッケージをビルド
+bash build-debian.sh
+
+# 生成されたパッケージをインストール（親ディレクトリに生成される）
+sudo apt install ../sdplane_*.deb
+```
+
+## 5. システム設定
+
+- **ヒュージページ**：DPDK用システムヒュージページの設定
+- **ネットワーク**：ネットワークインターフェース設定にnetplanを使用
+- **ファイアウォール**：必要に応じてiptablesルールを設定
+
+### ヒュージページの設定
 ```bash
 # GRUB設定の編集
 sudo vi /etc/default/grub
@@ -156,7 +188,7 @@ sudo update-grub
 sudo reboot
 ```
 
-#### DPDK IGBカーネルモジュールのインストール（オプション）
+### DPDK IGBカーネルモジュールのインストール（オプション）
 ```bash
 # 方法1: パッケージからインストール
 sudo apt-get install -y dpdk-igb-uio-dkms
@@ -170,55 +202,12 @@ sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
 echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 ```
 
-### 3. ソースからsdplane-ossのビルド
-
-```bash
-# リポジトリのクローン
-git clone https://github.com/kait-cronos/sdplane-oss
-cd sdplane-oss
-
-# ビルドファイルの生成
-./autogen.sh
-
-# 設定とビルド
-mkdir build
-cd build
-CFLAGS="-g -O0" sh ../configure
-make
-```
-
-### 4. sdplane-oss Debianパッケージのビルド（オプション）
-
-```bash
-# ソースからDebianパッケージをビルド
-cd sdplane-oss
-./build-debian.sh
-
-# 生成されたパッケージをインストール
-sudo apt install ../sdplane_*.deb
-```
-
-### 5. ソフトウェアルーターの実行
-
-```bash
-# フォアグラウンドで実行
-sudo ./sdplane/sdplane
-  または
-# dpkgでインストールした場合、バックグラウンドで実行
-sudo systemctl start sdplane
-
-# CLIに接続
-telnet localhost 9882
-```
-
-## 設定
-
-### システム設定
-- **ヒュージページ**：DPDK用システムヒュージページの設定
-- **ネットワーク**：ネットワークインターフェース設定にnetplanを使用
-- **ファイアウォール**：必要に応じてiptablesルールを設定
+## 6. sdplane設定
 
 ### 設定ファイル
+
+以下の設定ファイルのいずれかを
+/etc/sdplane/sdplane.confとして配置してください
 
 #### OS設定（`etc/`）
 - [`etc/sdplane.conf.sample`](etc/sdplane.conf.sample)：メイン設定テンプレート
@@ -230,6 +219,20 @@ telnet localhost 9882
 - [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf)：Toptonハードウェア設定
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf)：L2リピーター設定
 - [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf)：拡張リピーター設定
+
+## 7. ソフトウェアルーターの実行
+
+```bash
+# フォアグラウンドで実行
+sudo ./sdplane/sdplane
+  もしくは
+# dpkgでインストールした場合、systemd経由で実行
+sudo systemctl enable sdplane
+sudo systemctl start sdplane
+
+# CLIに接続
+telnet localhost 9882
+```
 
 ## ユーザーガイド（マニュアル）
 
