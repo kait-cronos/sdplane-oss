@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/wait.h>
+#include <limits.h>
 
 #include <lthread.h>
 
@@ -330,26 +331,56 @@ run_tests (struct test_config configs[], int count)
       printf ("=== RUN   %s\n", configs[i].name);
       uint64_t start = now_ms ();
 
+      /* create temporary file to capture child stdout/stderr */
+      char tmpname[] = "/tmp/sdplane_test_XXXXXX";
+      int tmpfd = mkstemp (tmpname);
+      if (tmpfd < 0)
+        {
+          perror ("mkstemp");
+          return -1;
+        }
+
       pid_t pid = fork ();
       if (pid < 0)
         {
           perror ("fork");
+          if (tmpfd >= 0)
+            {
+              close (tmpfd);
+              unlink (tmpname);
+            }
           return -1;
         }
 
       if (pid == 0)
         {
-          /* child: run the test and exit with its return code */
-          int rc = run_test (&configs[i]);
-          _exit (rc & 0xff);
+          /* dup tmpfd to stdout/stderr */
+          if (dup2 (tmpfd, STDOUT_FILENO) < 0)
+            {
+              perror ("dup2 stdout");
+              _exit (127);
+            }
+          if (dup2 (tmpfd, STDERR_FILENO) < 0)
+            {
+              perror ("dup2 stderr");
+              _exit (127);
+            }
+
+          if (tmpfd > STDERR_FILENO)
+            close (tmpfd);
+
+          return run_test (&configs[i]);
         }
       else
         {
-          /* parent: wait for child to finish before starting next test */
+          if (tmpfd >= 0)
+            close (tmpfd);
+
           int status = 0;
           if (waitpid (pid, &status, 0) < 0)
             {
               perror ("waitpid");
+              unlink (tmpname);
               return -1;
             }
 
@@ -364,12 +395,36 @@ run_tests (struct test_config configs[], int count)
                   printf ("--- PASS: %s (%llums)\n", configs[i].name,
                           (unsigned long long) dur);
                   pass_count++;
+                  unlink (tmpname);
                 }
               else
                 {
                   printf ("--- FAIL: %s (%llums) exit code=%d\n",
                           configs[i].name, (unsigned long long) dur, code);
                   fail_count++;
+
+                  if (tmpname[0])
+                    {
+                      printf ("The log is following:\n");
+                      int rfd = open (tmpname, O_RDONLY);
+                      if (rfd >= 0)
+                        {
+                          char buf[4096];
+                          ssize_t n;
+                          while ((n = read (rfd, buf, sizeof (buf))) > 0)
+                            {
+                              ssize_t w = write (STDOUT_FILENO, buf, n);
+                              (void) w;
+                            }
+                          close (rfd);
+                        }
+                      else
+                        perror ("open tmp log");
+                      unlink (tmpname);
+                    }
+                  else
+                    printf ("(no captured log available)\n");
+
                   printf ("FAIL\n");
                   return code;
                 }
@@ -380,15 +435,39 @@ run_tests (struct test_config configs[], int count)
               printf ("--- FAIL: %s (%llums) terminated by signal %d\n",
                       configs[i].name, (unsigned long long) dur, sig);
               fail_count++;
+
+              if (tmpname[0])
+                {
+                  printf ("The log is following:\n");
+                  int rfd = open (tmpname, O_RDONLY);
+                  if (rfd >= 0)
+                    {
+                      char buf[4096];
+                      ssize_t n;
+                      while ((n = read (rfd, buf, sizeof (buf))) > 0)
+                        {
+                          ssize_t w = write (STDOUT_FILENO, buf, n);
+                          (void) w;
+                        }
+                      close (rfd);
+                    }
+                  else
+                    perror ("open tmp log");
+                  unlink (tmpname);
+                }
+              else
+                printf ("(no captured log available)\n");
+
               printf ("FAIL\n");
               return -1;
             }
           else
             {
-              /* unexpected status: treat as failure */
               printf ("--- FAIL: %s (%llums) unknown status\n",
                       configs[i].name, (unsigned long long) dur);
               fail_count++;
+              if (tmpname[0])
+                unlink (tmpname);
               return -1;
             }
         }

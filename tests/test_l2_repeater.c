@@ -63,7 +63,7 @@ main (void)
   struct test_config configs[] = { {
       .name = "l2_repeater repeats any data to other ports",
       .test_func = test_l2_repeater,
-      .config_path = "test_l2repeater.conf",
+      .config_path = "config/l2_repeater.conf",
   } };
   return run_tests (configs, sizeof (configs) / sizeof (configs[0]));
 }

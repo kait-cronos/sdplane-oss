@@ -88,10 +88,10 @@ TEST_COMMON_OBJECTS = $(TEST_COMMON_SOURCES:.c=.o)
 
 OUTDIR = $(shell pwd)/build
 
-all: $(OUTDIR)/test_l2repeater
+all: $(OUTDIR)/test_l2_repeater
 
 test: all
-	sudo ./build/test_l2repeater
+	sudo ./build/test_l2_repeater
 
 docker:
 	docker build -t sdplane-test -f Dockerfile ..
@@ -109,11 +109,11 @@ $(OUTDIR):
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OUTDIR)/test_l2repeater: test_l2repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS) | $(OUTDIR)
-	$(CC) $(CFLAGS) -o $@ test_l2repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS) $(LDFLAGS)
+$(OUTDIR)/test_l2_repeater: test_l2_repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS) | $(OUTDIR)
+	$(CC) $(CFLAGS) -o $@ test_l2_repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS) $(LDFLAGS)
 
 clean:
-	rm -f test_l2repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS)
+	rm -f test_l2_repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS)
 	rm -rf $(OUTDIR)
 
 .PHONY: all clean test docker
