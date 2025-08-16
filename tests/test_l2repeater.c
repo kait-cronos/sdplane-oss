@@ -40,8 +40,8 @@
 
 char msg[256];
 
-#define RX_PORT 0
-#define TX_PORT 1
+#define RX_PORT  0
+#define TX_PORT  1
 #define LCORE_ID 2
 
 int
@@ -58,12 +58,12 @@ test_l2_repeater (void *arg)
 }
 
 int
-main ()
+main (void)
 {
-  struct test_config config = {
-    .name = "l2_repeater repeats any data to other ports",
-    .test_func = test_l2_repeater,
-    .config_path = "test_l2repeater.conf",
-  };
-  run_test (&config);
+  struct test_config configs[] = { {
+      .name = "l2_repeater repeats any data to other ports",
+      .test_func = test_l2_repeater,
+      .config_path = "test_l2repeater.conf",
+  } };
+  return run_tests (configs, sizeof (configs) / sizeof (configs[0]));
 }

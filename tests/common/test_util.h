@@ -23,7 +23,7 @@ struct test_config
   char *config_path;
 };
 
-int run_test (struct test_config *config);
+int run_tests (struct test_config config[], int count);
 int apply_config (const char *config_path);
 
 #define TEST_DEFAULT_DEQ_TIMEOUT_MS 1000
@@ -45,24 +45,24 @@ int test_enqueue_bytes (const void *data, uint16_t len, int port_id,
 int test_expect_bytes_equal (const void *data, uint16_t len, int port_id,
                              int tx_queue_idx, int timeout_ms);
 
-#define SEND_TO_PORT(data_ptr, data_len, port_id, queue_idx)                    \
-  do                                                                            \
-    {                                                                           \
-      int __ret =                                                               \
-          test_enqueue_bytes ((const void *) (data_ptr), (uint16_t) (data_len), \
-                               (port_id), (queue_idx));                         \
-      SDPLANE_ASSERT (__ret >= 0);                                              \
-    }                                                                           \
+#define SEND_TO_PORT(data_ptr, data_len, port_id, queue_idx)                  \
+  do                                                                          \
+    {                                                                         \
+      int __ret =                                                             \
+          test_enqueue_bytes ((const void *) (data_ptr),                      \
+                              (uint16_t) (data_len), (port_id), (queue_idx)); \
+      SDPLANE_ASSERT (__ret >= 0);                                            \
+    }                                                                         \
   while (0)
 
-#define EXPECT_FROM_PORT(data_ptr, data_len, port_id, queue_idx)                \
-  do                                                                            \
-    {                                                                           \
-      int __ret = test_expect_bytes_equal (                                     \
-          (const void *) (data_ptr), (uint16_t) (data_len), (port_id),          \
-          (queue_idx), TEST_DEFAULT_DEQ_TIMEOUT_MS);                            \
-      SDPLANE_ASSERT (__ret == 0);                                              \
-    }                                                                           \
+#define EXPECT_FROM_PORT(data_ptr, data_len, port_id, queue_idx)              \
+  do                                                                          \
+    {                                                                         \
+      int __ret = test_expect_bytes_equal (                                   \
+          (const void *) (data_ptr), (uint16_t) (data_len), (port_id),        \
+          (queue_idx), TEST_DEFAULT_DEQ_TIMEOUT_MS);                          \
+      SDPLANE_ASSERT (__ret == 0);                                            \
+    }                                                                         \
   while (0)
 
 #endif /* TEST_UTIL_H */

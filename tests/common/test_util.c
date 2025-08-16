@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+#include <sys/wait.h>
 
 #include <lthread.h>
 
@@ -146,8 +147,8 @@ test_expect_bytes_equal (const void *data, uint16_t len, int port_id,
   struct rte_mbuf *expected = test_mbuf_from_bytes (data, len);
   if (! expected)
     return -ENOMEM;
-  int ret = test_expect_packet_equal (expected, port_id, tx_queue_idx,
-                                      timeout_ms);
+  int ret =
+      test_expect_packet_equal (expected, port_id, tx_queue_idx, timeout_ms);
   rte_pktmbuf_free (expected);
   return ret;
 }
@@ -219,35 +220,6 @@ signal_handler (int signum)
 }
 
 int
-run_test (struct test_config *config)
-{
-  lthread_t *lt = NULL;
-
-  signal (SIGINT, signal_handler);
-  signal (SIGTERM, signal_handler);
-  signal (SIGHUP, signal_handler);
-
-  debug_log_init (config->name);
-  debug_zcmdsh_cmd_init ();
-  command_shell_init ();
-  sdplane_init ();
-
-  printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
-
-  int ret = rte_eal_init (test_rte_eal_argc, test_rte_eal_argv);
-  if (ret < 0)
-    rte_panic ("Cannot init EAL\n");
-
-  lthread_create (&lt, (lthread_func) test_lthread_main, config);
-  thread_register (-1, lt, (lthread_func) test_lthread_main,
-                   "test_lthread_main", config);
-  lthread_run ();
-
-  // l3fwd_terminate (argc, argv);
-  exit (test_ret);
-}
-
-int
 apply_config (const char *config_path)
 {
   struct shell *shell = NULL;
@@ -314,5 +286,119 @@ apply_config (const char *config_path)
   // termio_finish ();
   if (ret < 0)
     return ret;
+  return 0;
+}
+
+static int
+run_test (struct test_config *config)
+{
+  lthread_t *lt = NULL;
+
+  signal (SIGINT, signal_handler);
+  signal (SIGTERM, signal_handler);
+  signal (SIGHUP, signal_handler);
+
+  debug_log_init (config->name);
+  debug_zcmdsh_cmd_init ();
+  command_shell_init ();
+  sdplane_init ();
+
+  printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
+
+  int ret = rte_eal_init (test_rte_eal_argc, test_rte_eal_argv);
+  if (ret < 0)
+    rte_panic ("Cannot init EAL\n");
+
+  lthread_create (&lt, (lthread_func) test_lthread_main, config);
+  thread_register (-1, lt, (lthread_func) test_lthread_main,
+                   "test_lthread_main", config);
+  lthread_run ();
+
+  // l3fwd_terminate (argc, argv);
+  return test_ret;
+}
+
+int
+run_tests (struct test_config configs[], int count)
+{
+  int pass_count = 0;
+  int fail_count = 0;
+  uint64_t total_start = now_ms ();
+
+  for (int i = 0; i < count; i++)
+    {
+      printf ("=== RUN   %s\n", configs[i].name);
+      uint64_t start = now_ms ();
+
+      pid_t pid = fork ();
+      if (pid < 0)
+        {
+          perror ("fork");
+          return -1;
+        }
+
+      if (pid == 0)
+        {
+          /* child: run the test and exit with its return code */
+          int rc = run_test (&configs[i]);
+          _exit (rc & 0xff);
+        }
+      else
+        {
+          /* parent: wait for child to finish before starting next test */
+          int status = 0;
+          if (waitpid (pid, &status, 0) < 0)
+            {
+              perror ("waitpid");
+              return -1;
+            }
+
+          uint64_t end = now_ms ();
+          uint64_t dur = (end >= start) ? (end - start) : 0;
+
+          if (WIFEXITED (status))
+            {
+              int code = WEXITSTATUS (status);
+              if (code == 0)
+                {
+                  printf ("--- PASS: %s (%llums)\n", configs[i].name,
+                          (unsigned long long) dur);
+                  pass_count++;
+                }
+              else
+                {
+                  printf ("--- FAIL: %s (%llums) exit code=%d\n",
+                          configs[i].name, (unsigned long long) dur, code);
+                  fail_count++;
+                  printf ("FAIL\n");
+                  return code;
+                }
+            }
+          else if (WIFSIGNALED (status))
+            {
+              int sig = WTERMSIG (status);
+              printf ("--- FAIL: %s (%llums) terminated by signal %d\n",
+                      configs[i].name, (unsigned long long) dur, sig);
+              fail_count++;
+              printf ("FAIL\n");
+              return -1;
+            }
+          else
+            {
+              /* unexpected status: treat as failure */
+              printf ("--- FAIL: %s (%llums) unknown status\n",
+                      configs[i].name, (unsigned long long) dur);
+              fail_count++;
+              return -1;
+            }
+        }
+    }
+
+  uint64_t total_end = now_ms ();
+  uint64_t total_dur =
+      (total_end >= total_start) ? (total_end - total_start) : 0;
+  printf ("PASS: %d tests, %d failures, elapsed %llums\n", pass_count,
+          fail_count, (unsigned long long) total_dur);
+
   return 0;
 }
