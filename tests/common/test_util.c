@@ -8,6 +8,9 @@
 #include <time.h>
 #include <sys/wait.h>
 #include <limits.h>
+#include <sys/stat.h>
+#include <ctype.h>
+#include <sys/time.h>
 
 #include <lthread.h>
 
@@ -55,9 +58,10 @@ int test_ret;
 static inline uint64_t
 now_ms (void)
 {
-  struct timespec ts;
-  clock_gettime (CLOCK_MONOTONIC, &ts);
-  return ((uint64_t) ts.tv_sec) * 1000ULL + (ts.tv_nsec / 1000000ULL);
+  struct timeval tv;
+  if (gettimeofday (&tv, NULL) != 0)
+    return 0;
+  return ((uint64_t) tv.tv_sec) * 1000ULL + (tv.tv_usec / 1000ULL);
 }
 
 struct rte_mbuf *
@@ -319,6 +323,79 @@ run_test (struct test_config *config)
   return test_ret;
 }
 
+static int
+open_logfile (const char *test_name, int flags)
+{
+  if (! test_name)
+    {
+      errno = EINVAL;
+      return -1;
+    }
+
+  const char *logs_dir = "logs";
+  if (mkdir (logs_dir, 0755) < 0 && errno != EEXIST)
+    return -1;
+
+  char name_sanitized[256];
+  size_t ns = 0;
+  const char *n = test_name;
+  for (; *n && ns + 1 < sizeof (name_sanitized); n++)
+    {
+      unsigned char c = (unsigned char) *n;
+      if (isalnum (c) || c == '-' || c == '_')
+        name_sanitized[ns++] = c;
+      else if (c == ' ')
+        name_sanitized[ns++] = '_';
+      else
+        name_sanitized[ns++] = '_';
+    }
+  name_sanitized[ns] = '\0';
+  if (ns == 0)
+    snprintf (name_sanitized, sizeof (name_sanitized), "test");
+
+  char pathbuf[4096];
+  if (snprintf (pathbuf, sizeof (pathbuf), "%s/%s.log", logs_dir,
+                name_sanitized) >= (int) sizeof (pathbuf))
+    {
+      errno = ENAMETOOLONG;
+      return -1;
+    }
+
+  int fd;
+  if (flags & O_CREAT)
+    fd = open (pathbuf, flags, 0644);
+  else
+    fd = open (pathbuf, flags);
+  return fd;
+}
+
+static void
+print_test_log (const char *test_name)
+{
+  printf ("The log is following:\n");
+  int rfd = open_logfile (test_name, O_RDONLY);
+  if (rfd >= 0)
+    {
+      char buf[4096];
+      ssize_t n;
+      int any = 0;
+      while ((n = read (rfd, buf, sizeof (buf))) > 0)
+        {
+          ssize_t w = write (STDOUT_FILENO, buf, n);
+          (void) w;
+          any = 1;
+        }
+      close (rfd);
+      if (! any)
+        printf ("(no captured log)\n");
+    }
+  else
+    {
+      printf ("(no captured log available)\n");
+      perror ("open log for read");
+    }
+}
+
 int
 run_tests (struct test_config configs[], int count)
 {
@@ -331,12 +408,10 @@ run_tests (struct test_config configs[], int count)
       printf ("=== RUN   %s\n", configs[i].name);
       uint64_t start = now_ms ();
 
-      /* create temporary file to capture child stdout/stderr */
-      char tmpname[] = "/tmp/sdplane_test_XXXXXX";
-      int tmpfd = mkstemp (tmpname);
-      if (tmpfd < 0)
+      int logfd = open_logfile (configs[i].name, O_WRONLY | O_CREAT | O_TRUNC);
+      if (logfd < 0)
         {
-          perror ("mkstemp");
+          perror ("open_logfile");
           return -1;
         }
 
@@ -344,43 +419,37 @@ run_tests (struct test_config configs[], int count)
       if (pid < 0)
         {
           perror ("fork");
-          if (tmpfd >= 0)
-            {
-              close (tmpfd);
-              unlink (tmpname);
-            }
+          close (logfd);
           return -1;
         }
 
       if (pid == 0)
         {
-          /* dup tmpfd to stdout/stderr */
-          if (dup2 (tmpfd, STDOUT_FILENO) < 0)
+          if (dup2 (logfd, STDOUT_FILENO) < 0)
             {
               perror ("dup2 stdout");
               _exit (127);
             }
-          if (dup2 (tmpfd, STDERR_FILENO) < 0)
+          if (dup2 (logfd, STDERR_FILENO) < 0)
             {
               perror ("dup2 stderr");
               _exit (127);
             }
 
-          if (tmpfd > STDERR_FILENO)
-            close (tmpfd);
+          if (logfd > STDERR_FILENO)
+            close (logfd);
 
-          return run_test (&configs[i]);
+          int rc = run_test (&configs[i]);
+          _exit (rc & 0xff);
         }
       else
         {
-          if (tmpfd >= 0)
-            close (tmpfd);
+          close (logfd);
 
           int status = 0;
           if (waitpid (pid, &status, 0) < 0)
             {
               perror ("waitpid");
-              unlink (tmpname);
               return -1;
             }
 
@@ -395,7 +464,6 @@ run_tests (struct test_config configs[], int count)
                   printf ("--- PASS: %s (%llums)\n", configs[i].name,
                           (unsigned long long) dur);
                   pass_count++;
-                  unlink (tmpname);
                 }
               else
                 {
@@ -403,27 +471,7 @@ run_tests (struct test_config configs[], int count)
                           configs[i].name, (unsigned long long) dur, code);
                   fail_count++;
 
-                  if (tmpname[0])
-                    {
-                      printf ("The log is following:\n");
-                      int rfd = open (tmpname, O_RDONLY);
-                      if (rfd >= 0)
-                        {
-                          char buf[4096];
-                          ssize_t n;
-                          while ((n = read (rfd, buf, sizeof (buf))) > 0)
-                            {
-                              ssize_t w = write (STDOUT_FILENO, buf, n);
-                              (void) w;
-                            }
-                          close (rfd);
-                        }
-                      else
-                        perror ("open tmp log");
-                      unlink (tmpname);
-                    }
-                  else
-                    printf ("(no captured log available)\n");
+                  print_test_log (configs[i].name);
 
                   printf ("FAIL\n");
                   return code;
@@ -436,27 +484,7 @@ run_tests (struct test_config configs[], int count)
                       configs[i].name, (unsigned long long) dur, sig);
               fail_count++;
 
-              if (tmpname[0])
-                {
-                  printf ("The log is following:\n");
-                  int rfd = open (tmpname, O_RDONLY);
-                  if (rfd >= 0)
-                    {
-                      char buf[4096];
-                      ssize_t n;
-                      while ((n = read (rfd, buf, sizeof (buf))) > 0)
-                        {
-                          ssize_t w = write (STDOUT_FILENO, buf, n);
-                          (void) w;
-                        }
-                      close (rfd);
-                    }
-                  else
-                    perror ("open tmp log");
-                  unlink (tmpname);
-                }
-              else
-                printf ("(no captured log available)\n");
+              print_test_log (configs[i].name);
 
               printf ("FAIL\n");
               return -1;
@@ -466,8 +494,6 @@ run_tests (struct test_config configs[], int count)
               printf ("--- FAIL: %s (%llums) unknown status\n",
                       configs[i].name, (unsigned long long) dur);
               fail_count++;
-              if (tmpname[0])
-                unlink (tmpname);
               return -1;
             }
         }

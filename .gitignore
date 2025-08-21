@@ -52,4 +52,4 @@ Makefile
 /tools/ip-neigh/*.sh
 /build
 /tests/build
-
+/tests/logs
