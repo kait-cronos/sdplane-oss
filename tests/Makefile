@@ -88,10 +88,23 @@ TEST_COMMON_OBJECTS = $(TEST_COMMON_SOURCES:.c=.o)
 
 OUTDIR = $(shell pwd)/build
 
-all: $(OUTDIR)/test_l2_repeater
+# Detect all test_*.c in the current directory and build corresponding binaries
+TEST_SRCS := $(wildcard test_*.c)
+TESTS := $(patsubst %.c,%,$(TEST_SRCS))
+TEST_BINARIES := $(addprefix $(OUTDIR)/,$(TESTS))
 
+all: $(TEST_BINARIES)
+
+# Keep legacy "test" target behavior (runs test_l2_repeater) for compatibility
 test: all
-	sudo ./build/test_l2_repeater
+	@if [ -z "$(TESTS)" ]; then \
+		echo "No test_* programs found."; \
+	else \
+		for t in $(TESTS); do \
+			echo "Running $$t..."; \
+			sudo ./build/$$t || { echo "$$t failed"; exit 1; }; \
+		done; \
+	fi
 
 docker:
 	docker build -t sdplane-test -f Dockerfile ..
@@ -109,11 +122,16 @@ $(OUTDIR):
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OUTDIR)/test_l2_repeater: test_l2_repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS) | $(OUTDIR)
-	$(CC) $(CFLAGS) -o $@ test_l2_repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS) $(LDFLAGS)
+# Generic rule for building any test_* program into $(OUTDIR)
+$(OUTDIR)/%: %.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS) | $(OUTDIR)
+	$(CC) $(CFLAGS) -o $@ $< $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS) $(LDFLAGS)
+
+# Allow invoking a test by name: `make test_foo` will build and run it
+%: $(OUTDIR)/%
+	sudo ./build/$@
 
 clean:
-	rm -f test_l2_repeater.o $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS)
+	rm -f $(TEST_SRCS:.c=.o) $(COMMON_OBJECTS) $(TEST_COMMON_OBJECTS)
 	rm -rf $(OUTDIR)
 
-.PHONY: all clean test docker
+.PHONY: all clean test docker $(TESTS)
