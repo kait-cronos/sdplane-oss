@@ -503,7 +503,7 @@ shell_read_nowait_paging (struct shell *shell)
           if (! (fds[i].revents & (POLLIN | POLLHUP)))
             continue;
 
-          if (fds[i].revents & POLLHUP)
+          if ((fds[i].revents & POLLHUP) && ! (fds[i].revents & POLLIN))
             closed++;
 
           DEBUG_ZCMDSH_LOG (
