@@ -140,7 +140,7 @@ neigh_manager_delete_entry (struct neigh_table *neigh_table, const int index,
   hash = jenkins_hash ((uint8_t *) key, neigh_key_lengths[index]);
   offset = hash;
 
-  while (neigh_table->entries[offset].state != NEIGH_STATE_NONE)
+  while (1)
     {
       if (! memcmp (&neigh_table->entries[offset].ip_addr, key,
                     neigh_key_lengths[index]))
