@@ -31,15 +31,18 @@
 CLI_COMMAND2 (show_rib,
               "show rib",
               SHOW_HELP,
-              "rib information\n")
+              "show rib information.\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
   int i, j;
   int nb_ports;
 
-  if (! rib)
-    return 0;
+  if (! rib || ! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no rib information.%s", shell->NL);
+      return 0;
+    }
 
 #if 0
   nb_ports = rte_eth_dev_count_avail ();
@@ -68,13 +71,9 @@ CLI_COMMAND2 (show_rib,
     }
 #endif
 
-  if (! rib->rib_info)
-    {
-      fprintf (shell->terminal, "no rib-info.%s", shell->NL);
-      return 0;
-    }
-
-  fprintf (shell->terminal, "rib_info: ver: %lu (%p)%s", rib->rib_info->ver,
+  // show rib information version
+  fprintf (shell->terminal, "rib information version: %lu (%p)%s",
+           rib->rib_info->ver,
            rib->rib_info, shell->NL);
 
 #if 0
@@ -89,71 +88,71 @@ CLI_COMMAND2 (show_rib,
     }
 #endif
 
-  fprintf (shell->terminal, "rib_info: vswitch_size: %d%s",
-           rib->rib_info->vswitch_size, shell->NL);
+  // show vswitches
+  fprintf (shell->terminal, "vswitches: %s", shell->NL);
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
-      struct vswitch_conf *vswitch;
-      vswitch = &rib->rib_info->vswitch[i];
-      if (vswitch->is_deleted)
-        {
-          fprintf (shell->terminal, "rib_info: vswitch[%d]: deleted%s", i,
-                  shell->NL);
-          continue;
-        }
-      fprintf (shell->terminal, "rib_info: vswitch[%d]: port_size: %d%s", i,
-               vswitch->vswitch_port_size, shell->NL);
+      struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
+
+      // show vswitch links
+      fprintf (shell->terminal, "  vswitch[%d]: %s", i, shell->NL);
       for (j = 0; j < vswitch->vswitch_port_size; j++)
         {
           uint16_t vswitch_link_id = vswitch->vswitch_link_id[j];
-          struct vswitch_link *link;
-          link = &rib->rib_info->vswitch_link[vswitch_link_id];
+          struct vswitch_link *link = &rib->rib_info->vswitch_link[vswitch_link_id];
+
           fprintf (shell->terminal,
-                   "rib_info: vswitch[%d]: vswport[%d]: "
-                   "vswitch_link: %d port_id: %u vlan: %u tag: %u "
-                   "(vswitch%u[%u])%s",
-                   i, j, vswitch_link_id, link->port_id, link->vlan_id,
-                   link->tag_id, link->vswitch_id, link->vswitch_port,
-                   shell->NL);
+                   "    vswitch_link[%d]: "
+                   "vswitch_link_id=%d, dpdk_port[%u], vlan=%u, tag=%u%s",
+                   j, vswitch_link_id,
+                   link->port_id, link->vlan_id, link->tag_id, shell->NL);
         }
     }
 
-  fprintf (shell->terminal, "rib_info: port_size: %d%s",
-           rib->rib_info->port_size, shell->NL);
+  // show dpdk port information
+  fprintf (shell->terminal, "dpdk ports: %s", shell->NL);
   for (i = 0; i < rib->rib_info->port_size; i++)
     {
-      struct port_conf *port;
-      port = &rib->rib_info->port[i];
+      struct port_conf *port = &rib->rib_info->port[i];
+
+      fprintf (shell->terminal, "  dpdk_port[%d]: %s",
+               port->dpdk_port_id, shell->NL);
       fprintf (shell->terminal,
-               "rib_info: port[%d]: "
-               "nb_rxd: %hu nb_txd: %hu%s",
-               i, port->nb_rxd, port->nb_txd, shell->NL);
+              "    link: speed=%luMbps duplex=%s autoneg=%s status=%s%s",
+              port->link.link_speed,
+              ETH_LINK_DUPLEX_STR(port->link.link_duplex),
+              ETH_LINK_AUTONEG_STR(port->link.link_autoneg),
+              ETH_LINK_STATUS_STR(port->link.link_status),
+              shell->NL);
       fprintf (shell->terminal,
-               "rib_info: port[%d]: "
-               "link: speed: %lu duplex: %d autoneg: %d status: %d%s",
-               i, port->link.link_speed, port->link.link_duplex,
-               port->link.link_autoneg, port->link.link_status, shell->NL);
-      fprintf (shell->terminal, "rib_info: port[%d]: nrxq: %d ntxq: %d%s", i,
-               port->dev_info.nb_rx_queues, port->dev_info.nb_tx_queues,
-               shell->NL);
+              "    nb_rxd=%hu nb_txd=%hu%s",
+              port->nb_rxd, port->nb_txd,
+              shell->NL);
+      fprintf (shell->terminal,
+              "    queues: nrxq=%d ntxq=%d%s",
+              port->dev_info.nb_rx_queues,
+              port->dev_info.nb_tx_queues,
+              shell->NL);
     }
 
-  fprintf (shell->terminal, "rib_info: lcore_size: %d%s",
-           rib->rib_info->lcore_size, shell->NL);
+  // show lcore informartion
+  fprintf (shell->terminal, "lcores: %s", shell->NL);
   for (i = 0; i < rib->rib_info->lcore_size; i++)
     {
-      struct lcore_qconf *qconf;
-      qconf = &rib->rib_info->lcore_qconf[i];
-      fprintf (shell->terminal, "rib_info: lcore[%d]: nrxq: %d%s", i,
-               qconf->nrxq, shell->NL);
+      struct lcore_qconf *qconf = &rib->rib_info->lcore_qconf[i];
+
+      // show number of RX queues in each lcore
+      fprintf (shell->terminal, "  lcore[%d]: nrxq=%d%s",
+               i, qconf->nrxq, shell->NL);
       for (j = 0; j < qconf->nrxq; j++)
         {
-          struct port_queue_conf *rx_queue;
-          rx_queue = &qconf->rx_queue_list[j];
+          struct port_queue_conf *rx_queue = &qconf->rx_queue_list[j];
+
+          // show RX queue information
           fprintf (shell->terminal,
-                   "rib_info: lcore[%d]: rxq[%d]: "
-                   "port_id: %d queue_id: %d%s",
-                   i, j, rx_queue->port_id, rx_queue->queue_id, shell->NL);
+                   "    rxq[%d]: "
+                   "dpdk_port[%d], queue_id=%d%s",
+                   j, rx_queue->port_id, rx_queue->queue_id, shell->NL);
         }
     }
 
@@ -201,10 +200,11 @@ CLI_COMMAND2 (delete_vswitch,
 }
 
 /* 🤖 生成AI (CLAUDE) */
-CLI_COMMAND2 (show_vswitch_rib,
-              "show vswitch_rib",
+CLI_COMMAND2 (show_rib_vswitch,
+              "show rib vswitch",
               SHOW_HELP,
-              "show vswitch rib information\n")
+              "show rib information.\n"
+              "show vswitch information.\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
@@ -212,33 +212,31 @@ CLI_COMMAND2 (show_vswitch_rib,
 
   if (! rib || ! rib->rib_info)
     {
-      fprintf (shell->terminal, "no rib information available%s", shell->NL);
+      fprintf (shell->terminal, "no rib information.%s", shell->NL);
       return 0;
     }
 
-  fprintf (shell->terminal, "vswitch configurations:%s", shell->NL);
   fprintf (shell->terminal, "total vswitches: %d%s",
            rib->rib_info->vswitch_size, shell->NL);
 
+  // show vswitches
+  fprintf (shell->terminal, "vswitches: %s", shell->NL);
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
-      if (vswitch->is_deleted)
-        {
-          fprintf (shell->terminal, "vswitch[%d]: deleted%s", i, shell->NL);
-          continue;
-        }
-      fprintf (shell->terminal, "vswitch[%d]: vlan %u, ports: %u%s",
-               vswitch->vswitch_id, vswitch->vlan_id,
-               vswitch->vswitch_port_size, shell->NL);
 
+      // show vswitch links attached to vswitch[i]
+      fprintf (shell->terminal, "  vswitch[%d]: %s", i, shell->NL);
       for (j = 0; j < vswitch->vswitch_port_size; j++)
         {
-          uint16_t link_id = vswitch->vswitch_link_id[j];
-          struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
+          uint16_t vswitch_link_id = vswitch->vswitch_link_id[j];
+          struct vswitch_link *link = &rib->rib_info->vswitch_link[vswitch_link_id];
+
           fprintf (shell->terminal,
-                   "  port[%d]: link %u -> port %u (tag:%u)%s", j, link_id,
-                   link->port_id, link->tag_id, shell->NL);
+                   "    vswitch_link[%d]: "
+                   "vswitch_link_id=%d, dpdk_port[%u], vlan=%u, tag=%u%s",
+                   j, vswitch_link_id,
+                   link->port_id, link->vlan_id, link->tag_id, shell->NL);
         }
     }
 
@@ -298,10 +296,11 @@ CLI_COMMAND2 (delete_vswitch_link,
 }
 
 /* 🤖 生成AI (CLAUDE) */
-CLI_COMMAND2 (show_vswitch_link,
-              "show vswitch-link",
+CLI_COMMAND2 (show_rib_vswitch_link,
+              "show rib vswitch-link",
               SHOW_HELP,
-              "show vswitch link information\n")
+              "show rib information.\n"
+              "show vswitch link information.\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
@@ -309,27 +308,24 @@ CLI_COMMAND2 (show_vswitch_link,
 
   if (! rib || ! rib->rib_info)
     {
-      fprintf (shell->terminal, "no rib information available%s", shell->NL);
+      fprintf (shell->terminal, "no rib information.%s", shell->NL);
       return 0;
     }
 
-  fprintf (shell->terminal, "vswitch link configurations:%s", shell->NL);
   fprintf (shell->terminal, "total vswitch links: %d%s",
            rib->rib_info->vswitch_link_size, shell->NL);
 
+  // show vswitch links
+  fprintf (shell->terminal, "vswitch links: %s", shell->NL);
   for (i = 0; i < rib->rib_info->vswitch_link_size; i++)
     {
       struct vswitch_link *link = &rib->rib_info->vswitch_link[i];
-      if (link->is_deleted)
-        {
-          fprintf (shell->terminal, "link[%d]: deleted%s", i, shell->NL);
-          continue;
-        }
-      fprintf (
-          shell->terminal,
-          "link[%d]: port %u -> vswitch %u (vlan:%u, tag:%u, vswport:%u)%s",
-          link->vswitch_link_id, link->port_id, link->vswitch_id,
-          link->vlan_id, link->tag_id, link->vswitch_port, shell->NL);
+
+      fprintf (shell->terminal,
+               "  vswitch_link[%d]: "
+               "id=%d, dpdk_port[%u] <-> vswitch[%u]%s",
+               i, link->vswitch_link_id,
+               link->port_id, link->vswitch_id, shell->NL);
     }
 
   return 0;
@@ -385,10 +381,11 @@ CLI_COMMAND2 (delete_router_if,
   return 0;
 }
 
-CLI_COMMAND2 (show_router_if,
-              "show router-if",
+CLI_COMMAND2 (show_rib_router_if,
+              "show rib router-if",
               SHOW_HELP,
-              "show router interface information\n")
+              "show rib information.\n"
+              "show router interface information.\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
@@ -397,7 +394,7 @@ CLI_COMMAND2 (show_router_if,
 
   if (! rib || ! rib->rib_info)
     {
-      fprintf (shell->terminal, "no rib information available%s", shell->NL);
+      fprintf (shell->terminal, "no rib information.%s", shell->NL);
       return 0;
     }
 
@@ -475,10 +472,11 @@ CLI_COMMAND2 (delete_capture_if,
   return 0;
 }
 
-CLI_COMMAND2 (show_capture_if,
-              "show capture-if",
+CLI_COMMAND2 (show_rib_capture_if,
+              "show rib capture-if",
               SHOW_HELP,
-              "show capture interface information\n")
+              "show rib information.\n"
+              "show capture interface information.\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
@@ -515,14 +513,14 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib);
   INSTALL_COMMAND2 (cmdset, set_vswitch);
   INSTALL_COMMAND2 (cmdset, delete_vswitch);
-  INSTALL_COMMAND2 (cmdset, show_vswitch_rib);
+  INSTALL_COMMAND2 (cmdset, show_rib_vswitch);
   INSTALL_COMMAND2 (cmdset, set_vswitch_link);
   INSTALL_COMMAND2 (cmdset, delete_vswitch_link);
-  INSTALL_COMMAND2 (cmdset, show_vswitch_link);
+  INSTALL_COMMAND2 (cmdset, show_rib_vswitch_link);
   INSTALL_COMMAND2 (cmdset, set_router_if);
   INSTALL_COMMAND2 (cmdset, delete_router_if);
-  INSTALL_COMMAND2 (cmdset, show_router_if);
+  INSTALL_COMMAND2 (cmdset, show_rib_router_if);
   INSTALL_COMMAND2 (cmdset, set_capture_if);
   INSTALL_COMMAND2 (cmdset, delete_capture_if);
-  INSTALL_COMMAND2 (cmdset, show_capture_if);
+  INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
 }
