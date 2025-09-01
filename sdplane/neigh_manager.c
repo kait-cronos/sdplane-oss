@@ -254,9 +254,11 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg_neigh_del_entry: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      neigh_manager_delete_entry (&neigh_tables[msg_neigh_entry->index],
-                                  msg_neigh_entry->index,
-                                  &msg_neigh_entry->data.ip_addr);
+      ret = neigh_manager_delete_entry (&neigh_tables[msg_neigh_entry->index],
+                                        msg_neigh_entry->index,
+                                        &msg_neigh_entry->data.ip_addr);
+      if (ret < 0)
+        return;
       msg_neigh_entry->hash = ret;
       new_msgp =
           internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL,
