@@ -216,7 +216,7 @@ neigh_manager_show_table (const int index, const struct shell *shell)
       rte_ether_format_addr (
           lladdr, sizeof (lladdr),
           &rib->rib_info->neigh_tables[index].entries[i].mac_addr);
-      fprintf (shell->terminal, "%s lladdr %s state %s%s", addr, lladdr,
+      fprintf (shell->terminal, "[%d] %s lladdr %s state %s%s", i, addr, lladdr,
                neigh_manager_state_str (
                    rib->rib_info->neigh_tables[index].entries[i].state),
                shell->NL);

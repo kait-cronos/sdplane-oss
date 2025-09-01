@@ -1090,6 +1090,8 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_add: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
+      DEBUG_SDPLANE_LOG (NEIGH, "rib: add: index: %d offset: %d",
+                         msg_neigh_entry->index, msg_neigh_entry->hash);
       memcpy (&new->rib_info->neigh_tables[msg_neigh_entry->index]
                    .entries[msg_neigh_entry->hash],
               &msg_neigh_entry->data, sizeof (struct neigh_entry));
@@ -1097,6 +1099,8 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_del: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
+      DEBUG_SDPLANE_LOG (NEIGH, "rib: del: index: %d offset: %d",
+                         msg_neigh_entry->index, msg_neigh_entry->hash);
       memset (&new->rib_info->neigh_tables[msg_neigh_entry->index]
                    .entries[msg_neigh_entry->hash],
               0, sizeof (struct neigh_entry));
