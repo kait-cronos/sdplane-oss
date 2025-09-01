@@ -49,3 +49,6 @@ Makefile
 /missing
 /stamp-h1
 /build
+
+/tools/ip-neigh/*.sh
+
