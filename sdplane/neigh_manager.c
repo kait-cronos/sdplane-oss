@@ -299,7 +299,7 @@ neigh_manager (void *arg __rte_unused)
 
   while (! force_quit && ! force_stop[lcore_id])
     {
-      lthread_sleep (100); // yield.
+      lthread_sleep (0); // yield.
       // DEBUG_SDPLANE_LOG (NEIGH, "%s: schedule.", __func__);
 
       msgp = internal_msg_recv (msg_queue_neigh);

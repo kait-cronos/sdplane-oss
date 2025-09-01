@@ -1157,7 +1157,7 @@ rib_manager (void *arg)
 
   while (! force_quit && ! force_stop[lthread_core])
     {
-      lthread_sleep (100); // yield.
+      lthread_sleep (0); // yield.
       // DEBUG_SDPLANE_LOG (RIB, "%s: schedule.", __func__);
 
       msgp = internal_msg_recv (msg_queue_rib);
