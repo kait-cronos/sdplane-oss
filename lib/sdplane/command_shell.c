@@ -507,7 +507,7 @@ shell_read_nowait_paging (struct shell *shell)
           if (! (fds[i].revents & (POLLIN | POLLHUP)))
             continue;
 
-          if (fds[i].revents & POLLHUP)
+          if ((fds[i].revents & POLLHUP) && ! (fds[i].revents & POLLIN))
             closed++;
 
           DEBUG_ZCMDSH_LOG (
@@ -604,7 +604,7 @@ command_shell_execute (struct shell *shell)
   /* ignore blank-line in startup-config. */
   if (! strlen (shell->command_line) &&
       ! FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
-    return;
+    return 0;
 
   /* send a line-feed to terminate the command line. */
   shell_linefeed (shell);
