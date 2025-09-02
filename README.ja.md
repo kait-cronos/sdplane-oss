@@ -42,9 +42,9 @@ DPDK（Data Plane Development Kit）を基盤とした高性能オープンソ�
 
 本プロジェクトは以下でテスト済みです：
 - **Topton (N305/N100)**：10G NIC搭載ミニPC
-- **Partaker (N100)**：1G NIC搭載ミニPC
+- **Partaker (J3160)**：1G NIC搭載ミニPC
 
-Intel (Core i7/9、Xeon)、AMD、ARM CPU等のほかのCPUでも動かない理由はありません。
+Intel (Core i7/9、Xeon)、AMD、ARM CPU等のほかのCPUでも動作するはずです。
 
 ## 1. 依存関係のインストール
 
@@ -122,16 +122,19 @@ sudo apt install build-essential cmake autotools-dev autoconf automake libtool p
 sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
 ```
 
+<!--
 #### オプションパッケージ
 ```bash
 sudo apt install etckeeper tig bridge-utils \
                  iptables-persistent fail2ban dmidecode screen ripgrep
 ```
+-->
 
 ### ソースからsdplane-ossのビルド
 
 ```bash
 # リポジトリのクローン
+cd
 git clone https://github.com/kait-cronos/sdplane-oss
 cd sdplane-oss
 
@@ -143,6 +146,9 @@ mkdir build
 cd build
 CFLAGS="-g -O0" sh ../configure
 make
+
+# prefix (/usr/local/sbin) へのインストール
+make install
 ```
 
 ## 4. sdplane-oss Debianパッケージのビルド（オプション）
@@ -155,8 +161,8 @@ sudo apt install build-essential cmake devscripts debhelper
 ### sdplane-oss Debianパッケージのビルド
 ```bash
 # まずクリーンな状態から始める
-(cd build && make distclean)
-make distclean
+(cd ~/sdplane-oss/build && make distclean)
+(cd ~/sdplane-oss && make distclean)
 
 # ソースからDebianパッケージをビルド
 bash build-debian.sh
@@ -181,6 +187,7 @@ sudo vi /etc/default/grub
 GRUB_CMDLINE_LINUX="hugepages=1536"
 
 # または1GBヒュージページの場合 (8ページ = 8GB):
+# (8GB未満のRAMの場合、hugepages=4などに調整してください.)
 GRUB_CMDLINE_LINUX="default_hugepagesz=1G hugepagesz=1G hugepages=8"
 
 # GRUBを更新して再起動
