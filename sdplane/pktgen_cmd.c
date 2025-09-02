@@ -340,7 +340,7 @@ CLI_COMMAND2 (pktgen_do_set_mac_addr,
 
 CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
               "pktgen do set port (<0-7>|all) "
-              "(ip|ipv4) (source|destination) <A.B.C.D>",
+              "(ip|ipv4) (source|destination) A.B.C.D",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
