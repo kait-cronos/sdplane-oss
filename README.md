@@ -221,14 +221,17 @@ Place one of the following configuration files as
 - [`example-config/sdplane-pktgen.conf`](example-config/sdplane-pktgen.conf): Packet generator configuration
 - [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf): Topton hardware configuration
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf): L2 repeater configuration
-- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf): Enhanced repeater configuration
+- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf): Enhanced repeater configuration with VLAN switching, router interfaces, and capture interfaces
 
 ## 7. Run the Software Router
 
 ```bash
 # Run in foreground
 sudo ./sdplane/sdplane
-  or
+
+# Run with config file
+sudo ./sdplane/sdplane -f /etc/sdplane/sdplane.conf
+
 # Run via systemd, when you installed the dpkg.
 sudo systemctl enable sdplane
 sudo systemctl start sdplane
@@ -236,6 +239,41 @@ sudo systemctl start sdplane
 # Connect to CLI
 telnet localhost 9882
 ```
+
+### Enhanced Repeater Configuration
+
+The enhanced repeater provides advanced VLAN switching capabilities with TAP interfaces for L3 routing and packet capture. Key configuration commands:
+
+**Virtual Switch Setup:**
+```bash
+# Create virtual switches with VLAN IDs
+set vswitch 2031
+set vswitch 2032
+```
+
+**DPDK Port to VSwitch Linking:**
+```bash
+# Link port 0 to vswitch 0 with VLAN tag 2031
+set vswitch-link vswitch 0 port 0 tag 2031
+# Link port 0 to vswitch 1 with VLAN tag 2032  
+set vswitch-link vswitch 1 port 0 tag 2032
+```
+
+**Router Interfaces (L3 connectivity):**
+```bash
+# Create router interfaces for L3 processing
+set router-if 0 rif0
+set router-if 1 rif1
+```
+
+**Capture Interfaces (packet monitoring):**
+```bash
+# Create capture interfaces for packet monitoring
+set capture-if 0 cif0
+set capture-if 1 cif1
+```
+
+The enhanced repeater performs VLAN translation, stripping, and insertion based on the vswitch-link configuration, while providing TAP interfaces for kernel networking stack integration.
 
 ## User's Guide (Manual)
 

@@ -225,14 +225,17 @@ echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 - [`example-config/sdplane-pktgen.conf`](example-config/sdplane-pktgen.conf)：パケットジェネレーター設定
 - [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf)：Toptonハードウェア設定
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf)：L2リピーター設定
-- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf)：拡張リピーター設定
+- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf)：拡張リピーター設定（VLANスイッチング、ルーターインターフェース、キャプチャインターフェース）
 
 ## 7. ソフトウェアルーターの実行
 
 ```bash
 # フォアグラウンドで実行
 sudo ./sdplane/sdplane
-  もしくは
+
+# 設定ファイル指定で実行
+sudo ./sdplane/sdplane -f /etc/sdplane/sdplane.conf
+
 # dpkgでインストールした場合、systemd経由で実行
 sudo systemctl enable sdplane
 sudo systemctl start sdplane
@@ -240,6 +243,41 @@ sudo systemctl start sdplane
 # CLIに接続
 telnet localhost 9882
 ```
+
+### 拡張リピーターの設定
+
+拡張リピーターは高度なVLANスイッチング機能を提供し、L3ルーティング用とパケットキャプチャ用のTAPインターフェースを備えています。主要な設定コマンド：
+
+**仮想スイッチの設定：**
+```bash
+# VLAN IDを持つ仮想スイッチを作成
+set vswitch 2031
+set vswitch 2032
+```
+
+**DPDKポートから仮想スイッチへのリンク：**
+```bash
+# ポート0を仮想スイッチ0にVLANタグ2031でリンク
+set vswitch-link vswitch 0 port 0 tag 2031
+# ポート0を仮想スイッチ1にVLANタグ2032でリンク  
+set vswitch-link vswitch 1 port 0 tag 2032
+```
+
+**ルーターインターフェース（L3接続）：**
+```bash
+# L3処理用のルーターインターフェースを作成
+set router-if 0 rif0
+set router-if 1 rif1
+```
+
+**キャプチャインターフェース（パケット監視）：**
+```bash
+# パケット監視用のキャプチャインターフェースを作成
+set capture-if 0 cif0
+set capture-if 1 cif1
+```
+
+拡張リピーターは、vswitch-link設定に基づいてVLANの変換、除去、挿入を行い、カーネルネットワークスタック統合用のTAPインターフェースを提供します。
 
 ## ユーザーガイド（マニュアル）
 
