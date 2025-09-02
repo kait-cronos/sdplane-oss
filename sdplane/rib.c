@@ -159,46 +159,6 @@ CLI_COMMAND2 (show_rib,
   return 0;
 }
 
-CLI_COMMAND2 (set_vswitch,
-              "set vswitch <1-4094>",
-              SET_HELP,
-              "vswitch\n",
-              "vlan id\n")
-{
-  struct shell *shell = (struct shell *) context;
-  struct internal_msg_vswitch_create vswitch_create;
-  struct internal_msg_header *msgp;
-
-  uint16_t vlan_id = atoi (argv[2]);
-
-  vswitch_create.vlan_id = vlan_id;
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_CREATE,
-                              &vswitch_create, sizeof (vswitch_create));
-  rib_manager_send_message (msgp, shell);
-
-  return 0;
-}
-
-CLI_COMMAND2 (delete_vswitch,
-              "delete vswitch <0-3>",
-              DELETE_HELP,
-              "vswitch\n",
-              "vswitch id\n")
-{
-  struct shell *shell = (struct shell *) context;
-  struct internal_msg_vswitch_delete vswitch_delete;
-  struct internal_msg_header *msgp;
-
-  uint16_t vswitch_id = atoi (argv[2]);
-
-  vswitch_delete.vswitch_id = vswitch_id;
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_DELETE,
-                              &vswitch_delete, sizeof (vswitch_delete));
-  rib_manager_send_message (msgp, shell);
-
-  return 0;
-}
-
 /* 🤖 生成AI (CLAUDE) */
 CLI_COMMAND2 (show_rib_vswitch,
               "show rib vswitch",
@@ -239,58 +199,6 @@ CLI_COMMAND2 (show_rib_vswitch,
                    link->port_id, link->vlan_id, link->tag_id, shell->NL);
         }
     }
-
-  return 0;
-}
-
-CLI_COMMAND2 (set_vswitch_link,
-              "set vswitch-link vswitch <0-3> port <0-7> tag <0-4094>",
-              SET_HELP,
-              "vswitch-link\n",
-              "vswitch\n",
-              "vswitch id\n",
-              "port\n",
-              "dpdk port id\n",
-              "tag\n",
-              "tag id (0: native, 1-4094: tagged)\n")
-{
-  struct shell *shell = (struct shell *) context;
-  struct internal_msg_vswitch_link_create vswitch_link_create;
-  struct internal_msg_header *msgp;
-
-  uint16_t vswitch_id = atoi (argv[3]);
-  uint16_t port_id = atoi (argv[5]);
-  uint16_t tag_id = atoi (argv[7]);
-
-  vswitch_link_create.vswitch_id = vswitch_id;
-  vswitch_link_create.port_id = port_id;
-  vswitch_link_create.tag_id = tag_id;
-
-  msgp =
-      internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_LINK_CREATE,
-                           &vswitch_link_create, sizeof (vswitch_link_create));
-  rib_manager_send_message (msgp, shell);
-
-  return 0;
-}
-
-CLI_COMMAND2 (delete_vswitch_link,
-              "delete vswitch-link <0-7>",
-              DELETE_HELP,
-              "vswitch-link\n",
-              "vswitch link id\n")
-{
-  struct shell *shell = (struct shell *) context;
-  struct internal_msg_vswitch_link_delete vswitch_link_delete;
-  struct internal_msg_header *msgp;
-
-  uint16_t vswitch_link_id = atoi (argv[2]);
-
-  vswitch_link_delete.vswitch_link_id = vswitch_link_id;
-  msgp =
-      internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_LINK_DELETE,
-                           &vswitch_link_delete, sizeof (vswitch_link_delete));
-  rib_manager_send_message (msgp, shell);
 
   return 0;
 }
@@ -411,7 +319,8 @@ CLI_COMMAND2 (show_rib_router_if,
       inet_ntop (AF_INET6, &rif->ipv6_addr, ipv6_str, sizeof (ipv6_str));
 
       fprintf (shell->terminal, "vswitch[%d]: router interface configured%s",
-               i, shell->NL);
+               rib->rib_info->vswitch[i].vswitch_id, shell->NL);
+      fprintf (shell->terminal, "  tap_name: %s%s", rif->tap_name, shell->NL);
       fprintf (shell->terminal, "  MAC: %s, IPv4: %s, IPv6: %s%s", mac_str,
                ipv4_str, ipv6_str, shell->NL);
       fprintf (shell->terminal, "  sockfd: %d, tap_ring_id: %u%s", rif->sockfd,
@@ -497,7 +406,7 @@ CLI_COMMAND2 (show_rib_capture_if,
         continue;
 
       fprintf (shell->terminal, "vswitch[%d]: capture interface configured%s",
-               i, shell->NL);
+               rib->rib_info->vswitch[i].vswitch_id, shell->NL);
       fprintf (shell->terminal, "  sockfd: %d, tap_ring_id: %u%s", cif->sockfd,
                cif->tap_ring_id, shell->NL);
       fprintf (shell->terminal, "  ring_up: %p, ring_dn: %p%s", cif->ring_up,
@@ -507,20 +416,273 @@ CLI_COMMAND2 (show_rib_capture_if,
   return 0;
 }
 
+CLI_COMMAND2 (set_vswitch,
+              "set vswitch <1-4094> vlan <1-4094>",
+              SET_HELP,
+              "vswitch\n",
+              "vswitch id\n",
+              "vlan\n",
+              "vlan id\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_vswitch vswitch_set;
+  struct internal_msg_header *msgp;
+
+  uint16_t vswitch_id = atoi (argv[2]);
+  uint16_t vlan_id = atoi (argv[4]);
+
+  vswitch_set.vswitch_id = vswitch_id;
+  vswitch_set.vlan_id = vlan_id;
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_SET, &vswitch_set,
+                              sizeof (vswitch_set));
+  rib_manager_send_message (msgp, shell);
+
+  return 0;
+}
+
+CLI_COMMAND2 (set_vswitch_port,
+              "set vswitch <1-4094> port <0-7> (tagged|untag)",
+              SET_HELP,
+              "vswitch\n",
+              "vswitch id\n",
+              "port\n",
+              "dpdk port id\n",
+              "tagged\n",
+              "untag\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_vswitch_port vswitch_port_set;
+  struct internal_msg_header *msgp;
+
+  uint16_t vswitch_id = atoi (argv[2]);
+  uint16_t port_id = atoi (argv[4]);
+
+  vswitch_port_set.vswitch_id = vswitch_id;
+  vswitch_port_set.port_id = port_id;
+  vswitch_port_set.tag_id = 0; // unused
+  if (! strcmp (argv[5], "tagged"))
+    vswitch_port_set.is_tagged = true;
+  else if (! strcmp (argv[5], "untag"))
+    vswitch_port_set.is_tagged = false;
+  else
+    {
+      fprintf (shell->terminal, "usage: tagged or untag%s", shell->NL);
+      return 0;
+    }
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_PORT_SET,
+                              &vswitch_port_set, sizeof (vswitch_port_set));
+  rib_manager_send_message (msgp, shell);
+
+  return 0;
+}
+
+CLI_COMMAND2 (set_vswitch_port_tag_swap,
+              "set vswitch <1-4094> port <0-7> tag swap <1-4094>",
+              SET_HELP,
+              "vswitch\n",
+              "vswitch id\n",
+              "port\n",
+              "dpdk port id\n",
+              "tag\n",
+              "tag id\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_vswitch_port vswitch_port_set_tag_swap;
+  struct internal_msg_header *msgp;
+
+  uint16_t vswitch_id = atoi (argv[2]);
+  uint16_t port_id = atoi (argv[4]);
+
+  vswitch_port_set_tag_swap.vswitch_id = vswitch_id;
+  vswitch_port_set_tag_swap.port_id = port_id;
+  if (! strcmp (argv[5], "tag"))
+    {
+      uint16_t tag_id = atoi (argv[7]);
+      vswitch_port_set_tag_swap.is_tagged = true;
+      vswitch_port_set_tag_swap.tag_id = tag_id;
+    }
+  else
+    {
+      fprintf (shell->terminal, "usage: tag swap <vlan id>%s", shell->NL);
+      return 0;
+    }
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_PORT_SET,
+                              &vswitch_port_set_tag_swap,
+                              sizeof (vswitch_port_set_tag_swap));
+  rib_manager_send_message (msgp, shell);
+
+  return 0;
+}
+
+CLI_COMMAND2 (set_router_if,
+              "set vswitch <1-4094> router-if <WORD>",
+              SET_HELP,
+              "vswitch\n",
+              "vswitch id\n",
+              "router interface\n",
+              "tap name\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_tap_dev router_if_set;
+  struct internal_msg_header *msgp;
+  int vswitch_id;
+  char *tap_name;
+
+  vswitch_id = atoi (argv[2]);
+  tap_name = argv[4];
+
+  router_if_set.vswitch_id = vswitch_id;
+  snprintf (router_if_set.tap_name, sizeof (router_if_set.tap_name), "%s",
+            tap_name);
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_SET, &router_if_set,
+                              sizeof (router_if_set));
+  rib_manager_send_message (msgp, shell);
+
+  return 0;
+}
+
+CLI_COMMAND2 (set_capture_if,
+              "set vswitch <1-4094> capture-if <WORD>",
+              SET_HELP,
+              "vswitch\n",
+              "vswitch id\n",
+              "capture interface\n",
+              "tap name\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_tap_dev capture_if_set;
+  struct internal_msg_header *msgp;
+  int vswitch_id;
+  char *tap_name;
+
+  vswitch_id = atoi (argv[2]);
+  tap_name = argv[4];
+
+  capture_if_set.vswitch_id = vswitch_id;
+  snprintf (capture_if_set.tap_name, sizeof (capture_if_set.tap_name), "%s",
+            tap_name);
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_CAPTURE_IF_SET,
+                              &capture_if_set, sizeof (capture_if_set));
+  rib_manager_send_message (msgp, shell);
+
+  return 0;
+}
+
+CLI_COMMAND2 (no_set_vswitch,
+              "no set vswitch <1-4094>",
+              NO_HELP,
+              SET_HELP,
+              "vswitch\n",
+              "vswitch id\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_vswitch vswitch_no_set;
+  struct internal_msg_header *msgp;
+
+  uint16_t vswitch_id = atoi (argv[3]);
+
+  vswitch_no_set.vswitch_id = vswitch_id;
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_NO_SET,
+                              &vswitch_no_set, sizeof (vswitch_no_set));
+  rib_manager_send_message (msgp, shell);
+
+  return 0;
+}
+
+CLI_COMMAND2 (no_set_vswitch_port,
+              "no set vswitch <1-4094> port <0-7>",
+              NO_HELP,
+              SET_HELP,
+              "vswitch\n",
+              "vswitch id\n",
+              "port\n",
+              "dpdk port id\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_vswitch_port vswitch_port_no_set;
+  struct internal_msg_header *msgp;
+  uint16_t vswitch_id = atoi (argv[3]);
+  uint16_t port_id = atoi (argv[5]);
+
+  vswitch_port_no_set.vswitch_id = vswitch_id;
+  vswitch_port_no_set.port_id = port_id;
+  msgp =
+      internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_PORT_NO_SET,
+                           &vswitch_port_no_set, sizeof (vswitch_port_no_set));
+  rib_manager_send_message (msgp, shell);
+
+  return 0;
+}
+
+CLI_COMMAND2 (no_set_router_if,
+              "no set router-if <WORD>",
+              NO_HELP,
+              SET_HELP,
+              "router interface\n",
+              "tap name\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_tap_dev router_if_no_set;
+  struct internal_msg_header *msgp;
+  char *tap_name;
+
+  tap_name = argv[3];
+  snprintf (router_if_no_set.tap_name, sizeof (router_if_no_set.tap_name),
+            "%s", tap_name);
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_NO_SET,
+                              &router_if_no_set, sizeof (router_if_no_set));
+  rib_manager_send_message (msgp, shell);
+
+  return 0;
+}
+
+CLI_COMMAND2 (no_set_capture_if,
+              "no set capture-if <WORD>",
+              NO_HELP,
+              SET_HELP,
+              "capture interface\n",
+              "tap name\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_tap_dev capture_if_no_set;
+  struct internal_msg_header *msgp;
+  char *tap_name;
+
+  tap_name = argv[3];
+  snprintf (capture_if_no_set.tap_name, sizeof (capture_if_no_set.tap_name),
+            "%s", tap_name);
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET,
+                              &capture_if_no_set, sizeof (capture_if_no_set));
+  rib_manager_send_message (msgp, shell);
+
+  return 0;
+}
+
 void
 rib_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, show_rib);
-  INSTALL_COMMAND2 (cmdset, set_vswitch);
-  INSTALL_COMMAND2 (cmdset, delete_vswitch);
   INSTALL_COMMAND2 (cmdset, show_rib_vswitch);
-  INSTALL_COMMAND2 (cmdset, set_vswitch_link);
-  INSTALL_COMMAND2 (cmdset, delete_vswitch_link);
   INSTALL_COMMAND2 (cmdset, show_rib_vswitch_link);
-  INSTALL_COMMAND2 (cmdset, set_router_if);
-  INSTALL_COMMAND2 (cmdset, delete_router_if);
   INSTALL_COMMAND2 (cmdset, show_rib_router_if);
-  INSTALL_COMMAND2 (cmdset, set_capture_if);
-  INSTALL_COMMAND2 (cmdset, delete_capture_if);
   INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
+  INSTALL_COMMAND2 (cmdset, show_vswitch_rib);
+  INSTALL_COMMAND2 (cmdset, show_vswitch_link);
+  INSTALL_COMMAND2 (cmdset, show_router_if);
+  INSTALL_COMMAND2 (cmdset, show_capture_if);
+  INSTALL_COMMAND2 (cmdset, set_vswitch);
+  INSTALL_COMMAND2 (cmdset, set_vswitch_port);
+  INSTALL_COMMAND2 (cmdset, set_vswitch_port_tag_swap);
+  INSTALL_COMMAND2 (cmdset, set_router_if);
+  INSTALL_COMMAND2 (cmdset, set_capture_if);
+  INSTALL_COMMAND2 (cmdset, no_set_vswitch);
+  INSTALL_COMMAND2 (cmdset, no_set_vswitch_port);
+  INSTALL_COMMAND2 (cmdset, no_set_router_if);
+  INSTALL_COMMAND2 (cmdset, no_set_capture_if);
 }
