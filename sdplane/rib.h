@@ -10,6 +10,10 @@
 #define MAX_ETH_PORTS           8
 #define MAX_NEIGHBOR_TABLE_SIZE 1024
 
+#define ETH_LINK_DUPLEX_STR(v)  ((v) ? "full" : "half")
+#define ETH_LINK_AUTONEG_STR(v) ((v) ? "on"   : "off")
+#define ETH_LINK_STATUS_STR(v)  ((v) ? "up"   : "down")
+
 #include <rte_ether.h>
 
 struct router_if
