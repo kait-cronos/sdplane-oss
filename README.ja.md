@@ -96,9 +96,9 @@ pkg-config --modversion libdpdk
 wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-36_amd64.deb
 wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-36_amd64.ddeb
 
-# もしくは (n100用)
-wget https://www.yasuhironet.net/download/n100/sdplane_0.1.4-35_amd64.deb
-wget https://www.yasuhironet.net/download/n100/sdplane-dbgsym_0.1.4-35_amd64.ddeb
+# もしくは (j3160用)
+wget https://www.yasuhironet.net/download/j3160/sdplane_0.1.4-35_amd64.deb
+wget https://www.yasuhironet.net/download/j3160/sdplane-dbgsym_0.1.4-35_amd64.ddeb
 
 # パッケージのインストール
 sudo apt install ./sdplane_0.1.4-*_amd64.deb
