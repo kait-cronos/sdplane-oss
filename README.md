@@ -45,7 +45,7 @@ software-defined networking applications.
 
 The project has been tested on:
 - **Topton (N305/N100)**: Mini-PC with 10G NICs
-- **Partaker (N100)**: Mini-PC with 1G NICs
+- **Partaker (J3160)**: Mini-PC with 1G NICs
 
 There is no reason to believe the sdplane-oss doesn't work on other CPUs such as Intel (Core i7/9, Xeon), AMD, ARM processors, etc.
 
@@ -99,9 +99,9 @@ For quick installation, download and install the pre-built Debian package:
 wget https://www.yasuhironet.net/download/n305/sdplane_0.1.4-36_amd64.deb
 wget https://www.yasuhironet.net/download/n305/sdplane-dbgsym_0.1.4-36_amd64.ddeb
 
-# or for n100
-wget https://www.yasuhironet.net/download/n100/sdplane_0.1.4-35_amd64.deb
-wget https://www.yasuhironet.net/download/n100/sdplane-dbgsym_0.1.4-35_amd64.ddeb
+# or for j3160
+wget https://www.yasuhironet.net/download/j3160/sdplane_0.1.4-35_amd64.deb
+wget https://www.yasuhironet.net/download/j3160/sdplane-dbgsym_0.1.4-35_amd64.ddeb
 
 # Install the package
 sudo apt install ./sdplane_0.1.4-*_amd64.deb
