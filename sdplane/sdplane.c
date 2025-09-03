@@ -748,7 +748,7 @@ CLI_COMMAND2 (show_fdb, "show fdb", SHOW_HELP, "show fdb-information.\n")
 }
 
 CLI_COMMAND2 (show_vswitch, "show vswitch", SHOW_HELP,
-              "show vswitch-information.\n")
+              "show legacy vswitch information.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;

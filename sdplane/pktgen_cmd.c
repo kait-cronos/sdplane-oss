@@ -243,6 +243,152 @@ CLI_COMMAND2 (pktgen_do_set_rate,
   return CMD_SUCCESS;
 }
 
+CLI_COMMAND2 (pktgen_do_set_tcp_port,
+              "pktgen do set port (<0-7>|all) "
+              "tcp (source-port|destination-port) <0-65535>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet proto tcp.\n",
+              "set packet tcp source-port.\n",
+              "set packet tcp destination-port.\n",
+              "specify the packet tcp port number.\n"
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "set";
+  pktgen_argv[1] = argv[4];
+  if (! strcmp (argv[6], "source-port"))
+    pktgen_argv[2] = "sport";
+  else
+    pktgen_argv[2] = "dport";
+  pktgen_argv[3] = argv[7];
+  pktgen_argc = 4;
+  ret = set_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_set_ttl,
+              "pktgen do set port (<0-7>|all) "
+              "ttl <0-255>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet ttl.\n",
+              "specify the packet ttl number.\n"
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "set";
+  pktgen_argv[1] = argv[4];
+  pktgen_argv[2] = "ttl";
+  pktgen_argv[3] = argv[6];
+  pktgen_argc = 4;
+  ret = set_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_set_mac_addr,
+              "pktgen do set port (<0-7>|all) "
+              "mac (source|destination) <WORD>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet mac address.\n",
+              "set packet mac source address.\n",
+              "set packet mac destination address.\n",
+              "specify the packet mac address: e.g., aa:bb:cc:dd:ee:ff.\n"
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  struct rte_ether_addr ether_addr;
+  ret = rte_ether_unformat_addr (argv[7], &ether_addr);
+  if (ret < 0)
+    {
+      fprintf (shell->terminal, "invalid address: %s%s",
+               argv[7], shell->NL);
+      return CMD_FAILURE;
+    }
+  pktgen_argv[0] = "set";
+  pktgen_argv[1] = argv[4];
+  if (! strcmp (argv[6], "source"))
+    pktgen_argv[2] = "src";
+  else
+    pktgen_argv[2] = "dst";
+  pktgen_argv[3] = "mac";
+  pktgen_argv[4] = argv[7];
+  pktgen_argc = 5;
+  ret = set_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
+              "pktgen do set port (<0-7>|all) "
+              "(ip|ipv4) (source|destination) A.B.C.D",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet IPv4 address.\n",
+              "set packet IPv4 address.\n",
+              "set packet IPv4 source address.\n",
+              "set packet IPv4 destination address.\n",
+              "specify the packet ipv4 address: e.g., 10.0.0.1.\n"
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  struct in_addr ipv4_addr;
+  ret = inet_pton (AF_INET, argv[7], &ipv4_addr);
+  if (ret != 1)
+    {
+      fprintf (shell->terminal, "invalid address: %s%s",
+               argv[7], shell->NL);
+      return CMD_FAILURE;
+    }
+  pktgen_argv[0] = "set";
+  pktgen_argv[1] = argv[4];
+  if (! strcmp (argv[6], "source"))
+    pktgen_argv[2] = "src";
+  else
+    pktgen_argv[2] = "dst";
+  pktgen_argv[3] = "ip";
+  pktgen_argv[4] = argv[7];
+  pktgen_argc = 5;
+  ret = set_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
 void
 pktgen_cmd_init (struct command_set *cmdset)
 {
@@ -252,5 +398,9 @@ pktgen_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_count);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_size);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_rate);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_tcp_port);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_ttl);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_mac_addr);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_ipv4_addr);
 }
 #endif /*ENABLE_PKTGEN*/

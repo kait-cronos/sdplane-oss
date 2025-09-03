@@ -157,7 +157,7 @@ l3_tap_handler_handle_packet_up ()
       int router_fd = vswitch->router_if.sockfd;
       int capture_fd = vswitch->capture_if.sockfd;
 
-      if (vswitch->router_if.tap_ring_id != vswitch_id)
+      if (vswitch->router_if.tap_ring_id != vswitch->vswitch_id)
         continue;
 
       tap_ring = vswitch->router_if.ring_up;
@@ -191,7 +191,7 @@ static inline __attribute__ ((always_inline)) void
 l3_tap_handler_handle_packet_down ()
 {
   int nfds = 0;
-  struct pollfd fds[MAX_VSWITCH_ID];
+  struct pollfd fds[MAX_VSWITCH];
   int ret;
   int i;
   char data[9000];
@@ -205,7 +205,7 @@ l3_tap_handler_handle_packet_down ()
     {
       vswitch = &rib->rib_info->vswitch[vswitch_id];
 
-      if (nfds >= MAX_VSWITCH_ID)
+      if (nfds >= MAX_VSWITCH)
         break;
 
       fds[nfds].fd = vswitch->router_if.sockfd;
