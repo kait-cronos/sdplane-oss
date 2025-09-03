@@ -327,6 +327,8 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
                                   &msg_neigh_entry, sizeof (msg_neigh_entry));
     }
 
+  if (! msg_queue_neigh)
+    DEBUG_SDPLANE_LOG (NETLINK, "error: neigh_manager is not started.");
   internal_msg_send_to (msg_queue_neigh, msgp, NULL);
 
   return 0;
@@ -529,7 +531,7 @@ netlink_thread (void *arg)
 
   while (! force_quit && ! force_stop[lthread_core])
     {
-      lthread_sleep (100); // yield.
+      lthread_sleep (0); // yield.
       // DEBUG_SDPLANE_LOG (NETLINK, "%s: schedule.", __func__);
 
       netlink_read (&netlink_cmd);

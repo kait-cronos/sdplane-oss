@@ -1,0 +1,4 @@
+
+seq 0 1023 | awk -f ip-neigh-add.awk > ip-neigh-add.sh
+seq 0 1023 | awk -f ip-neigh-del.awk > ip-neigh-del.sh
+

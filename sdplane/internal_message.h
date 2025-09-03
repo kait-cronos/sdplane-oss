@@ -29,16 +29,16 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_NETTLP_SEND_DMA_READ  5
 #define INTERNAL_MSG_TYPE_QCONF2                6
 #define INTERNAL_MSG_TYPE_TXRX_DESC             7
-#define INTERNAL_MSG_TYPE_VSWITCH_CREATE        8
-#define INTERNAL_MSG_TYPE_VSWITCH_DELETE        9
-#define INTERNAL_MSG_TYPE_VSWITCH_LINK_CREATE   10
-#define INTERNAL_MSG_TYPE_VSWITCH_LINK_DELETE   11
-#define INTERNAL_MSG_TYPE_ROUTER_IF_CREATE      12
-#define INTERNAL_MSG_TYPE_ROUTER_IF_DELETE      13
-#define INTERNAL_MSG_TYPE_CAPTURE_IF_CREATE     14
-#define INTERNAL_MSG_TYPE_CAPTURE_IF_DELETE     15
-#define INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD       16
-#define INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL       17
+#define INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD       8
+#define INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL       9
+#define INTERNAL_MSG_TYPE_VSWITCH_SET           10
+#define INTERNAL_MSG_TYPE_VSWITCH_PORT_SET      11
+#define INTERNAL_MSG_TYPE_ROUTER_IF_SET         12
+#define INTERNAL_MSG_TYPE_CAPTURE_IF_SET        13
+#define INTERNAL_MSG_TYPE_VSWITCH_NO_SET        14
+#define INTERNAL_MSG_TYPE_VSWITCH_PORT_NO_SET   15
+#define INTERNAL_MSG_TYPE_ROUTER_IF_NO_SET      16
+#define INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET     17
 
 struct internal_msg_eth_link
 {
@@ -57,49 +57,26 @@ struct internal_msg_txrx_desc
   uint16_t nb_txd;
 };
 
-struct internal_msg_vswitch_create
+struct internal_msg_vswitch
 {
+  uint16_t vswitch_id;
   uint16_t vlan_id;
 };
 
-struct internal_msg_vswitch_delete
-{
-  uint16_t vswitch_id;
-};
-
-struct internal_msg_vswitch_link_create
+struct internal_msg_vswitch_port
 {
   uint16_t vswitch_id;
   uint16_t port_id;
   uint16_t tag_id;
+  bool is_tagged;
 };
 
-struct internal_msg_vswitch_link_delete
-{
-  uint16_t vswitch_link_id;
-};
-
-struct internal_msg_router_if_create
+struct internal_msg_tap_dev
 {
   uint16_t vswitch_id;
   char tap_name[16];
 };
 
-struct internal_msg_router_if_delete
-{
-  uint16_t vswitch_id;
-};
-
-struct internal_msg_capture_if_create
-{
-  uint16_t vswitch_id;
-  char tap_name[16];
-};
-
-struct internal_msg_capture_if_delete
-{
-  uint16_t vswitch_id;
-};
 struct internal_msg_neigh_entry
 {
   int index; // NEIGH_ARP_TABLE or NEIGH_ND_TABLE.

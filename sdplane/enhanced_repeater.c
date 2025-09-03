@@ -322,7 +322,7 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   if (vswitch_link->vswitch_id < 0 ||
-      rib->rib_info->vswitch_size <= vswitch_link->vswitch_id)
+      rib->rib_info->vswitch_size >= MAX_VSWITCH)
     {
       DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
                          "m: %p a broken vswitch link: "
@@ -333,7 +333,13 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   struct vswitch_conf *vswitch;
-  vswitch = &rib->rib_info->vswitch[vswitch_link->vswitch_id];
+  for (i = 0; i < rib->rib_info->vswitch_size; i++)
+    {
+      if (vswitch_link->vswitch_id == rib->rib_info->vswitch[i].vswitch_id)
+        {
+          vswitch = &rib->rib_info->vswitch[i];
+        };
+    };
 
   unsigned tx_queueid = lcore_id;
 

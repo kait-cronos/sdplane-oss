@@ -12,11 +12,15 @@
 #define MAX_TAP_IF              8
 #define MAX_ROUTER_IF           8
 #define MAX_VSWITCH_PORTS       4
-#define MAX_VSWITCH_ID          4
+#define MAX_VSWITCH             4
 #define MAX_VSWITCH_LINK        32
 #define MAX_VLAN_PER_PORT       4
 #define MAX_ETH_PORTS           8
 #define MAX_NEIGHBOR_TABLE_SIZE 1024
+
+#define ETH_LINK_DUPLEX_STR(v)  ((v) ? "full" : "half")
+#define ETH_LINK_AUTONEG_STR(v) ((v) ? "on"   : "off")
+#define ETH_LINK_STATUS_STR(v)  ((v) ? "up"   : "down")
 
 #include <rte_ether.h>
 
@@ -30,6 +34,7 @@ struct router_if
   struct rte_ether_addr mac_addr;
   struct in_addr ipv4_addr;
   struct in6_addr ipv6_addr;
+  char tap_name[16];
 };
 
 struct capture_if
@@ -38,6 +43,7 @@ struct capture_if
   uint16_t tap_ring_id;
   struct rte_ring *ring_up;
   struct rte_ring *ring_dn;
+  char tap_name[16];
 };
 
 struct vswitch_link
@@ -121,7 +127,7 @@ struct rib_info
   uint8_t vswitch_link_size;
   uint8_t port_size;
   uint8_t lcore_size;
-  struct vswitch_conf vswitch[MAX_VSWITCH_ID];
+  struct vswitch_conf vswitch[MAX_VSWITCH];
   struct vswitch_link vswitch_link[MAX_VSWITCH_LINK];
   struct port_conf port[MAX_ETH_PORTS];
   struct lcore_qconf lcore_qconf[RTE_MAX_LCORE];

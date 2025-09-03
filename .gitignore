@@ -110,3 +110,5 @@ Makefile
 
 /CLAUDE.md
 
+/tools/ip-neigh/*.sh
+

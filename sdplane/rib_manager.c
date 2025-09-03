@@ -42,10 +42,10 @@
 struct rte_ring *ring_up[RTE_MAX_ETHPORTS][MAX_RX_QUEUE_PER_LCORE];
 struct rte_ring *ring_dn[RTE_MAX_ETHPORTS][MAX_RX_QUEUE_PER_LCORE];
 
-struct rte_ring *router_if_ring_up[MAX_VSWITCH_ID];
-struct rte_ring *router_if_ring_dn[MAX_VSWITCH_ID];
-struct rte_ring *capture_if_ring_up[MAX_VSWITCH_ID];
-struct rte_ring *capture_if_ring_dn[MAX_VSWITCH_ID];
+struct rte_ring *router_if_ring_up[MAX_VSWITCH];
+struct rte_ring *router_if_ring_dn[MAX_VSWITCH];
+struct rte_ring *capture_if_ring_up[MAX_VSWITCH];
+struct rte_ring *capture_if_ring_dn[MAX_VSWITCH];
 
 struct rte_eth_dev_tx_buffer *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
@@ -60,30 +60,44 @@ uint64_t rib_rcu_replace = 0;
 static __thread struct rib *rib = NULL;
 
 static inline __attribute__ ((always_inline)) struct vswitch_conf *
-vswitch_new (struct rib_info *new, uint16_t vlan_id)
+vswitch_lookup (struct rib_info *new, uint16_t vswitch_id)
 {
-  uint16_t vswitch_id;
+  int i;
+  for (i = 0; i < new->vswitch_size; i++)
+    {
+      if (new->vswitch[i].vswitch_id == vswitch_id &&
+          ! new->vswitch[i].is_deleted)
+        return &new->vswitch[i];
+    }
+  return NULL;
+}
+
+static inline __attribute__ ((always_inline)) struct vswitch_conf *
+vswitch_new (struct rib_info *new, uint16_t vswitch_id, uint16_t vlan_id)
+{
+  int i;
   struct vswitch_conf *vswitch;
   bool is_slot_found = false;
 
-  for (vswitch_id = 0; vswitch_id < new->vswitch_size; vswitch_id++)
+  for (i = 0; i < new->vswitch_size; i++)
     {
-      if (new->vswitch[vswitch_id].is_deleted)
+      if (new->vswitch[i].is_deleted)
         {
           is_slot_found = true;
-          memset (&new->vswitch[vswitch_id], 0, sizeof (struct vswitch_conf));
+          memset (&new->vswitch[i], 0, sizeof (struct vswitch_conf));
+          vswitch = &new->vswitch[i];
           break;
         }
     }
 
   if (! is_slot_found)
     {
-      if (new->vswitch_size >= MAX_VSWITCH_ID)
+      if (new->vswitch_size >= MAX_VSWITCH)
         return NULL;
-      vswitch_id = new->vswitch_size++;
+      vswitch = &new->vswitch[new->vswitch_size];
+      new->vswitch_size++;
     }
 
-  vswitch = &new->vswitch[vswitch_id];
   vswitch->vswitch_id = vswitch_id;
   vswitch->vlan_id = vlan_id;
   vswitch->router_if.sockfd = -1;
@@ -104,7 +118,8 @@ vswitch_link_lookup (struct rib_info *new, struct vswitch_conf *vswitch,
     {
       vswitch_link = &new->vswitch_link[i];
       if (vswitch_link->vswitch_id == vswitch->vswitch_id &&
-          vswitch_link->port_id == port->dpdk_port_id)
+          vswitch_link->port_id == port->dpdk_port_id &&
+          ! vswitch_link->is_deleted)
         return vswitch_link;
     }
   return NULL;
@@ -159,7 +174,7 @@ vswitch_link_new (struct rib_info *new, struct vswitch_conf *vswitch,
 static inline __attribute__ ((always_inline)) int
 router_if_delete (struct rib_info *rib_info, uint16_t vswitch_id)
 {
-  struct vswitch_conf *vswitch = &rib_info->vswitch[vswitch_id];
+  struct vswitch_conf *vswitch = vswitch_lookup (rib_info, vswitch_id);
   struct router_if *rif = &vswitch->router_if;
 
   if (rif->sockfd >= 0)
@@ -189,7 +204,7 @@ router_if_delete (struct rib_info *rib_info, uint16_t vswitch_id)
 static inline __attribute__ ((always_inline)) int
 capture_if_delete (struct rib_info *rib_info, uint16_t vswitch_id)
 {
-  struct vswitch_conf *vswitch = &rib_info->vswitch[vswitch_id];
+  struct vswitch_conf *vswitch = vswitch_lookup (rib_info, vswitch_id);
   struct capture_if *cif = &vswitch->capture_if;
 
   if (cif->sockfd >= 0)
@@ -263,10 +278,8 @@ vswitch_link_delete (struct rib_info *rib_info, uint16_t vswitch_link_id)
   uint16_t vswitch_id = rib_info->vswitch_link[vswitch_link_id].vswitch_id;
   uint16_t port_id = rib_info->vswitch_link[vswitch_link_id].port_id;
 
-  rib_info->vswitch_link[vswitch_link_id].is_deleted = true;
-
-  vswitch_link_remove_from_vswitch_port_array (&rib_info->vswitch[vswitch_id],
-                                               vswitch_link_id);
+  vswitch_link_remove_from_vswitch_port_array (
+      vswitch_lookup (rib_info, vswitch_id), vswitch_link_id);
 
   vswitch_link_remove_from_port_vlan_array (&rib_info->port[port_id],
                                             vswitch_link_id);
@@ -277,6 +290,7 @@ vswitch_link_delete (struct rib_info *rib_info, uint16_t vswitch_link_id)
         rib_info->vswitch_link[i].vswitch_port--;
     }
 
+  rib_info->vswitch_link[vswitch_link_id].is_deleted = true;
   DEBUG_SDPLANE_LOG (RIB, "delete: link_id: %u", vswitch_link_id);
   return 0;
 }
@@ -284,17 +298,24 @@ vswitch_link_delete (struct rib_info *rib_info, uint16_t vswitch_link_id)
 static inline __attribute__ ((always_inline)) int
 vswitch_delete (struct rib_info *rib_info, uint16_t vswitch_id)
 {
-  rib_info->vswitch[vswitch_id].is_deleted = true;
+  struct vswitch_conf *vswitch = vswitch_lookup (rib_info, vswitch_id);
+  if (! vswitch)
+    {
+      DEBUG_SDPLANE_LOG (RIB, "delete: vswitch: %u not found", vswitch_id);
+      return 0;
+    }
 
   /* delete vswitch's router_if and capture_if */
-  router_if_delete (rib_info, vswitch_id);
-  capture_if_delete (rib_info, vswitch_id);
+  if (vswitch->router_if.sockfd >= 0)
+    router_if_delete (rib_info, vswitch_id);
+  if (vswitch->capture_if.sockfd >= 0)
+    capture_if_delete (rib_info, vswitch_id);
 
   /* delete all vswitch's vswitch_links from port_conf */
-  while (rib_info->vswitch[vswitch_id].vswitch_port_size > 0)
-    vswitch_link_delete (rib_info,
-                         rib_info->vswitch[vswitch_id].vswitch_link_id[0]);
+  while (vswitch->vswitch_port_size > 0)
+    vswitch_link_delete (rib_info, vswitch->vswitch_link_id[0]);
 
+  vswitch->is_deleted = true;
   DEBUG_SDPLANE_LOG (RIB, "delete: vswitch: %u", vswitch_id);
   return 0;
 }
@@ -800,6 +821,7 @@ update_port_status (struct rib *new)
                          port_id,
                          new->rib_info->port[port_id].link.link_status,
                          new->rib_info->ver, new->rib_info);
+      new->rib_info->port[port_id].dpdk_port_id = port_id;
     }
 
   uint16_t lcore_size;
@@ -847,6 +869,11 @@ rib_manager_process_message (void *msgp)
   old = rcu_dereference (rcu_global_ptr_rib);
 
   new = rib_create (old);
+
+  /* related vswitch operation */
+  struct vswitch_conf *vswitch;
+  struct port_conf *port;
+  struct vswitch_link *link;
 
   /* change something according to the update instruction message. */
   struct internal_msg_header *msg_header;
@@ -927,105 +954,132 @@ rib_manager_process_message (void *msgp)
       new->rib_info->port[portid].nb_txd = msg_txrx_desc->nb_txd;
       break;
 
-    case INTERNAL_MSG_TYPE_VSWITCH_CREATE:
-      struct internal_msg_vswitch_create *msg_vswitch_create;
-      struct vswitch_conf *new_vswitch;
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_create: %p.", msgp);
-      msg_vswitch_create =
-          (struct internal_msg_vswitch_create *) (msg_header + 1);
-      new_vswitch = vswitch_new (new->rib_info, msg_vswitch_create->vlan_id);
-      if (new_vswitch)
-        DEBUG_SDPLANE_LOG (RIB, "create: vswitch: %u vlan_id: %u",
-                           new_vswitch->vswitch_id, new_vswitch->vlan_id);
+    case INTERNAL_MSG_TYPE_VSWITCH_SET:
+      struct internal_msg_vswitch *msg_vswitch_set;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_set: %p.", msgp);
+      msg_vswitch_set = (struct internal_msg_vswitch_set *) (msg_header + 1);
+      vswitch = vswitch_new (new->rib_info, msg_vswitch_set->vswitch_id,
+                             msg_vswitch_set->vlan_id);
+      if (vswitch)
+        DEBUG_SDPLANE_LOG (RIB, "create successed: vswitch: %u vlan_id: %u",
+                           msg_vswitch_set->vswitch_id,
+                           msg_vswitch_set->vlan_id);
+      else
+        DEBUG_SDPLANE_LOG (RIB, "create failed: vswitch: %u vlan_id: %u",
+                           msg_vswitch_set->vswitch_id,
+                           msg_vswitch_set->vlan_id);
       break;
 
-    case INTERNAL_MSG_TYPE_VSWITCH_DELETE:
-      struct internal_msg_vswitch_delete *msg_vswitch_delete;
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_delete: %p.", msgp);
-      msg_vswitch_delete =
-          (struct internal_msg_vswitch_delete *) (msg_header + 1);
-      if (msg_vswitch_delete->vswitch_id >= new->rib_info->vswitch_size)
-        break;
-
-      vswitch_delete (new->rib_info, msg_vswitch_delete->vswitch_id);
-      break;
-
-    case INTERNAL_MSG_TYPE_VSWITCH_LINK_CREATE:
-      struct internal_msg_vswitch_link_create *msg_vswitch_link_create;
-      struct vswitch_conf *target_vswitch_link;
-      struct port_conf *target_port;
-      struct vswitch_link *new_link;
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_link_create: %p.", msgp);
-      msg_vswitch_link_create =
-          (struct internal_msg_vswitch_link_create *) (msg_header + 1);
-      if (msg_vswitch_link_create->vswitch_id >= new->rib_info->vswitch_size ||
-          msg_vswitch_link_create->port_id >= new->rib_info->port_size)
-        break;
-
-      target_vswitch_link =
-          &new->rib_info->vswitch[msg_vswitch_link_create->vswitch_id];
-      target_port = &new->rib_info->port[msg_vswitch_link_create->port_id];
-
-      new_link =
-          vswitch_link_new (new->rib_info, target_vswitch_link, target_port);
-      if (! new_link)
-        break;
-
-      new_link->port_id = msg_vswitch_link_create->port_id;
-      new_link->tag_id = msg_vswitch_link_create->tag_id;
-      if (msg_vswitch_link_create->tag_id == 0)
+    case INTERNAL_MSG_TYPE_VSWITCH_NO_SET:
+      struct internal_msg_vswitch *msg_vswitch_no_set;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_no_set: %p.", msgp);
+      msg_vswitch_no_set = (struct internal_msg_vswitch *) (msg_header + 1);
+      if (! vswitch_lookup (new->rib_info, msg_vswitch_no_set->vswitch_id))
         {
-          port_set_native_vlan (new->rib_info, target_port, new_link);
+          DEBUG_SDPLANE_LOG (RIB, "delete vswitch not found");
+          break;
+        }
+      vswitch_delete (new->rib_info, msg_vswitch_no_set->vswitch_id);
+      break;
+
+    case INTERNAL_MSG_TYPE_VSWITCH_PORT_SET:
+      struct internal_msg_vswitch_port *msg_vswitch_port_set;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_port_set: %p.", msgp);
+      msg_vswitch_port_set =
+          (struct internal_msg_vswitch_port *) (msg_header + 1);
+
+      vswitch =
+          vswitch_lookup (new->rib_info, msg_vswitch_port_set->vswitch_id);
+      if (! vswitch)
+        {
+          DEBUG_SDPLANE_LOG (RIB, "vswitch: %u not found",
+                             msg_vswitch_port_set->vswitch_id);
+          break;
+        }
+      port = &new->rib_info->port[msg_vswitch_port_set->port_id];
+      link = vswitch_link_new (new->rib_info, vswitch, port);
+      if (! link)
+        {
+          DEBUG_SDPLANE_LOG (RIB, "create failed: vswitch: %u port %u tag: %u",
+                             msg_vswitch_port_set->vswitch_id,
+                             msg_vswitch_port_set->port_id,
+                             msg_vswitch_port_set->tag_id);
+          break;
+        }
+
+      if (! msg_vswitch_port_set->is_tagged)
+        {
+          port_set_native_vlan (new->rib_info, port, link);
           DEBUG_SDPLANE_LOG (
-              RIB, "create: link_id: %u vswitch: %u port: %u native",
-              new_link->vswitch_link_id, msg_vswitch_link_create->vswitch_id,
-              msg_vswitch_link_create->port_id);
+              RIB, "create successed: link_id: %u vswitch: %u port: %u native",
+              link->vswitch_link_id, msg_vswitch_port_set->vswitch_id,
+              msg_vswitch_port_set->port_id);
         }
       else
         {
-          port_add_tagged_vlan (new->rib_info, target_port, new_link);
+          if (msg_vswitch_port_set->tag_id != 0 &&
+              msg_vswitch_port_set->tag_id != link->tag_id)
+            link->tag_id = msg_vswitch_port_set->tag_id; // enable tag modified
+          port_add_tagged_vlan (new->rib_info, port, link);
           DEBUG_SDPLANE_LOG (
-              RIB, "create: link_id: %u vswitch: %u port: %u tag: %u",
-              new_link->vswitch_link_id, msg_vswitch_link_create->vswitch_id,
-              msg_vswitch_link_create->port_id,
-              msg_vswitch_link_create->tag_id);
+              RIB,
+              "create successed: link_id: %u vswitch: %u port: %u tag: %u",
+              link->vswitch_link_id, msg_vswitch_port_set->vswitch_id,
+              msg_vswitch_port_set->port_id, msg_vswitch_port_set->tag_id);
         }
       break;
 
-    case INTERNAL_MSG_TYPE_VSWITCH_LINK_DELETE:
-      struct internal_msg_vswitch_link_delete *msg_vswitch_link_delete;
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_link_delete: %p.", msgp);
-      msg_vswitch_link_delete =
-          (struct internal_msg_vswitch_link_delete *) (msg_header + 1);
-      if (msg_vswitch_link_delete->vswitch_link_id >=
-          new->rib_info->vswitch_link_size)
-        break;
+    case INTERNAL_MSG_TYPE_VSWITCH_PORT_NO_SET:
+      struct internal_msg_vswitch_port *msg_vswitch_port_no_set;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_port_no_set: %p.", msgp);
+      msg_vswitch_port_no_set =
+          (struct internal_msg_vswitch_port *) (msg_header + 1);
+      vswitch =
+          vswitch_lookup (new->rib_info, msg_vswitch_port_no_set->vswitch_id);
+      if (! vswitch)
+        {
+          DEBUG_SDPLANE_LOG (RIB, "vswitch: %u not found",
+                             msg_vswitch_port_no_set->vswitch_id);
+          break;
+        }
+      port = &new->rib_info->port[msg_vswitch_port_no_set->port_id];
+      link = vswitch_link_lookup (new->rib_info, vswitch, port);
+      if (! link)
+        {
+          DEBUG_SDPLANE_LOG (RIB,
+                             "vswitch link: vswitch: %u port: %u not found",
+                             msg_vswitch_port_no_set->vswitch_id,
+                             msg_vswitch_port_no_set->port_id);
+          break;
+        }
 
-      vswitch_link_delete (new->rib_info,
-                           msg_vswitch_link_delete->vswitch_link_id);
+      vswitch_link_delete (new->rib_info, link->vswitch_link_id);
       break;
 
-    case INTERNAL_MSG_TYPE_ROUTER_IF_CREATE:
-      struct internal_msg_router_if_create *msg_router_if_create;
-      struct vswitch_conf *vswitch_router_if;
+    case INTERNAL_MSG_TYPE_ROUTER_IF_SET:
+      struct internal_msg_tap_dev *msg_router_if_set;
       struct router_if *rif;
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_router_if_create: %p.", msgp);
-      msg_router_if_create =
-          (struct internal_msg_router_if_create *) (msg_header + 1);
-      if (msg_router_if_create->vswitch_id >= new->rib_info->vswitch_size)
-        break;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_router_if_set: %p.", msgp);
+      msg_router_if_set = (struct internal_msg_tap_dev *) (msg_header + 1);
 
-      vswitch_router_if =
-          &new->rib_info->vswitch[msg_router_if_create->vswitch_id];
-      rif = &vswitch_router_if->router_if;
+      vswitch = vswitch_lookup (new->rib_info, msg_router_if_set->vswitch_id);
+      if (! vswitch)
+        {
+          DEBUG_SDPLANE_LOG (RIB, "vswitch: %u not found",
+                             msg_router_if_set->vswitch_id);
+          break;
+        }
+      rif = &vswitch->router_if;
 
-      rif->sockfd = tap_open (msg_router_if_create->tap_name);
-      rif->tap_ring_id = msg_router_if_create->vswitch_id;
-      tap_admin_up (msg_router_if_create->tap_name);
+      rif->sockfd = tap_open (msg_router_if_set->tap_name);
+      rif->tap_ring_id = msg_router_if_set->vswitch_id;
+      snprintf (rif->tap_name, sizeof (rif->tap_name), "%s",
+                msg_router_if_set->tap_name);
+      tap_admin_up (msg_router_if_set->tap_name);
 
-      DEBUG_SDPLANE_LOG (RIB, "create: router_if: %s vswitch %u",
-                         msg_router_if_create->tap_name,
-                         msg_router_if_create->vswitch_id);
+      DEBUG_SDPLANE_LOG (RIB, "create successed: router_if: %s vswitch: %u",
+                         msg_router_if_set->tap_name,
+                         msg_router_if_set->vswitch_id);
 
       // set router_if ring
       set_stop_flag (old);
@@ -1039,38 +1093,44 @@ rib_manager_process_message (void *msgp)
 
       break;
 
-    case INTERNAL_MSG_TYPE_ROUTER_IF_DELETE:
-      struct internal_msg_router_if_delete *msg_router_if_delete;
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_router_if_delete: %p.", msgp);
-      msg_router_if_delete =
-          (struct internal_msg_router_if_delete *) (msg_header + 1);
-      if (msg_router_if_delete->vswitch_id >= new->rib_info->vswitch_size)
-        break;
+    case INTERNAL_MSG_TYPE_ROUTER_IF_NO_SET:
+      struct internal_msg_tap_dev *msg_router_if_no_set;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_router_if_no_set: %p.", msgp);
+      msg_router_if_no_set = (struct internal_msg_tap_dev *) (msg_header + 1);
 
-      router_if_delete (new->rib_info, msg_router_if_delete->vswitch_id);
+      for (i = 0; i < new->rib_info->vswitch_size; i++)
+        {
+          if (! strcmp (msg_router_if_no_set->tap_name,
+                        new->rib_info->vswitch[i].router_if.tap_name))
+            router_if_delete (new->rib_info,
+                              new->rib_info->vswitch[i].vswitch_id);
+        }
       break;
 
-    case INTERNAL_MSG_TYPE_CAPTURE_IF_CREATE:
-      struct internal_msg_capture_if_create *msg_capture_if_create;
-      struct vswitch_conf *vswitch_capture_if;
+    case INTERNAL_MSG_TYPE_CAPTURE_IF_SET:
+      struct internal_msg_tap_dev *msg_capture_if_set;
       struct capture_if *cif;
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_capture_if_create: %p.", msgp);
-      msg_capture_if_create =
-          (struct internal_msg_capture_if_create *) (msg_header + 1);
-      if (msg_capture_if_create->vswitch_id >= new->rib_info->vswitch_size)
-        break;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_capture_if_set: %p.", msgp);
+      msg_capture_if_set = (struct internal_msg_tap_dev *) (msg_header + 1);
 
-      vswitch_capture_if =
-          &new->rib_info->vswitch[msg_capture_if_create->vswitch_id];
-      cif = &vswitch_capture_if->capture_if;
+      vswitch = vswitch_lookup (new->rib_info, msg_capture_if_set->vswitch_id);
+      if (! vswitch)
+        {
+          DEBUG_SDPLANE_LOG (RIB, "vswitch: %u not found",
+                             msg_capture_if_set->vswitch_id);
+          break;
+        }
+      cif = &vswitch->capture_if;
 
-      cif->sockfd = tap_open (msg_capture_if_create->tap_name);
-      cif->tap_ring_id = msg_capture_if_create->vswitch_id;
-      tap_admin_up (msg_capture_if_create->tap_name);
+      cif->sockfd = tap_open (msg_capture_if_set->tap_name);
+      cif->tap_ring_id = msg_capture_if_set->vswitch_id;
+      snprintf (cif->tap_name, sizeof (cif->tap_name), "%s",
+                msg_capture_if_set->tap_name);
+      tap_admin_up (msg_capture_if_set->tap_name);
 
       DEBUG_SDPLANE_LOG (RIB, "create: capture_if: %s vswitch: %u",
-                         msg_capture_if_create->tap_name,
-                         msg_capture_if_create->vswitch_id);
+                         msg_capture_if_set->tap_name,
+                         msg_capture_if_set->vswitch_id);
 
       // set capture_if ring
       set_stop_flag (old);
@@ -1084,30 +1144,17 @@ rib_manager_process_message (void *msgp)
 
       break;
 
-    case INTERNAL_MSG_TYPE_CAPTURE_IF_DELETE:
-      struct internal_msg_capture_if_delete *msg_capture_if_delete;
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_capture_if_delete: %p.", msgp);
-      msg_capture_if_delete =
-          (struct internal_msg_capture_if_delete *) (msg_header + 1);
-      if (msg_capture_if_delete->vswitch_id >= new->rib_info->vswitch_size)
-        break;
-
-      capture_if_delete (new->rib_info, msg_capture_if_delete->vswitch_id);
-      break;
-
-    case INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD:
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_add: %p.", msgp);
-      msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      memcpy (&new->rib_info->neigh_tables[msg_neigh_entry->index]
-                   .entries[msg_neigh_entry->hash],
-              &msg_neigh_entry->data, sizeof (struct neigh_entry));
-      break;
-    case INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL:
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_del: %p.", msgp);
-      msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      memset (&new->rib_info->neigh_tables[msg_neigh_entry->index]
-                   .entries[msg_neigh_entry->hash],
-              0, sizeof (struct neigh_entry));
+    case INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET:
+      struct internal_msg_tap_dev *msg_capture_if_no_set;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_capture_if_no_set: %p.", msgp);
+      msg_capture_if_no_set = (struct internal_msg_tap_dev *) (msg_header + 1);
+      for (i = 0; i < new->rib_info->vswitch_size; i++)
+        {
+          if (! strcmp (msg_capture_if_no_set->tap_name,
+                        new->rib_info->vswitch[i].capture_if.tap_name))
+            capture_if_delete (new->rib_info,
+                               new->rib_info->vswitch[i].vswitch_id);
+        }
       break;
 
     default:
@@ -1161,7 +1208,7 @@ rib_manager (void *arg)
 
   while (! force_quit && ! force_stop[lthread_core])
     {
-      lthread_sleep (100); // yield.
+      lthread_sleep (0); // yield.
       // DEBUG_SDPLANE_LOG (RIB, "%s: schedule.", __func__);
 
       msgp = internal_msg_recv (msg_queue_rib);
