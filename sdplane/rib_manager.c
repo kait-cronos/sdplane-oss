@@ -813,6 +813,7 @@ update_port_status (struct rib *new)
                          port_id,
                          new->rib_info->port[port_id].link.link_status,
                          new->rib_info->ver, new->rib_info);
+      new->rib_info->port[port_id].dpdk_port_id = port_id;
     }
 
   uint16_t lcore_size;
