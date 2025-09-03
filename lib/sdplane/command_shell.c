@@ -600,7 +600,7 @@ command_shell_execute (struct shell *shell)
   /* ignore blank-line in startup-config. */
   if (! strlen (shell->command_line) &&
       ! FLAG_CHECK (shell->flag, SHELL_FLAG_INTERACTIVE))
-    return;
+    return 0;
 
   /* send a line-feed to terminate the command line. */
   shell_linefeed (shell);
