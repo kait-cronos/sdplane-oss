@@ -43,6 +43,7 @@ extern "C" {
 
 static inline int __attribute__((format(printf, 1, 2))) cli_printf(const char *fmt, ...)
 {
+#if 0
     va_list vaList;
     int n;
 
@@ -53,6 +54,9 @@ static inline int __attribute__((format(printf, 1, 2))) cli_printf(const char *f
     fflush(this_scrn->fd_out);
 
     return n;
+#else
+    return 0;
+#endif
 }
 
 #ifdef __cplusplus
