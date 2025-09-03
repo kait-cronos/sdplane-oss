@@ -240,55 +240,6 @@ CLI_COMMAND2 (show_rib_vswitch_link,
 }
 /* End of 🤖 生成AI (CLAUDE) */
 
-CLI_COMMAND2 (set_router_if,
-              "set router-if <0-3> <WORD>",
-              SET_HELP,
-              "router interface\n",
-              "vswitch id\n",
-              "tap name\n")
-{
-  struct shell *shell = (struct shell *) context;
-  struct internal_msg_router_if_create router_if_create;
-  struct internal_msg_header *msgp;
-  int vswitch_id;
-  char *tap_name;
-
-  vswitch_id = atoi (argv[2]);
-  tap_name = argv[3];
-
-  router_if_create.vswitch_id = vswitch_id;
-  snprintf (router_if_create.tap_name, sizeof (router_if_create.tap_name),
-            "%s", tap_name);
-
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_CREATE,
-                              &router_if_create, sizeof (router_if_create));
-  rib_manager_send_message (msgp, shell);
-
-  return 0;
-}
-
-CLI_COMMAND2 (delete_router_if,
-              "delete router-if <0-3>",
-              DELETE_HELP,
-              "router interface\n",
-              "vswitch id\n")
-{
-  struct shell *shell = (struct shell *) context;
-  struct internal_msg_router_if_delete router_if_delete;
-  struct internal_msg_header *msgp;
-  int vswitch_id;
-
-  vswitch_id = atoi (argv[2]);
-
-  router_if_delete.vswitch_id = vswitch_id;
-
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_DELETE,
-                              &router_if_delete, sizeof (router_if_delete));
-  rib_manager_send_message (msgp, shell);
-
-  return 0;
-}
-
 CLI_COMMAND2 (show_rib_router_if,
               "show rib router-if",
               SHOW_HELP,
@@ -328,55 +279,6 @@ CLI_COMMAND2 (show_rib_router_if,
       fprintf (shell->terminal, "  ring_up: %p, ring_dn: %p%s", rif->ring_up,
                rif->ring_dn, shell->NL);
     }
-
-  return 0;
-}
-
-CLI_COMMAND2 (set_capture_if,
-              "set capture-if <0-3> <WORD>",
-              SET_HELP,
-              "capture interface\n",
-              "vswitch id\n",
-              "tap name\n")
-{
-  struct shell *shell = (struct shell *) context;
-  struct internal_msg_capture_if_create capture_if_create;
-  struct internal_msg_header *msgp;
-  int vswitch_id;
-  char *tap_name = NULL;
-
-  vswitch_id = atoi (argv[2]);
-  tap_name = argv[3];
-
-  capture_if_create.vswitch_id = vswitch_id;
-  snprintf (capture_if_create.tap_name, sizeof (capture_if_create.tap_name),
-            "%s", tap_name);
-
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_CAPTURE_IF_CREATE,
-                              &capture_if_create, sizeof (capture_if_create));
-  rib_manager_send_message (msgp, shell);
-
-  return 0;
-}
-
-CLI_COMMAND2 (delete_capture_if,
-              "delete capture-if <0-3>",
-              DELETE_HELP,
-              "capture interface\n",
-              "vswitch id\n")
-{
-  struct shell *shell = (struct shell *) context;
-  struct internal_msg_capture_if_delete capture_if_delete;
-  struct internal_msg_header *msgp;
-  int vswitch_id;
-
-  vswitch_id = atoi (argv[2]);
-
-  capture_if_delete.vswitch_id = vswitch_id;
-
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_CAPTURE_IF_DELETE,
-                              &capture_if_delete, sizeof (capture_if_delete));
-  rib_manager_send_message (msgp, shell);
 
   return 0;
 }
@@ -672,10 +574,6 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib_vswitch_link);
   INSTALL_COMMAND2 (cmdset, show_rib_router_if);
   INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
-  INSTALL_COMMAND2 (cmdset, show_vswitch_rib);
-  INSTALL_COMMAND2 (cmdset, show_vswitch_link);
-  INSTALL_COMMAND2 (cmdset, show_router_if);
-  INSTALL_COMMAND2 (cmdset, show_capture_if);
   INSTALL_COMMAND2 (cmdset, set_vswitch);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port_tag_swap);
