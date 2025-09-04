@@ -221,9 +221,7 @@ l2_repeater_rx_burst ()
       nb_rx_burst++;
 
       if (unlikely (nb_rx == 0))
-        {
           continue;
-        }
 
       port_statistics[portid].rx += nb_rx;
 
