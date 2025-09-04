@@ -50,7 +50,7 @@ struct rte_mempool *test_mbuf_pool = NULL;
 
 int test_ports[TEST_PORT_NUM];
 struct rte_ring *test_rings[TEST_RING_NUM];
-char *test_rte_eal_argv[4] = { "sdplane", "-c", "0xf", "--no-pci" };
+char *test_rte_eal_argv[4] = { "sdplane", "-c", "0x3", "--no-pci" };
 int test_rte_eal_argc = 4;
 
 int test_ret;

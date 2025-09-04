@@ -42,7 +42,7 @@ char msg[256];
 
 #define RX_PORT  0
 #define TX_PORT  1
-#define LCORE_ID 2
+#define LCORE_ID 1
 
 int
 test_l2_repeater (void *arg)
