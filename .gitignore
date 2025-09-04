@@ -49,7 +49,9 @@ Makefile
 /install-sh
 /missing
 /stamp-h1
-/tools/ip-neigh/*.sh
 /build
+
+/tools/ip-neigh/*.sh
+
 /tests/build
 /tests/logs
