@@ -142,6 +142,9 @@ show port statistics 1
 # Enable L2 repeater debug
 debug sdplane l2-repeater
 
+# VLAN switch debug (alternative worker type)
+debug sdplane vlan-switch
+
 # General sdplane debugging
 debug sdplane fdb-change
 debug sdplane rib

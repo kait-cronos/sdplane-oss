@@ -142,6 +142,9 @@ show port statistics 1
 # L2リピーターデバッグの有効化
 debug sdplane l2-repeater
 
+# VLANスイッチデバッグ（代替ワーカータイプ）
+debug sdplane vlan-switch
+
 # 一般的なsdplaneデバッグ
 debug sdplane fdb-change
 debug sdplane rib

@@ -77,8 +77,8 @@ L3接続用のルーターインターフェースを作成：
 
 ```bash
 # L3処理用のルーターインターフェースを作成
-set router-if 0 rif0
-set router-if 1 rif1
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if rif2032
 ```
 
 ### キャプチャインターフェース
@@ -86,8 +86,8 @@ set router-if 1 rif1
 
 ```bash
 # パケット監視用のキャプチャインターフェースを作成
-set capture-if 0 cif0
-set capture-if 1 cif1
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
 ```
 
 ### ワーカー設定
@@ -143,10 +143,10 @@ set vswitch-link vswitch 0 port 0 tag 2031
 set vswitch-link vswitch 1 port 0 tag 2032
 
 # インターフェース作成
-set router-if 0 rif0
-set router-if 1 rif1
-set capture-if 0 cif0
-set capture-if 1 cif1
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if rif2032
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
 
 # ワーカー開始
 start worker lcore all
@@ -203,10 +203,10 @@ show vswitch_rib
 show vswitch-link
 
 # ルーターインターフェースの表示
-show router-if
+show rib vswitch router-if
 
 # キャプチャインターフェースの確認
-show capture-if
+show rib vswitch capture-if
 ```
 
 ### 統計とパフォーマンス
@@ -225,6 +225,9 @@ show thread information
 ```bash
 # 拡張リピーターデバッグ
 debug sdplane enhanced-repeater
+
+# VLANスイッチデバッグ（代替ワーカータイプ）
+debug sdplane vlan-switch
 
 # RIBと転送デバッグ
 debug sdplane rib

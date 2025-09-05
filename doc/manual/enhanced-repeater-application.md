@@ -77,8 +77,8 @@ Create router interfaces for L3 connectivity:
 
 ```bash
 # Create router interfaces for L3 processing
-set router-if 0 rif0
-set router-if 1 rif1
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if rif2032
 ```
 
 ### Capture Interfaces  
@@ -86,8 +86,8 @@ Setup capture interfaces for monitoring:
 
 ```bash
 # Create capture interfaces for packet monitoring
-set capture-if 0 cif0
-set capture-if 1 cif1
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
 ```
 
 ### Worker Configuration
@@ -143,10 +143,10 @@ set vswitch-link vswitch 0 port 0 tag 2031
 set vswitch-link vswitch 1 port 0 tag 2032
 
 # Interface creation
-set router-if 0 rif0
-set router-if 1 rif1
-set capture-if 0 cif0
-set capture-if 1 cif1
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if rif2032
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
 
 # Start workers
 start worker lcore all
@@ -203,10 +203,10 @@ show vswitch_rib
 show vswitch-link  
 
 # View router interfaces
-show router-if
+show rib vswitch router-if
 
 # Check capture interfaces
-show capture-if
+show rib vswitch capture-if
 ```
 
 ### Statistics and Performance
@@ -225,6 +225,9 @@ show thread information
 ```bash
 # Enhanced repeater debug
 debug sdplane enhanced-repeater
+
+# VLAN switch debug (alternative worker type)
+debug sdplane vlan-switch
 
 # RIB and forwarding debug
 debug sdplane rib

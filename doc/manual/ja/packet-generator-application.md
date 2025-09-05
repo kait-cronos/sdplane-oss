@@ -205,6 +205,92 @@ PKTGENはインタラクティブCLIを通じて広範囲なランタイム設�
 # - 遅延測定
 ```
 
+## CLIコマンド
+
+### PKTGEN制御コマンド
+
+#### 初期化
+```bash
+# argv-list設定でPKTGENを初期化
+pktgen init argv-list <0-7>
+```
+
+#### トラフィック生成開始/停止
+```bash
+# 特定ポートでトラフィック生成を開始
+pktgen do start port <0-7>
+pktgen do start port all
+
+# トラフィック生成を停止
+pktgen do stop port <0-7>
+pktgen do stop port all
+```
+
+#### トラフィック設定コマンド
+
+##### パケット数設定
+```bash
+# 送信するパケット数を設定
+pktgen do set port <0-7> count <0-4000000000>
+pktgen do set port all count <0-4000000000>
+```
+
+##### パケットサイズ設定
+```bash
+# パケットサイズをバイト単位で設定
+pktgen do set port <0-7> size <0-9999>
+pktgen do set port all size <0-9999>
+```
+
+##### 送信レート設定
+```bash
+# 送信レートをパーセンテージで設定
+pktgen do set port <0-7> rate <0-100>
+pktgen do set port all rate <0-100>
+```
+
+##### TCP/UDPポート番号設定
+```bash
+# TCP送信元・宛先ポートを設定
+pktgen do set port <0-7> tcp src <0-65535> dst <0-65535>
+pktgen do set port all tcp src <0-65535> dst <0-65535>
+
+# UDP送信元・宛先ポートを設定
+pktgen do set port <0-7> udp src <0-65535> dst <0-65535>
+pktgen do set port all udp src <0-65535> dst <0-65535>
+```
+
+##### TTL値設定
+```bash
+# IP Time-to-Live値を設定
+pktgen do set port <0-7> ttl <0-255>
+pktgen do set port all ttl <0-255>
+```
+
+##### MACアドレス設定
+```bash
+# 送信元・宛先MACアドレスを設定
+pktgen do set port <0-7> mac src <MAC> dst <MAC>
+pktgen do set port all mac src <MAC> dst <MAC>
+```
+
+##### IPv4アドレス設定
+```bash
+# 送信元・宛先IPv4アドレスを設定
+pktgen do set port <0-7> ipv4 src <IPv4> dst <IPv4>
+pktgen do set port all ipv4 src <IPv4> dst <IPv4>
+```
+
+#### ステータス・監視コマンド
+```bash
+# PKTGENステータスと設定を表示
+show pktgen
+
+# ポート統計を表示
+show port statistics all
+show port statistics <0-7>
+```
+
 ## 使用ケース
 
 ### ネットワークパフォーマンステスト
@@ -262,6 +348,16 @@ set port all ntxdesc 2048  # バースト用に増加
 - **統計確認**: 異常のためのTX/RXカウンターを監視
 - **マッピング確認**: 正しいlcore-to-port割り当てを確実に
 - **システム監視**: テスト中のCPU、メモリ、割り込み使用を確認
+
+#### デバッグコマンド
+```bash
+# PKTGENデバッグログを有効化
+debug sdplane pktgen
+
+# 一般的なsdplaneデバッグ
+debug sdplane rib
+debug sdplane fdb-change
+```
 
 ### パフォーマンス検証
 ```bash

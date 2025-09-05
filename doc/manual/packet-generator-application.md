@@ -205,6 +205,92 @@ PKTGEN provides extensive runtime configuration through its interactive CLI:
 # - Latency measurements
 ```
 
+## CLI Commands
+
+### PKTGEN Control Commands
+
+#### Initialization
+```bash
+# Initialize PKTGEN with argv-list configuration
+pktgen init argv-list <0-7>
+```
+
+#### Start/Stop Traffic Generation
+```bash
+# Start traffic generation on specific port
+pktgen do start port <0-7>
+pktgen do start port all
+
+# Stop traffic generation
+pktgen do stop port <0-7>
+pktgen do stop port all
+```
+
+#### Traffic Configuration Commands
+
+##### Set Packet Count
+```bash
+# Configure number of packets to transmit
+pktgen do set port <0-7> count <0-4000000000>
+pktgen do set port all count <0-4000000000>
+```
+
+##### Set Packet Size
+```bash
+# Configure packet size in bytes
+pktgen do set port <0-7> size <0-9999>
+pktgen do set port all size <0-9999>
+```
+
+##### Set Transmission Rate
+```bash
+# Configure transmission rate as percentage
+pktgen do set port <0-7> rate <0-100>
+pktgen do set port all rate <0-100>
+```
+
+##### Set TCP/UDP Port Numbers
+```bash
+# Configure TCP source and destination ports
+pktgen do set port <0-7> tcp src <0-65535> dst <0-65535>
+pktgen do set port all tcp src <0-65535> dst <0-65535>
+
+# Configure UDP source and destination ports
+pktgen do set port <0-7> udp src <0-65535> dst <0-65535>
+pktgen do set port all udp src <0-65535> dst <0-65535>
+```
+
+##### Set TTL Value
+```bash
+# Configure IP Time-to-Live value
+pktgen do set port <0-7> ttl <0-255>
+pktgen do set port all ttl <0-255>
+```
+
+##### Set MAC Addresses
+```bash
+# Configure source and destination MAC addresses
+pktgen do set port <0-7> mac src <MAC> dst <MAC>
+pktgen do set port all mac src <MAC> dst <MAC>
+```
+
+##### Set IPv4 Addresses
+```bash
+# Configure source and destination IPv4 addresses
+pktgen do set port <0-7> ipv4 src <IPv4> dst <IPv4>
+pktgen do set port all ipv4 src <IPv4> dst <IPv4>
+```
+
+#### Status and Monitoring Commands
+```bash
+# Show PKTGEN status and configuration
+show pktgen
+
+# Show port statistics
+show port statistics all
+show port statistics <0-7>
+```
+
 ## Use Cases
 
 ### Network Performance Testing
@@ -262,6 +348,16 @@ set port all ntxdesc 2048  # Increase for bursting
 - **Check statistics**: Monitor TX/RX counters for anomalies
 - **Verify mappings**: Ensure correct lcore-to-port assignments
 - **System monitoring**: Check CPU, memory, and interrupt usage
+
+#### Debug Commands
+```bash
+# Enable PKTGEN debug logging
+debug sdplane pktgen
+
+# General sdplane debugging  
+debug sdplane rib
+debug sdplane fdb-change
+```
 
 ### Performance Validation
 ```bash
