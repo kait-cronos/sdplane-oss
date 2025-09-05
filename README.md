@@ -230,7 +230,7 @@ Place one of the following configuration files as
 sudo ./sdplane/sdplane
 
 # Run with config file
-sudo ./sdplane/sdplane -f /etc/sdplane/sdplane.conf
+sudo ./sdplane/sdplane -f /etc/sdplane/sdplane_enhanced_repeater.conf
 
 # Run via systemd, when you installed the dpkg.
 sudo systemctl enable sdplane
@@ -247,30 +247,30 @@ The enhanced repeater provides advanced VLAN switching capabilities with TAP int
 **Virtual Switch Setup:**
 ```bash
 # Create virtual switches with VLAN IDs
-set vswitch 2031
-set vswitch 2032
+set vswitch 2031 vlan 2031
+set vswitch 2031 vlan 2032
 ```
 
 **DPDK Port to VSwitch Linking:**
 ```bash
-# Link port 0 to vswitch 0 with VLAN tag 2031
-set vswitch-link vswitch 0 port 0 tag 2031
-# Link port 0 to vswitch 1 with VLAN tag 2032  
-set vswitch-link vswitch 1 port 0 tag 2032
+# Link port 0 to vswitch with VLAN tag 2031
+set vswitch 2031 port 0 (tagged|untag|tag swap 2032)
+# Link port 0 to vswitch with VLAN tag 2032  
+set vswitch 2032 port 0 (tagged|untag|tag swap 2031)
 ```
 
 **Router Interfaces (L3 connectivity):**
 ```bash
 # Create router interfaces for L3 processing
-set router-if 0 rif0
-set router-if 1 rif1
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if cif2032
 ```
 
 **Capture Interfaces (packet monitoring):**
 ```bash
 # Create capture interfaces for packet monitoring
-set capture-if 0 cif0
-set capture-if 1 cif1
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
 ```
 
 The enhanced repeater performs VLAN translation, stripping, and insertion based on the vswitch-link configuration, while providing TAP interfaces for kernel networking stack integration.
