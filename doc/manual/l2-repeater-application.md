@@ -54,7 +54,17 @@ set device 03:00.0 driver vfio-pci bind
 # DPDK initialization
 set rte_eal argv -c 0x7
 rte_eal_init
+
+# Background workers (must be started before queue configuration)
+set worker lthread stat-collector
+set worker lthread rib-manager
+set worker lthread netlink-thread
+
 set mempool
+
+# Queue configuration (must be after rib-manager)
+set thread 1 port 0 queue 0
+set thread 1 port 1 queue 0
 
 # Port configuration
 stop port all
@@ -67,6 +77,9 @@ set worker lcore 1 l2-repeater
 set worker lcore 2 tap-handler
 set port all promiscuous enable
 start port all
+
+# Wait for ports to come up
+sleep 5
 
 # Start workers
 start worker lcore all
