@@ -1,6 +1,6 @@
 # Packet Generator (PKTGEN) Application
 
-**Language / 言語:** **English** | [Japanese](ja/packet-generator-application.md)
+**Language:** **English** | [Japanese](ja/packet-generator-application.md)
 
 The Packet Generator (PKTGEN) application provides high-performance packet generation and traffic testing capabilities using DPDK's optimized packet processing framework.
 

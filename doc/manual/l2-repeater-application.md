@@ -1,6 +1,6 @@
 # L2 Repeater Application
 
-**Language / 言語:** **English** | [Japanese](ja/l2-repeater-application.md)
+**Language:** **English** | [Japanese](ja/l2-repeater-application.md)
 
 The L2 Repeater application provides simple Layer 2 packet forwarding between DPDK ports with basic port-to-port repeating functionality.
 

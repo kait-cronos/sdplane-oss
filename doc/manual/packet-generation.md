@@ -1,6 +1,6 @@
 # Packet Generation
 
-**Language / 言語:** **English** | [Japanese](ja/packet-generation.md)
+**Language:** **English** | [Japanese](ja/packet-generation.md)
 
 Commands for packet generation functions using PKTGEN (Packet Generator).
 
