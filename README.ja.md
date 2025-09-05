@@ -284,6 +284,7 @@ set vswitch 2032 capture-if cif2032
 詳細なユーザーガイドとコマンドリファレンスは以下をご覧ください：
 
 - [ユーザーガイド](doc/manual/ja/README.md) - 全機能の概要とコマンド分類
+- [拡張リピーター](doc/manual/ja/enhanced-repeater.md) - 仮想スイッチング、VLAN処理、TAPインターフェース
 - [ポート管理・統計](doc/manual/ja/port-management.md) - DPDKポートの管理と統計情報
 - [ワーカー・lcore管理](doc/manual/ja/worker-management.md) - ワーカースレッドとlcoreの管理
 - [デバッグ・ログ](doc/manual/ja/debug-logging.md) - デバッグとログ機能
