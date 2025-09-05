@@ -2,23 +2,23 @@
 
 **Language / 言語:** **English** | [Japanese](ja/l2-repeater-application.md)
 
-The L2 Repeater application provides simple Layer 2 packet forwarding between DPDK ports with MAC address learning and updating capabilities.
+The L2 Repeater application provides simple Layer 2 packet forwarding between DPDK ports with basic port-to-port repeating functionality.
 
 ## Overview
 
 L2 Repeater is a straightforward Layer 2 forwarding application that:
-- Forwards packets between DPDK ports based on destination MAC addresses
-- Performs MAC address learning to build forwarding tables
-- Supports MAC address updating (modifying source MAC addresses)
+- Forwards packets between paired DPDK ports (simple port-to-port repeating)
+- Provides basic packet repeating without MAC address learning
+- Supports optional MAC address updating (modifying source MAC addresses)
 - Operates with high performance using DPDK's zero-copy packet processing
 
 ## Key Features
 
 ### Layer 2 Forwarding
-- **Destination-based forwarding**: Routes packets based on destination MAC addresses
-- **MAC learning**: Automatically learns MAC addresses and builds forwarding tables
-- **Broadcast handling**: Properly handles broadcast and unknown unicast traffic
-- **Port pairing**: Supports simple port-to-port forwarding configurations
+- **Port-to-port repeating**: Simple packet forwarding between pre-configured port pairs
+- **No MAC learning**: Direct packet repeating without building forwarding tables
+- **Transparent forwarding**: All packets are forwarded regardless of destination MAC
+- **Port pairing**: Fixed port-to-port forwarding configurations
 
 ### Performance Characteristics
 - **Zero-copy processing**: Uses DPDK's efficient packet handling
@@ -74,17 +74,17 @@ start worker lcore all
 
 ## Operation
 
-### MAC Address Learning
-The L2 repeater automatically learns MAC addresses from incoming packets:
-- **Source learning**: Records source MAC addresses with their ingress ports
-- **Forwarding table**: Maintains a forwarding table for known destinations
-- **Aging**: Handles aging of learned entries (implementation dependent)
+### Port Pairing
+The L2 repeater uses pre-configured port pairs for packet forwarding:
+- **Fixed mapping**: Uses `l2fwd_dst_ports[]` array to define port pairs
+- **Direct forwarding**: All packets received on a port are forwarded to its paired port
+- **No filtering**: Forwards all packet types (unicast, broadcast, multicast)
 
 ### Forwarding Behavior
-- **Known unicast**: Forwards to the learned port for the destination MAC
-- **Unknown unicast**: Floods to all ports except the ingress port  
-- **Broadcast/Multicast**: Floods to all ports except the ingress port
-- **Loop prevention**: Basic split-horizon forwarding (no hairpinning)
+- **All traffic forwarded**: Repeats all packets regardless of destination MAC
+- **Port-based**: Forwarding decision based solely on ingress port
+- **Transparent**: No modification of packet contents (unless MAC updating is enabled)
+- **Bidirectional**: Supports bidirectional traffic between port pairs
 
 ### MAC Address Updating
 When enabled, the L2 repeater can modify packet MAC addresses:
@@ -129,16 +129,16 @@ show port statistics 1
 # Enable L2 forwarding debug
 debug l2fwd enable
 
-# View forwarding table (if available)
-show l2fwd table
+# View port pairing configuration
+show l2fwd configuration
 ```
 
 ## Use Cases
 
 ### Simple Bridge
 - Connect two network segments
-- Transparent Layer 2 forwarding
-- Learning bridge functionality
+- Transparent Layer 2 repeating
+- Basic bridge functionality without learning
 
 ### Port Mirroring/Repeating
 - Mirror traffic between ports
@@ -152,10 +152,10 @@ show l2fwd table
 
 ## Limitations
 
-- **No VLAN processing**: Simple L2 forwarding without VLAN awareness
-- **Limited forwarding table**: Fixed or limited size forwarding table
+- **No VLAN processing**: Simple L2 repeating without VLAN awareness
+- **No MAC learning**: Fixed port-to-port forwarding without address learning
 - **No STP support**: No Spanning Tree Protocol implementation
-- **Basic flood control**: Limited broadcast storm protection
+- **No filtering**: All packets are forwarded regardless of destination
 
 ## Related Applications
 
