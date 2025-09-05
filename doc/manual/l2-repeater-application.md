@@ -87,17 +87,17 @@ start worker lcore all
 
 ## Operation
 
-### Port Pairing
-The L2 repeater uses pre-configured port pairs for packet forwarding:
-- **Fixed mapping**: Uses `l2fwd_dst_ports[]` array to define port pairs
-- **Direct forwarding**: All packets received on a port are forwarded to its paired port
+### Broadcast Forwarding
+The L2 repeater forwards packets to all other active ports:
+- **Broadcast behavior**: All packets received on a port are forwarded to all other active ports
+- **Split horizon**: Does not forward packets back to the receiving port
 - **No filtering**: Forwards all packet types (unicast, broadcast, multicast)
 
 ### Forwarding Behavior
 - **All traffic forwarded**: Repeats all packets regardless of destination MAC
-- **Port-based**: Forwarding decision based solely on ingress port
+- **Broadcast to all ports**: Forwards each packet to all other active ports except the ingress port
 - **Transparent**: No modification of packet contents (unless MAC updating is enabled)
-- **Bidirectional**: Supports bidirectional traffic between port pairs
+- **Multi-port replication**: Creates copies of packets for each destination port
 
 ### MAC Address Updating
 When enabled, the L2 repeater can modify packet MAC addresses:
@@ -152,10 +152,10 @@ debug sdplane rib
 
 ## Use Cases
 
-### Simple Bridge
-- Connect two network segments
+### Hub-like Repeater
+- Replicate traffic to all connected ports
 - Transparent Layer 2 repeating
-- Basic bridge functionality without learning
+- Basic hub functionality without learning
 
 ### Port Mirroring/Repeating
 - Mirror traffic between ports
@@ -170,7 +170,7 @@ debug sdplane rib
 ## Limitations
 
 - **No VLAN processing**: Simple L2 repeating without VLAN awareness
-- **No MAC learning**: Fixed port-to-port forwarding without address learning
+- **No MAC learning**: Broadcast forwarding to all ports without address learning
 - **No STP support**: No Spanning Tree Protocol implementation
 - **No filtering**: All packets are forwarded regardless of destination
 
