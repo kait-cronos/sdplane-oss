@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="sdplane-logo.png" alt="sdplane-oss Logo" width="400">
+</div>
+
 # sdplane-oss (ソフトデータプレーン)
 
 DPDK（Data Plane Development Kit）を基盤とした高性能オープンソースソフトウェアルーターで、ソフトウェア定義ネットワークアプリケーション向けに設計されています。

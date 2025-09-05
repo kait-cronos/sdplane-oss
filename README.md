@@ -1,4 +1,8 @@
 
+<div align="center">
+  <img src="sdplane-logo.png" alt="sdplane-oss Logo" width="400">
+</div>
+
 # sdplane-oss (Soft Data Plane)
 
 A high-performance open-source software router built on
