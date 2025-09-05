@@ -234,7 +234,7 @@ echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 sudo ./sdplane/sdplane
 
 # 設定ファイル指定で実行
-sudo ./sdplane/sdplane -f /etc/sdplane/sdplane.conf
+sudo ./sdplane/sdplane -f /etc/sdplane/sdplane_enhanced_repeater.conf
 
 # dpkgでインストールした場合、systemd経由で実行
 sudo systemctl enable sdplane
@@ -251,30 +251,30 @@ telnet localhost 9882
 **仮想スイッチの設定：**
 ```bash
 # VLAN IDを持つ仮想スイッチを作成
-set vswitch 2031
-set vswitch 2032
+set vswitch 2031 vlan 2031
+set vswitch 2031 vlan 2032
 ```
 
 **DPDKポートから仮想スイッチへのリンク：**
 ```bash
 # ポート0を仮想スイッチ0にVLANタグ2031でリンク
-set vswitch-link vswitch 0 port 0 tag 2031
+set vswitch 2031 port 0 (tagged|untag|tag swap 2032)
 # ポート0を仮想スイッチ1にVLANタグ2032でリンク  
-set vswitch-link vswitch 1 port 0 tag 2032
+set vswitch 2032 port 0 (tagged|untag|tag swap 2031)
 ```
 
 **ルーターインターフェース（L3接続）：**
 ```bash
 # L3処理用のルーターインターフェースを作成
-set router-if 0 rif0
-set router-if 1 rif1
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if cif2032
 ```
 
 **キャプチャインターフェース（パケット監視）：**
 ```bash
 # パケット監視用のキャプチャインターフェースを作成
-set capture-if 0 cif0
-set capture-if 1 cif1
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
 ```
 
 拡張リピーターは、vswitch-link設定に基づいてVLANの変換、除去、挿入を行い、カーネルネットワークスタック統合用のTAPインターフェースを提供します。
