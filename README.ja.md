@@ -1,6 +1,6 @@
 # sdplane-oss (ソフトデータプレーン) <img src="sdplane-logo.png" alt="sdplane-oss Logo" width="200" align="right">
 
-DPDK（Data Plane Development Kit）を基盤とした高性能オープンソースソフトウェアルーターで、ソフトウェア定義ネットワークアプリケーション向けに設計されています。
+DPDKスレッドの動作を対話的に制御できるShellと、DPDKスレッド実行環境（sd-plane）で構成された「DPDK-dock開発環境」
 
 **言語 / Language:** [English](README.md) | **日本語**
 
@@ -43,8 +43,8 @@ DPDK（Data Plane Development Kit）を基盤とした高性能オープンソ�
 本プロジェクトは以下でテスト済みです：
 - **Topton (N305/N100)**：10G NIC搭載ミニPC
 - **Partaker (J3160)**：1G NIC搭載ミニPC
-
-Intel (Core i7/9、Xeon)、AMD、ARM CPU等のほかのCPUでも動作するはずです。
+- **Intel汎用PC**：Intel x520 / Mellanox ConnectX5搭載
+- **その他のCPU**：AMD、ARM CPU等でも動作するはずです。
 
 ## 1. 依存関係のインストール
 
@@ -55,8 +55,18 @@ Intel (Core i7/9、Xeon)、AMD、ARM CPU等のほかのCPUでも動作するは�
 - **DPDK**：Data Plane Development Kit
 
 ### sdplane依存関係debianパッケージのインストール
-```
+```bash
 sudo apt install liburcu-dev libpcap-dev
+```
+
+### ビルドツールとDPDK前提パッケージのインストール
+
+```bash
+# コアビルドツール
+sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
+
+# DPDK前提パッケージ
+sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
 ```
 
 ### lthreadのインストール
@@ -87,9 +97,11 @@ pkg-config --modversion libdpdk
 # 出力例: 23.11.1
 ```
 
-## 2. Debianパッケージによるクイックスタート
+## 2. Intel Core i3-n305/Celelon j3160向け Debianパッケージによるクイックスタート
 
-簡単インストールのため、ビルド済みDebianパッケージをダウンロード・インストールします：
+Intel Core i3-n305/Celelon j3160では、Debianパッケージによるクイックスタートが可能です。
+
+ビルド済みDebianパッケージをダウンロード・インストールします：
 
 ```bash
 # 最新パッケージのダウンロード (n305用)
@@ -111,16 +123,7 @@ sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 
 ## 3. ソースからのビルド
 
-### 必須Ubuntuパッケージのインストール
-
-#### ソースからのビルド用
-```bash
-# コアビルドツール
-sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
-
-# DPDK前提パッケージ
-sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
-```
+**一般的にはこちらの手順を踏んでください。**
 
 <!--
 #### オプションパッケージ
@@ -151,7 +154,7 @@ make
 make install
 ```
 
-## 4. sdplane-oss Debianパッケージのビルド（オプション）
+## 4. sdplane-ossのDebian Packageの作成とインストール
 
 ### 前提パッケージのインストール
 ```bash
@@ -175,7 +178,9 @@ sudo apt install ../sdplane_*.deb
 
 - **ヒュージページ**：DPDK用システムヒュージページの設定
 - **ネットワーク**：ネットワークインターフェース設定にnetplanを使用
-- **ファイアウォール**：必要に応じてiptablesルールを設定
+- **ファイアウォール**： CLIのために telnet 9882/tcp portが必要 
+
+**⚠️ CLIに認証がありません。localhostからのみ接続を許可することを推奨 ⚠️**
 
 ### ヒュージページの設定
 ```bash
@@ -196,11 +201,10 @@ sudo reboot
 ```
 
 ### DPDK IGBカーネルモジュールのインストール（オプション）
-```bash
-# 方法1: パッケージからインストール
-sudo apt-get install -y dpdk-igb-uio-dkms
 
-# 方法2: ソースからビルド
+vfio-pciで動作しないNICの場合は、オプションでigb_uioをインストールしてください。
+
+```bash
 git clone http://dpdk.org/git/dpdk-kmods
 cd dpdk-kmods/linux/igb_uio
 make
@@ -213,30 +217,33 @@ echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 
 ### 設定ファイル
 
-以下の設定ファイルのいずれかを
-/etc/sdplane/sdplane.confとして配置してください
+Debian Packageからインストールした場合、`/etc/sdplane/sdplane.conf.sample`やsystemd service fileが自動的に生成されます。
 
-#### OS設定（`etc/`）
+サンプルを参考に `/etc/sdplane/sdplane.conf`を作成してください。
+
+#### OS設定例（`etc/`）
+
 - [`etc/sdplane.conf.sample`](etc/sdplane.conf.sample)：メイン設定テンプレート
 - [`etc/sdplane.service`](etc/sdplane.service)：systemdサービスファイル
 - [`etc/modules-load.d/`](etc/modules-load.d/)：カーネルモジュール読み込み設定
 
-#### アプリケーション設定（`example-config/`）
+#### アプリケーション設定例（`example-config/`）
+
 - [`example-config/sdplane-pktgen.conf`](example-config/sdplane-pktgen.conf)：パケットジェネレーター設定
 - [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf)：Toptonハードウェア設定
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf)：L2リピーター設定
 - [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf)：拡張リピーター設定（VLANスイッチング、ルーターインターフェース、キャプチャインターフェース）
 
-## 7. ソフトウェアルーターの実行
+## 7. sdplane-ossを用いたApplicationの実行
 
 ```bash
 # フォアグラウンドで実行
-sudo ./sdplane/sdplane
+sudo sdplane
 
 # 設定ファイル指定で実行
-sudo ./sdplane/sdplane -f /etc/sdplane/sdplane_enhanced_repeater.conf
+sudo sdplane -f /etc/sdplane/sdplane_enhanced_repeater.conf
 
-# dpkgでインストールした場合、systemd経由で実行
+# aptでインストールした場合、systemd経由で実行
 sudo systemctl enable sdplane
 sudo systemctl start sdplane
 
@@ -249,6 +256,7 @@ telnet localhost 9882
 拡張リピーターは高度なVLANスイッチング機能を提供し、L3ルーティング用とパケットキャプチャ用のTAPインターフェースを備えています。主要な設定コマンド：
 
 **仮想スイッチの設定：**
+
 ```bash
 # VLAN IDを持つ仮想スイッチを作成
 set vswitch 2031 vlan 2031
@@ -256,6 +264,7 @@ set vswitch 2031 vlan 2032
 ```
 
 **DPDKポートから仮想スイッチへのリンク：**
+
 ```bash
 # ポート0を仮想スイッチ0にVLANタグ2031でリンク
 set vswitch 2031 port 0 (tagged|untag|tag swap 2032)
@@ -264,6 +273,7 @@ set vswitch 2032 port 0 (tagged|untag|tag swap 2031)
 ```
 
 **ルーターインターフェース（L3接続）：**
+
 ```bash
 # L3処理用のルーターインターフェースを作成
 set vswitch 2031 router-if rif2031
@@ -271,6 +281,7 @@ set vswitch 2032 router-if cif2032
 ```
 
 **キャプチャインターフェース（パケット監視）：**
+
 ```bash
 # パケット監視用のキャプチャインターフェースを作成
 set vswitch 2031 capture-if cif2031
@@ -278,6 +289,65 @@ set vswitch 2032 capture-if cif2032
 ```
 
 拡張リピーターは、vswitch-link設定に基づいてVLANの変換、除去、挿入を行い、カーネルネットワークスタック統合用のTAPインターフェースを提供します。
+
+CLIの詳細な使い方や設定は、[document](/doc/manual/)を参照してください。
+
+## Tips
+
+### vfio-pciをNICドライバーに使用する場合はIOMMUが必須
+
+- Intel：Intel VT-d
+- AMD：AMD IOMMU / AMD-V
+
+上記をBIOSで有効にする必要があります。  
+また、GRUBの設定変更が必要な場合があります。
+
+```conf
+# /etc/default/grub
+GRUB_CMDLINE_LINUX="iommu=pt intel_iommu=on"
+```
+
+```bash
+sudo update-grub
+sudo reboot
+```
+
+### vfio-pci Linux Kernel Moduleを永続的にロードする設定
+
+```conf
+#/etc/modules-load.d/vfio-pci.conf
+vfio-pci
+```
+
+### Mellanox ConnectXシリーズの場合
+
+以下のリンクからドライバーのインストールが必要です。
+
+https://network.nvidia.com/products/ethernet-drivers/linux/mlnx_en/
+
+インストール時には、`./install --dpdk` を実行してください。  
+**オプション `--dpdk` が必須です。**
+
+以下の設定はsdplane.confでは不要なため、コメントアウトしてください。
+
+```conf
+#set device {pcie-id} driver unbound
+#set device {pcie-id} driver {driver名} driver_override
+#set device {pcie-id} driver {driver名} bind
+```
+
+### PCIeバス番号の確認方法
+
+DPDKでは、dpdk-devbind.pyコマンドを使用してNICのPCIeバス番号を確認できます。
+
+```bash
+> dpdk-devbind.py -s     
+
+Network devices using kernel driver
+===================================
+0000:04:00.0 'NetXtreme BCM5720 Gigabit Ethernet PCIe 165f' numa_node=0 if=eno8303 drv=tg3 unused= *Active*
+0000:b1:00.0 'MT27800 Family [ConnectX-5] 1017' numa_node=1 if=enp177s0np0 drv=mlx5_core unused= *Active*
+```
 
 ## ユーザーガイド（マニュアル）
 
@@ -309,8 +379,8 @@ set vswitch 2032 capture-if cif2032
 
 ### ドキュメント
 
-- [一般インストールガイド](doc/install-memo.txt) - 1G NICシステム用
-- [技術プレゼンテーション](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf)（日本語）
+- [技術プレゼンテーション/2024-11-22-sdn-onsen-yasu.pdf)](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf)（日本語）
+- [技術プレゼンテーション/20250822_ENOG87_ohara.pdf](https://enog.jp/wordpress/wp-content/uploads/2025/08/20250822_ENOG87_ohara.pdf)（日本語）
 
 ### コードスタイル
 本プロジェクトはGNU コーディング標準に従います。提供されたスクリプトを使用してコードの確認とフォーマットを行ってください：

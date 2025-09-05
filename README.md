@@ -1,9 +1,7 @@
 
 # sdplane-oss (Soft Data Plane) <img src="sdplane-logo.png" alt="sdplane-oss Logo" width="200" align="right">
 
-A high-performance open-source software router built on
-DPDK (Data Plane Development Kit), designed for
-software-defined networking applications.
+A "DPDK-dock Development Environment" consisting of an interactive shell that can control DPDK thread operations and a DPDK thread execution environment (sd-plane)
 
 **Language:** **English** | [Japanese](README.ja.md)
 
@@ -46,8 +44,8 @@ software-defined networking applications.
 The project has been tested on:
 - **Topton (N305/N100)**: Mini-PC with 10G NICs
 - **Partaker (J3160)**: Mini-PC with 1G NICs
-
-There is no reason to believe the sdplane-oss doesn't work on other CPUs such as Intel (Core i7/9, Xeon), AMD, ARM processors, etc.
+- **Intel Generic PC**: With Intel x520 / Mellanox ConnectX5
+- **Other CPUs**: Should work with AMD, ARM processors, etc.
 
 ## 1. Install Dependencies
 
@@ -58,8 +56,18 @@ There is no reason to believe the sdplane-oss doesn't work on other CPUs such as
 - **DPDK**: Data Plane Development Kit
 
 ### Install sdplane dependencies debian packages
-```
+```bash
 sudo apt install liburcu-dev libpcap-dev
+```
+
+### Install Build Tools and DPDK Prerequisites
+
+```bash
+# Core build tools
+sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
+
+# DPDK prerequisites
+sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
 ```
 
 ### Install lthread
@@ -90,9 +98,11 @@ pkg-config --modversion libdpdk
 # Should output: 23.11.1
 ```
 
-## 2. Quick Start by Debian Package
+## 2. Quick Start with Debian Package for Intel Core i3-n305/Celeron j3160
 
-For quick installation, download and install the pre-built Debian package:
+For Intel Core i3-n305/Celeron j3160, quick installation is possible with Debian packages.
+
+Download and install the pre-built Debian package:
 
 ```bash
 # Download the latest package for n305
@@ -113,6 +123,8 @@ sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 Jump to 5. System Configuration.
 
 ## 3. Build from Source
+
+**Generally, please follow this procedure.**
 
 ### Install Prerequisite Ubuntu Packages
 
@@ -148,7 +160,7 @@ CFLAGS="-g -O0" sh ../configure
 make
 ```
 
-## 4. Build sdplane-oss Debian Package (Optional)
+## 4. Create and Install sdplane-oss Debian Package
 
 ### Install prerequisite package
 ```bash
@@ -172,7 +184,9 @@ sudo apt install ../sdplane_*.deb
 
 - **Hugepages**: Configure system hugepages for DPDK
 - **Network**: Use netplan for network interface configuration
-- **Firewall**: Configure iptables rules as needed
+- **Firewall**: telnet 9882/tcp port is required for CLI
+
+**⚠️ The CLI has no authentication. It is recommended to allow connections only from localhost ⚠️**
 
 ### Configure Hugepages
 ```bash
@@ -192,11 +206,10 @@ sudo reboot
 ```
 
 ### Install DPDK IGB Kernel Module (Optional)
-```bash
-# Option 1: Install from package
-sudo apt-get install -y dpdk-igb-uio-dkms
 
-# Option 2: Build from source
+For NICs that do not work with vfio-pci, optionally install igb_uio:
+
+```bash
 git clone http://dpdk.org/git/dpdk-kmods
 cd dpdk-kmods/linux/igb_uio
 make
@@ -209,30 +222,31 @@ echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 
 ### Configuration Files
 
-Place one of the following configuration files as
-/etc/sdplane/sdplane.conf
+When installed from Debian Package, `/etc/sdplane/sdplane.conf.sample` and systemd service files are automatically generated.
 
-#### OS Setup Configuration (`etc/`)
+Create `/etc/sdplane/sdplane.conf` referring to the samples.
+
+#### OS Configuration Examples (`etc/`)
 - [`etc/sdplane.conf.sample`](etc/sdplane.conf.sample): Main configuration template
 - [`etc/sdplane.service`](etc/sdplane.service): systemd service file
 - [`etc/modules-load.d/`](etc/modules-load.d/): Kernel module loading configuration
 
-#### Application Configuration (`example-config/`)
+#### Application Configuration Examples (`example-config/`)
 - [`example-config/sdplane-pktgen.conf`](example-config/sdplane-pktgen.conf): Packet generator configuration
 - [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf): Topton hardware configuration
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf): L2 repeater configuration
 - [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf): Enhanced repeater configuration with VLAN switching, router interfaces, and capture interfaces
 
-## 7. Run the Software Router
+## 7. Run Applications using sdplane-oss
 
 ```bash
 # Run in foreground
-sudo ./sdplane/sdplane
+sudo sdplane
 
 # Run with config file
-sudo ./sdplane/sdplane -f /etc/sdplane/sdplane_enhanced_repeater.conf
+sudo sdplane -f /etc/sdplane/sdplane_enhanced_repeater.conf
 
-# Run via systemd, when you installed the dpkg.
+# When installed via apt, run via systemd
 sudo systemctl enable sdplane
 sudo systemctl start sdplane
 
@@ -275,6 +289,65 @@ set vswitch 2032 capture-if cif2032
 
 The enhanced repeater performs VLAN translation, stripping, and insertion based on the vswitch-link configuration, while providing TAP interfaces for kernel networking stack integration.
 
+For detailed CLI usage and configuration, refer to [document](/doc/manual/).
+
+## Tips
+
+### IOMMU is required when using vfio-pci as NIC driver
+
+- Intel: Intel VT-d
+- AMD: AMD IOMMU / AMD-V
+
+These need to be enabled in BIOS settings.
+GRUB configuration may also need to be changed:
+
+```conf
+# /etc/default/grub
+GRUB_CMDLINE_LINUX="iommu=pt intel_iommu=on"
+```
+
+```bash
+sudo update-grub
+sudo reboot
+```
+
+### Configuration to permanently load vfio-pci Linux kernel module
+
+```conf
+#/etc/modules-load.d/vfio-pci.conf
+vfio-pci
+```
+
+### For Mellanox ConnectX Series
+
+Driver installation is required from the following link:
+
+https://network.nvidia.com/products/ethernet-drivers/linux/mlnx_en/
+
+During installation, run `./install --dpdk`.
+**The option `--dpdk` is mandatory.**
+
+Comment out the following settings in sdplane.conf as they are not needed:
+
+```conf
+#set device {pcie-id} driver unbound
+#set device {pcie-id} driver {driver-name} driver_override
+#set device {pcie-id} driver {driver-name} bind
+```
+
+### How to check PCIe bus numbers
+
+You can use the dpdk-devbind.py command in DPDK to check the PCIe bus numbers of NICs:
+
+```bash
+> dpdk-devbind.py -s     
+
+Network devices using kernel driver
+===================================
+0000:04:00.0 'NetXtreme BCM5720 Gigabit Ethernet PCIe 165f' numa_node=0 if=eno8303 drv=tg3 unused= *Active*
+0000:b1:00.0 'MT27800 Family [ConnectX-5] 1017' numa_node=1 if=enp177s0np0 drv=mlx5_core unused= *Active*
+```
+
 ## User's Guide (Manual)
 
 Comprehensive user guides and command references are available:
@@ -305,8 +378,8 @@ Comprehensive user guides and command references are available:
 
 ### Documentation
 
-- [General Installation Guide](doc/install-memo.txt) - For 1G NIC systems
-- [Technical Presentation](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf) (Japanese)
+- [Technical Presentation/2024-11-22-sdn-onsen-yasu.pdf](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf) (Japanese)
+- [Technical Presentation/20250822_ENOG87_ohara.pdf](https://enog.jp/wordpress/wp-content/uploads/2025/08/20250822_ENOG87_ohara.pdf) (Japanese)
 
 ### Code Style
 The project follows GNU coding standards. Use the provided scripts to check and format code:
