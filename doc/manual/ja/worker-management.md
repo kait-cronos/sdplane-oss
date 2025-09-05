@@ -8,7 +8,7 @@ DPDKワーカースレッドとlcoreの管理を行うコマンドです。
 
 ### set_worker - ワーカータイプ設定
 ```
-set worker lcore <0-16> (|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater|vlan-switch|pktgen|linkflap-generator)
+set worker lcore <0-16> (|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater|enhanced-repeater|vlan-switch|pktgen|linkflap-generator)
 ```
 
 指定されたlcoreにワーカータイプを設定します。
@@ -20,6 +20,7 @@ set worker lcore <0-16> (|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater|vla
 - `l3fwd-lpm` - Layer 3フォワーディング (LPM)
 - `tap-handler` - TAPインターフェースハンドラー
 - `l2-repeater` - Layer 2リピーター
+- `enhanced-repeater` - VLANスイッチングとTAPインターフェースを備えた拡張リピーター
 - `vlan-switch` - VLANスイッチ
 - `pktgen` - パケットジェネレーター
 - `linkflap-generator` - リンクフラップジェネレーター
@@ -28,6 +29,9 @@ set worker lcore <0-16> (|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater|vla
 ```bash
 # lcore 1にL2フォワーディングワーカーを設定
 set worker lcore 1 l2fwd
+
+# lcore 1に拡張リピーターワーカーを設定
+set worker lcore 1 enhanced-repeater
 
 # lcore 2にワーカーなしを設定
 set worker lcore 2 none

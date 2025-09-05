@@ -221,14 +221,17 @@ Place one of the following configuration files as
 - [`example-config/sdplane-pktgen.conf`](example-config/sdplane-pktgen.conf): Packet generator configuration
 - [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf): Topton hardware configuration
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf): L2 repeater configuration
-- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf): Enhanced repeater configuration
+- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf): Enhanced repeater configuration with VLAN switching, router interfaces, and capture interfaces
 
 ## 7. Run the Software Router
 
 ```bash
 # Run in foreground
 sudo ./sdplane/sdplane
-  or
+
+# Run with config file
+sudo ./sdplane/sdplane -f /etc/sdplane/sdplane_enhanced_repeater.conf
+
 # Run via systemd, when you installed the dpkg.
 sudo systemctl enable sdplane
 sudo systemctl start sdplane
@@ -237,11 +240,47 @@ sudo systemctl start sdplane
 telnet localhost 9882
 ```
 
+### Enhanced Repeater Configuration
+
+The enhanced repeater provides advanced VLAN switching capabilities with TAP interfaces for L3 routing and packet capture. Key configuration commands:
+
+**Virtual Switch Setup:**
+```bash
+# Create virtual switches with VLAN IDs
+set vswitch 2031 vlan 2031
+set vswitch 2031 vlan 2032
+```
+
+**DPDK Port to VSwitch Linking:**
+```bash
+# Link port 0 to vswitch with VLAN tag 2031
+set vswitch 2031 port 0 (tagged|untag|tag swap 2032)
+# Link port 0 to vswitch with VLAN tag 2032  
+set vswitch 2032 port 0 (tagged|untag|tag swap 2031)
+```
+
+**Router Interfaces (L3 connectivity):**
+```bash
+# Create router interfaces for L3 processing
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if cif2032
+```
+
+**Capture Interfaces (packet monitoring):**
+```bash
+# Create capture interfaces for packet monitoring
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
+```
+
+The enhanced repeater performs VLAN translation, stripping, and insertion based on the vswitch-link configuration, while providing TAP interfaces for kernel networking stack integration.
+
 ## User's Guide (Manual)
 
 Comprehensive user guides and command references are available:
 
 - [User Guide](doc/manual/README.md) - Complete overview and command classification
+- [Enhanced Repeater](doc/manual/enhanced-repeater.md) - Virtual switching, VLAN processing, and TAP interfaces
 - [Port Management & Statistics](doc/manual/port-management.md) - DPDK port management and statistics
 - [Worker & lcore Management](doc/manual/worker-management.md) - Worker threads and lcore management
 - [Debug & Logging](doc/manual/debug-logging.md) - Debug and logging functions
@@ -279,4 +318,8 @@ The project follows GNU coding standards. Use the provided scripts to check and 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for license details.
+
+## Contact
+
+For questions, issues, or contributions, please contact: **sdplane [at] nwlab.org**
 

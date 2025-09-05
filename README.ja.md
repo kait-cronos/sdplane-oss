@@ -225,14 +225,17 @@ echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
 - [`example-config/sdplane-pktgen.conf`](example-config/sdplane-pktgen.conf)：パケットジェネレーター設定
 - [`example-config/sdplane-topton.conf`](example-config/sdplane-topton.conf)：Toptonハードウェア設定
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf)：L2リピーター設定
-- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf)：拡張リピーター設定
+- [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf)：拡張リピーター設定（VLANスイッチング、ルーターインターフェース、キャプチャインターフェース）
 
 ## 7. ソフトウェアルーターの実行
 
 ```bash
 # フォアグラウンドで実行
 sudo ./sdplane/sdplane
-  もしくは
+
+# 設定ファイル指定で実行
+sudo ./sdplane/sdplane -f /etc/sdplane/sdplane_enhanced_repeater.conf
+
 # dpkgでインストールした場合、systemd経由で実行
 sudo systemctl enable sdplane
 sudo systemctl start sdplane
@@ -241,11 +244,47 @@ sudo systemctl start sdplane
 telnet localhost 9882
 ```
 
+### 拡張リピーターの設定
+
+拡張リピーターは高度なVLANスイッチング機能を提供し、L3ルーティング用とパケットキャプチャ用のTAPインターフェースを備えています。主要な設定コマンド：
+
+**仮想スイッチの設定：**
+```bash
+# VLAN IDを持つ仮想スイッチを作成
+set vswitch 2031 vlan 2031
+set vswitch 2031 vlan 2032
+```
+
+**DPDKポートから仮想スイッチへのリンク：**
+```bash
+# ポート0を仮想スイッチ0にVLANタグ2031でリンク
+set vswitch 2031 port 0 (tagged|untag|tag swap 2032)
+# ポート0を仮想スイッチ1にVLANタグ2032でリンク  
+set vswitch 2032 port 0 (tagged|untag|tag swap 2031)
+```
+
+**ルーターインターフェース（L3接続）：**
+```bash
+# L3処理用のルーターインターフェースを作成
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if cif2032
+```
+
+**キャプチャインターフェース（パケット監視）：**
+```bash
+# パケット監視用のキャプチャインターフェースを作成
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
+```
+
+拡張リピーターは、vswitch-link設定に基づいてVLANの変換、除去、挿入を行い、カーネルネットワークスタック統合用のTAPインターフェースを提供します。
+
 ## ユーザーガイド（マニュアル）
 
 詳細なユーザーガイドとコマンドリファレンスは以下をご覧ください：
 
 - [ユーザーガイド](doc/manual/ja/README.md) - 全機能の概要とコマンド分類
+- [拡張リピーター](doc/manual/ja/enhanced-repeater.md) - 仮想スイッチング、VLAN処理、TAPインターフェース
 - [ポート管理・統計](doc/manual/ja/port-management.md) - DPDKポートの管理と統計情報
 - [ワーカー・lcore管理](doc/manual/ja/worker-management.md) - ワーカースレッドとlcoreの管理
 - [デバッグ・ログ](doc/manual/ja/debug-logging.md) - デバッグとログ機能
@@ -283,4 +322,8 @@ telnet localhost 9882
 ## ライセンス
 
 本プロジェクトはMITライセンスの下でライセンスされています。詳細については[LICENSE](LICENSE)ファイルをご覧ください。
+
+## お問い合わせ
+
+ご質問、問題、貢献については、こちらまでご連絡ください：**sdplane [at] nwlab.org**
 

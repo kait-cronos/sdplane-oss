@@ -8,7 +8,7 @@ Commands for managing DPDK worker threads and lcores.
 
 ### set_worker - Set Worker Type
 ```
-set worker lcore <0-16> (|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater|vlan-switch|pktgen|linkflap-generator)
+set worker lcore <0-16> (|none|l2fwd|l3fwd|l3fwd-lpm|tap-handler|l2-repeater|enhanced-repeater|vlan-switch|pktgen|linkflap-generator)
 ```
 
 Set worker type on specified lcores.
@@ -20,6 +20,7 @@ Set worker type on specified lcores.
 - `l3fwd-lpm` - Layer 3 forwarding (LPM)
 - `tap-handler` - TAP interface handler
 - `l2-repeater` - Layer 2 repeater
+- `enhanced-repeater` - Enhanced repeater with VLAN switching and TAP interfaces
 - `vlan-switch` - VLAN switch
 - `pktgen` - Packet generator
 - `linkflap-generator` - Link flap generator
@@ -28,6 +29,9 @@ Set worker type on specified lcores.
 ```bash
 # Set L2 forwarding worker on lcore 1
 set worker lcore 1 l2fwd
+
+# Set enhanced repeater worker on lcore 1
+set worker lcore 1 enhanced-repeater
 
 # Set no worker on lcore 2
 set worker lcore 2 none
