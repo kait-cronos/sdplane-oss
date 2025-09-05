@@ -269,16 +269,24 @@ pktgen do set port all ttl <0-255>
 
 ##### Set MAC Addresses
 ```bash
-# Configure source and destination MAC addresses
-pktgen do set port <0-7> mac src <MAC> dst <MAC>
-pktgen do set port all mac src <MAC> dst <MAC>
+# Configure source MAC address
+pktgen do set port <0-7> mac source <MAC>
+pktgen do set port all mac source <MAC>
+
+# Configure destination MAC address
+pktgen do set port <0-7> mac destination <MAC>
+pktgen do set port all mac destination <MAC>
 ```
 
 ##### Set IPv4 Addresses
 ```bash
-# Configure source and destination IPv4 addresses
-pktgen do set port <0-7> ipv4 src <IPv4> dst <IPv4>
-pktgen do set port all ipv4 src <IPv4> dst <IPv4>
+# Configure source IPv4 address
+pktgen do set port <0-7> ipv4 source <IPv4>
+pktgen do set port all ipv4 source <IPv4>
+
+# Configure destination IPv4 address
+pktgen do set port <0-7> ipv4 destination <IPv4>
+pktgen do set port all ipv4 destination <IPv4>
 ```
 
 #### Status and Monitoring Commands
