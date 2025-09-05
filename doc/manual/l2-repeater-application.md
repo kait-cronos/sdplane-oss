@@ -139,11 +139,12 @@ show port statistics 1
 
 ### Debug Commands
 ```bash
-# Enable L2 forwarding debug
-debug l2fwd enable
+# Enable L2 repeater debug
+debug sdplane l2-repeater
 
-# View port pairing configuration
-show l2fwd configuration
+# General sdplane debugging
+debug sdplane fdb-change
+debug sdplane rib
 ```
 
 ## Use Cases

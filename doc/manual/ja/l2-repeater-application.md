@@ -139,11 +139,12 @@ show port statistics 1
 
 ### デバッグコマンド
 ```bash
-# L2転送デバッグの有効化
-debug l2fwd enable
+# L2リピーターデバッグの有効化
+debug sdplane l2-repeater
 
-# ポートペアリング設定の表示
-show l2fwd configuration
+# 一般的なsdplaneデバッグ
+debug sdplane fdb-change
+debug sdplane rib
 ```
 
 ## 使用ケース
