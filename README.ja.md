@@ -322,3 +322,7 @@ set vswitch 2032 capture-if cif2032
 
 本プロジェクトはMITライセンスの下でライセンスされています。詳細については[LICENSE](LICENSE)ファイルをご覧ください。
 
+## お問い合わせ
+
+ご質問、問題、貢献については、こちらまでご連絡ください：**sdplane [at] nwlab.org**
+

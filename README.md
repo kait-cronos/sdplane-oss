@@ -318,3 +318,7 @@ The project follows GNU coding standards. Use the provided scripts to check and 
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for license details.
 
+## Contact
+
+For questions, issues, or contributions, please contact: **sdplane [at] nwlab.org**
+
