@@ -78,67 +78,67 @@ show vswitch-link
 
 ## ルーターインターフェースコマンド
 
-### set router-if
+### set vswitch router-if
 ```
-set router-if <0-3> <WORD>
+set vswitch <1-4094> router-if <WORD>
 ```
 **説明**: 指定された仮想スイッチにL3接続用のルーターインターフェースを作成します
 
 **パラメータ**:
-- `<0-3>`: 仮想スイッチID
+- `<1-4094>`: 仮想スイッチのVLAN ID
 - `<WORD>`: TAPインターフェース名
 
 **例**:
 ```
-set router-if 0 rif0
-set router-if 1 rif1
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if rif2032
 ```
 
-### delete router-if
+### no set vswitch router-if
 ```
-delete router-if <0-3>
+no set vswitch <1-4094> router-if
 ```
 **説明**: 指定された仮想スイッチからルーターインターフェースを削除します
 
 **パラメータ**:
-- `<0-3>`: 仮想スイッチID
+- `<1-4094>`: 仮想スイッチのVLAN ID
 
-### show router-if
+### show rib vswitch router-if
 ```
-show router-if
+show rib vswitch router-if
 ```
 **説明**: MACアドレス、IPアドレス、インターフェース状態を含むルーターインターフェース設定を表示します
 
 ## キャプチャインターフェースコマンド
 
-### set capture-if
+### set vswitch capture-if
 ```
-set capture-if <0-3> <WORD>
+set vswitch <1-4094> capture-if <WORD>
 ```
 **説明**: 指定された仮想スイッチにパケット監視用のキャプチャインターフェースを作成します
 
 **パラメータ**:
-- `<0-3>`: 仮想スイッチID
+- `<1-4094>`: 仮想スイッチのVLAN ID
 - `<WORD>`: TAPインターフェース名
 
 **例**:
 ```
-set capture-if 0 cif0
-set capture-if 1 cif1
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
 ```
 
-### delete capture-if
+### no set vswitch capture-if
 ```
-delete capture-if <0-3>
+no set vswitch <1-4094> capture-if
 ```
 **説明**: 指定された仮想スイッチからキャプチャインターフェースを削除します
 
 **パラメータ**:
-- `<0-3>`: 仮想スイッチID
+- `<1-4094>`: 仮想スイッチのVLAN ID
 
-### show capture-if
+### show rib vswitch capture-if
 ```
-show capture-if
+show rib vswitch capture-if
 ```
 **説明**: キャプチャインターフェース設定を表示します
 
@@ -163,12 +163,12 @@ set vswitch-link vswitch 0 port 0 tag 2031
 set vswitch-link vswitch 1 port 0 tag 2032
 
 # L3処理用のルーターインターフェースを作成
-set router-if 0 rif0
-set router-if 1 rif1
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if rif2032
 
 # 監視用のキャプチャインターフェースを作成
-set capture-if 0 cif0
-set capture-if 1 cif1
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
 
 # 拡張リピーターを使用するようにワーカーを設定
 set worker lcore 1 enhanced-repeater

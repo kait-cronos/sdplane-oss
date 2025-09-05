@@ -78,67 +78,67 @@ show vswitch-link
 
 ## Router Interface Commands
 
-### set router-if
+### set vswitch router-if
 ```
-set router-if <0-3> <WORD>
+set vswitch <1-4094> router-if <WORD>
 ```
 **Description**: Creates a router interface on specified virtual switch for L3 connectivity
 
 **Parameters**:
-- `<0-3>`: Virtual switch ID
+- `<1-4094>`: VLAN ID of the virtual switch
 - `<WORD>`: TAP interface name
 
 **Examples**:
 ```
-set router-if 0 rif0
-set router-if 1 rif1
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if rif2032
 ```
 
-### delete router-if
+### no set vswitch router-if
 ```
-delete router-if <0-3>
+no set vswitch <1-4094> router-if
 ```
 **Description**: Deletes router interface from specified virtual switch
 
 **Parameters**:
-- `<0-3>`: Virtual switch ID
+- `<1-4094>`: VLAN ID of the virtual switch
 
-### show router-if
+### show rib vswitch router-if
 ```
-show router-if
+show rib vswitch router-if
 ```
 **Description**: Displays router interface configurations including MAC addresses, IP addresses, and interface status
 
 ## Capture Interface Commands
 
-### set capture-if
+### set vswitch capture-if
 ```
-set capture-if <0-3> <WORD>
+set vswitch <1-4094> capture-if <WORD>
 ```
 **Description**: Creates a capture interface on specified virtual switch for packet monitoring
 
 **Parameters**:
-- `<0-3>`: Virtual switch ID
+- `<1-4094>`: VLAN ID of the virtual switch
 - `<WORD>`: TAP interface name
 
 **Examples**:
 ```
-set capture-if 0 cif0
-set capture-if 1 cif1
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
 ```
 
-### delete capture-if
+### no set vswitch capture-if
 ```
-delete capture-if <0-3>
+no set vswitch <1-4094> capture-if
 ```
 **Description**: Deletes capture interface from specified virtual switch
 
 **Parameters**:
-- `<0-3>`: Virtual switch ID
+- `<1-4094>`: VLAN ID of the virtual switch
 
-### show capture-if
+### show rib vswitch capture-if
 ```
-show capture-if
+show rib vswitch capture-if
 ```
 **Description**: Displays capture interface configurations
 
@@ -163,12 +163,12 @@ set vswitch-link vswitch 0 port 0 tag 2031
 set vswitch-link vswitch 1 port 0 tag 2032
 
 # Create router interfaces for L3 processing
-set router-if 0 rif0
-set router-if 1 rif1
+set vswitch 2031 router-if rif2031
+set vswitch 2032 router-if rif2032
 
 # Create capture interfaces for monitoring
-set capture-if 0 cif0
-set capture-if 1 cif1
+set vswitch 2031 capture-if cif2031
+set vswitch 2032 capture-if cif2032
 
 # Configure worker to use enhanced-repeater
 set worker lcore 1 enhanced-repeater

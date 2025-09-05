@@ -280,6 +280,13 @@ The enhanced repeater performs VLAN translation, stripping, and insertion based 
 Comprehensive user guides and command references are available:
 
 - [User Guide](doc/manual/README.md) - Complete overview and command classification
+
+**Application Guides:**
+- [L2 Repeater Application](doc/manual/l2-repeater-application.md) - Simple Layer 2 packet forwarding with MAC learning
+- [Enhanced Repeater Application](doc/manual/enhanced-repeater-application.md) - VLAN-aware switching with TAP interfaces
+- [Packet Generator Application](doc/manual/packet-generator-application.md) - High-performance traffic generation and testing
+
+**Configuration Guides:**
 - [Enhanced Repeater](doc/manual/enhanced-repeater.md) - Virtual switching, VLAN processing, and TAP interfaces
 - [Port Management & Statistics](doc/manual/port-management.md) - DPDK port management and statistics
 - [Worker & lcore Management](doc/manual/worker-management.md) - Worker threads and lcore management
