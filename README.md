@@ -1,9 +1,5 @@
 
-<div align="center">
-  <img src="sdplane-logo.png" alt="sdplane-oss Logo" width="400">
-</div>
-
-# sdplane-oss (Soft Data Plane)
+# sdplane-oss (Soft Data Plane) <img src="sdplane-logo.png" alt="sdplane-oss Logo" width="100" align="right">
 
 A high-performance open-source software router built on
 DPDK (Data Plane Development Kit), designed for
