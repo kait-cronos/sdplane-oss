@@ -284,6 +284,13 @@ set vswitch 2032 capture-if cif2032
 詳細なユーザーガイドとコマンドリファレンスは以下をご覧ください：
 
 - [ユーザーガイド](doc/manual/ja/README.md) - 全機能の概要とコマンド分類
+
+**アプリケーションガイド:**
+- [L2リピーターアプリケーション](doc/manual/ja/l2-repeater-application.md) - MAC学習機能付きシンプルレイヤー2パケット転送
+- [拡張リピーターアプリケーション](doc/manual/ja/enhanced-repeater-application.md) - TAPインターフェース付きVLAN対応スイッチング
+- [パケットジェネレーターアプリケーション](doc/manual/ja/packet-generator-application.md) - 高性能トラフィック生成とテスト
+
+**設定ガイド:**
 - [拡張リピーター](doc/manual/ja/enhanced-repeater.md) - 仮想スイッチング、VLAN処理、TAPインターフェース
 - [ポート管理・統計](doc/manual/ja/port-management.md) - DPDKポートの管理と統計情報
 - [ワーカー・lcore管理](doc/manual/ja/worker-management.md) - ワーカースレッドとlcoreの管理
