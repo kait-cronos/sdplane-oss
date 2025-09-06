@@ -346,7 +346,7 @@ Guide utente complete e riferimenti comandi sono disponibili:
 - [RIB & Routing](manual/it/routing.md) - Funzioni RIB e routing
 - [Ripetitore Avanzato](manual/it/enhanced-repeater.md) - Configurazione ripetitore avanzato
 - [Gestione Porte & Statistiche](manual/it/port-management.md) - Gestione porte DPDK e statistiche
-- [Gestione Worker & lcore](manual/it/worker-management.md) - Gestione thread worker e lcore
+- [Gestione Worker & lcore & Informazioni Thread](manual/it/worker-lcore-thread-management.md) - Gestione worker threads, lcore e informazioni thread
 - [Informazioni Sistema & Monitoraggio](manual/it/system-monitoring.md) - Informazioni sistema e monitoraggio
 - [Gestione Dispositivi](manual/it/device-management.md) - Gestione dispositivi e driver
 
@@ -356,7 +356,6 @@ Guide utente complete e riferimenti comandi sono disponibili:
 - [Configurazione Code](manual/it/queue-configuration.md) - Configurazione e gestione code
 - [Interfaccia TAP](manual/it/tap-interface.md) - Gestione interfacce TAP
 - [Gestione VTY & Shell](manual/it/vty-shell.md) - Gestione VTY e shell
-- [Informazioni Thread](manual/it/thread-information.md) - Informazioni e monitoraggio thread
 - [Gestione lthread](manual/it/lthread-management.md) - Gestione thread leggeri cooperativi
 - [Generazione Pacchetti](manual/it/packet-generation.md) - Generazione pacchetti utilizzando PKTGEN
 

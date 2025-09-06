@@ -346,7 +346,7 @@ Guías de usuario completas y referencias de comandos están disponibles:
 - [RIB & Enrutamiento](manual/es/routing.md) - Funciones RIB y enrutamiento
 - [Repetidor Mejorado](manual/es/enhanced-repeater.md) - Configuración repetidor mejorado
 - [Gestión de Puertos & Estadísticas](manual/es/port-management.md) - Gestión de puertos DPDK y estadísticas
-- [Gestión Worker & lcore](manual/es/worker-management.md) - Gestión de hilos worker y lcore
+- [Gestión Worker & lcore & Información Hilos](manual/es/worker-lcore-thread-management.md) - Gestión de worker threads, lcore e información de hilos
 - [Información del Sistema & Monitoreo](manual/es/system-monitoring.md) - Información del sistema y monitoreo
 - [Gestión de Dispositivos](manual/es/device-management.md) - Gestión de dispositivos y controladores
 
@@ -356,7 +356,6 @@ Guías de usuario completas y referencias de comandos están disponibles:
 - [Configuración de Colas](manual/es/queue-configuration.md) - Configuración y gestión de colas
 - [Interfaz TAP](manual/es/tap-interface.md) - Gestión de interfaz TAP
 - [Gestión VTY & Shell](manual/es/vty-shell.md) - Gestión VTY y shell
-- [Información de Hilos](manual/es/thread-information.md) - Información y monitoreo de hilos
 - [Gestión lthread](manual/es/lthread-management.md) - Gestión de hilos ligeros cooperativos
 - [Generación de Paquetes](manual/es/packet-generation.md) - Generación de paquetes usando PKTGEN
 
