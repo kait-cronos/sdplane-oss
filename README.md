@@ -376,6 +376,10 @@ Comprehensive user guides and command references are available:
 
 ## Developer's Guide
 
+### Integration Guide
+
+- [DPDK Application Integration Guide](doc/manual/dpdk-integration-guide.md) - How to integrate DPDK applications into sdplane using DPDK-dock approach
+
 ### Documentation
 
 - [Technical Presentation/2024-11-22-sdn-onsen-yasu.pdf](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf) (Japanese)

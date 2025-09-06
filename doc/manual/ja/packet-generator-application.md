@@ -269,16 +269,24 @@ pktgen do set port all ttl <0-255>
 
 ##### MACアドレス設定
 ```bash
-# 送信元・宛先MACアドレスを設定
-pktgen do set port <0-7> mac src <MAC> dst <MAC>
-pktgen do set port all mac src <MAC> dst <MAC>
+# 送信元MACアドレスを設定
+pktgen do set port <0-7> mac source <MAC>
+pktgen do set port all mac source <MAC>
+
+# 宛先MACアドレスを設定
+pktgen do set port <0-7> mac destination <MAC>
+pktgen do set port all mac destination <MAC>
 ```
 
 ##### IPv4アドレス設定
 ```bash
-# 送信元・宛先IPv4アドレスを設定
-pktgen do set port <0-7> ipv4 src <IPv4> dst <IPv4>
-pktgen do set port all ipv4 src <IPv4> dst <IPv4>
+# 送信元IPv4アドレスを設定
+pktgen do set port <0-7> ipv4 source <IPv4>
+pktgen do set port all ipv4 source <IPv4>
+
+# 宛先IPv4アドレスを設定
+pktgen do set port <0-7> ipv4 destination <IPv4>
+pktgen do set port all ipv4 destination <IPv4>
 ```
 
 #### ステータス・監視コマンド

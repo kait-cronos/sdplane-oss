@@ -1,6 +1,6 @@
 # RIB & Routing
 
-**Language / 言語:** **English** | [Japanese](ja/routing.md)
+**Language:** **English** | [Japanese](ja/routing.md)
 
 Commands for managing RIB (Routing Information Base) and routing functions.
 

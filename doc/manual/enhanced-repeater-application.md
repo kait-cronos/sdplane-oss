@@ -1,6 +1,6 @@
 # Enhanced Repeater Application
 
-**Language / 言語:** **English** | [Japanese](ja/enhanced-repeater-application.md)
+**Language:** **English** | [Japanese](ja/enhanced-repeater-application.md)
 
 The Enhanced Repeater application provides advanced VLAN-aware Layer 2 switching with TAP interface integration for L3 routing and packet capture capabilities.
 
