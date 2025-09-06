@@ -7,7 +7,7 @@ sdplane-oss是一个基于DPDK的高性能软件路由器。本用户指南介�
 ## 目录
 
 1. [端口管理·统计](port-management.md) - DPDK端口的管理和统计信息
-2. [工作线程·lcore管理](worker-lcore-thread-management.md) - 工作线程和lcore的管理
+2. [Worker & lcore 管理 & 线程信息](worker-lcore-thread-management.md) - Worker线程、lcore和线程信息管理
 3. [调试·日志](debug-logging.md) - 调试和日志功能
 4. [VTY·shell管理](vty-shell.md) - VTY和shell的管理
 5. [系统信息·监视](system-monitoring.md) - 系统信息和监视功能
@@ -15,9 +15,9 @@ sdplane-oss是一个基于DPDK的高性能软件路由器。本用户指南介�
 7. [队列配置](queue-configuration.md) - 队列的配置和管理
 8. [数据包生成](packet-generation.md) - 使用PKTGEN进行数据包生成
 
-10. [TAP接口](tap-interface.md) - TAP接口的管理
-11. [lthread管理](lthread-management.md) - lthread的管理
-12. [设备管理](device-management.md) - 设备和驱动程序的管理
+9. [TAP接口](tap-interface.md) - TAP接口的管理
+10. [lthread管理](lthread-management.md) - lthread的管理
+11. [设备管理](device-management.md) - 设备和驱动程序的管理
 
 ## 基本使用方法
 
