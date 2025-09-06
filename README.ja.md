@@ -300,6 +300,8 @@ https://network.nvidia.com/products/ethernet-drivers/linux/mlnx_en/
 #set device {pcie-id} driver {driver名} bind
 ```
 
+メラノックスNICの場合は、ポート情報を更新するために、`update port status` コマンドを実行する必要があります。
+
 ### PCIeバス番号の確認方法
 
 DPDKでは、dpdk-devbind.pyコマンドを使用してNICのPCIeバス番号を確認できます。

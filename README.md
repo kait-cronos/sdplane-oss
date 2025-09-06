@@ -302,6 +302,8 @@ Comment out the following settings in sdplane.conf as they are not needed:
 #set device {pcie-id} driver {driver-name} bind
 ```
 
+For Mellanox NICs, you need to run the `update port status` command to refresh port information.
+
 ### How to check PCIe bus numbers
 
 You can use the dpdk-devbind.py command in DPDK to check the PCIe bus numbers of NICs:
