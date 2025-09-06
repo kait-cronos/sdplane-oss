@@ -43,20 +43,150 @@ Locate main packet processing loops in your DPDK application. These are typicall
 Implement worker function following sdplane's worker interface:
 
 ```c
+static __thread uint64_t loop_counter = 0;
+
 int
 my_worker_function(__rte_unused void *dummy)
 {
     unsigned lcore_id = rte_lcore_id();
+    int thread_id;
+    
+    // Register loop counter for monitoring
+    thread_id = thread_lookup_by_lcore(my_worker_function, lcore_id);
+    thread_register_loop_counter(thread_id, &loop_counter);
     
     while (!force_quit && !force_stop[lcore_id]) {
         // Your packet processing logic here
+        
+        // Increment loop counter for monitoring
+        loop_counter++;
     }
     
     return 0;
 }
 ```
 
-### 3. Add CLI Commands
+### Worker Loop Counter Monitoring
+
+The `loop_counter` variable enables monitoring of worker performance from the sdplane shell:
+
+- **Thread-local variable**: Each worker maintains its own loop counter
+- **Registration**: Counter is registered with sdplane's monitoring system using worker name and lcore ID
+- **Increment**: Counter increases with each main loop iteration
+- **Monitoring**: View counter values from sdplane CLI to verify worker activity
+
+**CLI Monitoring Commands:**
+```bash
+# View thread counter information including loop counters
+show thread counter
+
+# View general thread information
+show thread
+
+# View worker configuration and status
+show worker
+```
+
+This allows administrators to verify that workers are actively processing and detect potential performance issues or worker stalls by observing loop counter increments.
+
+### 3. Accessing RIB Information with RCU
+
+To access port information and configuration within DPDK packet processing workers, sdplane provides RIB (Routing Information Base) access through RCU (Read-Copy-Update) for thread-safe operations.
+
+#### RIB Access Pattern
+
+```c
+#if HAVE_LIBURCU_QSBR
+#include <urcu/urcu-qsbr.h>
+#endif /*HAVE_LIBURCU_QSBR*/
+
+static __thread struct rib *rib = NULL;
+
+int
+my_worker_function(__rte_unused void *dummy)
+{
+    unsigned lcore_id = rte_lcore_id();
+    int thread_id;
+    
+    // Register loop counter for monitoring
+    thread_id = thread_lookup_by_lcore(my_worker_function, lcore_id);
+    thread_register_loop_counter(thread_id, &loop_counter);
+    
+#if HAVE_LIBURCU_QSBR
+    urcu_qsbr_register_thread();
+#endif /*HAVE_LIBURCU_QSBR*/
+
+    while (!force_quit && !force_stop[lcore_id]) {
+#if HAVE_LIBURCU_QSBR
+        urcu_qsbr_read_lock();
+        rib = (struct rib *) rcu_dereference(rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+
+        // Your packet processing logic here
+        // Access port information via rib->rib_info->port[portid]
+        
+#if HAVE_LIBURCU_QSBR
+        urcu_qsbr_read_unlock();
+        urcu_qsbr_quiescent_state();
+#endif /*HAVE_LIBURCU_QSBR*/
+
+        loop_counter++;
+    }
+
+#if HAVE_LIBURCU_QSBR
+    urcu_qsbr_unregister_thread();
+#endif /*HAVE_LIBURCU_QSBR*/
+    
+    return 0;
+}
+```
+
+#### Accessing Port Information
+
+Once RIB is obtained, access port-specific information:
+
+```c
+// Check port link status
+if (!rib->rib_info->port[portid].link.link_status) {
+    // Port is down, skip processing
+    continue;
+}
+
+// Check if port is stopped
+if (unlikely(rib->rib_info->port[portid].is_stopped)) {
+    // Port is administratively stopped
+    continue;
+}
+
+// Access port configuration
+struct port_config *port_config = &rib->rib_info->port[portid];
+
+// Get lcore queue configuration
+struct lcore_qconf *lcore_qconf = &rib->rib_info->lcore_qconf[lcore_id];
+for (i = 0; i < lcore_qconf->nrxq; i++) {
+    portid = lcore_qconf->rx_queue_list[i].port_id;
+    queueid = lcore_qconf->rx_queue_list[i].queue_id;
+    // Process packets from this port/queue
+}
+```
+
+#### RCU Safety Guidelines
+
+- **Thread Registration**: Always register thread with `urcu_qsbr_register_thread()`
+- **Read Lock**: Acquire read lock before accessing RIB data
+- **Dereference**: Use `rcu_dereference()` to safely access RCU-protected pointers
+- **Quiescent State**: Call `urcu_qsbr_quiescent_state()` to indicate safe points
+- **Thread Cleanup**: Unregister thread with `urcu_qsbr_unregister_thread()`
+
+#### RIB Data Structures
+
+Key information available through RIB:
+- **Port information**: Link status, configuration, statistics
+- **Queue configuration**: Lcore to port/queue assignments
+- **VLAN configuration**: Virtual switch and VLAN settings (for advanced features)
+- **Interface configuration**: TAP interfaces and routing information
+
+### 4. Add CLI Commands
 Register application-specific commands in sdplane's CLI system:
 
 ```c

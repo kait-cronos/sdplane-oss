@@ -43,20 +43,150 @@ DPDKアプリケーション内の主要なパケット処理ループを特定�
 sdplaneのワーカーインターフェースに従ってワーカー関数を実装：
 
 ```c
+static __thread uint64_t loop_counter = 0;
+
 int
 my_worker_function(__rte_unused void *dummy)
 {
     unsigned lcore_id = rte_lcore_id();
+    int thread_id;
+    
+    // 監視用のループカウンターを登録
+    thread_id = thread_lookup_by_lcore(my_worker_function, lcore_id);
+    thread_register_loop_counter(thread_id, &loop_counter);
     
     while (!force_quit && !force_stop[lcore_id]) {
         // パケット処理ロジックをここに記述
+        
+        // 監視用ループカウンターをインクリメント
+        loop_counter++;
     }
     
     return 0;
 }
 ```
 
-### 3. CLIコマンドの追加
+### ワーカーループカウンター監視
+
+`loop_counter`変数により、sdplaneシェルからワーカーのパフォーマンスを監視できます：
+
+- **スレッドローカル変数**: 各ワーカーが独自のループカウンターを保持
+- **登録**: ワーカー名とlcore IDを使用してsdplaneの監視システムにカウンターを登録
+- **インクリメント**: メインループの各反復でカウンターが増加
+- **監視**: sdplane CLIからカウンター値を表示してワーカーの活動を確認
+
+**CLI監視コマンド:**
+```bash
+# ループカウンターを含むスレッドカウンター情報を表示
+show thread counter
+
+# 一般的なスレッド情報を表示
+show thread
+
+# ワーカー設定と状態を表示
+show worker
+```
+
+これにより、管理者はワーカーが活発に処理を行っていることを確認し、ループカウンターの増分を観察することで潜在的なパフォーマンス問題やワーカーの停止を検出できます。
+
+### 3. RCUを使用したRIB情報へのアクセス
+
+DPDKパケット処理ワーカー内でポート情報と設定にアクセスするため、sdplaneはスレッドセーフな操作のためのRCU（Read-Copy-Update）を通じてRIB（Routing Information Base）アクセスを提供します。
+
+#### RIBアクセスパターン
+
+```c
+#if HAVE_LIBURCU_QSBR
+#include <urcu/urcu-qsbr.h>
+#endif /*HAVE_LIBURCU_QSBR*/
+
+static __thread struct rib *rib = NULL;
+
+int
+my_worker_function(__rte_unused void *dummy)
+{
+    unsigned lcore_id = rte_lcore_id();
+    int thread_id;
+    
+    // 監視用のループカウンターを登録
+    thread_id = thread_lookup_by_lcore(my_worker_function, lcore_id);
+    thread_register_loop_counter(thread_id, &loop_counter);
+    
+#if HAVE_LIBURCU_QSBR
+    urcu_qsbr_register_thread();
+#endif /*HAVE_LIBURCU_QSBR*/
+
+    while (!force_quit && !force_stop[lcore_id]) {
+#if HAVE_LIBURCU_QSBR
+        urcu_qsbr_read_lock();
+        rib = (struct rib *) rcu_dereference(rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+
+        // パケット処理ロジックをここに記述
+        // rib->rib_info->port[portid]を通じてポート情報にアクセス
+        
+#if HAVE_LIBURCU_QSBR
+        urcu_qsbr_read_unlock();
+        urcu_qsbr_quiescent_state();
+#endif /*HAVE_LIBURCU_QSBR*/
+
+        loop_counter++;
+    }
+
+#if HAVE_LIBURCU_QSBR
+    urcu_qsbr_unregister_thread();
+#endif /*HAVE_LIBURCU_QSBR*/
+    
+    return 0;
+}
+```
+
+#### ポート情報へのアクセス
+
+RIBを取得後、ポート固有の情報にアクセス：
+
+```c
+// ポートリンク状態を確認
+if (!rib->rib_info->port[portid].link.link_status) {
+    // ポートがダウンしている、処理をスキップ
+    continue;
+}
+
+// ポートが停止しているかチェック
+if (unlikely(rib->rib_info->port[portid].is_stopped)) {
+    // ポートが管理的に停止している
+    continue;
+}
+
+// ポート設定にアクセス
+struct port_config *port_config = &rib->rib_info->port[portid];
+
+// lcoreキュー設定を取得
+struct lcore_qconf *lcore_qconf = &rib->rib_info->lcore_qconf[lcore_id];
+for (i = 0; i < lcore_qconf->nrxq; i++) {
+    portid = lcore_qconf->rx_queue_list[i].port_id;
+    queueid = lcore_qconf->rx_queue_list[i].queue_id;
+    // このポート/キューからパケットを処理
+}
+```
+
+#### RCU安全性ガイドライン
+
+- **スレッド登録**: 常に`urcu_qsbr_register_thread()`でスレッドを登録
+- **読み込みロック**: RIBデータにアクセスする前に読み込みロックを取得
+- **逆参照**: RCU保護されたポインターに安全にアクセスするため`rcu_dereference()`を使用
+- **静止状態**: 安全なポイントを示すために`urcu_qsbr_quiescent_state()`を呼び出し
+- **スレッドクリーンアップ**: `urcu_qsbr_unregister_thread()`でスレッドを登録解除
+
+#### RIBデータ構造
+
+RIBを通じて利用可能な主要情報：
+- **ポート情報**: リンク状態、設定、統計
+- **キュー設定**: lcoreからポート/キューへの割り当て
+- **VLAN設定**: 仮想スイッチとVLAN設定（高度な機能用）
+- **インターフェース設定**: TAPインターフェースとルーティング情報
+
+### 4. CLIコマンドの追加
 sdplaneのCLIシステムにアプリケーション固有のコマンドを登録：
 
 ```c
