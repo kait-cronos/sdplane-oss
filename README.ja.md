@@ -377,6 +377,10 @@ Network devices using kernel driver
 
 ## 開発者ガイド
 
+### 統合ガイド
+
+- [DPDKアプリケーション統合ガイド](doc/manual/ja/dpdk-integration-guide.md) - DPDK-dock方式でDPDKアプリケーションをsdplaneに統合する方法
+
 ### ドキュメント
 
 - [技術プレゼンテーション/2024-11-22-sdn-onsen-yasu.pdf)](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf)（日本語）
