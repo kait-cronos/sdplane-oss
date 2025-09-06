@@ -47,33 +47,33 @@ start worker lcore all
 #### Nombre de Paquets
 ```bash
 # Définir nombre paquets à envoyer
-pktgen set <port> count <nombre>
+pktgen do set port <port> count <nombre>
 
 # Exemples
-pktgen set 0 count 1000      # Envoyer 1000 paquets
-pktgen set 0 count 0         # Mode continu (infini)
+pktgen do set port 0 count 1000      # Envoyer 1000 paquets
+pktgen do set port 0 count 0         # Mode continu (infini)
 ```
 
 #### Taille Paquets
 ```bash
 # Définir taille paquets en octets
-pktgen set <port> size <octets>
+pktgen do set port <port> size <octets>
 
 # Exemples
-pktgen set 0 size 64         # Paquets 64 octets (minimum Ethernet)
-pktgen set 0 size 1518       # Paquets taille maximum Ethernet
-pktgen set 0 size 1024       # Paquets taille personnalisée
+pktgen do set port 0 size 64         # Paquets 64 octets (minimum Ethernet)
+pktgen do set port 0 size 1518       # Paquets taille maximum Ethernet
+pktgen do set port 0 size 1024       # Paquets taille personnalisée
 ```
 
 #### Taux Transmission
 ```bash  
 # Définir taux en pourcentage débit ligne
-pktgen set <port> rate <pourcentage>
+pktgen do set port <port> rate <pourcentage>
 
 # Exemples
-pktgen set 0 rate 100        # Débit ligne complet
-pktgen set 0 rate 50         # 50% débit ligne
-pktgen set 0 rate 10         # 10% débit ligne
+pktgen do set port 0 rate 100        # Débit ligne complet
+pktgen do set port 0 rate 50         # 50% débit ligne
+pktgen do set port 0 rate 10         # 10% débit ligne
 ```
 
 ### Configuration Adresses
@@ -81,73 +81,50 @@ pktgen set 0 rate 10         # 10% débit ligne
 #### Adresses MAC
 ```bash
 # Configurer adresses MAC source et destination
-pktgen set <port> src mac <adresse-mac>
-pktgen set <port> dst mac <adresse-mac>
+pktgen do set port <port> mac source <adresse-mac>
+pktgen do set port <port> mac destination <adresse-mac>
 
 # Exemples
-pktgen set 0 src mac 00:11:22:33:44:55
-pktgen set 0 dst mac 00:66:77:88:99:AA
+pktgen do set port 0 mac source 00:11:22:33:44:55
+pktgen do set port 0 mac destination 00:66:77:88:99:AA
 ```
 
 #### Adresses IPv4
 ```bash
 # Configurer adresses IP source et destination
-pktgen set <port> src ip <adresse-ip>
-pktgen set <port> dst ip <adresse-ip>
+pktgen do set port <port> ip source <adresse-ip>
+pktgen do set port <port> ip destination <adresse-ip>
 
 # Exemples
-pktgen set 0 src ip 192.168.1.1
-pktgen set 0 dst ip 192.168.1.2
+pktgen do set port 0 ip source 192.168.1.1
+pktgen do set port 0 ip destination 192.168.1.2
 ```
 
 #### Configuration Plages IPv4
-```bash
-# Définir plages d'adresses IP pour variation
-pktgen set <port> src ip min <ip-min>
-pktgen set <port> src ip max <ip-max>
-pktgen set <port> src ip inc <incrément>
-
-# Exemple : plage 192.168.1.1 à 192.168.1.100
-pktgen set 0 src ip min 192.168.1.1
-pktgen set 0 src ip max 192.168.1.100
-pktgen set 0 src ip inc 1
-```
+**Note** : Les commandes de configuration de plages d'adresses IP ne sont pas disponibles via l'interface sdplane CLI. Cette fonctionnalité est disponible directement dans l'interface PKTGEN.
 
 ### Contrôle Génération
 
 #### Démarrer/Arrêter
 ```bash
 # Démarrer génération sur port spécifique
-pktgen start <port>
-pktgen start 0
+pktgen do start port <port>
+pktgen do start port 0
 
 # Démarrer sur tous ports
-pktgen start all
+pktgen do start port all
 
 # Arrêter génération
-pktgen stop <port>
-pktgen stop 0
-pktgen stop all
+pktgen do stop port <port>
+pktgen do stop port 0
+pktgen do stop port all
 ```
 
 #### Pause/Reprise
-```bash
-# Pause génération (suspend temporairement)
-pktgen pause <port>
-pktgen pause 0
-
-# Reprendre génération
-pktgen resume <port>
-pktgen resume 0
-```
+**Note** : Les fonctionnalités pause/reprise ne sont pas disponibles via l'interface sdplane CLI. Utilisez les commandes start/stop pour contrôler la génération.
 
 #### Reset
-```bash
-# Reset configuration et statistiques
-pktgen reset <port>
-pktgen reset 0
-pktgen reset all
-```
+**Note** : La fonctionnalité reset PKTGEN n'est pas disponible via l'interface sdplane CLI. Utilisez `reset port` pour réinitialiser les ports DPDK si nécessaire.
 
 ### Surveillance et Statistiques
 
