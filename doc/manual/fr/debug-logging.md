@@ -2,300 +2,256 @@
 
 **Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | **Français** | [中文](../zh/debug-logging.md) | [Deutsch](../de/debug-logging.md) | [Italiano](../it/debug-logging.md) | [한국어](../ko/debug-logging.md) | [ไทย](../th/debug-logging.md) | [Español](../es/debug-logging.md)
 
-Fonctions de débogage et contrôles de journalisation pour le développement et le dépannage.
+Commandes pour contrôler les fonctions de débogage et de journalisation de sdplane.
 
-## Commandes Debug
+## Liste des Commandes
 
-### debug sdplane - Debug Système
+### log_file - Configuration de Sortie vers Fichier Journal
 ```
-debug sdplane <composant>
+log file <chemin-fichier>
 ```
 
-Active la journalisation debug pour composants système spécifiques.
+Configure la journalisation pour la sortie vers un fichier.
 
-**Composants disponibles :**
-- `l2-repeater` : Débogage répéteur L2
-- `enhanced-repeater` : Débogage répéteur amélioré
-- `vlan-switch` : Débogage commutateur VLAN
-- `pktgen` : Débogage générateur de paquets
-- `rib` : Débogage RIB
-- `fdb-change` : Changements base données transmission
-- `tap` : Interfaces TAP
-- `worker` : Gestion workers
+**Paramètres :**
+- `<chemin-fichier>` - Chemin vers le fichier de journal de sortie
 
 **Exemples :**
 ```bash
-debug sdplane l2-repeater
-debug sdplane enhanced-repeater
+# Sortie des journaux vers le fichier spécifié
+log file /var/log/sdplane.log
+
+# Fichier de journal de débogage
+log file /tmp/sdplane-debug.log
+```
+
+### log_stdout - Configuration de Journal Sortie Standard
+```
+log stdout
+```
+
+Configure la journalisation pour la sortie vers la sortie standard.
+
+**Exemples :**
+```bash
+# Afficher les journaux sur la sortie standard
+log stdout
+```
+
+**Note :** `log file` et `log stdout` peuvent être configurés simultanément, et les journaux seront affichés aux deux destinations.
+
+### debug - Configuration de Débogage
+```
+debug <catégorie> <cible>
+```
+
+Active la journalisation de débogage pour des cibles spécifiques dans la catégorie spécifiée.
+
+**Catégories :**
+- `sdplane` - Catégorie principale sdplane
+- `zcmdsh` - Catégorie shell de commande
+
+**Liste des Cibles sdplane :**
+- `lthread` - Threads légers
+- `console` - Console
+- `tap-handler` - Gestionnaire TAP
+- `l2fwd` - Transmission L2
+- `l3fwd` - Transmission L3
+- `vty-server` - Serveur VTY
+- `vty-shell` - Shell VTY
+- `stat-collector` - Collecteur de statistiques
+- `packet` - Traitement de paquets
+- `fdb` - FDB (Base de Données de Transmission)
+- `fdb-change` - Changements FDB
+- `rib` - RIB (Base d'Informations de Routage)
+- `vswitch` - Commutateur virtuel
+- `vlan-switch` - Commutateur VLAN
+- `pktgen` - Générateur de paquets
+- `enhanced-repeater` - Répéteur amélioré
+- `netlink` - Interface Netlink
+- `neighbor` - Gestion des voisins
+- `all` - Toutes les cibles
+
+**Exemples :**
+```bash
+# Activer le débogage pour des cibles spécifiques
 debug sdplane rib
 debug sdplane fdb-change
+debug sdplane pktgen
+
+# Activer tout le débogage sdplane
+debug sdplane all
+
+# Débogage de la catégorie zcmdsh
+debug zcmdsh shell
+debug zcmdsh command
 ```
 
-## Niveaux de Journalisation
+### no debug - Désactivation de Débogage
+```
+no debug <catégorie> <cible>
+```
 
-### Contrôle Verbosité
-La journalisation debug fournit différents niveaux de détail :
+Désactive la journalisation de débogage pour des cibles spécifiques dans la catégorie spécifiée.
 
-- **ERROR** : Erreurs critiques seulement
-- **WARN** : Avertissements et erreurs
-- **INFO** : Messages informatifs généraux
-- **DEBUG** : Informations détaillées debug
-- **TRACE** : Journalisation trace très détaillée
-
-### Configuration Journalisation
+**Exemples :**
 ```bash
-# Activer journalisation détaillée pour composant spécifique
-debug sdplane enhanced-repeater
+# Désactiver le débogage pour des cibles spécifiques
+no debug sdplane rib
+no debug sdplane fdb-change
 
-# Combinaisons multiples pour diagnostics complets
+# Désactiver tout le débogage sdplane (recommandé)
+no debug sdplane all
+
+# Désactiver le débogage de la catégorie zcmdsh
+no debug zcmdsh all
+```
+
+### show_debug_sdplane - Afficher les Informations de Débogage sdplane
+```
+show debugging sdplane
+```
+
+Affiche la configuration actuelle du débogage sdplane.
+
+**Exemples :**
+```bash
+show debugging sdplane
+```
+
+Cette commande affiche les informations suivantes :
+- Cibles de débogage actuellement activées
+- Statut de débogage pour chaque cible
+- Options de débogage disponibles
+
+## Vue d'ensemble du Système de Débogage
+
+Le système de débogage sdplane dispose des fonctionnalités suivantes :
+
+### Débogage par Catégorie
+- Les catégories de débogage sont séparées par différents modules fonctionnels
+- Vous pouvez activer les journaux de débogage uniquement pour les fonctions nécessaires
+
+### Contrôle par Cible
+- Les messages de débogage sont classés par type de cible
+- Vous pouvez afficher uniquement les informations nécessaires en définissant des cibles appropriées
+
+### Configuration Dynamique
+- La configuration de débogage peut être modifiée pendant que le système fonctionne
+- Les cibles de débogage peuvent être ajustées sans redémarrage
+
+## Utilisation
+
+### 1. Configurer la Sortie des Journaux
+```bash
+# Configurer la sortie vers fichier journal (recommandé)
+log file /var/log/sdplane.log
+
+# Configurer la sortie standard
+log stdout
+
+# Activer les deux (pratique pour le débogage)
+log file /var/log/sdplane.log
+log stdout
+```
+
+### 2. Vérifier la Configuration de Débogage Actuelle
+```bash
+show debugging sdplane
+```
+
+### 3. Vérifier les Cibles de Débogage
+Utilisez la commande `show debugging sdplane` pour vérifier les cibles disponibles et leur statut.
+
+### 4. Modifier la Configuration de Débogage
+```bash
+# Activer le débogage pour des cibles spécifiques
 debug sdplane rib
 debug sdplane fdb-change
-debug sdplane tap
+
+# Activer toutes les cibles en une fois
+debug sdplane all
 ```
 
-## Composants Debug
+### 5. Vérifier les Journaux de Débogage
+Les journaux de débogage sont envoyés vers les destinations configurées (fichier ou sortie standard).
 
-### L2 Repeater Debug
+## Dépannage
+
+### Quand les Journaux de Débogage ne s'Affichent Pas
+1. Vérifiez si la sortie des journaux est configurée (`log file` ou `log stdout`)
+2. Vérifiez si les cibles de débogage sont correctement configurées (`debug sdplane <cible>`)
+3. Vérifiez le statut de débogage actuel (`show debugging sdplane`)
+4. Vérifiez l'espace disque du fichier journal et les permissions
+
+### Gestion des Fichiers Journaux
 ```bash
-debug sdplane l2-repeater
-```
-**Informations journalisées :**
-- Flux transmission de paquets
-- Décisions transmission port-à-port
-- Statistiques traitement paquets
-- Détection erreurs transmission
+# Vérifier la taille du fichier journal
+ls -lh /var/log/sdplane.log
 
-### Enhanced Repeater Debug
-```bash
-debug sdplane enhanced-repeater
-debug sdplane vlan-switch
-```
-**Informations journalisées :**
-- Traitement étiquettes VLAN
-- Décisions commutation virtuelle
-- Création/suppression interfaces TAP
-- Flux transmission multi-port
-
-### RIB Debug
-```bash
-debug sdplane rib
-```
-**Informations journalisées :**
-- Mises à jour configuration RIB
-- Changements état ports
-- Synchronisation données inter-threads
-- Opérations RCU
-
-### Debug Base Données Transmission
-```bash
-debug sdplane fdb-change
-```
-**Informations journalisées :**
-- Apprentissage adresses MAC
-- Expiration entrées FDB
-- Mises à jour tables transmission
-- Changements topologie réseau
-
-### Debug Interface TAP
-```bash
-debug sdplane tap
-```
-**Informations journalisées :**
-- Création/destruction interfaces TAP
-- Transfert paquets kernel-userspace
-- Configuration interface TAP
-- Erreurs opérations TAP
-
-### Debug Worker
-```bash
-debug sdplane worker
-```
-**Informations journalisées :**
-- Démarrage/arrêt workers
-- Affectations lcore
-- Performance threads
-- Gestion cycle vie workers
-
-## Techniques Débogage
-
-### Débogage Flux Paquets
-Pour tracer flux paquets à travers système :
-
-```bash
-# Activer débogage complet transmission
-debug sdplane l2-repeater
-debug sdplane enhanced-repeater
-debug sdplane fdb-change
-
-# Surveiller journaux pendant test trafic
+# Suivre le fichier journal
 tail -f /var/log/sdplane.log
+
+# Vérifier l'emplacement du fichier journal (exemple de fichier de configuration)
+grep "log file" /etc/sdplane/sdplane.conf
 ```
 
-### Débogage Performance
-Pour analyser problèmes performance :
+### Impact sur les Performances
+- L'activation des journaux de débogage peut impacter les performances
+- Il est recommandé d'activer uniquement un débogage minimal dans les environnements de production
+- Effectuez une rotation régulière des fichiers journaux pour éviter qu'ils deviennent trop volumineux
 
+## Exemples de Configuration
+
+### Configuration de Journal de Base
 ```bash
-# Debug système et workers
-debug sdplane worker
-debug sdplane rib
+# Exemple de fichier de configuration (/etc/sdplane/sdplane.conf)
+log file /var/log/sdplane.log
+log stdout
 
-# Surveiller métriques avec debug actif
-show worker
-show thread counter
-```
-
-### Débogage Configuration
-Pour résoudre problèmes configuration :
-
-```bash
-# Debug composants configuration
-debug sdplane rib
-debug sdplane tap
-
-# Vérifier état après changements configuration
-show rib
-show vswitch_rib
-```
-
-## Analyse Journaux
-
-### Format Messages Debug
-Messages debug incluent généralement :
-- **Timestamp** : Horodatage précis
-- **Composant** : Source message (l2-repeater, rib, etc.)
-- **Niveau** : Niveau gravité (ERROR, WARN, INFO, DEBUG)
-- **Message** : Détails événement ou état
-
-### Filtrage Journaux
-```bash
-# Filtrer par composant
-grep "l2-repeater" /var/log/sdplane.log
-
-# Filtrer par niveau
-grep "ERROR" /var/log/sdplane.log
-
-# Surveillance temps réel
-tail -f /var/log/sdplane.log | grep "enhanced-repeater"
-```
-
-## Débogage Avancé
-
-### Debug Multi-Composant
-Pour problèmes complexes impliquant plusieurs composants :
-
-```bash
-# Activer debug multiple
-debug sdplane enhanced-repeater
+# Activer le débogage au démarrage du système
 debug sdplane rib
 debug sdplane fdb-change
-debug sdplane tap
-
-# Analyser journaux corrélés
-journalctl -f -u sdplane
 ```
 
-### Debug Performance Détaillé
-Pour analyse performance approfondie :
-
+### Configuration de Débogage
 ```bash
-# Debug avec métriques détaillées
-debug sdplane worker
+# Configuration détaillée des journaux de débogage
+log file /tmp/sdplane-debug.log
+log stdout
 
-# Surveillance continue performance
-watch -n 1 "show thread counter"
+# Activer tout le débogage des cibles (développement uniquement)
+debug sdplane all
 
-# Corrélation avec journaux debug
-tail -f /var/log/sdplane.log &
-show worker
+# Activer seulement des cibles spécifiques
+debug sdplane rib
+debug sdplane fdb-change
+debug sdplane vswitch
 ```
 
-### Debug Réseau
-Pour diagnostiquer problèmes réseau :
-
+### Configuration Environnement de Production
 ```bash
-# Debug transmission et interfaces
-debug sdplane enhanced-repeater
-debug sdplane tap
+# Journalisation standard uniquement en production
+log file /var/log/sdplane.log
 
-# Capture paquets simultanée
-tcpdump -i rif2031 &  # Interface TAP
-# Analyser journaux debug pendant capture
+# Activer seulement les cibles critiques si nécessaire
+# debug sdplane fdb-change
+# debug sdplane rib
 ```
 
-## Optimisation Debug
-
-### Impact Performance
-La journalisation debug impacte performance :
-- **Surcharge CPU** : Traitement messages debug
-- **I/O Disque** : Écriture fichiers journaux
-- **Latence** : Délais supplémentaires traitement
-
-### Utilisation Sélective
+### Opérations de Nettoyage de Débogage
 ```bash
-# Activer debug seulement pour composants nécessaires
-debug sdplane enhanced-repeater  # Spécifique seulement
-
-# Éviter debug généralisé en production
-# debug sdplane worker  # Éviter si non nécessaire
+# Désactiver tout le débogage
+no debug sdplane all
+no debug zcmdsh all
 ```
-
-### Rotation Journaux
-Configuration appropriée rotation journaux :
-```bash
-# Configuration logrotate pour journaux sdplane
-/etc/logrotate.d/sdplane:
-/var/log/sdplane.log {
-    daily
-    rotate 7
-    compress
-    missingok
-    create 0644 root root
-}
-```
-
-## Dépannage Common
-
-### Pas de Messages Debug
-1. **Vérifier activation** : Confirmer commandes debug exécutées
-2. **Vérifier destination logs** : Localiser fichiers journaux appropriés
-3. **Permissions fichiers** : S'assurer permissions écriture appropriées
-
-### Trop de Messages Debug
-1. **Désactiver debug non nécessaire** : Limiter aux composants pertinents
-2. **Ajuster niveaux journalisation** : Utiliser niveaux moins verbeux
-3. **Rotation journaux** : Configurer nettoyage automatique
-
-### Performance Dégradée
-1. **Limiter debug actif** : Désactiver debug non critique
-2. **Surveillance ressources** : Vérifier usage CPU/disque
-3. **Debug sélectif** : Activer seulement pendant investigations
-
-## Outils Externes
-
-### Intégration Systemd
-```bash
-# Journaux via systemd
-journalctl -u sdplane -f
-
-# Filtrage par priorité
-journalctl -u sdplane -p err
-```
-
-### Outils Surveillance
-- **htop** : Surveillance CPU threads
-- **iotop** : Surveillance I/O disque
-- **tcpdump** : Capture paquets réseau
-- **wireshark** : Analyse paquets
 
 ## Emplacement de Définition
 
-Fonctions debug définies dans :
-- `lib/sdplane/debug.c` - Infrastructure debug
-- Composants individuels - Implémentations debug spécifiques
+Ces commandes sont définies dans le fichier suivant :
+- `sdplane/debug_sdplane.c`
 
-## Sujets Associés
+## Sujets Connexes
 
-- [Information Système](system-monitoring.md) - Surveillance système
-- [Gestion Workers](worker-management.md) - Debug workers
-- [Interface TAP](tap-interface.md) - Debug interfaces TAP
-- [RIB & Routage](routing.md) - Debug données système
+- [Informations Système & Surveillance](system-monitoring.md)
+- [Gestion VTY & Shell](vty-shell.md)

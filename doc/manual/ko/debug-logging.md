@@ -1,98 +1,257 @@
-# 디버그·로그
+# 디버그 및 로깅
 
-**언어 / Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | [Français](../fr/debug-logging.md) | [中文](../zh/debug-logging.md) | [Deutsch](../de/debug-logging.md) | [Italiano](../it/debug-logging.md) | **한국어**
+**Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | [Français](../fr/debug-logging.md) | [中文](../zh/debug-logging.md) | [Deutsch](../de/debug-logging.md) | [Italiano](../it/debug-logging.md) | [한국어](../ko/debug-logging.md) | [ไทย](../th/debug-logging.md) | [Español](../es/debug-logging.md)
 
-sdplane의 디버그 및 로그 기능을 제어하는 명령어입니다.
+sdplane 디버그 및 로깅 기능을 제어하는 명령입니다.
 
-## 명령어 목록
+## 명령 목록
 
-### debug_sdplane - sdplane 디버그 설정
+### log_file - 로그 파일 출력 구성
 ```
-debug sdplane [카테고리] [레벨]
+log file <file-path>
 ```
 
-sdplane의 디버그 로그를 설정합니다. 이 명령어는 동적으로 생성되므로 사용 가능한 카테고리와 레벨은 런타임에서 결정됩니다.
+파일로 로깅 출력을 구성합니다.
 
-**사용 예:**
+**매개변수:**
+- <파일-경로> - 로그 출력 파일 경로
+
+**예제:**
 ```bash
-# 디버그 설정 활성화
-debug sdplane
+# 지정된 파일로 로그 출력
+log file /var/log/sdplane.log
 
-# 특정 카테고리의 디버그 활성화
-debug sdplane [category] [level]
+# 디버그 로그 파일
+log file /tmp/sdplane-debug.log
 ```
 
-**주의:** 구체적인 카테고리와 레벨은 `show debugging sdplane` 명령어로 확인할 수 있습니다.
+### log_stdout - 표준 출력 로그 구성
+```
+log stdout
+```
 
-### show_debug_sdplane - sdplane 디버그 정보 표시
+표준 출력으로 로깅을 구성합니다.
+
+**예제:**
+```bash
+# 표준 출력에 로그 표시
+log stdout
+```
+
+**참고:** `log file`과 `log stdout`을 동시에 구성할 수 있으며, 로그가 두 대상 모두에 출력됩니다.
+
+### debug - 디버그 구성
+```
+debug <category> <target>
+```
+
+지정된 카테고리 내의 특정 대상에 대한 디버그 로깅을 활성화합니다.
+
+**카테고리:**
+- `sdplane` - 메인 sdplane 카테고리
+- `zcmdsh` - 명령 셸 카테고리
+
+**sdplane 대상 목록:**
+- `lthread` - 경량 스레드
+- `console` - 콘솔
+- `tap-handler` - TAP 핸들러
+- `l2fwd` - L2 전달
+- `l3fwd` - L3 전달
+- `vty-server` - VTY 서버
+- `vty-shell` - VTY 셸
+- `stat-collector` - 통계 수집기
+- `packet` - 패킷 처리
+- `fdb` - FDB (전달 데이터베이스)
+- `fdb-change` - FDB 변경
+- `rib` - RIB (라우팅 정보 베이스)
+- `vswitch` - 가상 스위치
+- `vlan-switch` - VLAN 스위치
+- `pktgen` - 패킷 생성기
+- `enhanced-repeater` - 향상된 리피터
+- `netlink` - Netlink 인터페이스
+- `neighbor` - 이웃 관리
+- `all` - 모든 대상
+
+**예제:**
+```bash
+# 특정 대상에 대한 디버그 활성화
+debug sdplane rib
+debug sdplane fdb-change
+debug sdplane pktgen
+
+# 모든 sdplane 디버그 활성화
+debug sdplane all
+
+# zcmdsh 카테고리 디버그
+debug zcmdsh shell
+debug zcmdsh command
+```
+
+### no debug - 디버그 비활성화
+```
+no debug <category> <target>
+```
+
+지정된 카테고리 내의 특정 대상에 대한 디버그 로깅을 비활성화합니다.
+
+**예제:**
+```bash
+# 특정 대상에 대한 디버그 비활성화
+no debug sdplane rib
+no debug sdplane fdb-change
+
+# 모든 sdplane 디버그 비활성화 (권장)
+no debug sdplane all
+
+# zcmdsh 카테고리 디버그 비활성화
+no debug zcmdsh all
+```
+
+### show_debug_sdplane - Display sdplane Debug Information
 ```
 show debugging sdplane
 ```
 
-현재 sdplane 디버그 설정을 표시합니다.
+Display current sdplane debug configuration.
 
-**사용 예:**
+**Examples:**
 ```bash
 show debugging sdplane
 ```
 
-이 명령어는 다음 정보를 표시합니다:
-- 현재 활성화된 디버그 카테고리
-- 각 카테고리의 디버그 레벨
-- 사용 가능한 디버그 옵션
+This command displays the following information:
+- Currently enabled debug targets
+- Debug status for each target
+- Available debug options
 
-## 디버그 시스템 개요
+## Debug System Overview
 
-sdplane의 디버그 시스템은 다음과 같은 특징을 가지고 있습니다:
+The sdplane debug system has the following features:
 
-### 카테고리 기반 디버그
-- 다른 기능 모듈별로 디버그 카테고리가 분리되어 있습니다
-- 필요한 기능만 디버그 로그를 활성화할 수 있습니다
+### Category-based Debugging
+- Debug categories are separated by different functional modules
+- You can enable debug logs only for the necessary functions
 
-### 레벨 기반 제어
-- 디버그 메시지는 중요도에 따라 레벨별로 구분됩니다
-- 적절한 레벨을 설정하여 필요한 정보만 표시할 수 있습니다
+### Target-based Control
+- Debug messages are classified by target type
+- You can display only necessary information by setting appropriate targets
 
-### 동적 설정
-- 시스템 운영 중에 디버그 설정을 변경할 수 있습니다
-- 재시작 없이 디버그 레벨을 조정할 수 있습니다
+### Dynamic Configuration
+- Debug configuration can be changed while the system is running
+- Debug targets can be adjusted without restart
 
-## 사용 방법
+## Usage
 
-### 1. 현재 디버그 설정 확인
+### 1. Configure Log Output
+```bash
+# Configure log file output (recommended)
+log file /var/log/sdplane.log
+
+# Configure standard output
+log stdout
+
+# Enable both (convenient for debugging)
+log file /var/log/sdplane.log
+log stdout
+```
+
+### 2. Check Current Debug Configuration
 ```bash
 show debugging sdplane
 ```
 
-### 2. 디버그 카테고리 확인
-`show debugging sdplane` 명령어로 사용 가능한 카테고리를 확인하세요.
+### 3. Check Debug Targets
+Use the `show debugging sdplane` command to check available targets and their status.
 
-### 3. 디버그 설정 변경
+### 4. Change Debug Configuration
 ```bash
-# 특정 카테고리의 디버그 활성화
-debug sdplane [category] [level]
+# Enable debug for specific targets
+debug sdplane rib
+debug sdplane fdb-change
+
+# Enable all targets at once
+debug sdplane all
 ```
 
-### 4. 디버그 로그 확인
-디버그 로그는 표준 출력 또는 로그 파일에 출력됩니다.
+### 5. Check Debug Logs
+Debug logs are output to the configured destinations (file or standard output).
 
-## 문제 해결
+## Troubleshooting
 
-### 디버그 로그가 출력되지 않는 경우
-1. 디버그 카테고리가 올바르게 설정되었는지 확인
-2. 디버그 레벨이 적절하게 설정되었는지 확인
-3. 로그 출력 대상이 올바르게 설정되었는지 확인
+### When Debug Logs Are Not Output
+1. Check if log output is configured (`log file` or `log stdout`)
+2. Check if debug targets are correctly configured (`debug sdplane <target>`)
+3. Check current debug status (`show debugging sdplane`)
+4. Check log file disk space and permissions
 
-### 성능에 미치는 영향
-- 디버그 로그 활성화는 성능에 영향을 줄 수 있습니다
-- 운영 환경에서는 필요 최소한의 디버그만 활성화하는 것을 권장합니다
+### Log File Management
+```bash
+# Check log file size
+ls -lh /var/log/sdplane.log
 
-## 정의 위치
+# Tail log file
+tail -f /var/log/sdplane.log
 
-이러한 명령어는 다음 파일에 정의되어 있습니다:
+# Check log file location (configuration file example)
+grep "log file" /etc/sdplane/sdplane.conf
+```
+
+### Performance Impact
+- Enabling debug logs may impact performance
+- It is recommended to enable only minimal debugging in production environments
+- Regularly rotate log files to prevent them from becoming too large
+
+## Configuration Examples
+
+### Basic Log Configuration
+```bash
+# Configuration file example (/etc/sdplane/sdplane.conf)
+log file /var/log/sdplane.log
+log stdout
+
+# Enable debug at system startup
+debug sdplane rib
+debug sdplane fdb-change
+```
+
+### Debugging Configuration
+```bash
+# Detailed debug log configuration
+log file /tmp/sdplane-debug.log
+log stdout
+
+# Enable all target debugging (development only)
+debug sdplane all
+
+# Enable specific targets only
+debug sdplane rib
+debug sdplane fdb-change
+debug sdplane vswitch
+```
+
+### Production Environment Configuration
+```bash
+# Standard logging only in production
+log file /var/log/sdplane.log
+
+# Enable only critical targets as needed
+# debug sdplane fdb-change
+# debug sdplane rib
+```
+
+### Debug Cleanup Operations
+```bash
+# Disable all debugging
+no debug sdplane all
+no debug zcmdsh all
+```
+
+## Definition Location
+
+These commands are defined in the following file:
 - `sdplane/debug_sdplane.c`
 
-## 관련 항목
+## Related Topics
 
-- [시스템 정보·모니터링](system-monitoring.md)
-- [VTY·셸 관리](vty-shell.md)
+- [System Information & Monitoring](system-monitoring.md)
+- [VTY & Shell Management](vty-shell.md)
