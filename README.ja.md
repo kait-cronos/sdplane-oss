@@ -255,46 +255,6 @@ sudo systemctl start sdplane
 telnet localhost 9882
 ```
 
-### 拡張リピーターの設定
-
-拡張リピーターは高度なVLANスイッチング機能を提供し、L3ルーティング用とパケットキャプチャ用のTAPインターフェースを備えています。主要な設定コマンド：
-
-**仮想スイッチの設定：**
-
-```bash
-# VLAN IDを持つ仮想スイッチを作成
-set vswitch 2031 vlan 2031
-set vswitch 2031 vlan 2032
-```
-
-**DPDKポートから仮想スイッチへのリンク：**
-
-```bash
-# ポート0を仮想スイッチ0にVLANタグ2031でリンク
-set vswitch 2031 port 0 (tagged|untag|tag swap 2032)
-# ポート0を仮想スイッチ1にVLANタグ2032でリンク  
-set vswitch 2032 port 0 (tagged|untag|tag swap 2031)
-```
-
-**ルーターインターフェース（L3接続）：**
-
-```bash
-# L3処理用のルーターインターフェースを作成
-set vswitch 2031 router-if rif2031
-set vswitch 2032 router-if cif2032
-```
-
-**キャプチャインターフェース（パケット監視）：**
-
-```bash
-# パケット監視用のキャプチャインターフェースを作成
-set vswitch 2031 capture-if cif2031
-set vswitch 2032 capture-if cif2032
-```
-
-拡張リピーターは、vswitch-link設定に基づいてVLANの変換、除去、挿入を行い、カーネルネットワークスタック統合用のTAPインターフェースを提供します。
-
-CLIの詳細な使い方や設定は、[document](/doc/manual/)を参照してください。
 
 ## Tips
 
@@ -365,7 +325,6 @@ Network devices using kernel driver
 - [パケットジェネレーターアプリケーション](doc/manual/ja/packet-generator-application.md) - 高性能トラフィック生成とテスト
 
 **設定ガイド:**
-- [拡張リピーター](doc/manual/ja/enhanced-repeater.md) - 仮想スイッチング、VLAN処理、TAPインターフェース
 - [ポート管理・統計](doc/manual/ja/port-management.md) - DPDKポートの管理と統計情報
 - [ワーカー・lcore管理](doc/manual/ja/worker-management.md) - ワーカースレッドとlcoreの管理
 - [デバッグ・ログ](doc/manual/ja/debug-logging.md) - デバッグとログ機能
@@ -378,6 +337,7 @@ Network devices using kernel driver
 - [TAPインターフェース](doc/manual/ja/tap-interface.md) - TAPインターフェースの管理
 - [lthread管理](doc/manual/ja/lthread-management.md) - lthreadの管理
 - [デバイス管理](doc/manual/ja/device-management.md) - デバイスとドライバーの管理
+- [拡張リピーター](doc/manual/ja/enhanced-repeater.md) - 仮想スイッチング、VLAN処理、TAPインターフェース
 
 ## 開発者ガイド
 
@@ -412,9 +372,9 @@ Network devices using kernel driver
 
 ご質問、問題、貢献については、こちらまでご連絡ください：**sdplane [at] nwlab.org**
 
-## 商用バージョン
+## 評価用機器の購入
 
-追加機能とサポートを含む商用バージョンが利用可能です。詳細については販売ページをご覧ください：
+評価用機器には追加機能やソフトウェアの修正が含まれる場合があります。詳細については販売ページをご覧ください：
 
 **[https://www.rca.co.jp/sdplane/](https://www.rca.co.jp/sdplane/)**
 
