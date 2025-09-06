@@ -7,17 +7,17 @@ sdplane-oss est un routeur logiciel haute performance basé sur DPDK. Ce guide u
 ## Table des Matières
 
 1. [Gestion des Ports & Statistiques](port-management.md) - Gestion des ports DPDK et statistiques
-2. [Gestion des Workers & lcores](worker-lcore-thread-management.md) - Gestion des threads workers et lcores
+2. [Gestion Workers & lcores & Informations Thread](worker-lcore-thread-management.md) - Gestion des threads workers, lcores et informations thread
 3. [Débogage & Journalisation](debug-logging.md) - Fonctions de débogage et journalisation
 4. [Gestion VTY & Shell](vty-shell.md) - Gestion VTY et shell
 5. [Information Système & Surveillance](system-monitoring.md) - Information système et surveillance
 6. [RIB & Routage](routing.md) - Fonctions RIB et routage
 7. [Configuration des Files](queue-configuration.md) - Configuration et gestion des files
 8. [Génération de Paquets](packet-generation.md) - Génération de paquets utilisant PKTGEN
-9. [Information des Threads](worker-lcore-thread-management.md) - Information et surveillance des threads
-10. [Interface TAP](tap-interface.md) - Gestion des interfaces TAP
-11. [Gestion lthread](lthread-management.md) - Gestion des threads légers coopératifs
-12. [Gestion des Périphériques](device-management.md) - Gestion des périphériques et pilotes
+
+9. [Interface TAP](tap-interface.md) - Gestion des interfaces TAP
+10. [Gestion lthread](lthread-management.md) - Gestion des threads légers coopératifs
+11. [Gestion des Périphériques](device-management.md) - Gestion des périphériques et pilotes
 
 ## Utilisation de Base
 
