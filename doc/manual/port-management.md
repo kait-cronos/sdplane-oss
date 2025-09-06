@@ -1,6 +1,6 @@
 # Port Management & Statistics
 
-**Language:** **English** | [Japanese](ja/port-management.md) | [French](fr/port-management.md) | [Chinese](zh/port-management.md)
+**Language:** **English** | [Japanese](ja/port-management.md) | [French](fr/port-management.md) | [Chinese](zh/port-management.md) | [German](de/port-management.md) | [Italian](it/port-management.md) | [Korean](ko/port-management.md) | [Thai](th/port-management.md) | [Spanish](es/port-management.md)
 
 Commands for managing DPDK ports and handling statistics.
 

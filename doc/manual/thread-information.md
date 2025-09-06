@@ -1,6 +1,6 @@
 # Thread Information
 
-**Language:** **English** | [Japanese](ja/thread-information.md) | [French](fr/thread-information.md) | [Chinese](zh/thread-information.md)
+**Language:** **English** | [Japanese](ja/thread-information.md) | [French](fr/thread-information.md) | [Chinese](zh/thread-information.md) | [German](de/thread-information.md) | [Italian](it/thread-information.md) | [Korean](ko/thread-information.md) | [Thai](th/thread-information.md) | [Spanish](es/thread-information.md)
 
 Commands for thread information and monitoring.
 

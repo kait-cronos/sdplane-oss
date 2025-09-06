@@ -1,6 +1,6 @@
 # ワーカー・lcore管理
 
-**言語 / Language:** [English](../worker-management.md) | **日本語** | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md)
+**言語 / Language:** [English](../worker-management.md) | **日本語** | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md) | [Deutsch](../de/worker-management.md) | [Italiano](../it/worker-management.md) | [한국어](../ko/worker-management.md) | [ไทย](../th/worker-management.md) | [Español](../es/worker-management.md)
 
 DPDKワーカースレッドとlcoreの管理を行うコマンドです。
 

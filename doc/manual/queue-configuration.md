@@ -1,6 +1,6 @@
 # Queue Configuration
 
-**Language:** **English** | [Japanese](ja/queue-configuration.md) | [French](fr/queue-configuration.md) | [Chinese](zh/queue-configuration.md)
+**Language:** **English** | [Japanese](ja/queue-configuration.md) | [French](fr/queue-configuration.md) | [Chinese](zh/queue-configuration.md) | [German](de/queue-configuration.md) | [Italian](it/queue-configuration.md) | [Korean](ko/queue-configuration.md) | [Thai](th/queue-configuration.md) | [Spanish](es/queue-configuration.md)
 
 Commands for configuring and managing DPDK queues.
 
