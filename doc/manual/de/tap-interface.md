@@ -280,6 +280,6 @@ Diese Befehle sind in den folgenden Dateien definiert:
 
 ## Verwandte Themen
 
-- [Worker- und lcore-Management](worker-management.md)
+- [Worker- und lcore-Management](worker-lcore-thread-management.md)
 - [VTY- und Shell-Management](vty-shell.md)
 - [Debug und Logging](debug-logging.md)

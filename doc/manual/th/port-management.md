@@ -534,6 +534,6 @@ set port all link down
 
 ## รายการที่เกี่ยวข้อง
 
-- [การจัดการ Worker และ lcore](worker-management.md)
+- [การจัดการ Worker และ lcore](worker-lcore-thread-management.md)
 - [ข้อมูลระบบและการตรวจสอบ](system-monitoring.md)
 - [การตั้งค่าคิว](queue-configuration.md)

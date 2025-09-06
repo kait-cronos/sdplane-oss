@@ -1,6 +1,6 @@
 # การจัดการ Worker และ lcore
 
-**ภาษา / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md) | [Deutsch](../de/worker-management.md) | [Italiano](../it/worker-management.md) | [한국어](../ko/worker-management.md) | **ไทย**
+**ภาษา / Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | **ไทย**
 
 คำสั่งที่จัดการเธรด Worker ของ DPDK และ lcore
 
@@ -226,5 +226,5 @@ Worker สำหรับทดสอบการเปลี่ยนแปล�
 ## รายการที่เกี่ยวข้อง
 
 - [การจัดการพอร์ตและสถิติ](port-management.md)
-- [ข้อมูลเธรด](thread-information.md)
+- [ข้อมูลเธรด](worker-lcore-thread-management.md)
 - [การจัดการ lthread](lthread-management.md)

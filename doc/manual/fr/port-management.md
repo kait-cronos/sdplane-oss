@@ -1012,6 +1012,6 @@ Ces commandes sont définies dans les fichiers suivants :
 
 ## Sujets Associés
 
-- [Gestion des Workers & lcore](worker-management.md) - Configuration des workers et affectation aux ports
+- [Gestion des Workers & lcore](worker-lcore-thread-management.md) - Configuration des workers et affectation aux ports
 - [Surveillance Système & Monitoring](system-monitoring.md) - Surveillance globale du système incluant les ports
 - [Configuration des Files](queue-configuration.md) - Configuration détaillée des files de traitement

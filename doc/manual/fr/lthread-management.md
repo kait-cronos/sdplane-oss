@@ -362,7 +362,7 @@ lthread management défini dans :
 
 ## Sujets Associés
 
-- [Gestion Workers](worker-management.md) - Configuration workers lcore vs lthread
+- [Gestion Workers](worker-lcore-thread-management.md) - Configuration workers lcore vs lthread
 - [RIB & Routage](routing.md) - Services rib-manager et neigh-manager
 - [Interface TAP](tap-interface.md) - Service tap-handler
 - [Debug & Logging](debug-logging.md) - Debug services lthread

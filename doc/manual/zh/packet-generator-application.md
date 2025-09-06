@@ -394,7 +394,7 @@ PKTGEN支持参数范围的自动测试：
 ## 相关文档
 
 - [包生成命令](packet-generation.md) - 命令参考
-- [工作者管理](worker-management.md) - 工作者配置
+- [工作者管理](worker-lcore-thread-management.md) - 工作者配置
 - [端口管理](port-management.md) - DPDK端口设置
 - [性能调优指南](#) - 系统优化提示
 

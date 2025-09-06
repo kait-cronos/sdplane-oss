@@ -243,5 +243,5 @@ Diese Befehle sind in den folgenden Dateien definiert:
 ## Verwandte Themen
 
 - [Port-Management und Statistiken](port-management.md)
-- [Worker- und lcore-Management](worker-management.md)
-- [Thread-Informationen](thread-information.md)
+- [Worker- und lcore-Management](worker-lcore-thread-management.md)
+- [Thread-Informationen](worker-lcore-thread-management.md)

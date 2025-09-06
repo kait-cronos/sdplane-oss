@@ -167,6 +167,6 @@ debug sdplane fdb-change
 
 ## Documentation Associée
 
-- [Gestion des Workers](worker-management.md) - Détails de configuration des workers
+- [Gestion des Workers](worker-lcore-thread-management.md) - Détails de configuration des workers
 - [Gestion des Ports](port-management.md) - Configuration des ports DPDK
 - [Application Répéteur Amélioré](enhanced-repeater-application.md) - Fonctionnalités de commutation avancées

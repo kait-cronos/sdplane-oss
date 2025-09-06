@@ -176,6 +176,6 @@ RIB管理器作为独立线程运行，提供以下功能：
 
 ## 相关项目
 
-- [工作者·lcore管理](worker-management.md)
+- [工作者·lcore管理](worker-lcore-thread-management.md)
 - [lthread管理](lthread-management.md)
 - [系统信息·监视](system-monitoring.md)

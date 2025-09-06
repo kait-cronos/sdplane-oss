@@ -1,6 +1,6 @@
 # Information des Threads
 
-**Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | **Français** | [中文](../zh/thread-information.md) | [Deutsch](../de/thread-information.md) | [Italiano](../it/thread-information.md) | [한국어](../ko/thread-information.md) | [ไทย](../th/thread-information.md) | [Español](../es/thread-information.md)
+**Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | **Français** | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | [Español](../es/worker-lcore-thread-management.md)
 
 Surveillance et informations détaillées sur les threads et leur performance.
 
@@ -278,7 +278,7 @@ Information threads définie dans :
 
 ## Sujets Associés
 
-- [Gestion Workers](worker-management.md) - Configuration workers et lcores
+- [Gestion Workers](worker-lcore-thread-management.md) - Configuration workers et lcores
 - [Surveillance Système](system-monitoring.md) - Métriques système globales
 - [RIB & Routage](routing.md) - Configuration threads dans RIB
 - [Debug & Logging](debug-logging.md) - Debug performance threads

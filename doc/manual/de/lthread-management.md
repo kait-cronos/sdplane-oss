@@ -277,7 +277,7 @@ Diese Befehle sind in den folgenden Dateien definiert:
 
 ## Verwandte Themen
 
-- [Worker- und lcore-Management](worker-management.md)
-- [Thread-Informationen](thread-information.md)
+- [Worker- und lcore-Management](worker-lcore-thread-management.md)
+- [Thread-Informationen](worker-lcore-thread-management.md)
 - [Systeminformationen und Überwachung](system-monitoring.md)
 - [RIB und Routing](routing.md)

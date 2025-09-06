@@ -243,5 +243,5 @@ Estos comandos están definidos en los siguientes archivos:
 ## Elementos Relacionados
 
 - [Gestión de Puertos y Estadísticas](port-management.md)
-- [Gestión de Workers y lcore](worker-management.md)
-- [Información de Hilos](thread-information.md)
+- [Gestión de Workers y lcore](worker-lcore-thread-management.md)
+- [Información de Hilos](worker-lcore-thread-management.md)

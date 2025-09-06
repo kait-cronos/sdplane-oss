@@ -7,14 +7,14 @@ sdplane-oss es un enrutador de software de alto rendimiento basado en DPDK. Esta
 ## Índice
 
 1. [Gestión de Puertos y Estadísticas](port-management.md) - Gestión de puertos DPDK e información estadística
-2. [Gestión de Workers y lcore](worker-management.md) - Gestión de hilos de trabajo y lcore
+2. [Gestión de Workers y lcore](worker-lcore-thread-management.md) - Gestión de hilos de trabajo y lcore
 3. [Depuración y Registros](debug-logging.md) - Funciones de depuración y registro
 4. [Gestión VTY y Shell](vty-shell.md) - Gestión de VTY y shell
 5. [Información del Sistema y Monitorización](system-monitoring.md) - Información del sistema y funciones de monitorización
 6. [RIB y Enrutamiento](routing.md) - Funcionalidades de RIB y enrutamiento
 7. [Configuración de Colas](queue-configuration.md) - Configuración y gestión de colas
 8. [Generación de Paquetes](packet-generation.md) - Generación de paquetes usando PKTGEN
-9. [Información de Hilos](thread-information.md) - Información y monitorización de hilos
+9. [Información de Hilos](worker-lcore-thread-management.md) - Información y monitorización de hilos
 10. [Interfaz TAP](tap-interface.md) - Gestión de interfaz TAP
 11. [Gestión lthread](lthread-management.md) - Gestión de lthread
 12. [Gestión de Dispositivos](device-management.md) - Gestión de dispositivos y controladores

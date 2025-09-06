@@ -295,6 +295,6 @@ Interfaces TAP définies dans :
 ## Sujets Associés
 
 - [Répéteur Amélioré](enhanced-repeater.md) - Configuration commutateurs virtuels
-- [Gestion Workers](worker-management.md) - Configuration TAP handlers
+- [Gestion Workers](worker-lcore-thread-management.md) - Configuration TAP handlers
 - [RIB & Routage](routing.md) - Interfaces TAP dans RIB
 - [Debug & Logging](debug-logging.md) - Debug interfaces TAP

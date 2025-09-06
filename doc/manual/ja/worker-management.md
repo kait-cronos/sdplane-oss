@@ -1,6 +1,6 @@
 # ワーカー・lcore管理
 
-**言語 / Language:** [English](../worker-management.md) | **日本語** | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md) | [Deutsch](../de/worker-management.md) | [Italiano](../it/worker-management.md) | [한국어](../ko/worker-management.md) | [ไทย](../th/worker-management.md) | [Español](../es/worker-management.md)
+**言語 / Language:** [English](../worker-lcore-thread-management.md) | **日本語** | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | [Español](../es/worker-lcore-thread-management.md)
 
 DPDKワーカースレッドとlcoreの管理を行うコマンドです。
 
@@ -227,5 +227,5 @@ VLAN（Virtual LAN）機能を提供するスイッチングワーカーです�
 ## 関連項目
 
 - [ポート管理・統計](port-management.md)
-- [スレッド情報](thread-information.md)
+- [スレッド情報](worker-lcore-thread-management.md)
 - [lthread管理](lthread-management.md)

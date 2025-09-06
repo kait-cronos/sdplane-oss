@@ -394,7 +394,7 @@ PKTGENはパラメータ範囲での自動テストをサポート：
 ## 関連ドキュメント
 
 - [パケット生成コマンド](packet-generation.md) - コマンドリファレンス
-- [ワーカー管理](worker-management.md) - ワーカー設定
+- [ワーカー管理](worker-lcore-thread-management.md) - ワーカー設定
 - [ポート管理](port-management.md) - DPDKポートセットアップ
 - [パフォーマンス調整ガイド](#) - システム最適化のヒント
 

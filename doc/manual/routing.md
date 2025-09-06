@@ -217,5 +217,5 @@ This command is defined in the following files:
 
 - [Enhanced Repeater](enhanced-repeater.md) - Virtual switch configuration
 - [Port Management & Statistics](port-management.md) - DPDK port management  
-- [Worker & lcore Management](worker-management.md) - Worker thread assignments
+- [Worker & lcore Management](worker-lcore-thread-management.md) - Worker thread assignments
 - [System Information & Monitoring](system-monitoring.md) - System monitoring commands

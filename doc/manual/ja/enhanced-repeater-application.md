@@ -288,6 +288,6 @@ debug sdplane fdb-change
 ## 関連ドキュメント
 
 - [拡張リピーターコマンド](enhanced-repeater.md) - 完全なコマンドリファレンス
-- [ワーカー管理](worker-management.md) - ワーカー設定の詳細
+- [ワーカー管理](worker-lcore-thread-management.md) - ワーカー設定の詳細
 - [ポート管理](port-management.md) - DPDK ポート設定
 - [TAPインターフェース管理](tap-interface.md) - TAPインターフェースの詳細

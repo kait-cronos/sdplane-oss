@@ -1,6 +1,6 @@
 # Gestion des Workers & lcores
 
-**Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | **Français** | [中文](../zh/worker-management.md) | [Deutsch](../de/worker-management.md) | [Italiano](../it/worker-management.md) | [한국어](../ko/worker-management.md) | [ไทย](../th/worker-management.md) | [Español](../es/worker-management.md)
+**Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | **Français** | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | [Español](../es/worker-lcore-thread-management.md)
 
 Commandes pour la gestion des threads workers et la configuration des lcores.
 
@@ -254,5 +254,5 @@ Ces commandes sont définies dans :
 
 - [Gestion Ports](port-management.md) - Configuration ports pour workers
 - [Configuration Files](queue-configuration.md) - Affectation files aux workers
-- [Information Threads](thread-information.md) - Surveillance détaillée threads
+- [Information Threads](worker-lcore-thread-management.md) - Surveillance détaillée threads
 - [RIB & Routage](routing.md) - Configuration workers dans RIB

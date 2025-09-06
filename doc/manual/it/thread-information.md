@@ -1,6 +1,6 @@
 # Informazioni Thread
 
-**Lingua / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md) | [Deutsch](../de/thread-information.md) | **Italiano** | [한국어](../ko/thread-information.md) | [ไทย](../th/thread-information.md) | [Español](../es/thread-information.md)
+**Lingua / Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | **Italiano** | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | [Español](../es/worker-lcore-thread-management.md)
 
 Comandi per informazioni e monitoraggio dei thread.
 
@@ -223,6 +223,6 @@ Questi comandi sono definiti nel seguente file:
 
 ## Argomenti Correlati
 
-- [Gestione Worker e lcore](worker-management.md)
+- [Gestione Worker e lcore](worker-lcore-thread-management.md)
 - [Gestione lthread](lthread-management.md)
 - [Informazioni Sistema e Monitoraggio](system-monitoring.md)

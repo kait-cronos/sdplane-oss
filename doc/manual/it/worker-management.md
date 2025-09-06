@@ -1,6 +1,6 @@
 # Gestione Worker e lcore
 
-**Lingua / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md) | [Deutsch](../de/worker-management.md) | **Italiano** | [한국어](../ko/worker-management.md) | [ไทย](../th/worker-management.md) | [Español](../es/worker-management.md)
+**Lingua / Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | **Italiano** | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | [Español](../es/worker-lcore-thread-management.md)
 
 Comandi per gestire i thread worker DPDK e gli lcore.
 
@@ -227,5 +227,5 @@ Questi comandi sono definiti nel seguente file:
 ## Argomenti Correlati
 
 - [Gestione Porte e Statistiche](port-management.md)
-- [Informazioni Thread](thread-information.md)
+- [Informazioni Thread](worker-lcore-thread-management.md)
 - [Gestione lthread](lthread-management.md)

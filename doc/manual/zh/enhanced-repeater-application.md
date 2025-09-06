@@ -288,6 +288,6 @@ debug sdplane fdb-change
 ## 相关文档
 
 - [增强中继器命令](enhanced-repeater.md) - 完整命令参考
-- [工作者管理](worker-management.md) - 工作者配置详情
+- [工作者管理](worker-lcore-thread-management.md) - 工作者配置详情
 - [端口管理](port-management.md) - DPDK端口设置
 - [TAP接口管理](tap-interface.md) - TAP接口详情

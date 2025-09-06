@@ -277,7 +277,7 @@ lthread协作运行，需要注意以下几点：
 
 ## 相关项目
 
-- [工作者·lcore管理](worker-management.md)
-- [线程信息](thread-information.md)
+- [工作者·lcore管理](worker-lcore-thread-management.md)
+- [线程信息](worker-lcore-thread-management.md)
 - [系统信息·监视](system-monitoring.md)
 - [RIB·路由](routing.md)

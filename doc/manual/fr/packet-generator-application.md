@@ -273,6 +273,6 @@ pktgen clear all
 
 ## Documentation Associée
 
-- [Gestion des Workers](worker-management.md) - Configuration des workers et optimisation
+- [Gestion des Workers](worker-lcore-thread-management.md) - Configuration des workers et optimisation
 - [Gestion des Ports](port-management.md) - Configuration et surveillance des ports DPDK
 - [Surveillance Système](system-monitoring.md) - Métriques système et surveillance

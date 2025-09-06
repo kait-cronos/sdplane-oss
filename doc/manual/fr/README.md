@@ -7,14 +7,14 @@ sdplane-oss est un routeur logiciel haute performance basé sur DPDK. Ce guide u
 ## Table des Matières
 
 1. [Gestion des Ports & Statistiques](port-management.md) - Gestion des ports DPDK et statistiques
-2. [Gestion des Workers & lcores](worker-management.md) - Gestion des threads workers et lcores
+2. [Gestion des Workers & lcores](worker-lcore-thread-management.md) - Gestion des threads workers et lcores
 3. [Débogage & Journalisation](debug-logging.md) - Fonctions de débogage et journalisation
 4. [Gestion VTY & Shell](vty-shell.md) - Gestion VTY et shell
 5. [Information Système & Surveillance](system-monitoring.md) - Information système et surveillance
 6. [RIB & Routage](routing.md) - Fonctions RIB et routage
 7. [Configuration des Files](queue-configuration.md) - Configuration et gestion des files
 8. [Génération de Paquets](packet-generation.md) - Génération de paquets utilisant PKTGEN
-9. [Information des Threads](thread-information.md) - Information et surveillance des threads
+9. [Information des Threads](worker-lcore-thread-management.md) - Information et surveillance des threads
 10. [Interface TAP](tap-interface.md) - Gestion des interfaces TAP
 11. [Gestion lthread](lthread-management.md) - Gestion des threads légers coopératifs
 12. [Gestion des Périphériques](device-management.md) - Gestion des périphériques et pilotes
@@ -99,14 +99,14 @@ Génération de trafic haute performance et tests :
 
 - [Répéteur Amélioré](enhanced-repeater.md) - Configuration répéteur amélioré
 - [Gestion des Ports](port-management.md) - Configuration des ports DPDK
-- [Gestion des Workers](worker-management.md) - Configuration des workers et lcores
+- [Gestion des Workers](worker-lcore-thread-management.md) - Configuration des workers et lcores
 - [Gestion des Périphériques](device-management.md) - Configuration des périphériques et pilotes
 
 ## Surveillance et Débogage
 
 ### Surveillance Système
 - [Information Système & Surveillance](system-monitoring.md) - Surveillance performance et état système
-- [Information des Threads](thread-information.md) - Surveillance des threads et performance
+- [Information des Threads](worker-lcore-thread-management.md) - Surveillance des threads et performance
 
 ### Outils de Débogage
 - [Débogage & Journalisation](debug-logging.md) - Outils de débogage et logs

@@ -280,6 +280,6 @@ Estos comandos están definidos en los siguientes archivos:
 
 ## Elementos Relacionados
 
-- [Gestión de Workers y lcore](worker-management.md)
+- [Gestión de Workers y lcore](worker-lcore-thread-management.md)
 - [Gestión VTY y Shell](vty-shell.md)
 - [Depuración y Registros](debug-logging.md)

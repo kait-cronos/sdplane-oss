@@ -538,6 +538,6 @@ Questi comandi sono definiti nel seguente file:
 
 ## Argomenti Correlati
 
-- [Gestione Worker e lcore](worker-management.md)
+- [Gestione Worker e lcore](worker-lcore-thread-management.md)
 - [Informazioni Sistema e Monitoraggio](system-monitoring.md)
 - [Configurazione Code](queue-configuration.md)

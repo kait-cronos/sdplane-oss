@@ -1,6 +1,6 @@
 # 线程信息
 
-**语言 / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | **中文** | [Deutsch](../de/thread-information.md) | [Italiano](../it/thread-information.md) | [한국어](../ko/thread-information.md) | [ไทย](../th/thread-information.md) | [Español](../es/thread-information.md)
+**语言 / Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | [Français](../fr/worker-lcore-thread-management.md) | **中文** | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | [Español](../es/worker-lcore-thread-management.md)
 
 处理线程信息和监视的命令。
 
@@ -223,6 +223,6 @@ set worker lthread netlink-thread
 
 ## 相关项目
 
-- [工作者·lcore管理](worker-management.md)
+- [工作者·lcore管理](worker-lcore-thread-management.md)
 - [lthread管理](lthread-management.md)
 - [系统信息·监视](system-monitoring.md)

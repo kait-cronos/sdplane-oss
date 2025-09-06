@@ -1,6 +1,6 @@
 # Gestión de Workers y lcore
 
-**Idioma / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md) | [Deutsch](../de/worker-management.md) | [Italiano](../it/worker-management.md) | [한국어](../ko/worker-management.md) | [ไทย](../th/worker-management.md) | **Español**
+**Idioma / Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | **Español**
 
 Comandos para gestionar hilos de trabajo DPDK y lcore.
 
@@ -227,5 +227,5 @@ Estos comandos están definidos en los siguientes archivos:
 ## Elementos Relacionados
 
 - [Gestión de Puertos y Estadísticas](port-management.md)
-- [Información de Hilos](thread-information.md)
+- [Información de Hilos](worker-lcore-thread-management.md)
 - [Gestión lthread](lthread-management.md)

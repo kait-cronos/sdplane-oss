@@ -394,7 +394,7 @@ PKTGEN supports automated testing across parameter ranges:
 ## Related Documentation
 
 - [Packet Generation Commands](packet-generation.md) - Command reference
-- [Worker Management](worker-management.md) - Worker configuration
+- [Worker Management](worker-lcore-thread-management.md) - Worker configuration
 - [Port Management](port-management.md) - DPDK port setup
 - [Performance Tuning Guide](#) - System optimization tips
 

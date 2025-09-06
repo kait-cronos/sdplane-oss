@@ -252,6 +252,6 @@ restart worker lcore 1
 
 ## รายการที่เกี่ยวข้อง
 
-- [การจัดการ Worker และ lcore](worker-management.md)
+- [การจัดการ Worker และ lcore](worker-lcore-thread-management.md)
 - [การจัดการพอร์ตและสถิติ](port-management.md)
 - [ข้อมูลระบบและการตรวจสอบ](system-monitoring.md)

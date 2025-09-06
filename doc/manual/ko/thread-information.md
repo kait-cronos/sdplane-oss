@@ -1,6 +1,6 @@
 # 스레드 정보
 
-**언어 / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md) | [Deutsch](../de/thread-information.md) | [Italiano](../it/thread-information.md) | **한국어**
+**언어 / Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | **한국어**
 
 스레드 정보와 모니터링을 수행하는 명령어입니다.
 
@@ -223,6 +223,6 @@ set worker lthread netlink-thread
 
 ## 관련 항목
 
-- [워커·lcore 관리](worker-management.md)
+- [워커·lcore 관리](worker-lcore-thread-management.md)
 - [lthread 관리](lthread-management.md)
 - [시스템 정보·모니터링](system-monitoring.md)

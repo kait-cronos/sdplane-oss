@@ -176,6 +176,6 @@ Questo comando è definito nel seguente file:
 
 ## Argomenti Correlati
 
-- [Gestione Worker e lcore](worker-management.md)
+- [Gestione Worker e lcore](worker-lcore-thread-management.md)
 - [Gestione lthread](lthread-management.md)
 - [Informazioni Sistema e Monitoraggio](system-monitoring.md)

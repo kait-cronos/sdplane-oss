@@ -745,5 +745,5 @@ Cette commande est définie dans les fichiers suivants :
 
 - [Répéteur Amélioré](enhanced-repeater.md) - Configuration commutateur virtuel
 - [Gestion des Ports & Statistiques](port-management.md) - Gestion des ports DPDK
-- [Gestion des Workers & lcores](worker-management.md) - Affectations des threads workers
+- [Gestion des Workers & lcores](worker-lcore-thread-management.md) - Affectations des threads workers
 - [Information Système & Surveillance](system-monitoring.md) - Commandes de surveillance système
