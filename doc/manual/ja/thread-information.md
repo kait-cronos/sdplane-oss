@@ -1,6 +1,6 @@
 # スレッド情報
 
-**言語 / Language:** [English](../thread-information.md) | **日本語** | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md)
+**言語 / Language:** [English](../thread-information.md) | **日本語** | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md) | [Deutsch](../de/thread-information.md) | [Italiano](../it/thread-information.md) | [한국어](../ko/thread-information.md) | [ไทย](../th/thread-information.md) | [Español](../es/thread-information.md)
 
 スレッドの情報と監視を行うコマンドです。
 

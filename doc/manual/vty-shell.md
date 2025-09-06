@@ -1,6 +1,6 @@
 # VTY & Shell Management
 
-**Language:** **English** | [Japanese](ja/vty-shell.md) | [French](fr/vty-shell.md) | [Chinese](zh/vty-shell.md)
+**Language:** **English** | [Japanese](ja/vty-shell.md) | [French](fr/vty-shell.md) | [Chinese](zh/vty-shell.md) | [German](de/vty-shell.md) | [Italian](it/vty-shell.md) | [Korean](ko/vty-shell.md) | [Thai](th/vty-shell.md) | [Spanish](es/vty-shell.md)
 
 Commands for managing VTY (Virtual Terminal) and shell.
 

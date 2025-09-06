@@ -1,6 +1,6 @@
 # Debug & Logging
 
-**Language:** **English** | [Japanese](ja/debug-logging.md) | [French](fr/debug-logging.md) | [Chinese](zh/debug-logging.md)
+**Language:** **English** | [Japanese](ja/debug-logging.md) | [French](fr/debug-logging.md) | [Chinese](zh/debug-logging.md) | [German](de/debug-logging.md) | [Italian](it/debug-logging.md) | [Korean](ko/debug-logging.md) | [Thai](th/debug-logging.md) | [Spanish](es/debug-logging.md)
 
 Commands for controlling sdplane debug and logging functions.
 
