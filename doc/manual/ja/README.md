@@ -7,14 +7,14 @@ sdplane-ossは高性能なDPDKベースのソフトウェアルーターです�
 ## 目次
 
 1. [ポート管理・統計](port-management.md) - DPDKポートの管理と統計情報
-2. [ワーカー・lcore管理](worker-lcore-thread-management.md) - ワーカースレッドとlcoreの管理
+2. [ワーカー・lcore管理・スレッド情報](worker-lcore-thread-management.md) - ワーカースレッド、lcore、スレッド情報の管理
 3. [デバッグ・ログ](debug-logging.md) - デバッグとログ機能
 4. [VTY・シェル管理](vty-shell.md) - VTYとシェルの管理
 5. [システム情報・監視](system-monitoring.md) - システム情報と監視機能
 6. [RIB・ルーティング](routing.md) - RIBとルーティング機能
 7. [キュー設定](queue-configuration.md) - キューの設定と管理
 8. [パケット生成](packet-generation.md) - PKTGENを使用したパケット生成
-9. [スレッド情報](worker-lcore-thread-management.md) - スレッドの情報と監視
+
 10. [TAPインターフェース](tap-interface.md) - TAPインターフェースの管理
 11. [lthread管理](lthread-management.md) - lthreadの管理
 12. [デバイス管理](device-management.md) - デバイスとドライバーの管理
@@ -62,7 +62,7 @@ sdplaneには79個のコマンドが定義されており、以下の13の機能
 6. **RIB・ルーティング** (1コマンド) - ルーティング情報の管理
 7. **キュー設定** (3コマンド) - キューの設定
 8. **パケット生成** (3コマンド) - PKTGENによるパケット生成
-9. **スレッド情報** (2コマンド) - スレッドの監視
+
 10. **TAPインターフェース** (2コマンド) - TAPインターフェースの管理
 11. **lthread管理** (3コマンド) - lthreadの管理
 12. **デバイス管理** (2コマンド) - デバイスとドライバーの管理

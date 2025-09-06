@@ -7,14 +7,14 @@ sdplane-oss è un router software ad alte prestazioni basato su DPDK. Questa gui
 ## Indice
 
 1. [Gestione Porte e Statistiche](port-management.md) - Gestione delle porte DPDK e informazioni statistiche
-2. [Gestione Worker e lcore](worker-lcore-thread-management.md) - Gestione dei thread worker e lcore
+2. [Gestion Workers & lcores & Informations Thread](worker-lcore-thread-management.md) - Gestion des threads workers, lcores et informations thread
 3. [Debug e Log](debug-logging.md) - Funzionalità di debug e logging
 4. [Gestione VTY e Shell](vty-shell.md) - Gestione di VTY e shell
 5. [Informazioni Sistema e Monitoraggio](system-monitoring.md) - Informazioni di sistema e funzionalità di monitoraggio
 6. [RIB e Routing](routing.md) - Funzionalità RIB e routing
 7. [Configurazione Code](queue-configuration.md) - Configurazione e gestione delle code
 8. [Generazione Pacchetti](packet-generation.md) - Generazione pacchetti usando PKTGEN
-9. [Informazioni Thread](worker-lcore-thread-management.md) - Informazioni e monitoraggio dei thread
+
 10. [Interfaccia TAP](tap-interface.md) - Gestione delle interfacce TAP
 11. [Gestione lthread](lthread-management.md) - Gestione di lthread
 12. [Gestione Dispositivi](device-management.md) - Gestione di dispositivi e driver

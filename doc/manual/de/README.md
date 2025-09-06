@@ -14,7 +14,7 @@ sdplane-oss ist ein hochleistungsfähiger DPDK-basierter Software-Router. Dieses
 6. [RIB & Routing](routing.md) - RIB- und Routing-Funktionen
 7. [Warteschlangen-Konfiguration](queue-configuration.md) - Warteschlangen-Konfiguration und -verwaltung
 8. [Paketgenerierung](packet-generation.md) - Paketgenerierung mit PKTGEN
-9. [Thread-Informationen](worker-lcore-thread-management.md) - Thread-Informationen und Überwachung
+
 10. [TAP-Interface](tap-interface.md) - TAP-Interface-Verwaltung
 11. [lthread-Verwaltung](lthread-management.md) - lthread-Verwaltung
 12. [Geräteverwaltung](device-management.md) - Geräte- und Treiberverwaltung
