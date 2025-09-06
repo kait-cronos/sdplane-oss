@@ -1,5 +1,9 @@
 
-# sdplane-oss (Soft Data Plane) <img src="sdplane-logo.png" alt="sdplane-oss Logo" width="200" align="right">
+<div align="center">
+<img src="sdplane-logo.png" alt="sdplane-oss Logo" width="160">
+</div>
+
+# sdplane-oss (Soft Data Plane)
 
 A "DPDK-dock Development Environment" consisting of an interactive shell that can control DPDK thread operations and a DPDK thread execution environment (sd-plane)
 
@@ -406,4 +410,12 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Contact
 
 For questions, issues, or contributions, please contact: **sdplane [at] nwlab.org**
+
+## Commercial Version
+
+A commercial version with additional features and support is available. Please visit our sales page for more information:
+
+**[https://www.rca.co.jp/sdplane/](https://www.rca.co.jp/sdplane/)**
+
+*Note: The commercial sales page is currently available in Japanese only.*
 

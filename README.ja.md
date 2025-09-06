@@ -1,4 +1,8 @@
-# sdplane-oss (ソフトデータプレーン) <img src="sdplane-logo.png" alt="sdplane-oss Logo" width="200" align="right">
+<div align="center">
+<img src="sdplane-logo.png" alt="sdplane-oss Logo" width="160">
+</div>
+
+# sdplane-oss (ソフトデータプレーン)
 
 DPDKスレッドの動作を対話的に制御できるShellと、DPDKスレッド実行環境（sd-plane）で構成された「DPDK-dock開発環境」
 
@@ -407,4 +411,10 @@ Network devices using kernel driver
 ## お問い合わせ
 
 ご質問、問題、貢献については、こちらまでご連絡ください：**sdplane [at] nwlab.org**
+
+## 商用バージョン
+
+追加機能とサポートを含む商用バージョンが利用可能です。詳細については販売ページをご覧ください：
+
+**[https://www.rca.co.jp/sdplane/](https://www.rca.co.jp/sdplane/)**
 
