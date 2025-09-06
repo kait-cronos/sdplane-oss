@@ -19,7 +19,7 @@ DPDK-dock方式では、以下により複数のDPDKアプリケーションが�
 ### ワーカースレッドの変換
 - 従来のDPDK pthreadワーカーをsdplane lcoreワーカーに変換
 - `pthread_create()`をsdplaneの`set worker lcore <id> <worker-type>`に置き換え
-- lthreadを使用したsdplaneの協調的スレッディングモデルに適応
+- sdplaneのlcoreベースのスレッディングモデルと統合
 
 ### 初期化の統合
 - アプリケーション固有の`rte_eal_init()`呼び出しを削除
@@ -50,9 +50,6 @@ my_worker_function(__rte_unused void *dummy)
     
     while (!force_quit && !force_stop[lcore_id]) {
         // パケット処理ロジックをここに記述
-        
-        // lthread互換性のための協調的な譲渡
-        rte_delay_us(1);
     }
     
     return 0;
@@ -182,8 +179,8 @@ L2FWD統合について、オリジナルのDPDK l2fwdアプリケーション�
 - リソースクリーンアップを適切に処理
 
 ### スレッディングモデル
-- sdplaneの協調的スレッディングを理解
-- ワーカー関数でブロッキング操作を避ける
+- sdplaneのlcoreベースのスレッディングを理解
+- 効率的なパケット処理ループを設計
 - 適切な同期メカニズムを使用
 - スレッドアフィニティとCPU分離を考慮
 
@@ -230,9 +227,6 @@ while (!force_quit && !force_stop[lcore_id]) {
     
     // 3. パケット送信
     rte_eth_tx_burst(dst_port, queueid, pkts_burst, nb_rx);
-    
-    // 4. 協調的な譲渡
-    rte_delay_us(1);
 }
 ```
 

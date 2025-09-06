@@ -19,7 +19,7 @@ The DPDK-dock method allows multiple DPDK applications to coexist and share reso
 ### Worker Thread Conversion
 - Convert traditional DPDK pthread workers to sdplane lcore workers
 - Replace `pthread_create()` with sdplane's `set worker lcore <id> <worker-type>`
-- Adapt to sdplane's cooperative threading model using lthread
+- Integrate with sdplane's lcore-based threading model
 
 ### Initialization Integration 
 - Remove application-specific `rte_eal_init()` calls
@@ -50,9 +50,6 @@ my_worker_function(__rte_unused void *dummy)
     
     while (!force_quit && !force_stop[lcore_id]) {
         // Your packet processing logic here
-        
-        // Cooperative yield for lthread compatibility
-        rte_delay_us(1);
     }
     
     return 0;
@@ -182,8 +179,8 @@ Custom Layer 2 switching implementation:
 - Handle resource cleanup properly
 
 ### Threading Model
-- Understand sdplane's cooperative threading
-- Avoid blocking operations in worker functions
+- Understand sdplane's lcore-based threading
+- Design efficient packet processing loops
 - Use appropriate synchronization mechanisms
 - Consider thread affinity and CPU isolation
 
@@ -230,9 +227,6 @@ while (!force_quit && !force_stop[lcore_id]) {
     
     // 3. Transmit packets
     rte_eth_tx_burst(dst_port, queueid, pkts_burst, nb_rx);
-    
-    // 4. Cooperative yield
-    rte_delay_us(1);
 }
 ```
 
