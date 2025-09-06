@@ -14,7 +14,7 @@ sdplane-oss是一个基于DPDK的高性能软件路由器。本用户指南介�
 6. [RIB·路由](routing.md) - RIB和路由功能
 7. [队列配置](queue-configuration.md) - 队列的配置和管理
 8. [数据包生成](packet-generation.md) - 使用PKTGEN进行数据包生成
-9. [线程信息](worker-lcore-thread-management.md) - 线程的信息和监视
+
 10. [TAP接口](tap-interface.md) - TAP接口的管理
 11. [lthread管理](lthread-management.md) - lthread的管理
 12. [设备管理](device-management.md) - 设备和驱动程序的管理

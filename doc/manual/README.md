@@ -7,14 +7,14 @@ sdplane-oss is a high-performance DPDK-based software router. This user guide de
 ## Table of Contents
 
 1. [Port Management & Statistics](port-management.md) - DPDK port management and statistics
-2. [Worker & lcore Management](worker-lcore-thread-management.md) - Worker threads and lcore management
+2. [Worker & lcore Management & Thread Information](worker-lcore-thread-management.md) - Worker threads, lcore, and thread information management
 3. [Debug & Logging](debug-logging.md) - Debug and logging functions
 4. [VTY & Shell Management](vty-shell.md) - VTY and shell management
 5. [System Information & Monitoring](system-monitoring.md) - System information and monitoring
 6. [RIB & Routing](routing.md) - RIB and routing functions
 7. [Queue Configuration](queue-configuration.md) - Queue configuration and management
 8. [Packet Generation](packet-generation.md) - Packet generation using PKTGEN
-9. [Thread Information](worker-lcore-thread-management.md) - Thread information and monitoring
+
 10. [TAP Interface](tap-interface.md) - TAP interface management
 11. [lthread Management](lthread-management.md) - lthread management
 12. [Device Management](device-management.md) - Device and driver management
@@ -62,7 +62,7 @@ sdplane has 79 commands defined, classified into the following 13 functional cat
 6. **RIB & Routing** (1 command) - Routing information management
 7. **Queue Configuration** (3 commands) - Queue configuration
 8. **Packet Generation** (3 commands) - Packet generation using PKTGEN
-9. **Thread Information** (2 commands) - Thread monitoring
+
 10. **TAP Interface** (2 commands) - TAP interface management
 11. **lthread Management** (3 commands) - lthread management
 12. **Device Management** (2 commands) - Device and driver management
