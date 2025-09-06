@@ -149,5 +149,5 @@ Questi comandi sono definiti nei seguenti file:
 ## Argomenti Correlati
 
 - [Generazione Pacchetti](packet-generation.md) - Riferimento comandi
-- [Gestione Worker](worker-management.md) - Configurazione worker
+- [Gestione Worker](worker-lcore-thread-management.md) - Configurazione worker
 - [Gestione Porte](port-management.md) - Configurazione porte DPDK

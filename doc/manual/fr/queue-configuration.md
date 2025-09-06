@@ -265,6 +265,6 @@ Configuration files définie dans :
 ## Sujets Associés
 
 - [Gestion Ports](port-management.md) - Configuration ports DPDK
-- [Gestion Workers](worker-management.md) - Affectation workers aux files
-- [Information Threads](thread-information.md) - Surveillance performance threads
+- [Gestion Workers](worker-lcore-thread-management.md) - Affectation workers aux files
+- [Information Threads](worker-lcore-thread-management.md) - Surveillance performance threads
 - [Surveillance Système](system-monitoring.md) - Métriques système globales

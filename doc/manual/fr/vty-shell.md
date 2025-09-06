@@ -319,5 +319,5 @@ VTY/Shell défini dans :
 
 - [Debug & Logging](debug-logging.md) - Debug via interface shell
 - [Surveillance Système](system-monitoring.md) - Commandes surveillance
-- [Gestion Workers](worker-management.md) - Configuration via shell
+- [Gestion Workers](worker-lcore-thread-management.md) - Configuration via shell
 - [Gestion Ports](port-management.md) - Commandes port via shell

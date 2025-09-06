@@ -7,14 +7,14 @@ sdplane-oss는 고성능 DPDK 기반 소프트웨어 라우터입니다. 이 사
 ## 목차
 
 1. [포트 관리·통계](port-management.md) - DPDK 포트 관리 및 통계 정보
-2. [워커·lcore 관리](worker-management.md) - 워커 스레드와 lcore 관리
+2. [워커·lcore 관리](worker-lcore-thread-management.md) - 워커 스레드와 lcore 관리
 3. [디버그·로그](debug-logging.md) - 디버그 및 로그 기능
 4. [VTY·셸 관리](vty-shell.md) - VTY와 셸 관리
 5. [시스템 정보·모니터링](system-monitoring.md) - 시스템 정보 및 모니터링 기능
 6. [RIB·라우팅](routing.md) - RIB와 라우팅 기능
 7. [큐 설정](queue-configuration.md) - 큐 설정 및 관리
 8. [패킷 생성](packet-generation.md) - PKTGEN을 사용한 패킷 생성
-9. [스레드 정보](thread-information.md) - 스레드 정보 및 모니터링
+9. [스레드 정보](worker-lcore-thread-management.md) - 스레드 정보 및 모니터링
 10. [TAP 인터페이스](tap-interface.md) - TAP 인터페이스 관리
 11. [lthread 관리](lthread-management.md) - lthread 관리
 12. [장치 관리](device-management.md) - 장치 및 드라이버 관리

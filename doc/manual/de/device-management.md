@@ -284,5 +284,5 @@ Diese Befehle sind in den folgenden Dateien definiert:
 ## Verwandte Themen
 
 - [Port-Management und Statistiken](port-management.md)
-- [Worker- und lcore-Management](worker-management.md)
+- [Worker- und lcore-Management](worker-lcore-thread-management.md)
 - [Systeminformationen und Überwachung](system-monitoring.md)

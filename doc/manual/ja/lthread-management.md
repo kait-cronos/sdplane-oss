@@ -277,7 +277,7 @@ lthreadは協調的に動作するため、以下の点に注意が必要です�
 
 ## 関連項目
 
-- [ワーカー・lcore管理](worker-management.md)
-- [スレッド情報](thread-information.md)
+- [ワーカー・lcore管理](worker-lcore-thread-management.md)
+- [スレッド情報](worker-lcore-thread-management.md)
 - [システム情報・監視](system-monitoring.md)
 - [RIB・ルーティング](routing.md)

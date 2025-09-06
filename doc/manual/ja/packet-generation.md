@@ -252,6 +252,6 @@ PKTGENでは、様々なパケット形式を生成できます：
 
 ## 関連項目
 
-- [ワーカー・lcore管理](worker-management.md)
+- [ワーカー・lcore管理](worker-lcore-thread-management.md)
 - [ポート管理・統計](port-management.md)
 - [システム情報・監視](system-monitoring.md)

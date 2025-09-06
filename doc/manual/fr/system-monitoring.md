@@ -1194,5 +1194,5 @@ Ces commandes sont définies dans le fichier suivant :
 ## Sujets Associés
 
 - [Gestion des Ports & Statistiques](port-management.md)
-- [Gestion des Workers & lcore](worker-management.md)
-- [Informations des Threads](thread-information.md)
+- [Gestion des Workers & lcore](worker-lcore-thread-management.md)
+- [Informations des Threads](worker-lcore-thread-management.md)

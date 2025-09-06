@@ -1,6 +1,6 @@
 # スレッド情報
 
-**言語 / Language:** [English](../thread-information.md) | **日本語** | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md) | [Deutsch](../de/thread-information.md) | [Italiano](../it/thread-information.md) | [한국어](../ko/thread-information.md) | [ไทย](../th/thread-information.md) | [Español](../es/thread-information.md)
+**言語 / Language:** [English](../worker-lcore-thread-management.md) | **日本語** | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | [Español](../es/worker-lcore-thread-management.md)
 
 スレッドの情報と監視を行うコマンドです。
 
@@ -223,6 +223,6 @@ set worker lthread netlink-thread
 
 ## 関連項目
 
-- [ワーカー・lcore管理](worker-management.md)
+- [ワーカー・lcore管理](worker-lcore-thread-management.md)
 - [lthread管理](lthread-management.md)
 - [システム情報・監視](system-monitoring.md)

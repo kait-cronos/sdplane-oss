@@ -176,6 +176,6 @@ RIBマネージャーは独立したスレッドとして動作し、以下の�
 
 ## 関連項目
 
-- [ワーカー・lcore管理](worker-management.md)
+- [ワーカー・lcore管理](worker-lcore-thread-management.md)
 - [lthread管理](lthread-management.md)
 - [システム情報・監視](system-monitoring.md)

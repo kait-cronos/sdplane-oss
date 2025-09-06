@@ -198,5 +198,5 @@ show port statistics
 ## 관련 항목
 
 - [포트 관리·통계](port-management.md)
-- [워커·lcore 관리](worker-management.md)
-- [스레드 정보](thread-information.md)
+- [워커·lcore 관리](worker-lcore-thread-management.md)
+- [스레드 정보](worker-lcore-thread-management.md)

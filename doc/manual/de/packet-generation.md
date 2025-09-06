@@ -252,6 +252,6 @@ Diese Befehle sind in den folgenden Dateien definiert:
 
 ## Verwandte Themen
 
-- [Worker- und lcore-Management](worker-management.md)
+- [Worker- und lcore-Management](worker-lcore-thread-management.md)
 - [Port-Management und Statistiken](port-management.md)
 - [Systeminformationen und Überwachung](system-monitoring.md)

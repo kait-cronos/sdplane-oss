@@ -288,6 +288,6 @@ debug sdplane fdb-change
 ## Verwandte Dokumentation
 
 - [Enhanced Repeater-Befehle](enhanced-repeater.md) - Vollständige Befehlsreferenz
-- [Worker-Management](worker-management.md) - Details zur Worker-Konfiguration
+- [Worker-Management](worker-lcore-thread-management.md) - Details zur Worker-Konfiguration
 - [Port-Management](port-management.md) - DPDK-Port-Konfiguration
 - [TAP-Interface-Management](tap-interface.md) - TAP-Interface-Details

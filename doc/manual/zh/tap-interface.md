@@ -280,6 +280,6 @@ set tap capture ifname tap1
 
 ## 相关项目
 
-- [工作者·lcore管理](worker-management.md)
+- [工作者·lcore管理](worker-lcore-thread-management.md)
 - [VTY·Shell管理](vty-shell.md)
 - [调试·日志](debug-logging.md)

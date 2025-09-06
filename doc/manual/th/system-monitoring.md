@@ -243,5 +243,5 @@ show mempool
 ## รายการที่เกี่ยวข้อง
 
 - [การจัดการพอร์ตและสถิติ](port-management.md)
-- [การจัดการ Worker และ lcore](worker-management.md)
-- [ข้อมูลเธรด](thread-information.md)
+- [การจัดการ Worker และ lcore](worker-lcore-thread-management.md)
+- [ข้อมูลเธรด](worker-lcore-thread-management.md)

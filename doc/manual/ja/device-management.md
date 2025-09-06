@@ -284,5 +284,5 @@ set device 0000:02:00.1 driver vfio-pci bind
 ## 関連項目
 
 - [ポート管理・統計](port-management.md)
-- [ワーカー・lcore管理](worker-management.md)
+- [ワーカー・lcore管理](worker-lcore-thread-management.md)
 - [システム情報・監視](system-monitoring.md)

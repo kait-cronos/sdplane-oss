@@ -394,7 +394,7 @@ PKTGEN soporta pruebas automatizadas en rangos de parámetros:
 ## Documentación Relacionada
 
 - [Comandos de Generación de Paquetes](packet-generation.md) - Referencia de comandos
-- [Gestión de Workers](worker-management.md) - Configuración de workers
+- [Gestión de Workers](worker-lcore-thread-management.md) - Configuración de workers
 - [Gestión de Puertos](port-management.md) - Configuración de puertos DPDK
 - [Guía de Ajuste de Rendimiento](#) - Consejos de optimización del sistema
 

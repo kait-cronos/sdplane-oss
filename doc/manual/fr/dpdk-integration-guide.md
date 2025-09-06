@@ -261,7 +261,7 @@ Applications fournissant services contrôle :
 
 ## Sujets Associés
 
-- [Gestion Workers](worker-management.md) - Configuration et gestion workers
+- [Gestion Workers](worker-lcore-thread-management.md) - Configuration et gestion workers
 - [RIB & Routage](routing.md) - Accès données système avec RCU
-- [Information Threads](thread-information.md) - Surveillance performance threads
+- [Information Threads](worker-lcore-thread-management.md) - Surveillance performance threads
 - [Gestion Ports](port-management.md) - Configuration ports DPDK partagés

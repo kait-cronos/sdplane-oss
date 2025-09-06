@@ -1,6 +1,6 @@
 # Información de Hilos
 
-**Idioma / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md) | [Deutsch](../de/thread-information.md) | [Italiano](../it/thread-information.md) | [한국어](../ko/thread-information.md) | [ไทย](../th/thread-information.md) | **Español**
+**Idioma / Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | **Español**
 
 Comandos para información y monitorización de hilos.
 
@@ -223,6 +223,6 @@ Estos comandos están definidos en los siguientes archivos:
 
 ## Elementos Relacionados
 
-- [Gestión de Workers y lcore](worker-management.md)
+- [Gestión de Workers y lcore](worker-lcore-thread-management.md)
 - [Gestión lthread](lthread-management.md)
 - [Información del Sistema y Monitorización](system-monitoring.md)

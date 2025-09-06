@@ -1,6 +1,6 @@
 # ข้อมูลเธรด
 
-**ภาษา / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md) | [Deutsch](../de/thread-information.md) | [Italiano](../it/thread-information.md) | [한국어](../ko/thread-information.md) | **ไทย**
+**ภาษา / Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | **ไทย**
 
 คำสั่งที่แสดงข้อมูลและตรวจสอบเธรด
 
@@ -223,6 +223,6 @@ set worker lthread netlink-thread
 
 ## รายการที่เกี่ยวข้อง
 
-- [การจัดการ Worker และ lcore](worker-management.md)
+- [การจัดการ Worker และ lcore](worker-lcore-thread-management.md)
 - [การจัดการ lthread](lthread-management.md)
 - [ข้อมูลระบบและการตรวจสอบ](system-monitoring.md)

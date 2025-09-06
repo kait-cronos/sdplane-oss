@@ -394,7 +394,7 @@ PKTGEN unterstützt automatisierte Tests über Parameterbereiche:
 ## Verwandte Dokumentation
 
 - [Paketgenerierung-Befehle](packet-generation.md) - Befehlsreferenz
-- [Worker-Management](worker-management.md) - Worker-Konfiguration
+- [Worker-Management](worker-lcore-thread-management.md) - Worker-Konfiguration
 - [Port-Management](port-management.md) - DPDK-Port-Setup
 - [Leistungstuning-Leitfaden](#) - System-Optimierungstipps
 

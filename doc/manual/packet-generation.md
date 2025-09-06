@@ -252,6 +252,6 @@ These commands are defined in the following file:
 
 ## Related Topics
 
-- [Worker & lcore Management](worker-management.md)
+- [Worker & lcore Management](worker-lcore-thread-management.md)
 - [Port Management & Statistics](port-management.md)
 - [System Information & Monitoring](system-monitoring.md)

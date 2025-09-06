@@ -243,5 +243,5 @@ Questi comandi sono definiti nel seguente file:
 ## Argomenti Correlati
 
 - [Gestione Porte e Statistiche](port-management.md)
-- [Gestione Worker e lcore](worker-management.md)
-- [Informazioni Thread](thread-information.md)
+- [Gestione Worker e lcore](worker-lcore-thread-management.md)
+- [Informazioni Thread](worker-lcore-thread-management.md)

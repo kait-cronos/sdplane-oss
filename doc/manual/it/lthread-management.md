@@ -277,7 +277,7 @@ Questi comandi sono definiti nel seguente file:
 
 ## Argomenti Correlati
 
-- [Gestione Worker e lcore](worker-management.md)
-- [Informazioni Thread](thread-information.md)
+- [Gestione Worker e lcore](worker-lcore-thread-management.md)
+- [Informazioni Thread](worker-lcore-thread-management.md)
 - [Informazioni Sistema e Monitoraggio](system-monitoring.md)
 - [RIB e Routing](routing.md)

@@ -534,6 +534,6 @@ set port all link down
 
 ## 관련 항목
 
-- [워커·lcore 관리](worker-management.md)
+- [워커·lcore 관리](worker-lcore-thread-management.md)
 - [시스템 정보·모니터링](system-monitoring.md)
 - [큐 설정](queue-configuration.md)

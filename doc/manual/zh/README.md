@@ -7,14 +7,14 @@ sdplane-oss是一个基于DPDK的高性能软件路由器。本用户指南介�
 ## 目录
 
 1. [端口管理·统计](port-management.md) - DPDK端口的管理和统计信息
-2. [工作线程·lcore管理](worker-management.md) - 工作线程和lcore的管理
+2. [工作线程·lcore管理](worker-lcore-thread-management.md) - 工作线程和lcore的管理
 3. [调试·日志](debug-logging.md) - 调试和日志功能
 4. [VTY·shell管理](vty-shell.md) - VTY和shell的管理
 5. [系统信息·监视](system-monitoring.md) - 系统信息和监视功能
 6. [RIB·路由](routing.md) - RIB和路由功能
 7. [队列配置](queue-configuration.md) - 队列的配置和管理
 8. [数据包生成](packet-generation.md) - 使用PKTGEN进行数据包生成
-9. [线程信息](thread-information.md) - 线程的信息和监视
+9. [线程信息](worker-lcore-thread-management.md) - 线程的信息和监视
 10. [TAP接口](tap-interface.md) - TAP接口的管理
 11. [lthread管理](lthread-management.md) - lthread的管理
 12. [设备管理](device-management.md) - 设备和驱动程序的管理
@@ -119,14 +119,14 @@ sdplane定义了79个命令，分为以下13个功能类别：
 
 - [增强中继器](enhanced-repeater.md) - 增强中继器配置
 - [端口管理](port-management.md) - DPDK端口配置
-- [工作线程管理](worker-management.md) - 工作线程和lcore配置
+- [工作线程管理](worker-lcore-thread-management.md) - 工作线程和lcore配置
 - [设备管理](device-management.md) - 设备和驱动程序配置
 
 ## 监视和调试
 
 ### 系统监视
 - [系统信息·监视](system-monitoring.md) - 性能监视和系统状态
-- [线程信息](thread-information.md) - 线程监视和性能
+- [线程信息](worker-lcore-thread-management.md) - 线程监视和性能
 
 ### 调试工具
 - [调试·日志](debug-logging.md) - 调试工具和日志

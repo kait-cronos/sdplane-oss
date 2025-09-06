@@ -538,6 +538,6 @@ set port all link down
 
 ## 関連項目
 
-- [ワーカー・lcore管理](worker-management.md)
+- [ワーカー・lcore管理](worker-lcore-thread-management.md)
 - [システム情報・監視](system-monitoring.md)
 - [キュー設定](queue-configuration.md)

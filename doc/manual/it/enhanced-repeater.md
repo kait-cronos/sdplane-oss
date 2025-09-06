@@ -192,5 +192,5 @@ Questi comandi sono definiti nel seguente file:
 ## Argomenti Correlati
 
 - [Applicazione Ripetitore Avanzato](enhanced-repeater-application.md)
-- [Gestione Worker e lcore](worker-management.md)
+- [Gestione Worker e lcore](worker-lcore-thread-management.md)
 - [Interfaccia TAP](tap-interface.md)

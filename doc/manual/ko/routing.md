@@ -176,6 +176,6 @@ RIB 관리자는 독립적인 스레드로 동작하며 다음 기능을 제공�
 
 ## 관련 항목
 
-- [워커·lcore 관리](worker-management.md)
+- [워커·lcore 관리](worker-lcore-thread-management.md)
 - [lthread 관리](lthread-management.md)
 - [시스템 정보·모니터링](system-monitoring.md)

@@ -1,6 +1,6 @@
 # 워커·lcore 관리
 
-**언어 / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md) | [Deutsch](../de/worker-management.md) | [Italiano](../it/worker-management.md) | **한국어**
+**언어 / Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | **한국어**
 
 DPDK 워커 스레드와 lcore 관리를 수행하는 명령어입니다.
 
@@ -226,5 +226,5 @@ VLAN(Virtual LAN) 기능을 제공하는 스위칭 워커입니다.
 ## 관련 항목
 
 - [포트 관리·통계](port-management.md)
-- [스레드 정보](thread-information.md)
+- [스레드 정보](worker-lcore-thread-management.md)
 - [lthread 관리](lthread-management.md)

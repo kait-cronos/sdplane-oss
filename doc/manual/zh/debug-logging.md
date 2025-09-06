@@ -1,98 +1,257 @@
-# 调试·日志
+# 调试和日志记录
 
-**语言 / Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | [Français](../fr/debug-logging.md) | **中文** | [Deutsch](../de/debug-logging.md) | [Italiano](../it/debug-logging.md) | [한국어](../ko/debug-logging.md) | [ไทย](../th/debug-logging.md) | [Español](../es/debug-logging.md)
+**Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | [Français](../fr/debug-logging.md) | [中文](../zh/debug-logging.md) | [Deutsch](../de/debug-logging.md) | [Italiano](../it/debug-logging.md) | [한국어](../ko/debug-logging.md) | [ไทย](../th/debug-logging.md) | [Español](../es/debug-logging.md)
 
-控制sdplane调试和日志功能的命令。
+用于控制sdplane调试和日志记录功能的命令。
 
-## 命令一览
+## 命令列表
 
-### debug_sdplane - sdplane调试设置
+### log_file - 日志文件输出配置
 ```
-debug sdplane [类别] [级别]
+log file <file-path>
 ```
 
-设置sdplane的调试日志。该命令是动态生成的，因此可用的类别和级别在运行时确定。
+配置日志输出到文件。
 
-**使用例：**
+**参数：**
+- <文件路径> - 日志输出文件的路径
+
+**示例：**
 ```bash
-# 启用调试设置
-debug sdplane
+# 将日志输出到指定文件
+log file /var/log/sdplane.log
 
-# 启用特定类别的调试
-debug sdplane [category] [level]
+# 调试日志文件
+log file /tmp/sdplane-debug.log
 ```
 
-**注意：** 具体的类别和级别可以通过 `show debugging sdplane` 命令确认。
+### log_stdout - 标准输出日志配置
+```
+log stdout
+```
 
-### show_debug_sdplane - sdplane调试信息显示
+配置日志输出到标准输出。
+
+**示例：**
+```bash
+# 在标准输出上显示日志
+log stdout
+```
+
+**注意：** `log file`和`log stdout`可以同时配置，日志将输出到两个目的地。
+
+### debug - 调试配置
+```
+debug <category> <target>
+```
+
+为指定类别内的特定目标启用调试日志记录。
+
+**类别：**
+- `sdplane` - 主sdplane类别
+- `zcmdsh` - 命令shell类别
+
+**sdplane目标列表：**
+- `lthread` - 轻量级线程
+- `console` - 控制台
+- `tap-handler` - TAP处理程序
+- `l2fwd` - L2转发
+- `l3fwd` - L3转发
+- `vty-server` - VTY服务器
+- `vty-shell` - VTY shell
+- `stat-collector` - 统计收集器
+- `packet` - 数据包处理
+- `fdb` - FDB（转发数据库）
+- `fdb-change` - FDB更改
+- `rib` - RIB（路由信息库）
+- `vswitch` - 虚拟交换机
+- `vlan-switch` - VLAN交换机
+- `pktgen` - 数据包生成器
+- `enhanced-repeater` - 增强中继器
+- `netlink` - Netlink接口
+- `neighbor` - 邻居管理
+- `all` - 所有目标
+
+**示例：**
+```bash
+# 为特定目标启用调试
+debug sdplane rib
+debug sdplane fdb-change
+debug sdplane pktgen
+
+# 启用所有sdplane调试
+debug sdplane all
+
+# zcmdsh类别调试
+debug zcmdsh shell
+debug zcmdsh command
+```
+
+### no debug - 调试禁用
+```
+no debug <category> <target>
+```
+
+为指定类别内的特定目标禁用调试日志记录。
+
+**示例：**
+```bash
+# 禁用特定目标的调试
+no debug sdplane rib
+no debug sdplane fdb-change
+
+# 禁用所有sdplane调试（推荐）
+no debug sdplane all
+
+# 禁用zcmdsh类别调试
+no debug zcmdsh all
+```
+
+### show_debug_sdplane - Display sdplane Debug Information
 ```
 show debugging sdplane
 ```
 
-显示当前的sdplane调试设置。
+Display current sdplane debug configuration.
 
-**使用例：**
+**Examples:**
 ```bash
 show debugging sdplane
 ```
 
-该命令显示以下信息：
-- 当前启用的调试类别
-- 各类别的调试级别
-- 可用的调试选项
+This command displays the following information:
+- Currently enabled debug targets
+- Debug status for each target
+- Available debug options
 
-## 调试系统概要
+## Debug System Overview
 
-sdplane的调试系统具有以下特点：
+The sdplane debug system has the following features:
 
-### 基于类别的调试
-- 不同功能模块按调试类别分开
-- 可以仅启用必要功能的调试日志
+### Category-based Debugging
+- Debug categories are separated by different functional modules
+- You can enable debug logs only for the necessary functions
 
-### 基于级别的控制
-- 调试消息根据重要性分为不同级别
-- 通过设置适当的级别，可以仅显示必要的信息
+### Target-based Control
+- Debug messages are classified by target type
+- You can display only necessary information by setting appropriate targets
 
-### 动态设置
-- 可以在系统运行中更改调试设置
-- 无需重启即可调整调试级别
+### Dynamic Configuration
+- Debug configuration can be changed while the system is running
+- Debug targets can be adjusted without restart
 
-## 使用方法
+## Usage
 
-### 1. 确认当前调试设置
+### 1. Configure Log Output
+```bash
+# Configure log file output (recommended)
+log file /var/log/sdplane.log
+
+# Configure standard output
+log stdout
+
+# Enable both (convenient for debugging)
+log file /var/log/sdplane.log
+log stdout
+```
+
+### 2. Check Current Debug Configuration
 ```bash
 show debugging sdplane
 ```
 
-### 2. 确认调试类别
-请通过 `show debugging sdplane` 命令确认可用的类别。
+### 3. Check Debug Targets
+Use the `show debugging sdplane` command to check available targets and their status.
 
-### 3. 更改调试设置
+### 4. Change Debug Configuration
 ```bash
-# 启用特定类别的调试
-debug sdplane [category] [level]
+# Enable debug for specific targets
+debug sdplane rib
+debug sdplane fdb-change
+
+# Enable all targets at once
+debug sdplane all
 ```
 
-### 4. 确认调试日志
-调试日志输出到标准输出或日志文件。
+### 5. Check Debug Logs
+Debug logs are output to the configured destinations (file or standard output).
 
-## 故障排除
+## Troubleshooting
 
-### 调试日志未输出时
-1. 确认调试类别设置是否正确
-2. 确认调试级别设置是否合适
-3. 确认日志输出目标设置是否正确
+### When Debug Logs Are Not Output
+1. Check if log output is configured (`log file` or `log stdout`)
+2. Check if debug targets are correctly configured (`debug sdplane <target>`)
+3. Check current debug status (`show debugging sdplane`)
+4. Check log file disk space and permissions
 
-### 对性能的影响
-- 启用调试日志可能影响性能
-- 建议在生产环境中仅启用必要的最小调试
+### Log File Management
+```bash
+# Check log file size
+ls -lh /var/log/sdplane.log
 
-## 定义位置
+# Tail log file
+tail -f /var/log/sdplane.log
 
-这些命令在以下文件中定义：
+# Check log file location (configuration file example)
+grep "log file" /etc/sdplane/sdplane.conf
+```
+
+### Performance Impact
+- Enabling debug logs may impact performance
+- It is recommended to enable only minimal debugging in production environments
+- Regularly rotate log files to prevent them from becoming too large
+
+## Configuration Examples
+
+### Basic Log Configuration
+```bash
+# Configuration file example (/etc/sdplane/sdplane.conf)
+log file /var/log/sdplane.log
+log stdout
+
+# Enable debug at system startup
+debug sdplane rib
+debug sdplane fdb-change
+```
+
+### Debugging Configuration
+```bash
+# Detailed debug log configuration
+log file /tmp/sdplane-debug.log
+log stdout
+
+# Enable all target debugging (development only)
+debug sdplane all
+
+# Enable specific targets only
+debug sdplane rib
+debug sdplane fdb-change
+debug sdplane vswitch
+```
+
+### Production Environment Configuration
+```bash
+# Standard logging only in production
+log file /var/log/sdplane.log
+
+# Enable only critical targets as needed
+# debug sdplane fdb-change
+# debug sdplane rib
+```
+
+### Debug Cleanup Operations
+```bash
+# Disable all debugging
+no debug sdplane all
+no debug zcmdsh all
+```
+
+## Definition Location
+
+These commands are defined in the following file:
 - `sdplane/debug_sdplane.c`
 
-## 相关项目
+## Related Topics
 
-- [系统信息·监视](system-monitoring.md)
-- [VTY·Shell管理](vty-shell.md)
+- [System Information & Monitoring](system-monitoring.md)
+- [VTY & Shell Management](vty-shell.md)

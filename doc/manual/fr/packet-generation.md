@@ -346,6 +346,6 @@ PKTGEN défini dans :
 ## Sujets Associés
 
 - [Application Générateur Paquets](packet-generator-application.md) - Guide application complet
-- [Gestion Workers](worker-management.md) - Configuration workers PKTGEN
+- [Gestion Workers](worker-lcore-thread-management.md) - Configuration workers PKTGEN
 - [Gestion Ports](port-management.md) - Configuration ports pour PKTGEN  
 - [Surveillance Système](system-monitoring.md) - Surveillance performance PKTGEN

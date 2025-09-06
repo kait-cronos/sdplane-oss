@@ -1,6 +1,6 @@
 # 工作者·lcore管理
 
-**语言 / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | **中文** | [Deutsch](../de/worker-management.md) | [Italiano](../it/worker-management.md) | [한국어](../ko/worker-management.md) | [ไทย](../th/worker-management.md) | [Español](../es/worker-management.md)
+**语言 / Language:** [English](../worker-lcore-thread-management.md) | [日本語](../ja/worker-lcore-thread-management.md) | [Français](../fr/worker-lcore-thread-management.md) | **中文** | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | [Español](../es/worker-lcore-thread-management.md)
 
 管理DPDK工作者线程和lcore的命令。
 
@@ -227,5 +227,5 @@ rte_eal_init
 ## 相关项目
 
 - [端口管理·统计](port-management.md)
-- [线程信息](thread-information.md)
+- [线程信息](worker-lcore-thread-management.md)
 - [lthread管理](lthread-management.md)

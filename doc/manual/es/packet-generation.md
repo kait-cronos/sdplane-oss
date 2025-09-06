@@ -252,6 +252,6 @@ Estos comandos están definidos en los siguientes archivos:
 
 ## Elementos Relacionados
 
-- [Gestión de Workers y lcore](worker-management.md)
+- [Gestión de Workers y lcore](worker-lcore-thread-management.md)
 - [Gestión de Puertos y Estadísticas](port-management.md)
 - [Información del Sistema y Monitorización](system-monitoring.md)

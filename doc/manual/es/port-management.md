@@ -538,6 +538,6 @@ Estos comandos están definidos en los siguientes archivos:
 
 ## Elementos Relacionados
 
-- [Gestión de Workers y lcore](worker-management.md)
+- [Gestión de Workers y lcore](worker-lcore-thread-management.md)
 - [Información del Sistema y Monitorización](system-monitoring.md)
 - [Configuración de Colas](queue-configuration.md)

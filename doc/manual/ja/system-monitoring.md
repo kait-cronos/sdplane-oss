@@ -243,5 +243,5 @@ show mempool
 ## 関連項目
 
 - [ポート管理・統計](port-management.md)
-- [ワーカー・lcore管理](worker-management.md)
-- [スレッド情報](thread-information.md)
+- [ワーカー・lcore管理](worker-lcore-thread-management.md)
+- [スレッド情報](worker-lcore-thread-management.md)

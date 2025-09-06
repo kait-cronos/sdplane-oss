@@ -1,98 +1,257 @@
-# การดีบักและล็อก
+# การดีบักและการบันทึก
 
-**ภาษา / Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | [Français](../fr/debug-logging.md) | [中文](../zh/debug-logging.md) | [Deutsch](../de/debug-logging.md) | [Italiano](../it/debug-logging.md) | [한국어](../ko/debug-logging.md) | **ไทย**
+**Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | [Français](../fr/debug-logging.md) | [中文](../zh/debug-logging.md) | [Deutsch](../de/debug-logging.md) | [Italiano](../it/debug-logging.md) | [한국어](../ko/debug-logging.md) | [ไทย](../th/debug-logging.md) | [Español](../es/debug-logging.md)
 
-คำสั่งที่ควบคุมฟังก์ชันการดีบักและล็อกของ sdplane
+คำสั่งสำหรับควบคุมฟังก์ชันการดีบักและการบันทึกของ sdplane
 
 ## รายการคำสั่ง
 
-### debug_sdplane - การตั้งค่าการดีบัก sdplane
+### log_file - การกำหนดค่าเอาต์พุตไฟล์บันทึก
 ```
-debug sdplane [หมวดหมู่] [ระดับ]
+log file <file-path>
 ```
 
-ตั้งค่าล็อกการดีบักของ sdplane คำสั่งนี้จะถูกสร้างขึ้นแบบ dynamic ดังนั้นหมวดหมู่และระดับที่ใช้ได้จะถูกกำหนดใน runtime
+กำหนดค่าการบันทึกเพื่อเอาต์พุตไปยังไฟล์
 
-**ตัวอย่างการใช้งาน:**
+**พารามิเตอร์:**
+- <เส้นทาง-ไฟล์> - เส้นทางไปยังไฟล์เอาต์พุตบันทึก
+
+**ตัวอย่าง:**
 ```bash
-# เปิดใช้งานการตั้งค่าการดีบัก
-debug sdplane
+# เอาต์พุตบันทึกไปยังไฟล์ที่ระบุ
+log file /var/log/sdplane.log
 
-# เปิดใช้งานการดีบักสำหรับหมวดหมู่เฉพาะ
-debug sdplane [category] [level]
+# ไฟล์บันทึกดีบัก
+log file /tmp/sdplane-debug.log
 ```
 
-**หมายเหตุ:** หมวดหมู่และระดับที่เฉพาะเจาะจงสามารถตรวจสอบได้ด้วยคำสั่ง `show debugging sdplane`
+### log_stdout - การกำหนดค่าบันทึกเอาต์พุตมาตรฐาน
+```
+log stdout
+```
 
-### show_debug_sdplane - การแสดงข้อมูลการดีบัก sdplane
+กำหนดค่าการบันทึกสำหรับเอาต์พุตไปยังเอาต์พุตมาตรฐาน
+
+**ตัวอย่าง:**
+```bash
+# แสดงบันทึกบนเอาต์พุตมาตรฐาน
+log stdout
+```
+
+**หมายเหตุ:** สามารถกำหนดค่า `log file` และ `log stdout` พร้อมกันได้ และบันทึกจะถูกส่งไปยังทั้งสองปลายทาง
+
+### debug - การกำหนดค่าดีบัก
+```
+debug <category> <target>
+```
+
+เปิดใช้งานการบันทึกดีบักสำหรับเป้าหมายเฉพาะในหมวดหมู่ที่ระบุ
+
+**หมวดหมู่:**
+- `sdplane` - หมวดหมู่ sdplane หลัก
+- `zcmdsh` - หมวดหมู่คำสั่งเชลล์
+
+**รายการเป้าหมาย sdplane:**
+- `lthread` - เธรดน้ำหนักเบา
+- `console` - คอนโซล
+- `tap-handler` - ตัวจัดการ TAP
+- `l2fwd` - การส่งต่อ L2
+- `l3fwd` - การส่งต่อ L3
+- `vty-server` - เซิร์ฟเวอร์ VTY
+- `vty-shell` - เชลล์ VTY
+- `stat-collector` - ตัวรวบรวมสถิติ
+- `packet` - การประมวลผลแพ็กเก็ต
+- `fdb` - FDB (ฐานข้อมูลการส่งต่อ)
+- `fdb-change` - การเปลี่ยนแปลง FDB
+- `rib` - RIB (ฐานข้อมูลข้อมูลเส้นทาง)
+- `vswitch` - สวิตช์เสมือน
+- `vlan-switch` - สวิตช์ VLAN
+- `pktgen` - ตัวสร้างแพ็กเก็ต
+- `enhanced-repeater` - รีพีตเตอร์ขั้นสูง
+- `netlink` - อินเทอร์เฟซ Netlink
+- `neighbor` - การจัดการเพื่อนบ้าน
+- `all` - เป้าหมายทั้งหมด
+
+**ตัวอย่าง:**
+```bash
+# เปิดใช้งานดีบักสำหรับเป้าหมายเฉพาะ
+debug sdplane rib
+debug sdplane fdb-change
+debug sdplane pktgen
+
+# เปิดใช้งานดีบัก sdplane ทั้งหมด
+debug sdplane all
+
+# ดีบักหมวดหมู่ zcmdsh
+debug zcmdsh shell
+debug zcmdsh command
+```
+
+### no debug - ปิดใช้งานดีบัก
+```
+no debug <category> <target>
+```
+
+ปิดใช้งานการบันทึกดีบักสำหรับเป้าหมายเฉพาะในหมวดหมู่ที่ระบุ
+
+**ตัวอย่าง:**
+```bash
+# ปิดใช้งานดีบักสำหรับเป้าหมายเฉพาะ
+no debug sdplane rib
+no debug sdplane fdb-change
+
+# ปิดใช้งานดีบัก sdplane ทั้งหมด (แนะนำ)
+no debug sdplane all
+
+# ปิดใช้งานดีบักหมวดหมู่ zcmdsh
+no debug zcmdsh all
+```
+
+### show_debug_sdplane - Display sdplane Debug Information
 ```
 show debugging sdplane
 ```
 
-แสดงการตั้งค่าการดีบัก sdplane ปัจจุบัน
+Display current sdplane debug configuration.
 
-**ตัวอย่างการใช้งาน:**
+**Examples:**
 ```bash
 show debugging sdplane
 ```
 
-คำสั่งนี้จะแสดงข้อมูลต่อไปนี้:
-- หมวดหมู่การดีบักที่เปิดใช้งานอยู่ในปัจจุบัน
-- ระดับการดีบักของแต่ละหมวดหมู่
-- ตัวเลือกการดีบักที่ใช้ได้
+This command displays the following information:
+- Currently enabled debug targets
+- Debug status for each target
+- Available debug options
 
-## ภาพรวมของระบบการดีบัก
+## Debug System Overview
 
-ระบบการดีบักของ sdplane มีลักษณะดังต่อไปนี้:
+The sdplane debug system has the following features:
 
-### การดีบักตามหมวดหมู่
-- หมวดหมู่การดีบักแยกตามโมดูลฟังก์ชันที่แตกต่างกัน
-- สามารถเปิดใช้งานล็อกการดีบักเฉพาะฟังก์ชันที่จำเป็นเท่านั้น
+### Category-based Debugging
+- Debug categories are separated by different functional modules
+- You can enable debug logs only for the necessary functions
 
-### การควบคุมตามระดับ
-- ข้อความการดีบักจะถูกแยกตามระดับความสำคัญ
-- สามารถแสดงเฉพาะข้อมูลที่จำเป็นโดยการตั้งค่าระดับที่เหมาะสม
+### Target-based Control
+- Debug messages are classified by target type
+- You can display only necessary information by setting appropriate targets
 
-### การตั้งค่าแบบ Dynamic
-- สามารถเปลี่ยนแปลงการตั้งค่าการดีบักขณะที่ระบบทำงานอยู่
-- สามารถปรับระดับการดีบักได้โดยไม่ต้องรีสตาร์ท
+### Dynamic Configuration
+- Debug configuration can be changed while the system is running
+- Debug targets can be adjusted without restart
 
-## วิธีการใช้งาน
+## Usage
 
-### 1. ตรวจสอบการตั้งค่าการดีบักปัจจุบัน
+### 1. Configure Log Output
+```bash
+# Configure log file output (recommended)
+log file /var/log/sdplane.log
+
+# Configure standard output
+log stdout
+
+# Enable both (convenient for debugging)
+log file /var/log/sdplane.log
+log stdout
+```
+
+### 2. Check Current Debug Configuration
 ```bash
 show debugging sdplane
 ```
 
-### 2. ตรวจสอบหมวดหมู่การดีบัก
-กรุณาตรวจสอบหมวดหมู่ที่ใช้ได้ด้วยคำสั่ง `show debugging sdplane`
+### 3. Check Debug Targets
+Use the `show debugging sdplane` command to check available targets and their status.
 
-### 3. เปลี่ยนแปลงการตั้งค่าการดีบัก
+### 4. Change Debug Configuration
 ```bash
-# เปิดใช้งานการดีบักสำหรับหมวดหมู่เฉพาะ
-debug sdplane [category] [level]
+# Enable debug for specific targets
+debug sdplane rib
+debug sdplane fdb-change
+
+# Enable all targets at once
+debug sdplane all
 ```
 
-### 4. ตรวจสอบล็อกการดีบัก
-ล็อกการดีบักจะถูกส่งออกไปยัง standard output หรือไฟล์ล็อก
+### 5. Check Debug Logs
+Debug logs are output to the configured destinations (file or standard output).
 
-## การแก้ไขปัญหา
+## Troubleshooting
 
-### เมื่อล็อกการดีบักไม่แสดง
-1. ตรวจสอบว่าหมวดหมู่การดีบักตั้งค่าถูกต้องหรือไม่
-2. ตรวจสอบว่าระดับการดีบักตั้งค่าเหมาะสมหรือไม่
-3. ตรวจสอบว่าปลายทางการส่งออกล็อกตั้งค่าถูกต้องหรือไม่
+### When Debug Logs Are Not Output
+1. Check if log output is configured (`log file` or `log stdout`)
+2. Check if debug targets are correctly configured (`debug sdplane <target>`)
+3. Check current debug status (`show debugging sdplane`)
+4. Check log file disk space and permissions
 
-### ผลกระทบต่อประสิทธิภาพ
-- การเปิดใช้งานล็อกการดีบักอาจมีผลกระทบต่อประสิทธิภาพ
-- แนะนำให้เปิดใช้งานการดีบักเพียงแค่จำนวนขั้นต่ำที่จำเป็นในสภาพแวดล้้อมการผลิต
+### Log File Management
+```bash
+# Check log file size
+ls -lh /var/log/sdplane.log
 
-## ตำแหน่งการกำหนด
+# Tail log file
+tail -f /var/log/sdplane.log
 
-คำสั่งเหล่านี้ถูกกำหนดในไฟล์ต่อไปนี้:
+# Check log file location (configuration file example)
+grep "log file" /etc/sdplane/sdplane.conf
+```
+
+### Performance Impact
+- Enabling debug logs may impact performance
+- It is recommended to enable only minimal debugging in production environments
+- Regularly rotate log files to prevent them from becoming too large
+
+## Configuration Examples
+
+### Basic Log Configuration
+```bash
+# Configuration file example (/etc/sdplane/sdplane.conf)
+log file /var/log/sdplane.log
+log stdout
+
+# Enable debug at system startup
+debug sdplane rib
+debug sdplane fdb-change
+```
+
+### Debugging Configuration
+```bash
+# Detailed debug log configuration
+log file /tmp/sdplane-debug.log
+log stdout
+
+# Enable all target debugging (development only)
+debug sdplane all
+
+# Enable specific targets only
+debug sdplane rib
+debug sdplane fdb-change
+debug sdplane vswitch
+```
+
+### Production Environment Configuration
+```bash
+# Standard logging only in production
+log file /var/log/sdplane.log
+
+# Enable only critical targets as needed
+# debug sdplane fdb-change
+# debug sdplane rib
+```
+
+### Debug Cleanup Operations
+```bash
+# Disable all debugging
+no debug sdplane all
+no debug zcmdsh all
+```
+
+## Definition Location
+
+These commands are defined in the following file:
 - `sdplane/debug_sdplane.c`
 
-## รายการที่เกี่ยวข้อง
+## Related Topics
 
-- [ข้อมูลระบบและการตรวจสอบ](system-monitoring.md)
-- [การจัดการ VTY และเชลล์](vty-shell.md)
+- [System Information & Monitoring](system-monitoring.md)
+- [VTY & Shell Management](vty-shell.md)
