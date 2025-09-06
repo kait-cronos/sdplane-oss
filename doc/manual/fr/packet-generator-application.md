@@ -1,6 +1,6 @@
 # Application Générateur de Paquets (PKTGEN)
 
-**Language:** [English](../packet-generator-application.md) | [Japanese](../ja/packet-generator-application.md) | **Français**
+**Language:** [English](../packet-generator-application.md) | [日本語](../ja/packet-generator-application.md) | **Français** | [中文](../zh/packet-generator-application.md)
 
 L'application Générateur de Paquets (PKTGEN) fournit une génération de paquets haute performance et des fonctionnalités de test de trafic utilisant le framework de traitement de paquets optimisé DPDK.
 

@@ -1,6 +1,6 @@
 # Guide Utilisateur sdplane-oss
 
-**Language:** [English](../README.md) | [Japanese](ja/README.md) | **Français**
+**Language:** [English](../README.md) | [日本語](../ja/README.md) | **Français** | [中文](../zh/README.md)
 
 sdplane-oss est un routeur logiciel haute performance basé sur DPDK. Ce guide utilisateur décrit toutes les commandes et fonctionnalités de sdplane.
 

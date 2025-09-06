@@ -1,6 +1,6 @@
 # System Information & Monitoring
 
-**Language:** **English** | [Japanese](ja/system-monitoring.md)
+**Language:** **English** | [Japanese](ja/system-monitoring.md) | [French](fr/system-monitoring.md) | [Chinese](zh/system-monitoring.md)
 
 Commands for providing system information and monitoring functions in sdplane.
 

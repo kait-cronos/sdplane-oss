@@ -1,6 +1,6 @@
 # Interface TAP
 
-**Language:** [English](../tap-interface.md) | [Japanese](../ja/tap-interface.md) | **Français**
+**Language:** [English](../tap-interface.md) | [日本語](../ja/tap-interface.md) | **Français** | [中文](../zh/tap-interface.md)
 
 Gestion des interfaces TAP pour intégration avec la pile réseau du noyau Linux.
 

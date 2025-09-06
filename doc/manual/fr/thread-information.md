@@ -1,6 +1,6 @@
 # Information des Threads
 
-**Language:** [English](../thread-information.md) | [Japanese](../ja/thread-information.md) | **Français**
+**Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | **Français** | [中文](../zh/thread-information.md)
 
 Surveillance et informations détaillées sur les threads et leur performance.
 

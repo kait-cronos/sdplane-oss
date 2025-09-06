@@ -1,6 +1,6 @@
 # キュー設定
 
-**言語 / Language:** [English](../queue-configuration.md) | **日本語**
+**言語 / Language:** [English](../queue-configuration.md) | **日本語** | [Français](../fr/queue-configuration.md) | [中文](../zh/queue-configuration.md)
 
 DPDKキューの設定と管理を行うコマンドです。
 

@@ -1,6 +1,6 @@
 # パケットジェネレーター（PKTGEN）アプリケーション
 
-**言語 / Language:** [English](../packet-generator-application.md) | **日本語**
+**言語 / Language:** [English](../packet-generator-application.md) | **日本語** | [Français](../fr/packet-generator-application.md) | [中文](../zh/packet-generator-application.md)
 
 パケットジェネレーター（PKTGEN）アプリケーションは、DPDKの最適化されたパケット処理フレームワークを使用した高性能なパケット生成とトラフィックテスト機能を提供します。
 
