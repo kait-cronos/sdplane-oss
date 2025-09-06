@@ -319,6 +319,10 @@ Network devices using kernel driver
 
 `rib-manager`、`neigh-manager`、`netlink-thread` のワーカーを設定する場合、もし使用されるのであれば、この順序で設定されなければいけません。
 
+### DPDK初期化に関して
+
+`rte_eal_init()` を呼ぶコマンドは、設定ファイルからはどれか一つのみ呼び出すのが正しいです。`rte_eal_init()` 関数は、`rte_eal_init`、`pktgen init`、`l2fwd init`、`l3fwd init` などのコマンドから呼ばれます。
+
 ## ユーザーガイド（マニュアル）
 
 詳細なユーザーガイドとコマンドリファレンスは以下をご覧ください：

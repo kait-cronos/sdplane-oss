@@ -321,6 +321,10 @@ Network devices using kernel driver
 
 If configuring `rib-manager`, `neigh-manager`, and `netlink-thread` workers, they must be configured in this order if they are used.
 
+### DPDK initialization
+
+Only one command that calls `rte_eal_init()` should be invoked from the configuration file. The `rte_eal_init()` function is called by commands such as `rte_eal_init`, `pktgen init`, `l2fwd init`, and `l3fwd init`.
+
 ## User's Guide (Manual)
 
 Comprehensive user guides and command references are available:
