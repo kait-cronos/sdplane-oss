@@ -1,4 +1,8 @@
-# sdplane-oss (ソフトデータプレーン) <img src="sdplane-logo.png" alt="sdplane-oss Logo" width="200" align="right">
+<div align="center">
+<img src="sdplane-logo.png" alt="sdplane-oss Logo" width="160">
+</div>
+
+# sdplane-oss (ソフトデータプレーン)
 
 DPDKスレッドの動作を対話的に制御できるShellと、DPDKスレッド実行環境（sd-plane）で構成された「DPDK-dock開発環境」
 

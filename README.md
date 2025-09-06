@@ -1,5 +1,9 @@
 
-# sdplane-oss (Soft Data Plane) <img src="sdplane-logo.png" alt="sdplane-oss Logo" width="200" align="right">
+<div align="center">
+<img src="sdplane-logo.png" alt="sdplane-oss Logo" width="160">
+</div>
+
+# sdplane-oss (Soft Data Plane)
 
 A "DPDK-dock Development Environment" consisting of an interactive shell that can control DPDK thread operations and a DPDK thread execution environment (sd-plane)
 
