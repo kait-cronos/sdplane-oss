@@ -6,7 +6,7 @@
 
 "สภาพแวดล้อมการพัฒนา DPDK-dock" ที่ประกอบด้วย interactive shell ที่สามารถควบคุมการทำงานของ DPDK thread และสภาพแวดล้อมการทำงานของ DPDK thread (sd-plane)
 
-**Language:** [English](../README.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [中文](README.zh.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [한국어](README.ko.md) | **ไทย**
+**Language:** [English](../README.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [中文](README.zh.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [한국어](README.ko.md) | **ไทย** | [Español](README.es.md)
 
 ## คุณสมบัติ
 

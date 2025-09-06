@@ -6,7 +6,7 @@
 
 DPDK 스레드 작업을 제어할 수 있는 대화형 쉘과 DPDK 스레드 실행 환경(sd-plane)으로 구성된 "DPDK-dock 개발 환경"
 
-**Language:** [English](../README.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [中文](README.zh.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | **한국어**
+**Language:** [English](../README.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [中文](README.zh.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | **한국어** | [ไทย](README.th.md) | [Español](README.es.md)
 
 ## 특징
 
