@@ -1,12 +1,12 @@
 <div align="center">
-<img src="sdplane-logo.png" alt="sdplane-oss Logo" width="160">
+<img src="../sdplane-logo.png" alt="sdplane-oss Logo" width="160">
 </div>
 
 # sdplane-oss (ソフトデータプレーン)
 
 DPDKスレッドの動作を対話的に制御できるShellと、DPDKスレッド実行環境（sd-plane）で構成された「DPDK-dock開発環境」
 
-**言語 / Language:** [English](README.md) | **日本語**
+**言語 / Language:** [English](../README.md) | **日本語**
 
 ## 特徴
 
@@ -327,33 +327,33 @@ Network devices using kernel driver
 
 詳細なユーザーガイドとコマンドリファレンスは以下をご覧ください：
 
-- [ユーザーガイド](doc/manual/ja/README.md) - 全機能の概要とコマンド分類
+- [ユーザーガイド](manual/ja/README.md) - 全機能の概要とコマンド分類
 
 **アプリケーションガイド:**
-- [L2リピーターアプリケーション](doc/manual/ja/l2-repeater-application.md) - MAC学習機能付きシンプルレイヤー2パケット転送
-- [拡張リピーターアプリケーション](doc/manual/ja/enhanced-repeater-application.md) - TAPインターフェース付きVLAN対応スイッチング
-- [パケットジェネレーターアプリケーション](doc/manual/ja/packet-generator-application.md) - 高性能トラフィック生成とテスト
+- [L2リピーターアプリケーション](manual/ja/l2-repeater-application.md) - MAC学習機能付きシンプルレイヤー2パケット転送
+- [拡張リピーターアプリケーション](manual/ja/enhanced-repeater-application.md) - TAPインターフェース付きVLAN対応スイッチング
+- [パケットジェネレーターアプリケーション](manual/ja/packet-generator-application.md) - 高性能トラフィック生成とテスト
 
 **設定ガイド:**
-- [ポート管理・統計](doc/manual/ja/port-management.md) - DPDKポートの管理と統計情報
-- [ワーカー・lcore管理](doc/manual/ja/worker-management.md) - ワーカースレッドとlcoreの管理
-- [デバッグ・ログ](doc/manual/ja/debug-logging.md) - デバッグとログ機能
-- [VTY・シェル管理](doc/manual/ja/vty-shell.md) - VTYとシェルの管理
-- [システム情報・監視](doc/manual/ja/system-monitoring.md) - システム情報と監視機能
-- [RIB・ルーティング](doc/manual/ja/routing.md) - RIBとルーティング機能
-- [キュー設定](doc/manual/ja/queue-configuration.md) - キューの設定と管理
-- [パケット生成](doc/manual/ja/packet-generation.md) - PKTGENを使用したパケット生成
-- [スレッド情報](doc/manual/ja/thread-information.md) - スレッドの情報と監視
-- [TAPインターフェース](doc/manual/ja/tap-interface.md) - TAPインターフェースの管理
-- [lthread管理](doc/manual/ja/lthread-management.md) - lthreadの管理
-- [デバイス管理](doc/manual/ja/device-management.md) - デバイスとドライバーの管理
-- [拡張リピーター](doc/manual/ja/enhanced-repeater.md) - 仮想スイッチング、VLAN処理、TAPインターフェース
+- [ポート管理・統計](manual/ja/port-management.md) - DPDKポートの管理と統計情報
+- [ワーカー・lcore管理](manual/ja/worker-management.md) - ワーカースレッドとlcoreの管理
+- [デバッグ・ログ](manual/ja/debug-logging.md) - デバッグとログ機能
+- [VTY・シェル管理](manual/ja/vty-shell.md) - VTYとシェルの管理
+- [システム情報・監視](manual/ja/system-monitoring.md) - システム情報と監視機能
+- [RIB・ルーティング](manual/ja/routing.md) - RIBとルーティング機能
+- [キュー設定](manual/ja/queue-configuration.md) - キューの設定と管理
+- [パケット生成](manual/ja/packet-generation.md) - PKTGENを使用したパケット生成
+- [スレッド情報](manual/ja/thread-information.md) - スレッドの情報と監視
+- [TAPインターフェース](manual/ja/tap-interface.md) - TAPインターフェースの管理
+- [lthread管理](manual/ja/lthread-management.md) - lthreadの管理
+- [デバイス管理](manual/ja/device-management.md) - デバイスとドライバーの管理
+- [拡張リピーター](manual/ja/enhanced-repeater.md) - 仮想スイッチング、VLAN処理、TAPインターフェース
 
 ## 開発者ガイド
 
 ### 統合ガイド
 
-- [DPDKアプリケーション統合ガイド](doc/manual/ja/dpdk-integration-guide.md) - DPDK-dock方式でDPDKアプリケーションをsdplaneに統合する方法
+- [DPDKアプリケーション統合ガイド](manual/ja/dpdk-integration-guide.md) - DPDK-dock方式でDPDKアプリケーションをsdplaneに統合する方法
 
 ### ドキュメント
 
