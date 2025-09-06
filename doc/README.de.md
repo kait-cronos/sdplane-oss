@@ -346,7 +346,7 @@ Umfassende Benutzerhandbücher und Befehlsreferenzen sind verfügbar:
 - [RIB & Routing](manual/de/routing.md) - RIB- und Routing-Funktionen
 - [Enhanced Repeater](manual/de/enhanced-repeater.md) - Enhanced Repeater-Konfiguration
 - [Port-Verwaltung & Statistiken](manual/de/port-management.md) - DPDK-Port-Verwaltung und Statistiken
-- [Worker & lcore-Verwaltung](manual/de/worker-management.md) - Worker-Threads und lcore-Verwaltung
+- [Worker & lcore Management & Thread-Informationen](manual/de/worker-lcore-thread-management.md) - Worker-Threads, lcore und Thread-Informationen Verwaltung
 - [System-Information & Überwachung](manual/de/system-monitoring.md) - Systeminformationen und Überwachung
 - [Geräteverwaltung](manual/de/device-management.md) - Geräte- und Treiberverwaltung
 
@@ -356,7 +356,6 @@ Umfassende Benutzerhandbücher und Befehlsreferenzen sind verfügbar:
 - [Warteschlangen-Konfiguration](manual/de/queue-configuration.md) - Warteschlangen-Konfiguration und -verwaltung
 - [TAP-Interface](manual/de/tap-interface.md) - TAP-Interface-Verwaltung
 - [VTY & Shell-Verwaltung](manual/de/vty-shell.md) - VTY- und Shell-Verwaltung
-- [Thread-Informationen](manual/de/thread-information.md) - Thread-Informationen und Überwachung
 - [lthread-Verwaltung](manual/de/lthread-management.md) - Kooperative leichte Thread-Verwaltung
 - [Paketgenerierung](manual/de/packet-generation.md) - Paketgenerierung mit PKTGEN
 

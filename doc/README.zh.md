@@ -330,7 +330,7 @@ Network devices using kernel driver
 - [RIB和路由](manual/zh/routing.md) - RIB和路由功能
 - [增强中继器](manual/zh/enhanced-repeater.md) - 增强中继器配置
 - [端口管理和统计](manual/zh/port-management.md) - DPDK端口管理和统计
-- [工作线程和lcore管理](manual/zh/worker-management.md) - 工作线程和lcore管理
+- [Worker & lcore 管理 & 线程信息](manual/zh/worker-lcore-thread-management.md) - Worker线程、lcore和线程信息管理
 - [系统信息和监视](manual/zh/system-monitoring.md) - 系统信息和监视
 - [设备管理](manual/zh/device-management.md) - 设备和驱动程序管理
 
@@ -340,7 +340,6 @@ Network devices using kernel driver
 - [队列配置](manual/zh/queue-configuration.md) - 队列配置和管理
 - [TAP接口](manual/zh/tap-interface.md) - TAP接口管理
 - [VTY和Shell管理](manual/zh/vty-shell.md) - VTY和shell管理
-- [线程信息](manual/zh/thread-information.md) - 线程信息和监视
 - [lthread管理](manual/zh/lthread-management.md) - 轻量级协作线程管理
 - [数据包生成](manual/zh/packet-generation.md) - 使用PKTGEN进行数据包生成
 

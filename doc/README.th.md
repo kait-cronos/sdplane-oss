@@ -346,7 +346,7 @@ Network devices using kernel driver
 - [RIB & Routing](manual/th/routing.md) - ฟังก์ชั่น RIB และ routing
 - [Enhanced Repeater](manual/th/enhanced-repeater.md) - การกำหนดค่า enhanced repeater
 - [การจัดการพอร์ต & สถิติ](manual/th/port-management.md) - การจัดการพอร์ต DPDK และสถิติ
-- [การจัดการ Worker & lcore](manual/th/worker-management.md) - การจัดการ worker thread และ lcore
+- [การจัดการ Worker & lcore & ข้อมูลเธรด](manual/th/worker-lcore-thread-management.md) - การจัดการ worker threads, lcore และข้อมูลเธรด
 - [ข้อมูลระบบ & การติดตาม](manual/th/system-monitoring.md) - ข้อมูลระบบและการติดตาม
 - [การจัดการอุปกรณ์](manual/th/device-management.md) - การจัดการอุปกรณ์และไดรเวอร์
 
@@ -356,7 +356,6 @@ Network devices using kernel driver
 - [การกำหนดค่า Queue](manual/th/queue-configuration.md) - การกำหนดค่าและจัดการ queue
 - [TAP Interface](manual/th/tap-interface.md) - การจัดการ TAP interface
 - [การจัดการ VTY & Shell](manual/th/vty-shell.md) - การจัดการ VTY และ shell
-- [ข้อมูล Thread](manual/th/thread-information.md) - ข้อมูลและการติดตาม thread
 - [การจัดการ lthread](manual/th/lthread-management.md) - การจัดการ thread แบบร่วมมือที่มีน้ำหนักเบา
 - [การสร้างแพ็กเกต](manual/th/packet-generation.md) - การสร้างแพ็กเกตโดยใช้ PKTGEN
 

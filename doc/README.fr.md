@@ -346,7 +346,7 @@ Des guides utilisateur complets et références de commandes sont disponibles :
 - [RIB & Routage](manual/fr/routing.md) - Fonctions RIB et routage
 - [Répéteur Amélioré](manual/fr/enhanced-repeater.md) - Configuration répéteur amélioré
 - [Gestion des Ports & Statistiques](manual/fr/port-management.md) - Gestion des ports DPDK et statistiques
-- [Gestion des Workers & lcores](manual/fr/worker-management.md) - Gestion des threads workers et lcores
+- [Gestion Workers & lcores & Informations Thread](manual/fr/worker-lcore-thread-management.md) - Gestion des threads workers, lcores et informations thread
 - [Information Système & Surveillance](manual/fr/system-monitoring.md) - Information système et surveillance
 - [Gestion des Périphériques](manual/fr/device-management.md) - Gestion des périphériques et pilotes
 
@@ -356,7 +356,6 @@ Des guides utilisateur complets et références de commandes sont disponibles :
 - [Configuration des Files](manual/fr/queue-configuration.md) - Configuration et gestion des files
 - [Interface TAP](manual/fr/tap-interface.md) - Gestion des interfaces TAP
 - [Gestion VTY & Shell](manual/fr/vty-shell.md) - Gestion VTY et shell
-- [Information des Threads](manual/fr/thread-information.md) - Information et surveillance des threads
 - [Gestion lthread](manual/fr/lthread-management.md) - Gestion des threads légers coopératifs
 - [Génération de Paquets](manual/fr/packet-generation.md) - Génération de paquets utilisant PKTGEN
 

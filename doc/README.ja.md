@@ -336,14 +336,13 @@ Network devices using kernel driver
 
 **設定ガイド:**
 - [ポート管理・統計](manual/ja/port-management.md) - DPDKポートの管理と統計情報
-- [ワーカー・lcore管理](manual/ja/worker-management.md) - ワーカースレッドとlcoreの管理
+- [ワーカー・lcore管理・スレッド情報](manual/ja/worker-lcore-thread-management.md) - ワーカースレッド、lcore、スレッド情報の管理
 - [デバッグ・ログ](manual/ja/debug-logging.md) - デバッグとログ機能
 - [VTY・シェル管理](manual/ja/vty-shell.md) - VTYとシェルの管理
 - [システム情報・監視](manual/ja/system-monitoring.md) - システム情報と監視機能
 - [RIB・ルーティング](manual/ja/routing.md) - RIBとルーティング機能
 - [キュー設定](manual/ja/queue-configuration.md) - キューの設定と管理
 - [パケット生成](manual/ja/packet-generation.md) - PKTGENを使用したパケット生成
-- [スレッド情報](manual/ja/thread-information.md) - スレッドの情報と監視
 - [TAPインターフェース](manual/ja/tap-interface.md) - TAPインターフェースの管理
 - [lthread管理](manual/ja/lthread-management.md) - lthreadの管理
 - [デバイス管理](manual/ja/device-management.md) - デバイスとドライバーの管理

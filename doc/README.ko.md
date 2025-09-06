@@ -346,7 +346,7 @@ Network devices using kernel driver
 - [RIB & 라우팅](manual/ko/routing.md) - RIB 및 라우팅 기능
 - [고급 리피터](manual/ko/enhanced-repeater.md) - 고급 리피터 구성
 - [포트 관리 & 통계](manual/ko/port-management.md) - DPDK 포트 관리 및 통계
-- [워커 & lcore 관리](manual/ko/worker-management.md) - 워커 스레드 및 lcore 관리
+- [Worker & lcore 관리 & 스레드 정보](manual/ko/worker-lcore-thread-management.md) - Worker 스레드, lcore 및 스레드 정보 관리
 - [시스템 정보 & 모니터링](manual/ko/system-monitoring.md) - 시스템 정보 및 모니터링
 - [장치 관리](manual/ko/device-management.md) - 장치 및 드라이버 관리
 
@@ -356,7 +356,6 @@ Network devices using kernel driver
 - [큐 구성](manual/ko/queue-configuration.md) - 큐 구성 및 관리
 - [TAP 인터페이스](manual/ko/tap-interface.md) - TAP 인터페이스 관리
 - [VTY & 셸 관리](manual/ko/vty-shell.md) - VTY 및 셸 관리
-- [스레드 정보](manual/ko/thread-information.md) - 스레드 정보 및 모니터링
 - [lthread 관리](manual/ko/lthread-management.md) - 협력적 경량 스레드 관리
 - [패킷 생성](manual/ko/packet-generation.md) - PKTGEN을 사용한 패킷 생성
 
