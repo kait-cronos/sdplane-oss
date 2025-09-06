@@ -6,7 +6,7 @@
 
 Eine „DPDK-dock-Entwicklungsumgebung", bestehend aus einer interaktiven Shell, die DPDK-Thread-Operationen steuern kann, und einer DPDK-Thread-Ausführungsumgebung (sd-plane)
 
-**Language:** [English](../README.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [中文](README.zh.md) | **Deutsch**
+**Language:** [English](../README.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [中文](README.zh.md) | **Deutsch** | [Italiano](README.it.md) | [한국어](README.ko.md) | [ไทย](README.th.md) | [Español](README.es.md)
 
 ## Funktionen
 
