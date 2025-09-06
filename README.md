@@ -317,6 +317,10 @@ Network devices using kernel driver
 0000:b1:00.0 'MT27800 Family [ConnectX-5] 1017' numa_node=1 if=enp177s0np0 drv=mlx5_core unused= *Active*
 ```
 
+### Worker thread ordering in configuration file
+
+If configuring `rib-manager`, `neigh-manager`, and `netlink-thread` workers, they must be configured in this order if they are used.
+
 ## User's Guide (Manual)
 
 Comprehensive user guides and command references are available:

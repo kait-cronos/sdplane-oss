@@ -315,6 +315,10 @@ Network devices using kernel driver
 0000:b1:00.0 'MT27800 Family [ConnectX-5] 1017' numa_node=1 if=enp177s0np0 drv=mlx5_core unused= *Active*
 ```
 
+### 設定ファイル中のワーカースレッドの順序
+
+`rib-manager`、`neigh-manager`、`netlink-thread` のワーカーを設定する場合、もし使用されるのであれば、この順序で設定されなければいけません。
+
 ## ユーザーガイド（マニュアル）
 
 詳細なユーザーガイドとコマンドリファレンスは以下をご覧ください：
