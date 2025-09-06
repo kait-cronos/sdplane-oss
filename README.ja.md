@@ -412,9 +412,9 @@ Network devices using kernel driver
 
 ご質問、問題、貢献については、こちらまでご連絡ください：**sdplane [at] nwlab.org**
 
-## 商用バージョン
+## 評価用機器の購入
 
-追加機能とサポートを含む商用バージョンが利用可能です。詳細については販売ページをご覧ください：
+評価用機器には追加機能やソフトウェアの修正が含まれる場合があります。詳細については販売ページをご覧ください：
 
 **[https://www.rca.co.jp/sdplane/](https://www.rca.co.jp/sdplane/)**
 

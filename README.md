@@ -411,11 +411,11 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 For questions, issues, or contributions, please contact: **sdplane [at] nwlab.org**
 
-## Commercial Version
+## Evaluation Equipment Purchase
 
-A commercial version with additional features and support is available. Please visit our sales page for more information:
+Evaluation equipment with additional features and software modifications may be available. Please visit our sales page for more information:
 
 **[https://www.rca.co.jp/sdplane/](https://www.rca.co.jp/sdplane/)**
 
-*Note: The commercial sales page is currently available in Japanese only.*
+*Note: The sales page is currently available in Japanese only.*
 
