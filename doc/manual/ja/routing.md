@@ -2,7 +2,7 @@
 
 **言語 / Language:** [English](../routing.md) | **日本語**
 
-RIB（Routing Information Base）とルーティング機能を管理するコマンドです。
+RIB（Routing Information Base）とシステムリソース情報を管理するコマンドです。
 
 ## コマンド一覧
 
@@ -19,24 +19,41 @@ show rib
 ```
 
 このコマンドは以下の情報を表示します：
-- 現在のルーティングテーブル
-- 各ルートの状態
-- ネクストホップ情報
-- メトリック情報
+- RIBバージョンとメモリポインタ
+- 仮想スイッチ構成とVLAN割り当て
+- DPDKポート状態とキュー構成
+- lcore-to-portキュー割り当て
+- L2/L3転送用のネイバーテーブル
 
 ## RIBの概要
 
 ### RIBとは
-RIB（Routing Information Base）は、ルーティング情報を格納するデータベースです。sdplaneでは、以下の情報を管理しています：
+RIB（Routing Information Base）は、システムリソースとネットワーク情報を格納する中央データベースです。sdplaneでは、以下の情報を管理しています：
 
-- **ルーティングテーブル** - IP宛先とネクストホップの対応
-- **ルートの状態** - アクティブ、非アクティブ、削除予定など
-- **メトリック** - ルートの優先度やコスト
-- **インターフェース情報** - 出力インターフェースの情報
+- **仮想スイッチ構成** - VLANスイッチングとポート割り当て
+- **DPDKポート情報** - リンク状態、キュー構成、機能情報
+- **lcoreキュー構成** - CPUコアごとのパケット処理割り当て
+- **ネイバーテーブル** - L2/L3転送データベースエントリ
 
 ### RIBの構造
-```
-Destination Network → Next Hop → Interface → Metric
+RIBは2つの主要な構造体で構成されています：
+
+```c
+struct rib {
+    struct rib_info *rib_info;  // 実際のデータへのポインタ
+};
+
+struct rib_info {
+    uint32_t ver;                                    // バージョン番号
+    uint8_t vswitch_size;                           // 仮想スイッチ数
+    uint8_t port_size;                              // DPDKポート数
+    uint8_t lcore_size;                             // lcore数
+    struct vswitch_conf vswitch[MAX_VSWITCH];       // 仮想スイッチ構成
+    struct vswitch_link vswitch_link[MAX_VSWITCH_LINK]; // VLANポートリンク
+    struct port_conf port[MAX_ETH_PORTS];           // DPDKポート構成
+    struct lcore_qconf lcore_qconf[RTE_MAX_LCORE];  // lcoreキュー割り当て
+    struct neigh_table neigh_tables[NEIGH_NR_TABLES]; // ネイバー/転送テーブル
+};
 ```
 
 ## RIB情報の見方
@@ -65,16 +82,42 @@ show rib
 
 ### 出力例の解釈
 ```
-Destination     Netmask         Gateway         Interface    Metric  Status
-192.168.1.0     255.255.255.0   192.168.1.1     eth0         1       Active
-10.0.0.0        255.0.0.0       10.0.0.1        eth1         1       Active
-0.0.0.0         0.0.0.0         192.168.1.1     eth0         1       Active
+rib information version: 21 (0x55555dd42010)
+vswitches: 
+dpdk ports: 
+  dpdk_port[0]: 
+    link: speed=1000Mbps duplex=full autoneg=on status=up
+    nb_rxd=1024 nb_txd=1024
+    queues: nrxq=1 ntxq=4
+  dpdk_port[1]: 
+    link: speed=0Mbps duplex=half autoneg=on status=down
+    nb_rxd=1024 nb_txd=1024
+    queues: nrxq=1 ntxq=4
+  dpdk_port[2]: 
+    link: speed=0Mbps duplex=half autoneg=off status=down
+    nb_rxd=1024 nb_txd=1024
+    queues: nrxq=1 ntxq=4
+lcores: 
+  lcore[0]: nrxq=0
+  lcore[1]: nrxq=1
+    rxq[0]: dpdk_port[0], queue_id=0
+  lcore[2]: nrxq=1
+    rxq[0]: dpdk_port[1], queue_id=0
+  lcore[3]: nrxq=1
+    rxq[0]: dpdk_port[2], queue_id=0
+  lcore[4]: nrxq=0
+  lcore[5]: nrxq=0
+  lcore[6]: nrxq=0
+  lcore[7]: nrxq=0
 ```
 
 この例では：
-- 192.168.1.0/24 ネットワークはeth0インターフェースを通じてアクセス可能
-- 10.0.0.0/8 ネットワークはeth1インターフェースを通じてアクセス可能
-- デフォルトルート（0.0.0.0/0）は192.168.1.1を通じてeth0へ
+- RIBバージョン21が現在のシステム状態を示す
+- DPDKポート0がアクティブ（up）で1Gbpsリンク速度
+- DPDKポート1、2は非アクティブ（down）でリンクなし
+- lcore 1、2、3がそれぞれポート0、1、2からのパケット処理を担当
+- 各ポートは1個のRXキューと4個のTXキューを使用
+- RX/TXディスクリプタリングは1024エントリで設定
 
 ## RIBの管理
 
