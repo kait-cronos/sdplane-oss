@@ -325,7 +325,6 @@ Network devices using kernel driver
 - [パケットジェネレーターアプリケーション](doc/manual/ja/packet-generator-application.md) - 高性能トラフィック生成とテスト
 
 **設定ガイド:**
-- [拡張リピーター](doc/manual/ja/enhanced-repeater.md) - 仮想スイッチング、VLAN処理、TAPインターフェース
 - [ポート管理・統計](doc/manual/ja/port-management.md) - DPDKポートの管理と統計情報
 - [ワーカー・lcore管理](doc/manual/ja/worker-management.md) - ワーカースレッドとlcoreの管理
 - [デバッグ・ログ](doc/manual/ja/debug-logging.md) - デバッグとログ機能
@@ -338,6 +337,7 @@ Network devices using kernel driver
 - [TAPインターフェース](doc/manual/ja/tap-interface.md) - TAPインターフェースの管理
 - [lthread管理](doc/manual/ja/lthread-management.md) - lthreadの管理
 - [デバイス管理](doc/manual/ja/device-management.md) - デバイスとドライバーの管理
+- [拡張リピーター](doc/manual/ja/enhanced-repeater.md) - 仮想スイッチング、VLAN処理、TAPインターフェース
 
 ## 開発者ガイド
 

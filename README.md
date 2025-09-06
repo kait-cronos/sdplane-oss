@@ -327,7 +327,6 @@ Comprehensive user guides and command references are available:
 - [Packet Generator Application](doc/manual/packet-generator-application.md) - High-performance traffic generation and testing
 
 **Configuration Guides:**
-- [Enhanced Repeater](doc/manual/enhanced-repeater.md) - Virtual switching, VLAN processing, and TAP interfaces
 - [Port Management & Statistics](doc/manual/port-management.md) - DPDK port management and statistics
 - [Worker & lcore Management](doc/manual/worker-management.md) - Worker threads and lcore management
 - [Debug & Logging](doc/manual/debug-logging.md) - Debug and logging functions
@@ -340,6 +339,7 @@ Comprehensive user guides and command references are available:
 - [TAP Interface](doc/manual/tap-interface.md) - TAP interface management
 - [lthread Management](doc/manual/lthread-management.md) - lthread management
 - [Device Management](doc/manual/device-management.md) - Device and driver management
+- [Enhanced Repeater](doc/manual/enhanced-repeater.md) - Virtual switching, VLAN processing, and TAP interfaces
 
 ## Developer's Guide
 
