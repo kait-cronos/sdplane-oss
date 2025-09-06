@@ -1,6 +1,6 @@
 # Informazioni Thread
 
-**Lingua / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md) | [Deutsch](../de/thread-information.md) | **Italiano**
+**Lingua / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md) | [Deutsch](../de/thread-information.md) | **Italiano** | [한국어](../ko/thread-information.md) | [ไทย](../th/thread-information.md) | [Español](../es/thread-information.md)
 
 Comandi per informazioni e monitoraggio dei thread.
 

@@ -1,6 +1,6 @@
 # Worker- und lcore-Management
 
-**Sprache / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md) | **Deutsch**
+**Sprache / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md) | **Deutsch** | [Italiano](../it/worker-management.md) | [한국어](../ko/worker-management.md) | [ไทย](../th/worker-management.md) | [Español](../es/worker-management.md)
 
 Befehle zur Verwaltung von DPDK-Worker-Threads und lcores.
 

@@ -1,6 +1,6 @@
 # Gestione Worker e lcore
 
-**Lingua / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md) | [Deutsch](../de/worker-management.md) | **Italiano**
+**Lingua / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | [中文](../zh/worker-management.md) | [Deutsch](../de/worker-management.md) | **Italiano** | [한국어](../ko/worker-management.md) | [ไทย](../th/worker-management.md) | [Español](../es/worker-management.md)
 
 Comandi per gestire i thread worker DPDK e gli lcore.
 

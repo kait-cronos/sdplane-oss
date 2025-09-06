@@ -1,6 +1,6 @@
 # 工作者·lcore管理
 
-**语言 / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | **中文**
+**语言 / Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | [Français](../fr/worker-management.md) | **中文** | [Deutsch](../de/worker-management.md) | [Italiano](../it/worker-management.md) | [한국어](../ko/worker-management.md) | [ไทย](../th/worker-management.md) | [Español](../es/worker-management.md)
 
 管理DPDK工作者线程和lcore的命令。
 

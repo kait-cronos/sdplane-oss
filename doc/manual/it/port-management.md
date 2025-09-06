@@ -1,6 +1,6 @@
 # Gestione Porte e Statistiche
 
-**Lingua / Language:** [English](../port-management.md) | [日本語](../ja/port-management.md) | [Français](../fr/port-management.md) | [中文](../zh/port-management.md) | [Deutsch](../de/port-management.md) | **Italiano**
+**Lingua / Language:** [English](../port-management.md) | [日本語](../ja/port-management.md) | [Français](../fr/port-management.md) | [中文](../zh/port-management.md) | [Deutsch](../de/port-management.md) | **Italiano** | [한국어](../ko/port-management.md) | [ไทย](../th/port-management.md) | [Español](../es/port-management.md)
 
 Comandi per gestire le porte DPDK e le informazioni statistiche.
 

@@ -1,6 +1,6 @@
 # Application Répéteur Amélioré
 
-**Language:** [English](../enhanced-repeater-application.md) | [日本語](../ja/enhanced-repeater-application.md) | **Français** | [中文](../zh/enhanced-repeater-application.md)
+**Language:** [English](../enhanced-repeater-application.md) | [日本語](../ja/enhanced-repeater-application.md) | **Français** | [中文](../zh/enhanced-repeater-application.md) | [Deutsch](../de/enhanced-repeater-application.md) | [Italiano](../it/enhanced-repeater-application.md) | [한국어](../ko/enhanced-repeater-application.md) | [ไทย](../th/enhanced-repeater-application.md) | [Español](../es/enhanced-repeater-application.md)
 
 L'Application Répéteur Amélioré fournit une commutation Layer 2 VLAN-aware avancée avec intégration d'interfaces TAP pour les capacités de routage L3 et capture de paquets.
 

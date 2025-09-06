@@ -1,6 +1,6 @@
 # Gestione lthread
 
-**Lingua / Language:** [English](../lthread-management.md) | [日本語](../ja/lthread-management.md) | [Français](../fr/lthread-management.md) | [中文](../zh/lthread-management.md) | [Deutsch](../de/lthread-management.md) | **Italiano**
+**Lingua / Language:** [English](../lthread-management.md) | [日本語](../ja/lthread-management.md) | [Français](../fr/lthread-management.md) | [中文](../zh/lthread-management.md) | [Deutsch](../de/lthread-management.md) | **Italiano** | [한국어](../ko/lthread-management.md) | [ไทย](../th/lthread-management.md) | [Español](../es/lthread-management.md)
 
 Comandi per gestire lthread (thread leggeri).
 
