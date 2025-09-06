@@ -258,43 +258,6 @@ sudo systemctl start sdplane
 telnet localhost 9882
 ```
 
-### Enhanced Repeater Configuration
-
-The enhanced repeater provides advanced VLAN switching capabilities with TAP interfaces for L3 routing and packet capture. Key configuration commands:
-
-**Virtual Switch Setup:**
-```bash
-# Create virtual switches with VLAN IDs
-set vswitch 2031 vlan 2031
-set vswitch 2031 vlan 2032
-```
-
-**DPDK Port to VSwitch Linking:**
-```bash
-# Link port 0 to vswitch with VLAN tag 2031
-set vswitch 2031 port 0 (tagged|untag|tag swap 2032)
-# Link port 0 to vswitch with VLAN tag 2032  
-set vswitch 2032 port 0 (tagged|untag|tag swap 2031)
-```
-
-**Router Interfaces (L3 connectivity):**
-```bash
-# Create router interfaces for L3 processing
-set vswitch 2031 router-if rif2031
-set vswitch 2032 router-if cif2032
-```
-
-**Capture Interfaces (packet monitoring):**
-```bash
-# Create capture interfaces for packet monitoring
-set vswitch 2031 capture-if cif2031
-set vswitch 2032 capture-if cif2032
-```
-
-The enhanced repeater performs VLAN translation, stripping, and insertion based on the vswitch-link configuration, while providing TAP interfaces for kernel networking stack integration.
-
-For detailed CLI usage and configuration, refer to [document](/doc/manual/).
-
 ## Tips
 
 ### IOMMU is required when using vfio-pci as NIC driver

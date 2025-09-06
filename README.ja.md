@@ -255,46 +255,6 @@ sudo systemctl start sdplane
 telnet localhost 9882
 ```
 
-### 拡張リピーターの設定
-
-拡張リピーターは高度なVLANスイッチング機能を提供し、L3ルーティング用とパケットキャプチャ用のTAPインターフェースを備えています。主要な設定コマンド：
-
-**仮想スイッチの設定：**
-
-```bash
-# VLAN IDを持つ仮想スイッチを作成
-set vswitch 2031 vlan 2031
-set vswitch 2031 vlan 2032
-```
-
-**DPDKポートから仮想スイッチへのリンク：**
-
-```bash
-# ポート0を仮想スイッチ0にVLANタグ2031でリンク
-set vswitch 2031 port 0 (tagged|untag|tag swap 2032)
-# ポート0を仮想スイッチ1にVLANタグ2032でリンク  
-set vswitch 2032 port 0 (tagged|untag|tag swap 2031)
-```
-
-**ルーターインターフェース（L3接続）：**
-
-```bash
-# L3処理用のルーターインターフェースを作成
-set vswitch 2031 router-if rif2031
-set vswitch 2032 router-if cif2032
-```
-
-**キャプチャインターフェース（パケット監視）：**
-
-```bash
-# パケット監視用のキャプチャインターフェースを作成
-set vswitch 2031 capture-if cif2031
-set vswitch 2032 capture-if cif2032
-```
-
-拡張リピーターは、vswitch-link設定に基づいてVLANの変換、除去、挿入を行い、カーネルネットワークスタック統合用のTAPインターフェースを提供します。
-
-CLIの詳細な使い方や設定は、[document](/doc/manual/)を参照してください。
 
 ## Tips
 
