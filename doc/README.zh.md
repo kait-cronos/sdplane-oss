@@ -6,7 +6,7 @@
 
 由可以交互式控制DPDK线程操作的Shell和DPDK线程执行环境（sd-plane）组成的"DPDK-dock开发环境"
 
-**Language:** [English](../README.md) | [日本語](README.ja.md) | [Français](README.fr.md) | **中文**
+**Language:** [English](../README.md) | [日本語](README.ja.md) | [Français](README.fr.md) | **中文** | [Deutsch](README.de.md) | [Italiano](README.it.md)
 
 ## 特点
 
