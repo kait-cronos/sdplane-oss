@@ -1,6 +1,6 @@
 # sdplane-oss 用户指南
 
-**语言 / Language:** [English](../README.md) | [Japanese](../ja/README.md) | **中文**
+**语言 / Language:** [English](../README.md) | [日本語](../ja/README.md) | [Français](../fr/README.md) | **中文**
 
 sdplane-oss是一个基于DPDK的高性能软件路由器。本用户指南介绍了sdplane的所有命令和功能。
 

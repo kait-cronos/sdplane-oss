@@ -1,6 +1,6 @@
 # 包生成
 
-**语言 / Language:** [English](../packet-generation.md) | [日本語](../ja/packet-generation.md) | **中文**
+**语言 / Language:** [English](../packet-generation.md) | [日本語](../ja/packet-generation.md) | [Français](../fr/packet-generation.md) | **中文**
 
 使用PKTGEN（Packet Generator）进行包生成功能的命令。
 

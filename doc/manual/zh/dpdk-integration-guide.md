@@ -1,6 +1,6 @@
 # DPDK应用集成指南
 
-**语言 / Language:** [English](../dpdk-integration-guide.md) | [日本語](../ja/dpdk-integration-guide.md) | **中文**
+**语言 / Language:** [English](../dpdk-integration-guide.md) | [日本語](../ja/dpdk-integration-guide.md) | [Français](../fr/dpdk-integration-guide.md) | **中文**
 
 本指南说明如何使用DPDK-dock方法将现有的DPDK应用及其基于pthread的工作者线程集成到sdplane框架中。
 
