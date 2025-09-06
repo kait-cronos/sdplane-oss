@@ -6,7 +6,7 @@
 
 DPDKスレッドの動作を対話的に制御できるShellと、DPDKスレッド実行環境（sd-plane）で構成された「DPDK-dock開発環境」
 
-**Language:** [English](../README.md) | **Japanese**
+**Language:** [English](../README.md) | **Japanese** | [Français](README.fr.md)
 
 ## 特徴
 
