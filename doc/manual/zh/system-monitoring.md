@@ -1,6 +1,6 @@
 # 系统信息·监视
 
-**语言 / Language:** [English](../system-monitoring.md) | [日本語](../ja/system-monitoring.md) | **中文**
+**语言 / Language:** [English](../system-monitoring.md) | [日本語](../ja/system-monitoring.md) | [Français](../fr/system-monitoring.md) | **中文**
 
 提供sdplane系统信息和监视功能的命令。
 

@@ -1,6 +1,6 @@
 # sdplane-oss ユーザーガイド
 
-**言語 / Language:** [English](../README.md) | **日本語**
+**言語 / Language:** [English](../README.md) | **日本語** | [Français](../fr/README.md) | [中文](../zh/README.md)
 
 sdplane-ossは高性能なDPDKベースのソフトウェアルーターです。このユーザーガイドでは、sdplaneの全コマンドと機能について説明します。
 

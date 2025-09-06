@@ -1,6 +1,6 @@
 # Gestion VTY & Shell
 
-**Language:** [English](../vty-shell.md) | [Japanese](../ja/vty-shell.md) | **Français**
+**Language:** [English](../vty-shell.md) | [日本語](../ja/vty-shell.md) | **Français** | [中文](../zh/vty-shell.md)
 
 Gestion de l'interface terminal virtuel (VTY) et des sessions shell pour sdplane.
 

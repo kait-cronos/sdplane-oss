@@ -1,6 +1,6 @@
 # 队列配置
 
-**语言 / Language:** [English](../queue-configuration.md) | [日本語](../ja/queue-configuration.md) | **中文**
+**语言 / Language:** [English](../queue-configuration.md) | [日本語](../ja/queue-configuration.md) | [Français](../fr/queue-configuration.md) | **中文**
 
 配置和管理DPDK队列的命令。
 

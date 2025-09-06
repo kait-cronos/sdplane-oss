@@ -1,6 +1,6 @@
 # RIB·路由
 
-**语言 / Language:** [English](../routing.md) | [日本語](../ja/routing.md) | **中文**
+**语言 / Language:** [English](../routing.md) | [日本語](../ja/routing.md) | [Français](../fr/routing.md) | **中文**
 
 管理RIB（Routing Information Base）和系统资源信息的命令。
 

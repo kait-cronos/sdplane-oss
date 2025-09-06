@@ -1,6 +1,6 @@
 # Génération de Paquets
 
-**Language:** [English](../packet-generation.md) | [Japanese](../ja/packet-generation.md) | **Français**
+**Language:** [English](../packet-generation.md) | [日本語](../ja/packet-generation.md) | **Français** | [中文](../zh/packet-generation.md)
 
 Configuration et utilisation du système de génération de paquets utilisant PKTGEN.
 

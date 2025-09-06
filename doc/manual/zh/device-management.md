@@ -1,6 +1,6 @@
 # 设备管理
 
-**语言 / Language:** [English](../device-management.md) | [日本語](../ja/device-management.md) | **中文**
+**语言 / Language:** [English](../device-management.md) | [日本語](../ja/device-management.md) | [Français](../fr/device-management.md) | **中文**
 
 管理DPDK设备和驱动程序的命令。
 

@@ -1,6 +1,6 @@
 # Application Répéteur L2
 
-**Language:** [English](../l2-repeater-application.md) | [Japanese](../ja/l2-repeater-application.md) | **Français**
+**Language:** [English](../l2-repeater-application.md) | [日本語](../ja/l2-repeater-application.md) | **Français** | [中文](../zh/l2-repeater-application.md)
 
 L'application Répéteur L2 fournit une transmission simple de paquets Layer 2 entre ports DPDK avec fonctionnalité de répétition port-à-port basique.
 

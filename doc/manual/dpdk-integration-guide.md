@@ -1,6 +1,6 @@
 # DPDK Application Integration Guide
 
-**Language:** **English** | [Japanese](ja/dpdk-integration-guide.md)
+**Language:** **English** | [Japanese](ja/dpdk-integration-guide.md) | [French](fr/dpdk-integration-guide.md) | [Chinese](zh/dpdk-integration-guide.md)
 
 This guide explains how to integrate existing DPDK applications and their pthread-based worker threads into the sdplane framework using the DPDK-dock approach.
 

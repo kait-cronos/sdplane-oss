@@ -1,6 +1,6 @@
 # TAPインターフェース
 
-**言語 / Language:** [English](../tap-interface.md) | **日本語**
+**言語 / Language:** [English](../tap-interface.md) | **日本語** | [Français](../fr/tap-interface.md) | [中文](../zh/tap-interface.md)
 
 TAPインターフェースの管理を行うコマンドです。
 

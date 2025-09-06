@@ -1,6 +1,6 @@
 # Configuration du Répéteur Amélioré
 
-**Language:** [English](../enhanced-repeater.md) | [Japanese](../ja/enhanced-repeater.md) | **Français**
+**Language:** [English](../enhanced-repeater.md) | [日本語](../ja/enhanced-repeater.md) | **Français** | [中文](../zh/enhanced-repeater.md)
 
 Le répéteur amélioré fournit des capacités de commutation VLAN avancées avec interfaces TAP pour routage L3 et capture de paquets. Il supporte la création de commutateurs virtuels, la liaison de ports DPDK avec étiquetage VLAN, les interfaces router pour intégration noyau, et les interfaces capture pour surveillance.
 

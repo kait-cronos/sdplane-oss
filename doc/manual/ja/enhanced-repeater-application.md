@@ -1,6 +1,6 @@
 # 拡張リピーターアプリケーション
 
-**言語 / Language:** [English](../enhanced-repeater-application.md) | **日本語**
+**言語 / Language:** [English](../enhanced-repeater-application.md) | **日本語** | [Français](../fr/enhanced-repeater-application.md) | [中文](../zh/enhanced-repeater-application.md)
 
 拡張リピーターアプリケーションは、L3ルーティングとパケットキャプチャ機能用のTAPインターフェース統合を備えた、高度なVLAN対応レイヤー2スイッチングを提供します。
 

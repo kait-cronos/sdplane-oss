@@ -1,6 +1,6 @@
 # RIB・ルーティング
 
-**言語 / Language:** [English](../routing.md) | **日本語**
+**言語 / Language:** [English](../routing.md) | **日本語** | [Français](../fr/routing.md) | [中文](../zh/routing.md)
 
 RIB（Routing Information Base）とシステムリソース情報を管理するコマンドです。
 

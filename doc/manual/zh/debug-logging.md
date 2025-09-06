@@ -1,6 +1,6 @@
 # 调试·日志
 
-**语言 / Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | **中文**
+**语言 / Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | [Français](../fr/debug-logging.md) | **中文**
 
 控制sdplane调试和日志功能的命令。
 

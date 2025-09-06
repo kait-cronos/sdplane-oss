@@ -1,6 +1,6 @@
 # Débogage & Journalisation
 
-**Language:** [English](../debug-logging.md) | [Japanese](../ja/debug-logging.md) | **Français**
+**Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | **Français** | [中文](../zh/debug-logging.md)
 
 Fonctions de débogage et contrôles de journalisation pour le développement et le dépannage.
 

@@ -1,6 +1,6 @@
 # L2中继器应用
 
-**语言 / Language:** [English](../l2-repeater-application.md) | [日本語](../ja/l2-repeater-application.md) | **中文**
+**语言 / Language:** [English](../l2-repeater-application.md) | [日本語](../ja/l2-repeater-application.md) | [Français](../fr/l2-repeater-application.md) | **中文**
 
 L2中继器应用提供基本的端口间中继功能，在DPDK端口间提供简单的第二层包转发。
 

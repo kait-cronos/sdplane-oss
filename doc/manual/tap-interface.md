@@ -1,6 +1,6 @@
 # TAP Interface
 
-**Language:** **English** | [Japanese](ja/tap-interface.md)
+**Language:** **English** | [Japanese](ja/tap-interface.md) | [French](fr/tap-interface.md) | [Chinese](zh/tap-interface.md)
 
 Commands for managing TAP interfaces.
 

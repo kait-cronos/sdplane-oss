@@ -1,6 +1,6 @@
 # TAP接口
 
-**语言 / Language:** [English](../tap-interface.md) | [日本語](../ja/tap-interface.md) | **中文**
+**语言 / Language:** [English](../tap-interface.md) | [日本語](../ja/tap-interface.md) | [Français](../fr/tap-interface.md) | **中文**
 
 管理TAP接口的命令。
 

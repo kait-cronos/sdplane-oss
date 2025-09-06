@@ -1,6 +1,6 @@
 # デバッグ・ログ
 
-**言語 / Language:** [English](../debug-logging.md) | **日本語**
+**言語 / Language:** [English](../debug-logging.md) | **日本語** | [Français](../fr/debug-logging.md) | [中文](../zh/debug-logging.md)
 
 sdplaneのデバッグとログ機能を制御するコマンドです。
 

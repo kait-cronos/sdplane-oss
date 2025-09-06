@@ -1,6 +1,6 @@
 # パケット生成
 
-**言語 / Language:** [English](../packet-generation.md) | **日本語**
+**言語 / Language:** [English](../packet-generation.md) | **日本語** | [Français](../fr/packet-generation.md) | [中文](../zh/packet-generation.md)
 
 PKTGEN（Packet Generator）を使用したパケット生成機能のコマンドです。
 
