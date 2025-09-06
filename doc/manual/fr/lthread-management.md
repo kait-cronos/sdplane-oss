@@ -1,6 +1,6 @@
 # Gestion lthread
 
-**Language:** [English](../lthread-management.md) | [日本語](../ja/lthread-management.md) | **Français** | [中文](../zh/lthread-management.md)
+**Language:** [English](../lthread-management.md) | [日本語](../ja/lthread-management.md) | **Français** | [中文](../zh/lthread-management.md) | [Deutsch](../de/lthread-management.md) | [Italiano](../it/lthread-management.md) | [한국어](../ko/lthread-management.md) | [ไทย](../th/lthread-management.md) | [Español](../es/lthread-management.md)
 
 Gestion des threads légers coopératifs (lthread) pour services système.
 

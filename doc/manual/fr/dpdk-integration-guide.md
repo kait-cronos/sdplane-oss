@@ -1,6 +1,6 @@
 # Guide d'Intégration d'Applications DPDK
 
-**Language:** [English](../dpdk-integration-guide.md) | [日本語](../ja/dpdk-integration-guide.md) | **Français** | [中文](../zh/dpdk-integration-guide.md)
+**Language:** [English](../dpdk-integration-guide.md) | [日本語](../ja/dpdk-integration-guide.md) | **Français** | [中文](../zh/dpdk-integration-guide.md) | [Deutsch](../de/dpdk-integration-guide.md) | [Italiano](../it/dpdk-integration-guide.md) | [한국어](../ko/dpdk-integration-guide.md) | [ไทย](../th/dpdk-integration-guide.md) | [Español](../es/dpdk-integration-guide.md)
 
 Ce guide explique comment intégrer des applications DPDK dans sdplane en utilisant l'approche DPDK-dock.
 

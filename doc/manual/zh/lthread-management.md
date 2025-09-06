@@ -1,6 +1,6 @@
 # lthread管理
 
-**语言 / Language:** [English](../lthread-management.md) | [日本語](../ja/lthread-management.md) | [Français](../fr/lthread-management.md) | **中文**
+**语言 / Language:** [English](../lthread-management.md) | [日本語](../ja/lthread-management.md) | [Français](../fr/lthread-management.md) | **中文** | [Deutsch](../de/lthread-management.md) | [Italiano](../it/lthread-management.md) | [한국어](../ko/lthread-management.md) | [ไทย](../th/lthread-management.md) | [Español](../es/lthread-management.md)
 
 管理lthread（轻量线程）的命令。
 

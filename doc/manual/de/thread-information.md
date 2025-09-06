@@ -1,6 +1,6 @@
 # Thread-Informationen
 
-**Sprache / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md) | **Deutsch**
+**Sprache / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | [中文](../zh/thread-information.md) | **Deutsch** | [Italiano](../it/thread-information.md) | [한국어](../ko/thread-information.md) | [ไทย](../th/thread-information.md) | [Español](../es/thread-information.md)
 
 Befehle zur Thread-Information und Überwachung.
 

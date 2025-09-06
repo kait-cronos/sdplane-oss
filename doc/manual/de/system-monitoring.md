@@ -1,6 +1,6 @@
 # Systeminformationen und Überwachung
 
-**Sprache / Language:** [English](../system-monitoring.md) | [日本語](../ja/system-monitoring.md) | [Français](../fr/system-monitoring.md) | [中文](../zh/system-monitoring.md) | **Deutsch**
+**Sprache / Language:** [English](../system-monitoring.md) | [日本語](../ja/system-monitoring.md) | [Français](../fr/system-monitoring.md) | [中文](../zh/system-monitoring.md) | **Deutsch** | [Italiano](../it/system-monitoring.md) | [한국어](../ko/system-monitoring.md) | [ไทย](../th/system-monitoring.md) | [Español](../es/system-monitoring.md)
 
 Befehle zur Bereitstellung von Systeminformationen und Überwachungsfunktionen für sdplane.
 

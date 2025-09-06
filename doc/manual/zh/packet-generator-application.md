@@ -1,6 +1,6 @@
 # 包生成器（PKTGEN）应用
 
-**语言 / Language:** [English](../packet-generator-application.md) | [日本語](../ja/packet-generator-application.md) | [Français](../fr/packet-generator-application.md) | **中文**
+**语言 / Language:** [English](../packet-generator-application.md) | [日本語](../ja/packet-generator-application.md) | [Français](../fr/packet-generator-application.md) | **中文** | [Deutsch](../de/packet-generator-application.md) | [Italiano](../it/packet-generator-application.md) | [한국어](../ko/packet-generator-application.md) | [ไทย](../th/packet-generator-application.md) | [Español](../es/packet-generator-application.md)
 
 包生成器（PKTGEN）应用使用DPDK优化的包处理框架提供高性能包生成和流量测试功能。
 

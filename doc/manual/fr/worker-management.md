@@ -1,6 +1,6 @@
 # Gestion des Workers & lcores
 
-**Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | **Français** | [中文](../zh/worker-management.md)
+**Language:** [English](../worker-management.md) | [日本語](../ja/worker-management.md) | **Français** | [中文](../zh/worker-management.md) | [Deutsch](../de/worker-management.md) | [Italiano](../it/worker-management.md) | [한국어](../ko/worker-management.md) | [ไทย](../th/worker-management.md) | [Español](../es/worker-management.md)
 
 Commandes pour la gestion des threads workers et la configuration des lcores.
 

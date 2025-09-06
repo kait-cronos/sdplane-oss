@@ -1,6 +1,6 @@
 # 线程信息
 
-**语言 / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | **中文**
+**语言 / Language:** [English](../thread-information.md) | [日本語](../ja/thread-information.md) | [Français](../fr/thread-information.md) | **中文** | [Deutsch](../de/thread-information.md) | [Italiano](../it/thread-information.md) | [한국어](../ko/thread-information.md) | [ไทย](../th/thread-information.md) | [Español](../es/thread-information.md)
 
 处理线程信息和监视的命令。
 

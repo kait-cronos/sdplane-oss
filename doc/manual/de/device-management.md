@@ -1,6 +1,6 @@
 # Geräteverwaltung
 
-**Sprache / Language:** [English](../device-management.md) | [日本語](../ja/device-management.md) | [Français](../fr/device-management.md) | [中文](../zh/device-management.md) | **Deutsch**
+**Sprache / Language:** [English](../device-management.md) | [日本語](../ja/device-management.md) | [Français](../fr/device-management.md) | [中文](../zh/device-management.md) | **Deutsch** | [Italiano](../it/device-management.md) | [한국어](../ko/device-management.md) | [ไทย](../th/device-management.md) | [Español](../es/device-management.md)
 
 Befehle zur Verwaltung von DPDK-Geräten und -Treibern.
 

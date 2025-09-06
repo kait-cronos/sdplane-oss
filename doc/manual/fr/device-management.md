@@ -1,6 +1,6 @@
 # Gestion des Périphériques
 
-**Language:** [English](../device-management.md) | [日本語](../ja/device-management.md) | **Français** | [中文](../zh/device-management.md)
+**Language:** [English](../device-management.md) | [日本語](../ja/device-management.md) | **Français** | [中文](../zh/device-management.md) | [Deutsch](../de/device-management.md) | [Italiano](../it/device-management.md) | [한국어](../ko/device-management.md) | [ไทย](../th/device-management.md) | [Español](../es/device-management.md)
 
 Commandes pour la gestion des périphériques PCIe et la configuration des pilotes.
 

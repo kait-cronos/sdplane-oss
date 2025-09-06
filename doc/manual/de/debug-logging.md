@@ -1,6 +1,6 @@
 # Debug und Logging
 
-**Sprache / Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | [Français](../fr/debug-logging.md) | [中文](../zh/debug-logging.md) | **Deutsch**
+**Sprache / Language:** [English](../debug-logging.md) | [日本語](../ja/debug-logging.md) | [Français](../fr/debug-logging.md) | [中文](../zh/debug-logging.md) | **Deutsch** | [Italiano](../it/debug-logging.md) | [한국어](../ko/debug-logging.md) | [ไทย](../th/debug-logging.md) | [Español](../es/debug-logging.md)
 
 Befehle zur Steuerung der Debug- und Logging-Funktionen von sdplane.
 
