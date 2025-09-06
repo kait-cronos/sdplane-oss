@@ -300,6 +300,8 @@ https://network.nvidia.com/products/ethernet-drivers/linux/mlnx_en/
 #set device {pcie-id} driver {driver名} bind
 ```
 
+メラノックスNICの場合は、ポート情報を更新するために、`update port status` コマンドを実行する必要があります。
+
 ### PCIeバス番号の確認方法
 
 DPDKでは、dpdk-devbind.pyコマンドを使用してNICのPCIeバス番号を確認できます。
@@ -312,6 +314,14 @@ Network devices using kernel driver
 0000:04:00.0 'NetXtreme BCM5720 Gigabit Ethernet PCIe 165f' numa_node=0 if=eno8303 drv=tg3 unused= *Active*
 0000:b1:00.0 'MT27800 Family [ConnectX-5] 1017' numa_node=1 if=enp177s0np0 drv=mlx5_core unused= *Active*
 ```
+
+### 設定ファイル中のワーカースレッドの順序
+
+`rib-manager`、`neigh-manager`、`netlink-thread` のワーカーを設定する場合、もし使用されるのであれば、この順序で設定されなければいけません。
+
+### DPDK初期化に関して
+
+`rte_eal_init()` を呼ぶコマンドは、設定ファイルからはどれか一つのみ呼び出すのが正しいです。`rte_eal_init()` 関数は、`rte_eal_init`、`pktgen init`、`l2fwd init`、`l3fwd init` などのコマンドから呼ばれます。
 
 ## ユーザーガイド（マニュアル）
 

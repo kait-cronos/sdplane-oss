@@ -302,6 +302,8 @@ Comment out the following settings in sdplane.conf as they are not needed:
 #set device {pcie-id} driver {driver-name} bind
 ```
 
+For Mellanox NICs, you need to run the `update port status` command to refresh port information.
+
 ### How to check PCIe bus numbers
 
 You can use the dpdk-devbind.py command in DPDK to check the PCIe bus numbers of NICs:
@@ -314,6 +316,14 @@ Network devices using kernel driver
 0000:04:00.0 'NetXtreme BCM5720 Gigabit Ethernet PCIe 165f' numa_node=0 if=eno8303 drv=tg3 unused= *Active*
 0000:b1:00.0 'MT27800 Family [ConnectX-5] 1017' numa_node=1 if=enp177s0np0 drv=mlx5_core unused= *Active*
 ```
+
+### Worker thread ordering in configuration file
+
+If configuring `rib-manager`, `neigh-manager`, and `netlink-thread` workers, they must be configured in this order if they are used.
+
+### DPDK initialization
+
+Only one command that calls `rte_eal_init()` should be invoked from the configuration file. The `rte_eal_init()` function is called by commands such as `rte_eal_init`, `pktgen init`, `l2fwd init`, and `l3fwd init`.
 
 ## User's Guide (Manual)
 
