@@ -1,6 +1,6 @@
 # Kompilierung und Installation aus dem Quellcode
 
-**Language:** [English](../en/build-install-source.md) | [Japanese](../ja/build-install-source.md) | [Français](../fr/build-install-source.md) | [中文](../zh/build-install-source.md) | **Deutsch**
+**Language:** [English](../en/build-install-source.md) | [Japanese](../ja/build-install-source.md) | [Français](../fr/build-install-source.md) | [中文](../zh/build-install-source.md) | **Deutsch** | [Italiano](../it/build-install-source.md) | [한국어](../ko/build-install-source.md) | [ไทย](../th/build-install-source.md) | [Español](../es/build-install-source.md)
 
 **Bitte folgen Sie im Allgemeinen diesem Verfahren.**
 

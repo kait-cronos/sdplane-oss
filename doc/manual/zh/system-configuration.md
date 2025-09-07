@@ -1,6 +1,6 @@
 # 系统配置
 
-**Language:** [English](../en/system-configuration.md) | [Japanese](../ja/system-configuration.md) | [Français](../fr/system-configuration.md) | **中文**
+**Language:** [English](../en/system-configuration.md) | [Japanese](../ja/system-configuration.md) | [Français](../fr/system-configuration.md) | **中文** | [Deutsch](../de/system-configuration.md) | [Italiano](../it/system-configuration.md) | [한국어](../ko/system-configuration.md) | [ไทย](../th/system-configuration.md) | [Español](../es/system-configuration.md)
 
 - **大页面**：为DPDK配置系统大页面
 - **网络**：使用netplan进行网络接口配置
