@@ -1,5 +1,7 @@
 # システム設定
 
+**Language:** [English](../en/system-configuration.md) | **日本語**
+
 - **ヒュージページ**：DPDK用システムヒュージページの設定
 - **ネットワーク**：ネットワークインターフェース設定にnetplanを使用
 - **ファイアウォール**： CLIのために telnet 9882/tcp portが必要 

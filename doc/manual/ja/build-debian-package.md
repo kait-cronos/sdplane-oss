@@ -1,5 +1,7 @@
 # Debianパッケージのビルド・インストール
 
+**Language:** [English](../en/build-debian-package.md) | **日本語**
+
 ## 前提パッケージのインストール
 ```bash
 sudo apt install build-essential cmake devscripts debhelper

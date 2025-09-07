@@ -1,5 +1,7 @@
 # Install Dependencies
 
+**Language:** **English** | [日本語](../ja/install-dependencies.md)
+
 ## Dependencies
 - **liburcu-qsbr**: Userspace RCU library
 - **libpcap**: Packet capture library

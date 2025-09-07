@@ -1,5 +1,7 @@
 # 依存関係のインストール
 
+**Language:** [English](../en/install-dependencies.md) | **日本語**
+
 ## 依存関係
 - **liburcu-qsbr**：ユーザー空間RCUライブラリ
 - **libpcap**：パケットキャプチャライブラリ

@@ -1,5 +1,7 @@
 # Build Debian Package and Install
 
+**Language:** **English** | [日本語](../ja/build-debian-package.md)
+
 ## Install prerequisite package
 ```bash
 sudo apt install build-essential cmake devscripts debhelper

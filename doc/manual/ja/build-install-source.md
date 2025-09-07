@@ -1,5 +1,7 @@
 # ソースからのビルド・インストール
 
+**Language:** [English](../en/build-install-source.md) | **日本語**
+
 **一般的にはこちらの手順を踏んでください。**
 
 ## 前提となるUbuntuパッケージのインストール
