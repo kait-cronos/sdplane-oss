@@ -1,6 +1,6 @@
 # lthread管理
 
-**言語 / Language:** [English](../en/lthread-management.md) | **日本語** | [Français](../fr/lthread-management.md) | [中文](../zh/lthread-management.md) | [Deutsch](../de/lthread-management.md) | [Italiano](../it/lthread-management.md) | [한국어](../ko/lthread-management.md) | [ไทย](../th/lthread-management.md) | [Español](../es/lthread-management.md)
+**Language:** [English](../en/lthread-management.md) | **日本語** | [Français](../fr/lthread-management.md) | [中文](../zh/lthread-management.md) | [Deutsch](../de/lthread-management.md) | [Italiano](../it/lthread-management.md) | [한국어](../ko/lthread-management.md) | [ไทย](../th/lthread-management.md) | [Español](../es/lthread-management.md)
 
 lthread（軽量スレッド）の管理を行うコマンドです。
 

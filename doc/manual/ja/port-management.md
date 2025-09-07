@@ -1,6 +1,6 @@
 # ポート管理・統計
 
-**言語 / Language:** [English](../en/port-management.md) | **日本語** | [Français](../fr/port-management.md) | [中文](../zh/port-management.md) | [Deutsch](../de/port-management.md) | [Italiano](../it/port-management.md) | [한국어](../ko/port-management.md) | [ไทย](../th/port-management.md) | [Español](../es/port-management.md)
+**Language:** [English](../en/port-management.md) | **日本語** | [Français](../fr/port-management.md) | [中文](../zh/port-management.md) | [Deutsch](../de/port-management.md) | [Italiano](../it/port-management.md) | [한국어](../ko/port-management.md) | [ไทย](../th/port-management.md) | [Español](../es/port-management.md)
 
 DPDKポートの管理と統計情報を扱うコマンドです。
 

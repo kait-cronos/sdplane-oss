@@ -1,6 +1,6 @@
 # VTY·Shell管理
 
-**语言 / Language:** [English](../en/vty-shell.md) | [日本語](../ja/vty-shell.md) | [Français](../fr/vty-shell.md) | **中文** | [Deutsch](../de/vty-shell.md) | [Italiano](../it/vty-shell.md) | [한국어](../ko/vty-shell.md) | [ไทย](../th/vty-shell.md) | [Español](../es/vty-shell.md)
+**Language:** [English](../en/vty-shell.md) | [日本語](../ja/vty-shell.md) | [Français](../fr/vty-shell.md) | **中文** | [Deutsch](../de/vty-shell.md) | [Italiano](../it/vty-shell.md) | [한국어](../ko/vty-shell.md) | [ไทย](../th/vty-shell.md) | [Español](../es/vty-shell.md)
 
 管理VTY（Virtual Terminal）和Shell的命令。
 

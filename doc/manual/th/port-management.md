@@ -1,6 +1,6 @@
 # การจัดการพอร์ตและสถิติ
 
-**ภาษา / Language:** [English](../en/port-management.md) | [日本語](../ja/port-management.md) | [Français](../fr/port-management.md) | [中文](../zh/port-management.md) | [Deutsch](../de/port-management.md) | [Italiano](../it/port-management.md) | [한국어](../ko/port-management.md) | **ไทย**
+**Language:** [English](../en/port-management.md) | [日本語](../ja/port-management.md) | [Français](../fr/port-management.md) | [中文](../zh/port-management.md) | [Deutsch](../de/port-management.md) | [Italiano](../it/port-management.md) | [한국어](../ko/port-management.md) | **ไทย**
 
 คำสั่งที่จัดการพอร์ต DPDK และข้อมูลสถิติ
 

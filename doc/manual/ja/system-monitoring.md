@@ -1,6 +1,6 @@
 # システム情報・監視
 
-**言語 / Language:** [English](../en/system-monitoring.md) | **日本語** | [Français](../fr/system-monitoring.md) | [中文](../zh/system-monitoring.md) | [Deutsch](../de/system-monitoring.md) | [Italiano](../it/system-monitoring.md) | [한국어](../ko/system-monitoring.md) | [ไทย](../th/system-monitoring.md) | [Español](../es/system-monitoring.md)
+**Language:** [English](../en/system-monitoring.md) | **日本語** | [Français](../fr/system-monitoring.md) | [中文](../zh/system-monitoring.md) | [Deutsch](../de/system-monitoring.md) | [Italiano](../it/system-monitoring.md) | [한국어](../ko/system-monitoring.md) | [ไทย](../th/system-monitoring.md) | [Español](../es/system-monitoring.md)
 
 sdplaneのシステム情報と監視機能を提供するコマンドです。
 

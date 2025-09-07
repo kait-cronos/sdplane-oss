@@ -1,6 +1,6 @@
 # DPDKアプリケーション統合ガイド
 
-**言語 / Language:** [English](../en/dpdk-integration-guide.md) | **日本語** | [Français](../fr/dpdk-integration-guide.md) | [中文](../zh/dpdk-integration-guide.md) | [Deutsch](../de/dpdk-integration-guide.md) | [Italiano](../it/dpdk-integration-guide.md) | [한국어](../ko/dpdk-integration-guide.md) | [ไทย](../th/dpdk-integration-guide.md) | [Español](../es/dpdk-integration-guide.md)
+**Language:** [English](../en/dpdk-integration-guide.md) | **日本語** | [Français](../fr/dpdk-integration-guide.md) | [中文](../zh/dpdk-integration-guide.md) | [Deutsch](../de/dpdk-integration-guide.md) | [Italiano](../it/dpdk-integration-guide.md) | [한국어](../ko/dpdk-integration-guide.md) | [ไทย](../th/dpdk-integration-guide.md) | [Español](../es/dpdk-integration-guide.md)
 
 このガイドでは、既存のDPDKアプリケーションとそのpthreadベースのワーカースレッドをsdplaneフレームワークにDPDK-dock方式を使用して統合する方法を説明します。
 

@@ -1,6 +1,6 @@
 # 포트 관리·통계
 
-**언어 / Language:** [English](../en/port-management.md) | [日本語](../ja/port-management.md) | [Français](../fr/port-management.md) | [中文](../zh/port-management.md) | [Deutsch](../de/port-management.md) | [Italiano](../it/port-management.md) | **한국어**
+**Language:** [English](../en/port-management.md) | [日本語](../ja/port-management.md) | [Français](../fr/port-management.md) | [中文](../zh/port-management.md) | [Deutsch](../de/port-management.md) | [Italiano](../it/port-management.md) | **한국어**
 
 DPDK 포트 관리 및 통계 정보를 다루는 명령어입니다.
 

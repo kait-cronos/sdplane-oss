@@ -1,6 +1,6 @@
 # ข้อมูลระบบและการตรวจสอบ
 
-**ภาษา / Language:** [English](../en/system-monitoring.md) | [日本語](../ja/system-monitoring.md) | [Français](../fr/system-monitoring.md) | [中文](../zh/system-monitoring.md) | [Deutsch](../de/system-monitoring.md) | [Italiano](../it/system-monitoring.md) | [한국어](../ko/system-monitoring.md) | **ไทย**
+**Language:** [English](../en/system-monitoring.md) | [日本語](../ja/system-monitoring.md) | [Français](../fr/system-monitoring.md) | [中文](../zh/system-monitoring.md) | [Deutsch](../de/system-monitoring.md) | [Italiano](../it/system-monitoring.md) | [한국어](../ko/system-monitoring.md) | **ไทย**
 
 คำสั่งที่ให้ข้อมูลระบบและฟังก์ชันการตรวจสอบของ sdplane
 

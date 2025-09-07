@@ -1,6 +1,6 @@
 # DPDK 애플리케이션 통합 가이드
 
-**언어 / Language:** [English](../en/dpdk-integration-guide.md) | [日本語](../ja/dpdk-integration-guide.md) | [Français](../fr/dpdk-integration-guide.md) | [中文](../zh/dpdk-integration-guide.md) | [Deutsch](../de/dpdk-integration-guide.md) | [Italiano](../it/dpdk-integration-guide.md) | **한국어**
+**Language:** [English](../en/dpdk-integration-guide.md) | [日本語](../ja/dpdk-integration-guide.md) | [Français](../fr/dpdk-integration-guide.md) | [中文](../zh/dpdk-integration-guide.md) | [Deutsch](../de/dpdk-integration-guide.md) | [Italiano](../it/dpdk-integration-guide.md) | **한국어**
 
 이 가이드는 기존 DPDK 애플리케이션과 그들의 pthread 기반 워커 스레드를 DPDK-dock 방식을 사용하여 sdplane 프레임워크에 통합하는 방법을 설명합니다.
 
