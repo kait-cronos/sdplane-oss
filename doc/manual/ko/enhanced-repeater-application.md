@@ -1,6 +1,6 @@
 # 향상된 리피터 애플리케이션
 
-**언어 / Language:** [English](../enhanced-repeater-application.md) | [日本語](../ja/enhanced-repeater-application.md) | [Français](../fr/enhanced-repeater-application.md) | [中文](../zh/enhanced-repeater-application.md) | [Deutsch](../de/enhanced-repeater-application.md) | [Italiano](../it/enhanced-repeater-application.md) | **한국어**
+**언어 / Language:** [English](../en/enhanced-repeater-application.md) | [日本語](../ja/enhanced-repeater-application.md) | [Français](../fr/enhanced-repeater-application.md) | [中文](../zh/enhanced-repeater-application.md) | [Deutsch](../de/enhanced-repeater-application.md) | [Italiano](../it/enhanced-repeater-application.md) | **한국어**
 
 향상된 리피터 애플리케이션은 L3 라우팅과 패킷 캡처 기능을 위한 TAP 인터페이스 통합을 갖춘 고급 VLAN 지원 레이어 2 스위칭을 제공합니다.
 

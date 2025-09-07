@@ -1,6 +1,6 @@
 # 큐 설정
 
-**언어 / Language:** [English](../queue-configuration.md) | [日本語](../ja/queue-configuration.md) | [Français](../fr/queue-configuration.md) | [中文](../zh/queue-configuration.md) | [Deutsch](../de/queue-configuration.md) | [Italiano](../it/queue-configuration.md) | **한국어**
+**언어 / Language:** [English](../en/queue-configuration.md) | [日本語](../ja/queue-configuration.md) | [Français](../fr/queue-configuration.md) | [中文](../zh/queue-configuration.md) | [Deutsch](../de/queue-configuration.md) | [Italiano](../it/queue-configuration.md) | **한국어**
 
 DPDK 큐의 설정과 관리를 수행하는 명령어입니다.
 

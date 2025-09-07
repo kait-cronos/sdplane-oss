@@ -1,6 +1,6 @@
 # Guía de Usuario de sdplane-oss
 
-**Idioma / Language:** [English](../README.md) | [日本語](../ja/README.md) | [Français](../fr/README.md) | [中文](../zh/README.md) | [Deutsch](../de/README.md) | [Italiano](../it/README.md) | [한국어](../ko/README.md) | [ไทย](../th/README.md) | **Español**
+**Idioma / Language:** [English](../en/README.md) | [日本語](../ja/README.md) | [Français](../fr/README.md) | [中文](../zh/README.md) | [Deutsch](../de/README.md) | [Italiano](../it/README.md) | [한국어](../ko/README.md) | [ไทย](../th/README.md) | **Español**
 
 sdplane-oss es un enrutador de software de alto rendimiento basado en DPDK. Esta guía de usuario explica todos los comandos y funcionalidades de sdplane.
 

@@ -1,6 +1,6 @@
 # sdplane-oss 사용자 가이드
 
-**언어 / Language:** [English](../README.md) | [日本語](../ja/README.md) | [Français](../fr/README.md) | [中文](../zh/README.md) | [Deutsch](../de/README.md) | [Italiano](../it/README.md) | **한국어**
+**언어 / Language:** [English](../en/README.md) | [日本語](../ja/README.md) | [Français](../fr/README.md) | [中文](../zh/README.md) | [Deutsch](../de/README.md) | [Italiano](../it/README.md) | **한국어**
 
 sdplane-oss는 고성능 DPDK 기반 소프트웨어 라우터입니다. 이 사용자 가이드에서는 sdplane의 모든 명령어와 기능에 대해 설명합니다.
 

@@ -1,6 +1,6 @@
 # L2 리피터 애플리케이션
 
-**언어 / Language:** [English](../l2-repeater-application.md) | [日本語](../ja/l2-repeater-application.md) | [Français](../fr/l2-repeater-application.md) | [中文](../zh/l2-repeater-application.md) | [Deutsch](../de/l2-repeater-application.md) | [Italiano](../it/l2-repeater-application.md) | **한국어**
+**언어 / Language:** [English](../en/l2-repeater-application.md) | [日本語](../ja/l2-repeater-application.md) | [Français](../fr/l2-repeater-application.md) | [中文](../zh/l2-repeater-application.md) | [Deutsch](../de/l2-repeater-application.md) | [Italiano](../it/l2-repeater-application.md) | **한국어**
 
 L2 리피터 애플리케이션은 기본적인 포트 간 리핏 기능을 갖춘 DPDK 포트 간의 간단한 레이어 2 패킷 전달을 제공합니다.
 

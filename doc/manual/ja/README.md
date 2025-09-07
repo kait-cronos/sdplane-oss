@@ -1,6 +1,6 @@
 # sdplane-oss ユーザーガイド
 
-**言語 / Language:** [English](../README.md) | **日本語** | [Français](../fr/README.md) | [中文](../zh/README.md) | [Deutsch](../de/README.md) | [Italiano](../it/README.md) | [한국어](../ko/README.md) | [ไทย](../th/README.md) | [Español](../es/README.md)
+**言語 / Language:** [English](../en/README.md) | **日本語** | [Français](../fr/README.md) | [中文](../zh/README.md) | [Deutsch](../de/README.md) | [Italiano](../it/README.md) | [한국어](../ko/README.md) | [ไทย](../th/README.md) | [Español](../es/README.md)
 
 sdplane-ossは高性能なDPDKベースのソフトウェアルーターです。このユーザーガイドでは、sdplaneの全コマンドと機能について説明します。
 

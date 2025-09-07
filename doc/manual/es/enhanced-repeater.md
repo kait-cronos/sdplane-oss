@@ -1,6 +1,6 @@
 # Configuración de Repetidor Mejorado
 
-**Idioma / Language:** [English](../enhanced-repeater.md) | [日本語](../ja/enhanced-repeater.md) | [Français](../fr/enhanced-repeater.md) | [中文](../zh/enhanced-repeater.md) | [Deutsch](../de/enhanced-repeater.md) | [Italiano](../it/enhanced-repeater.md) | [한국어](../ko/enhanced-repeater.md) | [ไทย](../th/enhanced-repeater.md) | **Español**
+**Idioma / Language:** [English](../en/enhanced-repeater.md) | [日本語](../ja/enhanced-repeater.md) | [Français](../fr/enhanced-repeater.md) | [中文](../zh/enhanced-repeater.md) | [Deutsch](../de/enhanced-repeater.md) | [Italiano](../it/enhanced-repeater.md) | [한국어](../ko/enhanced-repeater.md) | [ไทย](../th/enhanced-repeater.md) | **Español**
 
 El Repetidor Mejorado proporciona funcionalidades avanzadas de conmutación VLAN con interfaces TAP para enrutamiento L3 y captura de paquetes. Soporta la creación de conmutadores virtuales, vinculación de puertos DPDK con etiquetado VLAN, interfaces de enrutador para integración con kernel, e interfaces de captura para monitorización.
 

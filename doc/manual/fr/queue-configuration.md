@@ -1,6 +1,6 @@
 # Configuration des Files
 
-**Language:** [English](../queue-configuration.md) | [日本語](../ja/queue-configuration.md) | **Français** | [中文](../zh/queue-configuration.md) | [Deutsch](../de/queue-configuration.md) | [Italiano](../it/queue-configuration.md) | [한국어](../ko/queue-configuration.md) | [ไทย](../th/queue-configuration.md) | [Español](../es/queue-configuration.md)
+**Language:** [English](../en/queue-configuration.md) | [日本語](../ja/queue-configuration.md) | **Français** | [中文](../zh/queue-configuration.md) | [Deutsch](../de/queue-configuration.md) | [Italiano](../it/queue-configuration.md) | [한국어](../ko/queue-configuration.md) | [ไทย](../th/queue-configuration.md) | [Español](../es/queue-configuration.md)
 
 Configuration et gestion des files de réception et transmission pour ports DPDK.
 

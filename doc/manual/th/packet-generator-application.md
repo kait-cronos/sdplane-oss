@@ -1,6 +1,6 @@
 # แอปพลิเคชัน Packet Generator
 
-**ภาษา / Language:** [English](../packet-generator-application.md) | [日本語](../ja/packet-generator-application.md) | [Français](../fr/packet-generator-application.md) | [中文](../zh/packet-generator-application.md) | [Deutsch](../de/packet-generator-application.md) | [Italiano](../it/packet-generator-application.md) | [한국어](../ko/packet-generator-application.md) | **ไทย**
+**ภาษา / Language:** [English](../en/packet-generator-application.md) | [日本語](../ja/packet-generator-application.md) | [Français](../fr/packet-generator-application.md) | [中文](../zh/packet-generator-application.md) | [Deutsch](../de/packet-generator-application.md) | [Italiano](../it/packet-generator-application.md) | [한국어](../ko/packet-generator-application.md) | **ไทย**
 
 แอปพลิเคชัน Packet Generator ให้ความสามารถในการสร้างและส่งแพ็กเก็ตประสิทธิภาพสูงสำหรับการทดสอบเครือข่าย การวัดประสิทธิภาพ และการตรวจสอบ
 

@@ -1,6 +1,6 @@
 # การสร้างแพ็กเก็ต
 
-**ภาษา / Language:** [English](../packet-generation.md) | [日本語](../ja/packet-generation.md) | [Français](../fr/packet-generation.md) | [中文](../zh/packet-generation.md) | [Deutsch](../de/packet-generation.md) | [Italiano](../it/packet-generation.md) | [한국어](../ko/packet-generation.md) | **ไทย**
+**ภาษา / Language:** [English](../en/packet-generation.md) | [日本語](../ja/packet-generation.md) | [Français](../fr/packet-generation.md) | [中文](../zh/packet-generation.md) | [Deutsch](../de/packet-generation.md) | [Italiano](../it/packet-generation.md) | [한국어](../ko/packet-generation.md) | **ไทย**
 
 คำสั่งฟังก์ชันการสร้างแพ็กเก็ตโดยใช้ PKTGEN (Packet Generator)
 

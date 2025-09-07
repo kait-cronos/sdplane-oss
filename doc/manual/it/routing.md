@@ -1,6 +1,6 @@
 # RIB e Routing
 
-**Lingua / Language:** [English](../routing.md) | [日本語](../ja/routing.md) | [Français](../fr/routing.md) | [中文](../zh/routing.md) | [Deutsch](../de/routing.md) | **Italiano** | [한국어](../ko/routing.md) | [ไทย](../th/routing.md) | [Español](../es/routing.md)
+**Lingua / Language:** [English](../en/routing.md) | [日本語](../ja/routing.md) | [Français](../fr/routing.md) | [中文](../zh/routing.md) | [Deutsch](../de/routing.md) | **Italiano** | [한국어](../ko/routing.md) | [ไทย](../th/routing.md) | [Español](../es/routing.md)
 
 Comandi per gestire RIB (Routing Information Base) e informazioni delle risorse di sistema.
 

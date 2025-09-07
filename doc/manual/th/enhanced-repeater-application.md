@@ -1,6 +1,6 @@
 # แอปพลิเคชัน Enhanced Repeater
 
-**ภาษา / Language:** [English](../enhanced-repeater-application.md) | [日本語](../ja/enhanced-repeater-application.md) | [Français](../fr/enhanced-repeater-application.md) | [中文](../zh/enhanced-repeater-application.md) | [Deutsch](../de/enhanced-repeater-application.md) | [Italiano](../it/enhanced-repeater-application.md) | [한국어](../ko/enhanced-repeater-application.md) | **ไทย**
+**ภาษา / Language:** [English](../en/enhanced-repeater-application.md) | [日本語](../ja/enhanced-repeater-application.md) | [Français](../fr/enhanced-repeater-application.md) | [中文](../zh/enhanced-repeater-application.md) | [Deutsch](../de/enhanced-repeater-application.md) | [Italiano](../it/enhanced-repeater-application.md) | [한국어](../ko/enhanced-repeater-application.md) | **ไทย**
 
 แอปพลิเคชัน Enhanced Repeater ให้การ switching Layer 2 ขั้นสูงที่รู้จัก VLAN พร้อมการบูรณาการ TAP interface สำหรับการ routing L3 และฟังก์ชันการจับแพ็กเก็ต
 

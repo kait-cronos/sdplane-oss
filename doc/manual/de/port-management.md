@@ -1,6 +1,6 @@
 # Port-Management und Statistiken
 
-**Sprache / Language:** [English](../port-management.md) | [日本語](../ja/port-management.md) | [Français](../fr/port-management.md) | [中文](../zh/port-management.md) | **Deutsch** | [Italiano](../it/port-management.md) | [한국어](../ko/port-management.md) | [ไทย](../th/port-management.md) | [Español](../es/port-management.md)
+**Sprache / Language:** [English](../en/port-management.md) | [日本語](../ja/port-management.md) | [Français](../fr/port-management.md) | [中文](../zh/port-management.md) | **Deutsch** | [Italiano](../it/port-management.md) | [한국어](../ko/port-management.md) | [ไทย](../th/port-management.md) | [Español](../es/port-management.md)
 
 Befehle zur Verwaltung von DPDK-Ports und Statistikinformationen.
 
