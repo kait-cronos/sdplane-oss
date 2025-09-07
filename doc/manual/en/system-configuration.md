@@ -1,6 +1,6 @@
 # System Configuration
 
-**Language:** **English** | [日本語](../ja/system-configuration.md)
+**Language:** **English** | [Japanese](../ja/system-configuration.md)
 
 - **Hugepages**: Configure system hugepages for DPDK
 - **Network**: Use netplan for network interface configuration

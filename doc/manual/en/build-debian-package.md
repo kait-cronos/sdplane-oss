@@ -1,6 +1,6 @@
 # Build Debian Package and Install
 
-**Language:** **English** | [日本語](../ja/build-debian-package.md)
+**Language:** **English** | [Japanese](../ja/build-debian-package.md)
 
 ## Install prerequisite package
 ```bash

@@ -1,6 +1,6 @@
 # Build and Install from Source
 
-**Language:** **English** | [日本語](../ja/build-install-source.md)
+**Language:** **English** | [Japanese](../ja/build-install-source.md)
 
 **Generally, please follow this procedure.**
 
