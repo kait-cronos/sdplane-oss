@@ -46,8 +46,8 @@ A "DPDK-dock Development Environment" consisting of an interactive shell that ca
 ### Target Hardware Platforms
 
 The project has been tested on:
-- **Topton (N305/N100)**: Mini-PC with 10G NICs
-- **Partaker (J3160)**: Mini-PC with 1G NICs
+- **Topton (N305/N100)**: Mini-PC with 10G NICs (tested)
+- **Partaker (J3160)**: Mini-PC with 1G NICs (tested)
 - **Intel Generic PC**: With Intel x520 / Mellanox ConnectX5
 - **Other CPUs**: Should work with AMD, ARM processors, etc.
 
@@ -84,6 +84,8 @@ Jump to 5. System Configuration.
 ## 3. Build and Install From Source
 
 See [Build and Install from Source Guide](doc/manual/en/build-install-source.md) for detailed instructions on building sdplane-oss from source code.
+
+You can jump to 5. System Configuration.
 
 ## 4. Build Debian Package and Install
 
