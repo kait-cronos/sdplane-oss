@@ -1,6 +1,6 @@
 # VTY·셸 관리
 
-**언어 / Language:** [English](../en/vty-shell.md) | [日本語](../ja/vty-shell.md) | [Français](../fr/vty-shell.md) | [中文](../zh/vty-shell.md) | [Deutsch](../de/vty-shell.md) | [Italiano](../it/vty-shell.md) | **한국어**
+**Language:** [English](../en/vty-shell.md) | [日本語](../ja/vty-shell.md) | [Français](../fr/vty-shell.md) | [中文](../zh/vty-shell.md) | [Deutsch](../de/vty-shell.md) | [Italiano](../it/vty-shell.md) | **한국어**
 
 VTY(Virtual Terminal)와 셸 관리를 수행하는 명령어입니다.
 

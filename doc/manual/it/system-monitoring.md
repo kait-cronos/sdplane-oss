@@ -1,6 +1,6 @@
 # Informazioni Sistema e Monitoraggio
 
-**Lingua / Language:** [English](../en/system-monitoring.md) | [日本語](../ja/system-monitoring.md) | [Français](../fr/system-monitoring.md) | [中文](../zh/system-monitoring.md) | [Deutsch](../de/system-monitoring.md) | **Italiano** | [한국어](../ko/system-monitoring.md) | [ไทย](../th/system-monitoring.md) | [Español](../es/system-monitoring.md)
+**Language:** [English](../en/system-monitoring.md) | [日本語](../ja/system-monitoring.md) | [Français](../fr/system-monitoring.md) | [中文](../zh/system-monitoring.md) | [Deutsch](../de/system-monitoring.md) | **Italiano** | [한국어](../ko/system-monitoring.md) | [ไทย](../th/system-monitoring.md) | [Español](../es/system-monitoring.md)
 
 Comandi che forniscono informazioni di sistema e funzionalità di monitoraggio per sdplane.
 

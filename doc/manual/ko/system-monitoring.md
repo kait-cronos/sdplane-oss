@@ -1,6 +1,6 @@
 # 시스템 정보·모니터링
 
-**언어 / Language:** [English](../en/system-monitoring.md) | [日本語](../ja/system-monitoring.md) | [Français](../fr/system-monitoring.md) | [中文](../zh/system-monitoring.md) | [Deutsch](../de/system-monitoring.md) | [Italiano](../it/system-monitoring.md) | **한국어**
+**Language:** [English](../en/system-monitoring.md) | [日本語](../ja/system-monitoring.md) | [Français](../fr/system-monitoring.md) | [中文](../zh/system-monitoring.md) | [Deutsch](../de/system-monitoring.md) | [Italiano](../it/system-monitoring.md) | **한국어**
 
 sdplane의 시스템 정보 및 모니터링 기능을 제공하는 명령어입니다.
 

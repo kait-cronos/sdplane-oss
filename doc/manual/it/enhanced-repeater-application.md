@@ -1,6 +1,6 @@
 # Applicazione Ripetitore Avanzato
 
-**Lingua / Language:** [English](../en/enhanced-repeater-application.md) | [日本語](../ja/enhanced-repeater-application.md) | [Français](../fr/enhanced-repeater-application.md) | [中文](../zh/enhanced-repeater-application.md) | [Deutsch](../de/enhanced-repeater-application.md) | **Italiano** | [한국어](../ko/enhanced-repeater-application.md) | [ไทย](../th/enhanced-repeater-application.md) | [Español](../es/enhanced-repeater-application.md)
+**Language:** [English](../en/enhanced-repeater-application.md) | [日本語](../ja/enhanced-repeater-application.md) | [Français](../fr/enhanced-repeater-application.md) | [中文](../zh/enhanced-repeater-application.md) | [Deutsch](../de/enhanced-repeater-application.md) | **Italiano** | [한국어](../ko/enhanced-repeater-application.md) | [ไทย](../th/enhanced-repeater-application.md) | [Español](../es/enhanced-repeater-application.md)
 
 L'applicazione Ripetitore Avanzato fornisce switching Layer 2 avanzato con supporto VLAN, con integrazione di interfacce TAP per funzionalità di routing L3 e cattura pacchetti.
 

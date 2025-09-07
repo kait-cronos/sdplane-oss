@@ -1,6 +1,6 @@
 # Paketgenerierung
 
-**Sprache / Language:** [English](../en/packet-generation.md) | [日本語](../ja/packet-generation.md) | [Français](../fr/packet-generation.md) | [中文](../zh/packet-generation.md) | **Deutsch** | [Italiano](../it/packet-generation.md) | [한국어](../ko/packet-generation.md) | [ไทย](../th/packet-generation.md) | [Español](../es/packet-generation.md)
+**Language:** [English](../en/packet-generation.md) | [日本語](../ja/packet-generation.md) | [Français](../fr/packet-generation.md) | [中文](../zh/packet-generation.md) | **Deutsch** | [Italiano](../it/packet-generation.md) | [한국어](../ko/packet-generation.md) | [ไทย](../th/packet-generation.md) | [Español](../es/packet-generation.md)
 
 Befehle für die Paketgenerierungsfunktionen mit PKTGEN (Packet Generator).
 

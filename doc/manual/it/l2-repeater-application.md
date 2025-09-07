@@ -1,6 +1,6 @@
 # Applicazione Ripetitore L2
 
-**Lingua / Language:** [English](../en/l2-repeater-application.md) | [日本語](../ja/l2-repeater-application.md) | [Français](../fr/l2-repeater-application.md) | [中文](../zh/l2-repeater-application.md) | [Deutsch](../de/l2-repeater-application.md) | **Italiano** | [한국어](../ko/l2-repeater-application.md) | [ไทย](../th/l2-repeater-application.md) | [Español](../es/l2-repeater-application.md)
+**Language:** [English](../en/l2-repeater-application.md) | [日本語](../ja/l2-repeater-application.md) | [Français](../fr/l2-repeater-application.md) | [中文](../zh/l2-repeater-application.md) | [Deutsch](../de/l2-repeater-application.md) | **Italiano** | [한국어](../ko/l2-repeater-application.md) | [ไทย](../th/l2-repeater-application.md) | [Español](../es/l2-repeater-application.md)
 
 L'applicazione Ripetitore L2 fornisce un trasferimento pacchetti Layer 2 semplice tra porte DPDK con funzionalità di ripetizione base tra porte.
 

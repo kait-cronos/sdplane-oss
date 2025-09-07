@@ -1,6 +1,6 @@
 # คู่มือผู้ใช้ sdplane-oss
 
-**ภาษา / Language:** [English](../en/README.md) | [日本語](../ja/README.md) | [Français](../fr/README.md) | [中文](../zh/README.md) | [Deutsch](../de/README.md) | [Italiano](../it/README.md) | [한국어](../ko/README.md) | **ไทย**
+**Language:** [English](../en/README.md) | [日本語](../ja/README.md) | [Français](../fr/README.md) | [中文](../zh/README.md) | [Deutsch](../de/README.md) | [Italiano](../it/README.md) | [한국어](../ko/README.md) | **ไทย**
 
 sdplane-oss เป็นซอฟต์แวร์เราเตอร์ที่ใช้ DPDK สำหรับประสิทธิภาพสูง คู่มือผู้ใช้นี้จะอธิบายคำสั่งและฟังก์ชันทั้งหมดของ sdplane
 

@@ -45,63 +45,16 @@ DPDKスレッドの動作を対話的に制御できるShellと、DPDKスレッ�
 ### 対象ハードウェアプラットフォーム
 
 本プロジェクトは以下でテスト済みです：
-- **Topton (N305/N100)**：10G NIC搭載ミニPC
-- **Partaker (J3160)**：1G NIC搭載ミニPC
+- **Topton (N305/N100)**：10G NIC搭載ミニPC (tested)
+- **Partaker (J3160)**：1G NIC搭載ミニPC (tested)
 - **Intel汎用PC**：Intel x520 / Mellanox ConnectX5搭載
 - **その他のCPU**：AMD、ARM CPU等でも動作するはずです。
 
 ## 1. 依存関係のインストール
 
-### 依存関係
-- **liburcu-qsbr**：ユーザー空間RCUライブラリ
-- **libpcap**：パケットキャプチャライブラリ
-- **lthread**：[yasuhironet/lthread](https://github.com/yasuhironet/lthread)（軽量協調スレッド）
-- **DPDK**：Data Plane Development Kit
+liburcu-qsbr、libpcap、lthread、DPDKを含む全ての必要な依存関係のインストールについては、[依存関係インストールガイド](manual/ja/install-dependencies.md)を参照してください。
 
-### sdplane依存関係debianパッケージのインストール
-```bash
-sudo apt install liburcu-dev libpcap-dev
-```
-
-### ビルドツールとDPDK前提パッケージのインストール
-
-```bash
-# コアビルドツール
-sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
-
-# DPDK前提パッケージ
-sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
-```
-
-### lthreadのインストール
-```bash
-# lthreadのインストール
-git clone https://github.com/yasuhironet/lthread
-cd lthread
-cmake .
-make
-sudo make install
-```
-### DPDK 23.11.1のインストール
-```bash
-# DPDKのダウンロードと展開
-wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
-tar vxJf dpdk-23.11.1.tar.xz
-cd dpdk-stable-23.11.1
-
-# DPDKのビルドとインストール
-meson setup build
-cd build
-ninja
-sudo meson install
-sudo ldconfig
-
-# インストールの確認
-pkg-config --modversion libdpdk
-# 出力例: 23.11.1
-```
-
-## 2. Intel Core i3-n305/Celelon j3160向け Debianパッケージによるクイックスタート
+## 2. プリコンパイルDebianパッケージからのインストール
 
 Intel Core i3-n305/Celelon j3160では、Debianパッケージによるクイックスタートが可能です。
 
@@ -123,99 +76,23 @@ sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 
 **注意**: 最新パッケージバージョンについては [yasuhironet.net ダウンロード](https://www.yasuhironet.net/download/)を確認してください。
 
-5. システム設定 にジャンプしてください。
+**注意**: 他のCPUでこのプリコンパイル済みバイナリを使用するとSIGILL（不正命令）が発生する可能性があります。その場合は自分でコンパイルする必要があります。
 
-## 3. ソースからのビルド
+5. システム設定へジャンプしてください。
 
-**一般的にはこちらの手順を踏んでください。**
+## 3. ソースからのビルド・インストール
 
-<!--
-#### オプションパッケージ
-```bash
-sudo apt install etckeeper tig bridge-utils \
-                 iptables-persistent fail2ban dmidecode screen ripgrep
-```
--->
+sdplane-ossをソースコードからビルドする詳細な手順については、[ソースからのビルド・インストールガイド](manual/ja/build-install-source.md)を参照してください。
 
-### ソースからsdplane-ossのビルド
+5. システム設定へジャンプできます。
 
-```bash
-# リポジトリのクローン
-cd
-git clone https://github.com/kait-cronos/sdplane-oss
-cd sdplane-oss
+## 4. Debianパッケージのビルド・インストール
 
-# ビルドファイルの生成
-sh autogen.sh
-
-# 設定とビルド
-mkdir build
-cd build
-CFLAGS="-g -O0" sh ../configure
-make
-
-# prefix (/usr/local/sbin) へのインストール
-make install
-```
-
-## 4. sdplane-ossのDebian Packageの作成とインストール
-
-### 前提パッケージのインストール
-```bash
-sudo apt install build-essential cmake devscripts debhelper
-```
-
-### sdplane-oss Debianパッケージのビルド
-```bash
-# まずクリーンな状態から始める
-(cd ~/sdplane-oss/build && make distclean)
-(cd ~/sdplane-oss && make distclean)
-
-# ソースからDebianパッケージをビルド
-bash build-debian.sh
-
-# 生成されたパッケージをインストール（親ディレクトリに生成される）
-sudo apt install ../sdplane_*.deb
-```
+ソースからDebianパッケージを作成・インストールする手順については、[Debianパッケージビルドガイド](manual/ja/build-debian-package.md)を参照してください。
 
 ## 5. システム設定
 
-- **ヒュージページ**：DPDK用システムヒュージページの設定
-- **ネットワーク**：ネットワークインターフェース設定にnetplanを使用
-- **ファイアウォール**： CLIのために telnet 9882/tcp portが必要 
-
-**⚠️ CLIに認証がありません。localhostからのみ接続を許可することを推奨 ⚠️**
-
-### ヒュージページの設定
-```bash
-# GRUB設定の編集
-sudo vi /etc/default/grub
-
-# 以下のいずれかの行を追加:
-# 2MBヒュージページの場合 (1536ページ = 約3GB):
-GRUB_CMDLINE_LINUX="hugepages=1536"
-
-# または1GBヒュージページの場合 (8ページ = 8GB):
-# (8GB未満のRAMの場合、hugepages=4などに調整してください.)
-GRUB_CMDLINE_LINUX="default_hugepagesz=1G hugepagesz=1G hugepages=8"
-
-# GRUBを更新して再起動
-sudo update-grub
-sudo reboot
-```
-
-### DPDK IGBカーネルモジュールのインストール（オプション）
-
-vfio-pciで動作しないNICの場合は、オプションでigb_uioをインストールしてください。
-
-```bash
-git clone http://dpdk.org/git/dpdk-kmods
-cd dpdk-kmods/linux/igb_uio
-make
-sudo mkdir -p /lib/modules/`uname -r`/extra/dpdk/
-sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
-echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
-```
+ヒュージページ、ネットワークインターフェース、オプションカーネルモジュールの設定手順については、[システム設定ガイド](manual/ja/system-configuration.md)を参照してください。
 
 ## 6. sdplane設定
 
@@ -238,7 +115,7 @@ Debian Packageからインストールした場合、`/etc/sdplane/sdplane.conf.
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf)：L2リピーター設定
 - [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf)：拡張リピーター設定（VLANスイッチング、ルーターインターフェース、キャプチャインターフェース）
 
-## 7. sdplane-ossを用いたApplicationの実行
+## 7. sdplaneアプリケーションの実行
 
 ```bash
 # フォアグラウンドで実行

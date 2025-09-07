@@ -1,6 +1,6 @@
 # DPDK-Anwendungsintegrationsleitfaden
 
-**Sprache / Language:** [English](../en/dpdk-integration-guide.md) | [日本語](../ja/dpdk-integration-guide.md) | [Français](../fr/dpdk-integration-guide.md) | [中文](../zh/dpdk-integration-guide.md) | **Deutsch** | [Italiano](../it/dpdk-integration-guide.md) | [한국어](../ko/dpdk-integration-guide.md) | [ไทย](../th/dpdk-integration-guide.md) | [Español](../es/dpdk-integration-guide.md)
+**Language:** [English](../en/dpdk-integration-guide.md) | [日本語](../ja/dpdk-integration-guide.md) | [Français](../fr/dpdk-integration-guide.md) | [中文](../zh/dpdk-integration-guide.md) | **Deutsch** | [Italiano](../it/dpdk-integration-guide.md) | [한국어](../ko/dpdk-integration-guide.md) | [ไทย](../th/dpdk-integration-guide.md) | [Español](../es/dpdk-integration-guide.md)
 
 Dieser Leitfaden erklärt, wie bestehende DPDK-Anwendungen und deren pthread-basierte Worker-Threads in das sdplane-Framework unter Verwendung des DPDK-Dock-Ansatzes integriert werden.
 

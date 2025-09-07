@@ -1,6 +1,6 @@
 # 端口管理·统计
 
-**语言 / Language:** [English](../en/port-management.md) | [日本語](../ja/port-management.md) | [Français](../fr/port-management.md) | **中文** | [Deutsch](../de/port-management.md) | [Italiano](../it/port-management.md) | [한국어](../ko/port-management.md) | [ไทย](../th/port-management.md) | [Español](../es/port-management.md)
+**Language:** [English](../en/port-management.md) | [日本語](../ja/port-management.md) | [Français](../fr/port-management.md) | **中文** | [Deutsch](../de/port-management.md) | [Italiano](../it/port-management.md) | [한국어](../ko/port-management.md) | [ไทย](../th/port-management.md) | [Español](../es/port-management.md)
 
 管理DPDK端口并处理统计信息的命令。
 

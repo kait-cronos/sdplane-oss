@@ -1,6 +1,6 @@
 # 패킷 생성
 
-**언어 / Language:** [English](../en/packet-generation.md) | [日本語](../ja/packet-generation.md) | [Français](../fr/packet-generation.md) | [中文](../zh/packet-generation.md) | [Deutsch](../de/packet-generation.md) | [Italiano](../it/packet-generation.md) | **한국어**
+**Language:** [English](../en/packet-generation.md) | [日本語](../ja/packet-generation.md) | [Français](../fr/packet-generation.md) | [中文](../zh/packet-generation.md) | [Deutsch](../de/packet-generation.md) | [Italiano](../it/packet-generation.md) | **한국어**
 
 PKTGEN(Packet Generator)을 사용한 패킷 생성 기능의 명령어입니다.
 

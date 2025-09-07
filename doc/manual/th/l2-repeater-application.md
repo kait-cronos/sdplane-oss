@@ -1,6 +1,6 @@
 # แอปพลิเคชัน L2 Repeater
 
-**ภาษา / Language:** [English](../en/l2-repeater-application.md) | [日本語](../ja/l2-repeater-application.md) | [Français](../fr/l2-repeater-application.md) | [中文](../zh/l2-repeater-application.md) | [Deutsch](../de/l2-repeater-application.md) | [Italiano](../it/l2-repeater-application.md) | [한국어](../ko/l2-repeater-application.md) | **ไทย**
+**Language:** [English](../en/l2-repeater-application.md) | [日本語](../ja/l2-repeater-application.md) | [Français](../fr/l2-repeater-application.md) | [中文](../zh/l2-repeater-application.md) | [Deutsch](../de/l2-repeater-application.md) | [Italiano](../it/l2-repeater-application.md) | [한국어](../ko/l2-repeater-application.md) | **ไทย**
 
 แอปพลิเคชัน L2 Repeater ให้ฟังก์ชันการส่งต่อแพ็กเก็ต Layer 2 อย่างง่ายระหว่างพอร์ต DPDK พร้อมฟังก์ชันการ repeat ระหว่างพอร์ตพื้นฐาน
 

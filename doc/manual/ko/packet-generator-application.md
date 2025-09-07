@@ -1,6 +1,6 @@
 # 패킷 생성기(PKTGEN) 애플리케이션
 
-**언어 / Language:** [English](../en/packet-generator-application.md) | [日本語](../ja/packet-generator-application.md) | [Français](../fr/packet-generator-application.md) | [中文](../zh/packet-generator-application.md) | [Deutsch](../de/packet-generator-application.md) | [Italiano](../it/packet-generator-application.md) | **한국어**
+**Language:** [English](../en/packet-generator-application.md) | [日本語](../ja/packet-generator-application.md) | [Français](../fr/packet-generator-application.md) | [中文](../zh/packet-generator-application.md) | [Deutsch](../de/packet-generator-application.md) | [Italiano](../it/packet-generator-application.md) | **한국어**
 
 패킷 생성기(PKTGEN) 애플리케이션은 DPDK의 최적화된 패킷 처리 프레임워크를 사용한 고성능 패킷 생성 및 트래픽 테스트 기능을 제공합니다.
 

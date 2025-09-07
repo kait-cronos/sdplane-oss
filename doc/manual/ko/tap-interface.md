@@ -1,6 +1,6 @@
 # TAP 인터페이스
 
-**언어 / Language:** [English](../en/tap-interface.md) | [日本語](../ja/tap-interface.md) | [Français](../fr/tap-interface.md) | [中文](../zh/tap-interface.md) | [Deutsch](../de/tap-interface.md) | [Italiano](../it/tap-interface.md) | **한국어**
+**Language:** [English](../en/tap-interface.md) | [日本語](../ja/tap-interface.md) | [Français](../fr/tap-interface.md) | [中文](../zh/tap-interface.md) | [Deutsch](../de/tap-interface.md) | [Italiano](../it/tap-interface.md) | **한국어**
 
 TAP 인터페이스 관리를 수행하는 명령어입니다.
 
