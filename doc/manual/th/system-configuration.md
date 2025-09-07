@@ -1,6 +1,6 @@
 # การกำหนดค่าระบบ
 
-**Language:** [English](../en/system-configuration.md) | [Japanese](../ja/system-configuration.md) | [Français](../fr/system-configuration.md) | [中文](../zh/system-configuration.md) | [Deutsch](../de/system-configuration.md) | [Italiano](../it/system-configuration.md) | [한국어](../ko/system-configuration.md) | **ไทย**
+**Language:** [English](../en/system-configuration.md) | [Japanese](../ja/system-configuration.md) | [Français](../fr/system-configuration.md) | [中文](../zh/system-configuration.md) | [Deutsch](../de/system-configuration.md) | [Italiano](../it/system-configuration.md) | [한국어](../ko/system-configuration.md) | **ไทย** | [Español](../es/system-configuration.md)
 
 - **Hugepages**: กำหนดค่า hugepages ระบบสำหรับ DPDK
 - **เครือข่าย**: ใช้ netplan สำหรับการกำหนดค่าอินเทอร์เฟซเครือข่าย

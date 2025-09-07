@@ -1,6 +1,6 @@
 # การติดตั้ง Dependencies
 
-**Language:** [English](../en/install-dependencies.md) | [Japanese](../ja/install-dependencies.md) | [Français](../fr/install-dependencies.md) | [中文](../zh/install-dependencies.md) | [Deutsch](../de/install-dependencies.md) | [Italiano](../it/install-dependencies.md) | [한국어](../ko/install-dependencies.md) | **ไทย**
+**Language:** [English](../en/install-dependencies.md) | [Japanese](../ja/install-dependencies.md) | [Français](../fr/install-dependencies.md) | [中文](../zh/install-dependencies.md) | [Deutsch](../de/install-dependencies.md) | [Italiano](../it/install-dependencies.md) | [한국어](../ko/install-dependencies.md) | **ไทย** | [Español](../es/install-dependencies.md)
 
 ## Dependencies
 

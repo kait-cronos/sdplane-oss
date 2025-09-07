@@ -1,6 +1,6 @@
 # สร้างและติดตั้งจากซอร์สโค้ด
 
-**Language:** [English](../en/build-install-source.md) | [Japanese](../ja/build-install-source.md) | [Français](../fr/build-install-source.md) | [中文](../zh/build-install-source.md) | [Deutsch](../de/build-install-source.md) | [Italiano](../it/build-install-source.md) | [한국어](../ko/build-install-source.md) | **ไทย**
+**Language:** [English](../en/build-install-source.md) | [Japanese](../ja/build-install-source.md) | [Français](../fr/build-install-source.md) | [中文](../zh/build-install-source.md) | [Deutsch](../de/build-install-source.md) | [Italiano](../it/build-install-source.md) | [한국어](../ko/build-install-source.md) | **ไทย** | [Español](../es/build-install-source.md)
 
 **โดยทั่วไป โปรดปฏิบัติตามขั้นตอนนี้**
 
