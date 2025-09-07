@@ -36,6 +36,6 @@ CFLAGS="-g -O0" sh ../configure
 make
 
 # システムへのインストール
-# $prefix (デフォルト: /usr/local/bin) にインストールされます
+# $prefix (デフォルト: /usr/local/sbin) にインストールされます
 sudo make install
 ```
