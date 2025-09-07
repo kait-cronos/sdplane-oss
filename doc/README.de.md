@@ -254,7 +254,7 @@ sudo apt install clang-format-18
 
 ## Lizenz
 
-Dieses Projekt steht unter der Apache 2.0-Lizenz - siehe die Datei [LICENSE](LICENSE) für Details.
+Dieses Projekt steht unter der MIT-Lizenz - siehe die Datei [LICENSE](LICENSE) für Details.
 
 ## Kontakt
 

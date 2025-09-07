@@ -342,7 +342,7 @@ sudo apt install clang-format-18
 
 ## ใบอนุญาต
 
-โครงการนี้อยู่ภายใต้ใบอนุญาต Apache 2.0 - ดูไฟล์ [LICENSE](LICENSE) สำหรับรายละเอียด
+โครงการนี้อยู่ภายใต้ใบอนุญาต MIT License - ดูไฟล์ [LICENSE](LICENSE) สำหรับรายละเอียด
 
 ## ติดต่อ
 

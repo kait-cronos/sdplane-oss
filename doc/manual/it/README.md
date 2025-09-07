@@ -68,3 +68,7 @@ sdplane ha 79 comandi definiti, classificati nelle seguenti 13 categorie funzion
 12. **Gestione Dispositivi** (2 comandi) - Gestione di dispositivi e driver
 
 Per informazioni dettagliate sull'utilizzo, consultare la documentazione di ogni categoria.
+
+## Licenza
+
+Questo progetto è concesso in licenza sotto la Licenza MIT. Vedere il file [LICENSE](../../../LICENSE) per i dettagli della licenza.

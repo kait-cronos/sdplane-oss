@@ -244,3 +244,7 @@ debug sdplane port
 - **问题和支持**：https://github.com/kait-cronos/sdplane-oss/issues
 
 对于技术支持或特定问题，请参考上面列出的详细指南或在GitHub上创建issue。
+
+## 许可证
+
+该项目采用 MIT 许可证。有关许可证详细信息，请参阅 [LICENSE](../../../LICENSE) 文件。
