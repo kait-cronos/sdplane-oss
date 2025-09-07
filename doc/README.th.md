@@ -54,48 +54,6 @@
 
 [การติดตั้ง Dependencies](manual/th/install-dependencies.md)
 
-```bash
-sudo apt update && sudo apt install liburcu-dev libpcap-dev
-```
-
-### ติดตั้งเครื่องมือ Build และข้อกำหนดเบื้องต้นของ DPDK
-
-```bash
-sudo apt install build-essential cmake autotools-dev autoconf automake \
-                 libtool pkg-config python3 python3-pip meson ninja-build \
-                 python3-pyelftools libnuma-dev pkgconf
-```
-
-### ติดตั้ง lthread
-
-```bash
-git clone https://github.com/yasuhironet/lthread
-cd lthread
-cmake .
-make
-sudo make install
-cd ..
-```
-
-### ติดตั้ง DPDK 23.11.1
-
-```bash
-# ดาวน์โหลด DPDK 23.11.1
-wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
-tar xf dpdk-23.11.1.tar.xz
-cd dpdk-23.11.1
-
-# คอมไพล์และติดตั้ง DPDK
-meson setup -Dprefix=/usr/local build
-cd build
-ninja install
-cd ../..
-
-# ตรวจสอบการติดตั้ง
-pkg-config --modversion libdpdk
-# ควรแสดง: 23.11.1
-```
-
 ## 2. ติดตั้งจากแพ็กเกจ Debian ที่คอมไพล์ไว้แล้ว
 
 สำหรับ Intel Core i3-n305/Celeron j3160 สามารถติดตั้งอย่างรวดเร็วด้วยแพ็กเกจ Debian ได้
