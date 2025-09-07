@@ -55,7 +55,7 @@ The project has been tested on:
 
 See [Install Dependencies Guide](doc/manual/en/install-dependencies.md) for detailed instructions on installing all required dependencies including liburcu-qsbr, libpcap, lthread, and DPDK.
 
-## 2. Quick Start with Debian Package for Intel Core i3-n305/Celeron j3160
+## 2. Install From Pre-compiled Debian Package
 
 For Intel Core i3-n305/Celeron j3160, quick installation is possible with Debian packages.
 
@@ -77,105 +77,23 @@ sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 
 **Note**: Check [yasuhironet.net downloads](https://www.yasuhironet.net/download/) for the latest package version.
 
+**Note**: Use of this pre-compiled binary on other CPUs may cause SIGILL (Illegal Instruction). In that case you have to compile by yourself.
+
 Jump to 5. System Configuration.
 
-## 3. Build from Source
+## 3. Build and Install From Source
 
-**Generally, please follow this procedure.**
+See [Build and Install from Source Guide](doc/manual/en/build-install-source.md) for detailed instructions on building sdplane-oss from source code.
 
-### Install Prerequisite Ubuntu Packages
+## 4. Build Debian Package and Install
 
-#### For Build from Source
-```bash
-# Core build tools
-sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
-
-# DPDK prerequisites
-sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
-```
-
-#### Optional Packages
-```bash
-sudo apt install etckeeper tig bridge-utils \
-                 iptables-persistent fail2ban dmidecode screen ripgrep
-```
-
-### Build sdplane-oss from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/kait-cronos/sdplane-oss
-cd sdplane-oss
-
-# Generate build files
-sh autogen.sh
-
-# Configure and build
-mkdir build
-cd build
-CFLAGS="-g -O0" sh ../configure
-make
-```
-
-## 4. Create and Install sdplane-oss Debian Package
-
-### Install prerequisite package
-```bash
-sudo apt install build-essential cmake devscripts debhelper
-```
-
-### Build sdplane-oss Debian Package
-```bash
-# First make sure to start in a clean space.
-(cd build && make distclean)
-make distclean
-
-# Build Debian package from source
-bash build-debian.sh
-
-# Install the generated package (will be produced in parent dir)
-sudo apt install ../sdplane_*.deb
-```
+See [Build Debian Package Guide](doc/manual/en/build-debian-package.md) for instructions on creating and installing a Debian package from source.
 
 ## 5. System Configuration
 
-- **Hugepages**: Configure system hugepages for DPDK
-- **Network**: Use netplan for network interface configuration
-- **Firewall**: telnet 9882/tcp port is required for CLI
+See [System Configuration Guide](doc/manual/en/system-configuration.md) for instructions on configuring hugepages, network interfaces, and optional kernel modules.
 
-**⚠️ The CLI has no authentication. It is recommended to allow connections only from localhost ⚠️**
-
-### Configure Hugepages
-```bash
-# Edit GRUB configuration
-sudo vi /etc/default/grub
-
-# Add one of the following lines:
-# For 2MB hugepages (1536 pages = ~3GB):
-GRUB_CMDLINE_LINUX="hugepages=1536"
-
-# Or for 1GB hugepages (8 pages = 8GB):
-GRUB_CMDLINE_LINUX="default_hugepagesz=1G hugepagesz=1G hugepages=8"
-
-# Update GRUB and reboot
-sudo update-grub
-sudo reboot
-```
-
-### Install DPDK IGB Kernel Module (Optional)
-
-For NICs that do not work with vfio-pci, optionally install igb_uio:
-
-```bash
-git clone http://dpdk.org/git/dpdk-kmods
-cd dpdk-kmods/linux/igb_uio
-make
-sudo mkdir -p /lib/modules/`uname -r`/extra/dpdk/
-sudo cp igb_uio.ko /lib/modules/`uname -r`/extra/dpdk/
-echo igb_uio | sudo tee /etc/modules-load.d/igb_uio.conf
-```
-
-## 6. sdplane Configuration
+## 6. Sdplane Configuration
 
 ### Configuration Files
 
@@ -194,7 +112,7 @@ Create `/etc/sdplane/sdplane.conf` referring to the samples.
 - [`example-config/sdplane_l2_repeater.conf`](example-config/sdplane_l2_repeater.conf): L2 repeater configuration
 - [`example-config/sdplane_enhanced_repeater.conf`](example-config/sdplane_enhanced_repeater.conf): Enhanced repeater configuration with VLAN switching, router interfaces, and capture interfaces
 
-## 7. Run Applications using sdplane-oss
+## 7. Run the Sdplane Application
 
 ```bash
 # Run in foreground
