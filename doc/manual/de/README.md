@@ -68,3 +68,7 @@ sdplane hat 79 definierte Befehle, die in die folgenden 13 Funktionskategorien u
 12. **Geräteverwaltung** (2 Befehle) - Geräte- und Treiberverwaltung
 
 Für detaillierte Verwendungshinweise siehe die Dokumentation jeder Kategorie.
+
+## Lizenz
+
+Dieses Projekt ist unter der MIT-Lizenz lizenziert. Siehe die [LICENSE](../../../LICENSE) Datei für Lizenzdetails.

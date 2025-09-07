@@ -1,5 +1,7 @@
 # System Configuration
 
+**Language:** **English** | [Japanese](../ja/system-configuration.md) | [French](../fr/system-configuration.md) | [Chinese](../zh/system-configuration.md) | [German](../de/system-configuration.md) | [Italian](../it/system-configuration.md) | [Korean](../ko/system-configuration.md) | [Thai](../th/system-configuration.md) | [Spanish](../es/system-configuration.md)
+
 - **Hugepages**: Configure system hugepages for DPDK
 - **Network**: Use netplan for network interface configuration
 - **Firewall**: telnet 9882/tcp port is required for CLI

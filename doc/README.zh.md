@@ -45,63 +45,16 @@
 ### 目标硬件平台
 
 本项目已在以下平台测试通过：
-- **Topton (N305/N100)**：搭载10G网卡的迷你PC
-- **Partaker (J3160)**：搭载1G网卡的迷你PC
+- **Topton (N305/N100)**：搭载10G网卡的迷你PC（已测试）
+- **Partaker (J3160)**：搭载1G网卡的迷你PC（已测试）
 - **Intel通用PC**：搭载Intel x520 / Mellanox ConnectX5
 - **其他CPU**：应该可以在AMD、ARM CPU等上运行
 
 ## 1. 依赖项安装
 
-### 依赖项
-- **liburcu-qsbr**：用户空间RCU库
-- **libpcap**：数据包捕获库
-- **lthread**：[yasuhironet/lthread](https://github.com/yasuhironet/lthread)（轻量级协作线程）
-- **DPDK**：数据平面开发工具包
+[依赖项安装](manual/zh/install-dependencies.md)
 
-### 安装sdplane依赖debian包
-```bash
-sudo apt install liburcu-dev libpcap-dev
-```
-
-### 安装构建工具和DPDK前提包
-
-```bash
-# 基本构建工具
-sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
-
-# DPDK前提包
-sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
-```
-
-### 安装lthread
-```bash
-# 安装lthread
-git clone https://github.com/yasuhironet/lthread
-cd lthread
-cmake .
-make
-sudo make install
-```
-
-### 安装DPDK 23.11.1
-```bash
-# 下载和解压DPDK
-wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
-tar vxJf dpdk-23.11.1.tar.xz
-cd dpdk-stable-23.11.1
-
-# 构建和安装DPDK
-meson setup build
-cd build
-ninja
-sudo meson install
-sudo ldconfig
-
-# 验证安装
-pkg-config --modversion libdpdk
-```
-
-## 2. Intel Core i3-n305/Celelon j3160的Debian包快速启动
+## 2. 从预编译Debian包安装
 
 对于Intel Core i3-n305/Celelon j3160，可以使用Debian包进行快速安装。
 
@@ -121,95 +74,21 @@ sudo apt install ./sdplane_0.1.4-*_amd64.deb
 sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 ```
 
-**注意**：请查看[yasuhironet.net下载](https://www.yasuhironet.net/download/)获取最新包版本。
+**注意**：在其他CPU上使用此预编译二进制文件可能会导致SIGILL（非法指令）。在这种情况下，您必须自行编译。请查看[yasuhironet.net下载](https://www.yasuhironet.net/download/)获取最新包版本。
 
 跳转到5. 系统配置。
 
-## 3. 从源码构建
+## 3. 从源码构建和安装
 
-**一般情况下，请按照这个步骤进行。**
+[从源码构建和安装](manual/zh/build-install-source.md)
 
-### 安装Ubuntu前提包
+## 4. 构建和安装Debian包
 
-#### 用于从源码构建的可选包
-```bash
-sudo apt install etckeeper tig bridge-utils \
-                 iptables-persistent fail2ban dmidecode screen ripgrep
-```
-
-### 从源码构建sdplane-oss
-
-```bash
-# 生成构建文件
-./autogen.sh
-
-# 配置和构建
-mkdir build
-cd build
-CFLAGS="-g -O0" sh ../configure
-make
-```
-
-## 4. 创建和安装sdplane-oss Debian包
-
-### 安装前提包
-```bash
-sudo apt install build-essential cmake devscripts debhelper
-```
-
-### 构建sdplane-oss Debian包
-```bash
-# 首先确保从干净空间开始
-(cd build && make distclean)
-make distclean
-
-# 从源码构建Debian包
-bash build-debian.sh
-
-# 安装生成的包（将在父目录中生成）
-sudo apt install ../sdplane_*.deb
-```
+[构建和安装Debian包](manual/zh/build-debian-package.md)
 
 ## 5. 系统配置
 
-- **大页面**：为DPDK配置系统大页面
-- **网络**：使用netplan进行网络接口配置
-- **防火墙**：CLI需要telnet 9882/tcp端口
-
-**⚠️ CLI没有身份验证。建议仅允许来自localhost的连接 ⚠️**
-
-### 配置大页面
-```bash
-# 编辑GRUB配置
-sudo vi /etc/default/grub
-
-# 在GRUB_CMDLINE_LINUX参数中添加大页面
-# 例如添加hugepages=1024：
-GRUB_CMDLINE_LINUX="hugepages=1024"
-
-# 更新GRUB
-sudo update-grub
-
-# 重启系统
-sudo reboot
-
-# 重启后验证大页面
-cat /proc/meminfo | grep -E "^HugePages|^Hugepagesize"
-```
-
-### 安装DPDK IGB内核模块（可选）
-
-如果您的网卡无法与vfio-pci一起工作，请安装igb_uio。
-
-```bash
-git clone http://dpdk.org/git/dpdk-kmods
-cd dpdk-kmods/linux/igb_uio
-make
-sudo make install
-cd ../../..
-
-# 模块将安装到/lib/modules/$(uname -r)/extra/igb_uio.ko
-```
+[系统配置](manual/zh/system-configuration.md)
 
 ## 6. sdplane配置
 
@@ -375,7 +254,7 @@ sudo apt install clang-format-18
 
 ## 许可证
 
-本项目采用Apache 2.0许可证 - 详见[LICENSE](LICENSE)文件。
+本项目采用MIT许可证 - 详见[LICENSE](../LICENSE)文件。
 
 ## 联系方式
 

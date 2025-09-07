@@ -45,66 +45,16 @@ Un "Ambiente di Sviluppo DPDK-dock" composto da una shell interattiva che può c
 ### Piattaforme Hardware Target
 
 Il progetto è stato testato su:
-- **Topton (N305/N100)**: Mini-PC con NIC 10G
-- **Partaker (J3160)**: Mini-PC con NIC 1G
+- **Topton (N305/N100)**: Mini-PC con NIC 10G (testato)
+- **Partaker (J3160)**: Mini-PC con NIC 1G (testato)
 - **PC Intel Generico**: Con Intel x520 / Mellanox ConnectX5
 - **Altre CPU**: Dovrebbe funzionare con processori AMD, ARM, ecc.
 
 ## 1. Installazione delle Dipendenze
 
-### Dipendenze
+[Installazione delle Dipendenze](manual/it/install-dependencies.md)
 
-sdplane-oss richiede i seguenti componenti:
-- **lthread** (yasuhironet/lthread): Threading cooperativo leggero
-- **liburcu-qsbr**: Libreria RCU userspace  
-- **libpcap**: Libreria cattura pacchetti
-- **DPDK 23.11.1**: Data Plane Development Kit
-
-### Installazione dei pacchetti debian dipendenze sdplane
-
-```bash
-sudo apt update && sudo apt install liburcu-dev libpcap-dev
-```
-
-### Installazione degli Strumenti di Build e Prerequisiti DPDK
-
-```bash
-sudo apt install build-essential cmake autotools-dev autoconf automake \
-                 libtool pkg-config python3 python3-pip meson ninja-build \
-                 python3-pyelftools libnuma-dev pkgconf
-```
-
-### Installazione di lthread
-
-```bash
-git clone https://github.com/yasuhironet/lthread
-cd lthread
-cmake .
-make
-sudo make install
-cd ..
-```
-
-### Installazione di DPDK 23.11.1
-
-```bash
-# Scaricare DPDK 23.11.1
-wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
-tar xf dpdk-23.11.1.tar.xz
-cd dpdk-23.11.1
-
-# Compilare e installare DPDK
-meson setup -Dprefix=/usr/local build
-cd build
-ninja install
-cd ../..
-
-# Verificare l'installazione
-pkg-config --modversion libdpdk
-# Dovrebbe mostrare: 23.11.1
-```
-
-## 2. Avvio Rapido con Pacchetto Debian per Intel Core i3-n305/Celeron j3160
+## 2. Installazione da Pacchetto Debian Precompilato
 
 Per Intel Core i3-n305/Celeron j3160, è possibile un'installazione rapida con pacchetti Debian.
 
@@ -124,108 +74,21 @@ sudo apt install ./sdplane_0.1.4-*_amd64.deb
 sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 ```
 
-**Nota**: Controllare [download yasuhironet.net](https://www.yasuhironet.net/download/) per la versione pacchetto più recente.
+**Nota**: L'uso di questo binario precompilato su altre CPU potrebbe causare SIGILL (Istruzione Illegale). In tal caso dovete compilare voi stessi. Controllare [download yasuhironet.net](https://www.yasuhironet.net/download/) per la versione pacchetto più recente.
 
 Saltare a 5. Configurazione Sistema.
 
-## 3. Compilazione dal Codice Sorgente
+## 3. Compilazione e Installazione dal Codice Sorgente
 
-**In generale, si prega di seguire questa procedura.**
+[Compilazione e Installazione dal Codice Sorgente](manual/it/build-install-source.md)
 
-### Installazione dei Pacchetti Ubuntu Prerequisiti
+## 4. Creazione e Installazione del Pacchetto Debian
 
-#### Per Compilazione dal Codice Sorgente
-```bash
-# Strumenti di build essenziali
-sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
-
-# Prerequisiti DPDK
-sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
-```
-
-#### Pacchetti Opzionali
-```bash
-sudo apt install etckeeper tig bridge-utils \
-                 iptables-persistent fail2ban dmidecode screen ripgrep
-```
-
-### Compilazione di sdplane-oss dal Codice Sorgente
-
-```bash
-# Clonare il repository
-git clone https://github.com/kait-cronos/sdplane-oss
-cd sdplane-oss
-
-# Generare file di build
-sh autogen.sh
-
-# Configurare e compilare
-mkdir build
-cd build
-CFLAGS="-g -O0" sh ../configure
-make
-```
-
-## 4. Creazione e Installazione del Pacchetto Debian sdplane-oss
-
-### Installazione dei pacchetti prerequisiti
-```bash
-sudo apt install build-essential cmake devscripts debhelper
-```
-
-### Compilazione del Pacchetto Debian sdplane-oss
-```bash
-# Prima assicurarsi di iniziare in uno spazio pulito
-(cd build && make distclean)
-make distclean
-
-# Compilare pacchetto Debian dal codice sorgente
-bash build-debian.sh
-
-# Installare il pacchetto generato (sarà prodotto nella directory parent)
-sudo apt install ../sdplane_*.deb
-```
+[Creazione e Installazione del Pacchetto Debian](manual/it/build-debian-package.md)
 
 ## 5. Configurazione Sistema
 
-- **Hugepages**: Configurare hugepages sistema per DPDK
-- **Rete**: Utilizzare netplan per configurazione interfacce di rete
-- **Firewall**: porta telnet 9882/tcp è richiesta per CLI
-
-**⚠️ Il CLI non ha autenticazione. Si raccomanda di consentire connessioni solo da localhost ⚠️**
-
-### Configurare Hugepages
-```bash
-# Modificare configurazione GRUB
-sudo vi /etc/default/grub
-
-# Aggiungere hugepages al parametro GRUB_CMDLINE_LINUX
-# Esempio di aggiunta hugepages=1024:
-GRUB_CMDLINE_LINUX="hugepages=1024"
-
-# Aggiornare GRUB
-sudo update-grub
-
-# Riavviare il sistema
-sudo reboot
-
-# Verificare hugepages dopo il riavvio
-cat /proc/meminfo | grep -E "^HugePages|^Hugepagesize"
-```
-
-### Installazione opzionale del Modulo Kernel DPDK IGB
-
-Se la vostra NIC non funziona con vfio-pci, installare igb_uio.
-
-```bash
-git clone http://dpdk.org/git/dpdk-kmods
-cd dpdk-kmods/linux/igb_uio
-make
-sudo make install
-cd ../../..
-
-# Il modulo sarà installato in /lib/modules/$(uname -r)/extra/igb_uio.ko
-```
+[Configurazione Sistema](manual/it/system-configuration.md)
 
 ## 6. Configurazione sdplane
 
@@ -391,7 +254,7 @@ sudo apt install clang-format-18
 
 ## Licenza
 
-Questo progetto è sotto licenza Apache 2.0 - vedere il file [LICENSE](LICENSE) per i dettagli.
+Questo progetto è sotto licenza MIT - vedere il file [LICENSE](../LICENSE) per i dettagli.
 
 ## Contatto
 

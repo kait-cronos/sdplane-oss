@@ -68,4 +68,8 @@ sdplane has 79 commands defined, classified into the following 13 functional cat
 10. **lthread Management** (3 commands) - lthread management
 11. **Device Management** (2 commands) - Device and driver management
 
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](../../../LICENSE) file for license details.
+
 For detailed usage instructions, please refer to the documentation for each category.

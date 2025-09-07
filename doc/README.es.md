@@ -45,66 +45,16 @@ Un "Entorno de Desarrollo DPDK-dock" que consta de una shell interactiva que pue
 ### Plataformas de Hardware Objetivo
 
 El proyecto ha sido probado en:
-- **Topton (N305/N100)**: Mini-PC con NIC de 10G
-- **Partaker (J3160)**: Mini-PC con NIC de 1G
+- **Topton (N305/N100)**: Mini-PC con NIC de 10G (probado)
+- **Partaker (J3160)**: Mini-PC con NIC de 1G (probado)
 - **PC Intel Genérico**: Con Intel x520 / Mellanox ConnectX5
 - **Otras CPU**: Debería funcionar con procesadores AMD, ARM, etc.
 
 ## 1. Instalación de Dependencias
 
-### Dependencias
+[Instalación de Dependencias](manual/es/install-dependencies.md)
 
-sdplane-oss requiere los siguientes componentes:
-- **lthread** (yasuhironet/lthread): Hilos cooperativos ligeros
-- **liburcu-qsbr**: Biblioteca RCU de espacio de usuario  
-- **libpcap**: Biblioteca de captura de paquetes
-- **DPDK 23.11.1**: Kit de Desarrollo de Plano de Datos
-
-### Instalar paquetes debian de dependencias sdplane
-
-```bash
-sudo apt update && sudo apt install liburcu-dev libpcap-dev
-```
-
-### Instalar Herramientas de Compilación y Prerrequisitos DPDK
-
-```bash
-sudo apt install build-essential cmake autotools-dev autoconf automake \
-                 libtool pkg-config python3 python3-pip meson ninja-build \
-                 python3-pyelftools libnuma-dev pkgconf
-```
-
-### Instalar lthread
-
-```bash
-git clone https://github.com/yasuhironet/lthread
-cd lthread
-cmake .
-make
-sudo make install
-cd ..
-```
-
-### Instalar DPDK 23.11.1
-
-```bash
-# Descargar DPDK 23.11.1
-wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
-tar xf dpdk-23.11.1.tar.xz
-cd dpdk-23.11.1
-
-# Compilar e instalar DPDK
-meson setup -Dprefix=/usr/local build
-cd build
-ninja install
-cd ../..
-
-# Verificar instalación
-pkg-config --modversion libdpdk
-# Debería mostrar: 23.11.1
-```
-
-## 2. Inicio Rápido con Paquete Debian para Intel Core i3-n305/Celeron j3160
+## 2. Instalación desde Paquete Debian Precompilado
 
 Para Intel Core i3-n305/Celeron j3160, es posible una instalación rápida con paquetes Debian.
 
@@ -124,13 +74,13 @@ sudo apt install ./sdplane_0.1.4-*_amd64.deb
 sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 ```
 
-**Nota**: Consultar [descargas yasuhironet.net](https://www.yasuhironet.net/download/) para la versión de paquete más reciente.
+**Nota**: El uso de este binario precompilado en otras CPU puede causar SIGILL (Instrucción Ilegal). En ese caso debes compilar por ti mismo. Consultar [descargas yasuhironet.net](https://www.yasuhironet.net/download/) para la versión de paquete más reciente.
 
 Saltar a 5. Configuración del Sistema.
 
-## 3. Compilación desde el Código Fuente
+## 3. Construcción e Instalación desde Código Fuente
 
-**En general, siga este procedimiento.**
+[Construcción e Instalación desde Código Fuente](manual/es/build-install-source.md)
 
 ### Instalar Paquetes de Ubuntu Prerrequisitos
 
@@ -166,7 +116,9 @@ CFLAGS="-g -O0" sh ../configure
 make
 ```
 
-## 4. Crear e Instalar Paquete Debian sdplane-oss
+## 4. Construcción e Instalación del Paquete Debian
+
+[Construcción e Instalación del Paquete Debian](manual/es/build-debian-package.md)
 
 ### Instalar paquetes prerrequisitos
 ```bash
@@ -188,9 +140,7 @@ sudo apt install ../sdplane_*.deb
 
 ## 5. Configuración del Sistema
 
-- **Hugepages**: Configurar hugepages del sistema para DPDK
-- **Red**: Usar netplan para configuración de interfaz de red
-- **Firewall**: se requiere puerto telnet 9882/tcp para CLI
+[Configuración del Sistema](manual/es/system-configuration.md)
 
 **⚠️ El CLI no tiene autenticación. Se recomienda permitir conexiones solo desde localhost ⚠️**
 
@@ -391,7 +341,7 @@ sudo apt install clang-format-18
 
 ## Licencia
 
-Este proyecto está bajo la licencia Apache 2.0 - ver el archivo [LICENSE](LICENSE) para detalles.
+Este proyecto está bajo la licencia MIT - ver el archivo [LICENSE](../LICENSE) para detalles.
 
 ## Contacto
 

@@ -1,6 +1,6 @@
 # Worker & lcore Management & Thread Information
 
-**Language:** **English** | [日本語](ja/worker-lcore-thread-management.md) | [Français](fr/worker-lcore-thread-management.md) | [中文](zh/worker-lcore-thread-management.md) | [Deutsch](de/worker-lcore-thread-management.md) | [Italiano](it/worker-lcore-thread-management.md) | [한국어](ko/worker-lcore-thread-management.md) | [ไทย](th/worker-lcore-thread-management.md) | [Español](es/worker-lcore-thread-management.md)
+**Language:** **English** | [Japanese](../ja/worker-lcore-thread-management.md) | [French](../fr/worker-lcore-thread-management.md) | [Chinese](../zh/worker-lcore-thread-management.md) | [German](../de/worker-lcore-thread-management.md) | [Italian](../it/worker-lcore-thread-management.md) | [Korean](../ko/worker-lcore-thread-management.md) | [Thai](../th/worker-lcore-thread-management.md) | [Spanish](../es/worker-lcore-thread-management.md)
 
 Commands for managing and monitoring DPDK worker threads, lcores, and thread information.
 

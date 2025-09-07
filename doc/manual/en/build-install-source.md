@@ -1,5 +1,7 @@
 # Build and Install from Source
 
+**Language:** **English** | [Japanese](../ja/build-install-source.md) | [French](../fr/build-install-source.md) | [Chinese](../zh/build-install-source.md) | [German](../de/build-install-source.md) | [Italian](../it/build-install-source.md) | [Korean](../ko/build-install-source.md) | [Thai](../th/build-install-source.md) | [Spanish](../es/build-install-source.md)
+
 **Generally, please follow this procedure.**
 
 ## Install Prerequisite Ubuntu Packages
@@ -36,6 +38,6 @@ CFLAGS="-g -O0" sh ../configure
 make
 
 # Install to the system
-# This will install to $prefix (default: /usr/local/bin)
+# This will install to $prefix (default: /usr/local/sbin)
 sudo make install
 ```

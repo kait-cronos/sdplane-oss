@@ -45,66 +45,16 @@
 ### แพลตฟอร์มฮาร์ดแวร์เป้าหมาย
 
 โครงการนี้ได้รับการทดสอบบน:
-- **Topton (N305/N100)**: Mini-PC พร้อม NIC 10G
-- **Partaker (J3160)**: Mini-PC พร้อม NIC 1G
+- **Topton (N305/N100)**: Mini-PC พร้อม NIC 10G (ทดสอบแล้ว)
+- **Partaker (J3160)**: Mini-PC พร้อม NIC 1G (ทดสอบแล้ว)
 - **Intel Generic PC**: พร้อม Intel x520 / Mellanox ConnectX5
 - **CPU อื่น ๆ**: ควรทำงานได้กับโปรเซสเซอร์ AMD, ARM ฯลฯ
 
 ## 1. การติดตั้ง Dependencies
 
-### Dependencies
+[การติดตั้ง Dependencies](manual/th/install-dependencies.md)
 
-sdplane-oss ต้องการส่วนประกอบต่อไปนี้:
-- **lthread** (yasuhironet/lthread): การทำ threading แบบร่วมมือที่มีน้ำหนักเบา
-- **liburcu-qsbr**: ไลบรารี RCU ใน userspace  
-- **libpcap**: ไลบรารีการจับแพ็กเกต
-- **DPDK 23.11.1**: Data Plane Development Kit
-
-### ติดตั้งแพ็กเกจ debian dependencies ของ sdplane
-
-```bash
-sudo apt update && sudo apt install liburcu-dev libpcap-dev
-```
-
-### ติดตั้งเครื่องมือ Build และข้อกำหนดเบื้องต้นของ DPDK
-
-```bash
-sudo apt install build-essential cmake autotools-dev autoconf automake \
-                 libtool pkg-config python3 python3-pip meson ninja-build \
-                 python3-pyelftools libnuma-dev pkgconf
-```
-
-### ติดตั้ง lthread
-
-```bash
-git clone https://github.com/yasuhironet/lthread
-cd lthread
-cmake .
-make
-sudo make install
-cd ..
-```
-
-### ติดตั้ง DPDK 23.11.1
-
-```bash
-# ดาวน์โหลด DPDK 23.11.1
-wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
-tar xf dpdk-23.11.1.tar.xz
-cd dpdk-23.11.1
-
-# คอมไพล์และติดตั้ง DPDK
-meson setup -Dprefix=/usr/local build
-cd build
-ninja install
-cd ../..
-
-# ตรวจสอบการติดตั้ง
-pkg-config --modversion libdpdk
-# ควรแสดง: 23.11.1
-```
-
-## 2. การเริ่มต้นอย่างรวดเร็วด้วยแพ็กเกจ Debian สำหรับ Intel Core i3-n305/Celeron j3160
+## 2. ติดตั้งจากแพ็กเกจ Debian ที่คอมไพล์ไว้แล้ว
 
 สำหรับ Intel Core i3-n305/Celeron j3160 สามารถติดตั้งอย่างรวดเร็วด้วยแพ็กเกจ Debian ได้
 
@@ -124,13 +74,13 @@ sudo apt install ./sdplane_0.1.4-*_amd64.deb
 sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 ```
 
-**หมายเหตุ**: ตรวจสอบ [ดาวน์โหลด yasuhironet.net](https://www.yasuhironet.net/download/) สำหรับเวอร์ชันแพ็กเกจล่าสุด
+**หมายเหตุ**: การใช้ไบนารีที่คอมไพล์ไว้แล้วนี้ใน CPU อื่นอาจก่อให้เกิด SIGILL (Illegal Instruction) ในกรณีนี้คุณต้องคอมไพล์เอง ตรวจสอบ [ดาวน์โหลด yasuhironet.net](https://www.yasuhironet.net/download/) สำหรับเวอร์ชันแพ็กเกจล่าสุด
 
 ไปที่ 5. การกำหนดค่าระบบ
 
-## 3. Build จาก Source Code
+## 3. สร้างและติดตั้งจากซอร์สโค้ด
 
-**โดยทั่วไปแล้วให้ปฏิบัติตามขั้นตอนนี้**
+[สร้างและติดตั้งจากซอร์สโค้ด](manual/th/build-install-source.md)
 
 ### ติดตั้งแพ็กเกจ Ubuntu ที่จำเป็น
 
@@ -166,7 +116,9 @@ CFLAGS="-g -O0" sh ../configure
 make
 ```
 
-## 4. การสร้างและติดตั้งแพ็กเกจ Debian ของ sdplane-oss
+## 4. สร้างและติดตั้งแพ็กเกจ Debian
+
+[สร้างและติดตั้งแพ็กเกจ Debian](manual/th/build-debian-package.md)
 
 ### ติดตั้งแพ็กเกจที่จำเป็น
 ```bash
@@ -188,8 +140,7 @@ sudo apt install ../sdplane_*.deb
 
 ## 5. การกำหนดค่าระบบ
 
-- **Hugepages**: กำหนดค่า hugepage ของระบบสำหรับ DPDK
-- **เครือข่าย**: ใช้ netplan สำหรับการกำหนดค่า network interface
+[การกำหนดค่าระบบ](manual/th/system-configuration.md)
 - **Firewall**: จำเป็นต้องมีพอร์ต telnet 9882/tcp สำหรับ CLI
 
 **⚠️ CLI ไม่มีการตรวจสอบสิทธิ์ แนะนำให้อนุญาตการเชื่อมต่อจาก localhost เท่านั้น ⚠️**
@@ -391,7 +342,7 @@ sudo apt install clang-format-18
 
 ## ใบอนุญาต
 
-โครงการนี้อยู่ภายใต้ใบอนุญาต Apache 2.0 - ดูไฟล์ [LICENSE](LICENSE) สำหรับรายละเอียด
+โครงการนี้อยู่ภายใต้ใบอนุญาต MIT License - ดูไฟล์ [LICENSE](../LICENSE) สำหรับรายละเอียด
 
 ## ติดต่อ
 

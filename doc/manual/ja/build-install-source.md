@@ -1,5 +1,7 @@
 # ソースからのビルド・インストール
 
+**Language:** [English](../en/build-install-source.md) | **日本語** | [Français](../fr/build-install-source.md) | [中文](../zh/build-install-source.md) | [Deutsch](../de/build-install-source.md) | [Italiano](../it/build-install-source.md) | [한국어](../ko/build-install-source.md) | [ไทย](../th/build-install-source.md) | [Español](../es/build-install-source.md)
+
 **一般的にはこちらの手順を踏んでください。**
 
 ## 前提となるUbuntuパッケージのインストール
@@ -36,6 +38,6 @@ CFLAGS="-g -O0" sh ../configure
 make
 
 # システムへのインストール
-# $prefix (デフォルト: /usr/local/bin) にインストールされます
+# $prefix (デフォルト: /usr/local/sbin) にインストールされます
 sudo make install
 ```
