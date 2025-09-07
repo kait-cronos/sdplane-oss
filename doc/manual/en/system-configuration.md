@@ -1,6 +1,6 @@
 # System Configuration
 
-**Language:** **English** | [Japanese](../ja/system-configuration.md) | [Français](../fr/system-configuration.md) | [中文](../zh/system-configuration.md) | [Deutsch](../de/system-configuration.md) | [Italiano](../it/system-configuration.md) | [한국어](../ko/system-configuration.md) | [ไทย](../th/system-configuration.md) | [Español](../es/system-configuration.md)
+**Language:** **English** | [Japanese](../ja/system-configuration.md) | [French](../fr/system-configuration.md) | [Chinese](../zh/system-configuration.md) | [German](../de/system-configuration.md) | [Italian](../it/system-configuration.md) | [Korean](../ko/system-configuration.md) | [Thai](../th/system-configuration.md) | [Spanish](../es/system-configuration.md)
 
 - **Hugepages**: Configure system hugepages for DPDK
 - **Network**: Use netplan for network interface configuration

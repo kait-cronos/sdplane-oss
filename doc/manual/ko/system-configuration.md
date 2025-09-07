@@ -1,6 +1,6 @@
 # 시스템 구성
 
-**Language:** [English](../en/system-configuration.md) | [Japanese](../ja/system-configuration.md) | [Français](../fr/system-configuration.md) | [中文](../zh/system-configuration.md) | [Deutsch](../de/system-configuration.md) | [Italiano](../it/system-configuration.md) | **한국어** | [ไทย](../th/system-configuration.md) | [Español](../es/system-configuration.md)
+**Language:** [English](../en/system-configuration.md) | [日本語](../ja/system-configuration.md) | [Français](../fr/system-configuration.md) | [中文](../zh/system-configuration.md) | [Deutsch](../de/system-configuration.md) | [Italiano](../it/system-configuration.md) | **한국어** | [ไทย](../th/system-configuration.md) | [Español](../es/system-configuration.md)
 
 - **Hugepages**: DPDK를 위한 시스템 hugepages 구성
 - **네트워크**: 네트워크 인터페이스 구성을 위한 netplan 사용

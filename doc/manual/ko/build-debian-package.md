@@ -1,6 +1,6 @@
 # 데비안 패키지 빌드 및 설치
 
-**Language:** [English](../en/build-debian-package.md) | [Japanese](../ja/build-debian-package.md) | [Français](../fr/build-debian-package.md) | [中文](../zh/build-debian-package.md) | [Deutsch](../de/build-debian-package.md) | [Italiano](../it/build-debian-package.md) | **한국어** | [ไทย](../th/build-debian-package.md) | [Español](../es/build-debian-package.md)
+**Language:** [English](../en/build-debian-package.md) | [日本語](../ja/build-debian-package.md) | [Français](../fr/build-debian-package.md) | [中文](../zh/build-debian-package.md) | [Deutsch](../de/build-debian-package.md) | [Italiano](../it/build-debian-package.md) | **한국어** | [ไทย](../th/build-debian-package.md) | [Español](../es/build-debian-package.md)
 
 ## 전제 조건 패키지 설치
 ```bash

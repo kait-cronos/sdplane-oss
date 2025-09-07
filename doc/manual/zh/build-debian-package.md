@@ -1,6 +1,6 @@
 # 构建和安装Debian包
 
-**Language:** [English](../en/build-debian-package.md) | [Japanese](../ja/build-debian-package.md) | [Français](../fr/build-debian-package.md) | **中文** | [Deutsch](../de/build-debian-package.md) | [Italiano](../it/build-debian-package.md) | [한국어](../ko/build-debian-package.md) | [ไทย](../th/build-debian-package.md) | [Español](../es/build-debian-package.md)
+**Language:** [English](../en/build-debian-package.md) | [日本語](../ja/build-debian-package.md) | [Français](../fr/build-debian-package.md) | **中文** | [Deutsch](../de/build-debian-package.md) | [Italiano](../it/build-debian-package.md) | [한국어](../ko/build-debian-package.md) | [ไทย](../th/build-debian-package.md) | [Español](../es/build-debian-package.md)
 
 ## 安装前提包
 ```bash

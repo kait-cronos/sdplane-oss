@@ -1,6 +1,6 @@
 # 소스에서 빌드 및 설치
 
-**Language:** [English](../en/build-install-source.md) | [Japanese](../ja/build-install-source.md) | [Français](../fr/build-install-source.md) | [中文](../zh/build-install-source.md) | [Deutsch](../de/build-install-source.md) | [Italiano](../it/build-install-source.md) | **한국어** | [ไทย](../th/build-install-source.md) | [Español](../es/build-install-source.md)
+**Language:** [English](../en/build-install-source.md) | [日本語](../ja/build-install-source.md) | [Français](../fr/build-install-source.md) | [中文](../zh/build-install-source.md) | [Deutsch](../de/build-install-source.md) | [Italiano](../it/build-install-source.md) | **한국어** | [ไทย](../th/build-install-source.md) | [Español](../es/build-install-source.md)
 
 **일반적으로 이 절차를 따르시기 바랍니다.**
 

@@ -1,6 +1,6 @@
 # Build Debian Package and Install
 
-**Language:** **English** | [Japanese](../ja/build-debian-package.md) | [Français](../fr/build-debian-package.md) | [中文](../zh/build-debian-package.md) | [Deutsch](../de/build-debian-package.md) | [Italiano](../it/build-debian-package.md) | [한국어](../ko/build-debian-package.md) | [ไทย](../th/build-debian-package.md) | [Español](../es/build-debian-package.md)
+**Language:** **English** | [Japanese](../ja/build-debian-package.md) | [French](../fr/build-debian-package.md) | [Chinese](../zh/build-debian-package.md) | [German](../de/build-debian-package.md) | [Italian](../it/build-debian-package.md) | [Korean](../ko/build-debian-package.md) | [Thai](../th/build-debian-package.md) | [Spanish](../es/build-debian-package.md)
 
 ## Install prerequisite package
 ```bash

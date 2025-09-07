@@ -1,6 +1,6 @@
 # Build and Install from Source
 
-**Language:** **English** | [Japanese](../ja/build-install-source.md) | [Français](../fr/build-install-source.md) | [中文](../zh/build-install-source.md) | [Deutsch](../de/build-install-source.md) | [Italiano](../it/build-install-source.md) | [한국어](../ko/build-install-source.md) | [ไทย](../th/build-install-source.md) | [Español](../es/build-install-source.md)
+**Language:** **English** | [Japanese](../ja/build-install-source.md) | [French](../fr/build-install-source.md) | [Chinese](../zh/build-install-source.md) | [German](../de/build-install-source.md) | [Italian](../it/build-install-source.md) | [Korean](../ko/build-install-source.md) | [Thai](../th/build-install-source.md) | [Spanish](../es/build-install-source.md)
 
 **Generally, please follow this procedure.**
 
