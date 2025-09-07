@@ -252,7 +252,7 @@ Network devices using kernel driver
 
 ## ライセンス
 
-本プロジェクトはMITライセンスの下でライセンスされています。詳細については[LICENSE](LICENSE)ファイルをご覧ください。
+本プロジェクトはMITライセンスの下でライセンスされています。詳細については[LICENSE](../LICENSE)ファイルをご覧ください。
 
 ## お問い合わせ
 

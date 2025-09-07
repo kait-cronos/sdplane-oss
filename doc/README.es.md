@@ -341,7 +341,7 @@ sudo apt install clang-format-18
 
 ## Licencia
 
-Este proyecto está bajo la licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+Este proyecto está bajo la licencia MIT - ver el archivo [LICENSE](../LICENSE) para detalles.
 
 ## Contacto
 
