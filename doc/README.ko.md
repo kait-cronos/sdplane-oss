@@ -45,66 +45,16 @@ DPDK 스레드 작업을 제어할 수 있는 대화형 쉘과 DPDK 스레드 �
 ### 대상 하드웨어 플랫폼
 
 이 프로젝트는 다음에서 테스트되었습니다:
-- **Topton (N305/N100)**: 10G NIC를 갖춘 미니 PC
-- **Partaker (J3160)**: 1G NIC를 갖춘 미니 PC
+- **Topton (N305/N100)**: 10G NIC를 갖춘 미니 PC (테스트됨)
+- **Partaker (J3160)**: 1G NIC를 갖춘 미니 PC (테스트됨)
 - **Intel 일반 PC**: Intel x520 / Mellanox ConnectX5 사용
 - **기타 CPU**: AMD, ARM 프로세서 등에서도 작동해야 함
 
 ## 1. 의존성 설치
 
-### 의존성
+[의존성 설치](manual/ko/install-dependencies.md)
 
-sdplane-oss는 다음 구성 요소가 필요합니다:
-- **lthread** (yasuhironet/lthread): 경량 협력적 스레딩
-- **liburcu-qsbr**: 사용자 공간 RCU 라이브러리  
-- **libpcap**: 패킷 캡처 라이브러리
-- **DPDK 23.11.1**: Data Plane Development Kit
-
-### sdplane 의존성 데비안 패키지 설치
-
-```bash
-sudo apt update && sudo apt install liburcu-dev libpcap-dev
-```
-
-### 빌드 도구 및 DPDK 전제 조건 설치
-
-```bash
-sudo apt install build-essential cmake autotools-dev autoconf automake \
-                 libtool pkg-config python3 python3-pip meson ninja-build \
-                 python3-pyelftools libnuma-dev pkgconf
-```
-
-### lthread 설치
-
-```bash
-git clone https://github.com/yasuhironet/lthread
-cd lthread
-cmake .
-make
-sudo make install
-cd ..
-```
-
-### DPDK 23.11.1 설치
-
-```bash
-# DPDK 23.11.1 다운로드
-wget https://fast.dpdk.org/rel/dpdk-23.11.1.tar.xz
-tar xf dpdk-23.11.1.tar.xz
-cd dpdk-23.11.1
-
-# DPDK 컴파일 및 설치
-meson setup -Dprefix=/usr/local build
-cd build
-ninja install
-cd ../..
-
-# 설치 확인
-pkg-config --modversion libdpdk
-# 출력: 23.11.1
-```
-
-## 2. Intel Core i3-n305/Celeron j3160용 데비안 패키지로 빠른 시작
+## 2. 미리 컴파일된 데비안 패키지에서 설치
 
 Intel Core i3-n305/Celeron j3160의 경우 데비안 패키지를 사용하여 빠른 설치가 가능합니다.
 
@@ -124,108 +74,21 @@ sudo apt install ./sdplane_0.1.4-*_amd64.deb
 sudo apt install ./sdplane-dbgsym_0.1.4-*_amd64.ddeb
 ```
 
-**참고**: 최신 패키지 버전은 [yasuhironet.net 다운로드](https://www.yasuhironet.net/download/)에서 확인하세요.
+**참고**: 다른 CPU에서 이 미리 컴파일된 바이너리를 사용하면 SIGILL (불법 명령)이 발생할 수 있습니다. 이 경우 직접 컴파일해야 합니다. 최신 패키지 버전은 [yasuhironet.net 다운로드](https://www.yasuhironet.net/download/)에서 확인하세요.
 
 5. 시스템 구성으로 이동하세요.
 
-## 3. 소스에서 빌드
+## 3. 소스에서 빌드 및 설치
 
-**일반적으로 이 절차를 따르십시오.**
+[소스에서 빌드 및 설치](manual/ko/build-install-source.md)
 
-### 필수 Ubuntu 패키지 설치
+## 4. 데비안 패키지 빌드 및 설치
 
-#### 소스에서 빌드용
-```bash
-# 핵심 빌드 도구
-sudo apt install build-essential cmake autotools-dev autoconf automake libtool pkg-config
-
-# DPDK 전제 조건
-sudo apt install python3 python3-pip meson ninja-build python3-pyelftools libnuma-dev pkgconf
-```
-
-#### 선택적 패키지
-```bash
-sudo apt install etckeeper tig bridge-utils \
-                 iptables-persistent fail2ban dmidecode screen ripgrep
-```
-
-### 소스에서 sdplane-oss 빌드
-
-```bash
-# 저장소 클론
-git clone https://github.com/kait-cronos/sdplane-oss
-cd sdplane-oss
-
-# 빌드 파일 생성
-sh autogen.sh
-
-# 구성 및 빌드
-mkdir build
-cd build
-CFLAGS="-g -O0" sh ../configure
-make
-```
-
-## 4. sdplane-oss 데비안 패키지 생성 및 설치
-
-### 필수 패키지 설치
-```bash
-sudo apt install build-essential cmake devscripts debhelper
-```
-
-### sdplane-oss 데비안 패키지 빌드
-```bash
-# 먼저 깨끗한 작업 공간에서 시작하는지 확인
-(cd build && make distclean)
-make distclean
-
-# 소스에서 데비안 패키지 빌드
-bash build-debian.sh
-
-# 생성된 패키지 설치 (상위 디렉터리에 생성됨)
-sudo apt install ../sdplane_*.deb
-```
+[데비안 패키지 빌드 및 설치](manual/ko/build-debian-package.md)
 
 ## 5. 시스템 구성
 
-- **Hugepages**: DPDK용 시스템 hugepage 구성
-- **네트워크**: 네트워크 인터페이스 구성에 netplan 사용
-- **방화벽**: CLI용 텔넷 9882/tcp 포트 필요
-
-**⚠️ CLI에는 인증이 없습니다. localhost에서만 연결을 허용하는 것이 좋습니다 ⚠️**
-
-### Hugepages 구성
-```bash
-# GRUB 구성 편집
-sudo vi /etc/default/grub
-
-# GRUB_CMDLINE_LINUX 매개변수에 hugepages 추가
-# hugepages=1024 추가 예시:
-GRUB_CMDLINE_LINUX="hugepages=1024"
-
-# GRUB 업데이트
-sudo update-grub
-
-# 시스템 재시작
-sudo reboot
-
-# 재시작 후 hugepages 확인
-cat /proc/meminfo | grep -E "^HugePages|^Hugepagesize"
-```
-
-### 선택적 DPDK IGB 커널 모듈 설치
-
-NIC가 vfio-pci에서 작동하지 않는 경우 igb_uio를 설치하세요.
-
-```bash
-git clone http://dpdk.org/git/dpdk-kmods
-cd dpdk-kmods/linux/igb_uio
-make
-sudo make install
-cd ../../..
-
-# 모듈이 /lib/modules/$(uname -r)/extra/igb_uio.ko에 설치됨
-```
+[시스템 구성](manual/ko/system-configuration.md)
 
 ## 6. sdplane 구성
 
