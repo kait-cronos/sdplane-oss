@@ -1,6 +1,6 @@
 # การจัดการ VTY และเชลล์
 
-**ภาษา / Language:** [English](../vty-shell.md) | [日本語](../ja/vty-shell.md) | [Français](../fr/vty-shell.md) | [中文](../zh/vty-shell.md) | [Deutsch](../de/vty-shell.md) | [Italiano](../it/vty-shell.md) | [한국어](../ko/vty-shell.md) | **ไทย**
+**ภาษา / Language:** [English](../en/vty-shell.md) | [日本語](../ja/vty-shell.md) | [Français](../fr/vty-shell.md) | [中文](../zh/vty-shell.md) | [Deutsch](../de/vty-shell.md) | [Italiano](../it/vty-shell.md) | [한국어](../ko/vty-shell.md) | **ไทย**
 
 คำสั่งที่จัดการ VTY (Virtual Terminal) และเชลล์
 

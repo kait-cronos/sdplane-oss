@@ -1,6 +1,6 @@
 # RIB & Routage
 
-**Language:** [English](../routing.md) | [日本語](../ja/routing.md) | **Français** | [中文](../zh/routing.md) | [Deutsch](../de/routing.md) | [Italiano](../it/routing.md) | [한국어](../ko/routing.md) | [ไทย](../th/routing.md) | [Español](../es/routing.md)
+**Language:** [English](../en/routing.md) | [日本語](../ja/routing.md) | **Français** | [中文](../zh/routing.md) | [Deutsch](../de/routing.md) | [Italiano](../it/routing.md) | [한국어](../ko/routing.md) | [ไทย](../th/routing.md) | [Español](../es/routing.md)
 
 Commandes pour gérer la RIB (Routing Information Base) et les informations de ressources système. Ce manuel couvre la gestion complète de la base d'informations de routage, incluant la configuration des interfaces, la gestion des tables de voisinage, et l'optimisation des performances.
 

@@ -1,6 +1,6 @@
 # Configurazione Ripetitore Avanzato
 
-**Lingua / Language:** [English](../enhanced-repeater.md) | [日本語](../ja/enhanced-repeater.md) | [Français](../fr/enhanced-repeater.md) | [中文](../zh/enhanced-repeater.md) | [Deutsch](../de/enhanced-repeater.md) | **Italiano** | [한국어](../ko/enhanced-repeater.md) | [ไทย](../th/enhanced-repeater.md) | [Español](../es/enhanced-repeater.md)
+**Lingua / Language:** [English](../en/enhanced-repeater.md) | [日本語](../ja/enhanced-repeater.md) | [Français](../fr/enhanced-repeater.md) | [中文](../zh/enhanced-repeater.md) | [Deutsch](../de/enhanced-repeater.md) | **Italiano** | [한국어](../ko/enhanced-repeater.md) | [ไทย](../th/enhanced-repeater.md) | [Español](../es/enhanced-repeater.md)
 
 Il Ripetitore Avanzato fornisce funzionalità di switching VLAN avanzate con interfacce TAP per routing L3 e cattura pacchetti. Supporta la creazione di switch virtuali, il collegamento di porte DPDK con tagging VLAN, interfacce router per l'integrazione kernel e interfacce di cattura per il monitoraggio.
 

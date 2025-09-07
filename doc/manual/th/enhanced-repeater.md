@@ -1,6 +1,6 @@
 # การตั้งค่า Enhanced Repeater
 
-**ภาษา / Language:** [English](../enhanced-repeater.md) | [日本語](../ja/enhanced-repeater.md) | [Français](../fr/enhanced-repeater.md) | [中文](../zh/enhanced-repeater.md) | [Deutsch](../de/enhanced-repeater.md) | [Italiano](../it/enhanced-repeater.md) | [한국어](../ko/enhanced-repeater.md) | **ไทย**
+**ภาษา / Language:** [English](../en/enhanced-repeater.md) | [日本語](../ja/enhanced-repeater.md) | [Français](../fr/enhanced-repeater.md) | [中文](../zh/enhanced-repeater.md) | [Deutsch](../de/enhanced-repeater.md) | [Italiano](../it/enhanced-repeater.md) | [한국어](../ko/enhanced-repeater.md) | **ไทย**
 
 Enhanced Repeater ให้ฟังก์ชันการ switching VLAN ขั้นสูงพร้อมด้วย TAP interface สำหรับการ routing L3 และการจับแพ็กเก็ต รองรับการสร้าง virtual switch, การลิงก์พอร์ต DPDK ด้วย VLAN tagging, router interface สำหรับการรวมเข้ากับ kernel, และ capture interface สำหรับการตรวจสอบ
 

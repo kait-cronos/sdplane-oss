@@ -1,6 +1,6 @@
 # Configuración de Colas
 
-**Idioma / Language:** [English](../queue-configuration.md) | [日本語](../ja/queue-configuration.md) | [Français](../fr/queue-configuration.md) | [中文](../zh/queue-configuration.md) | [Deutsch](../de/queue-configuration.md) | [Italiano](../it/queue-configuration.md) | [한국어](../ko/queue-configuration.md) | [ไทย](../th/queue-configuration.md) | **Español**
+**Idioma / Language:** [English](../en/queue-configuration.md) | [日本語](../ja/queue-configuration.md) | [Français](../fr/queue-configuration.md) | [中文](../zh/queue-configuration.md) | [Deutsch](../de/queue-configuration.md) | [Italiano](../it/queue-configuration.md) | [한국어](../ko/queue-configuration.md) | [ไทย](../th/queue-configuration.md) | **Español**
 
 Comandos para configurar y gestionar colas DPDK.
 

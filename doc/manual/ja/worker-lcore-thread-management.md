@@ -1,6 +1,6 @@
 # ワーカー・lcore管理・スレッド情報
 
-**言語 / Language:** [English](../worker-lcore-thread-management.md) | **日本語** | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | [Español](../es/worker-lcore-thread-management.md)
+**言語 / Language:** [English](../en/worker-lcore-thread-management.md) | **日本語** | [Français](../fr/worker-lcore-thread-management.md) | [中文](../zh/worker-lcore-thread-management.md) | [Deutsch](../de/worker-lcore-thread-management.md) | [Italiano](../it/worker-lcore-thread-management.md) | [한국어](../ko/worker-lcore-thread-management.md) | [ไทย](../th/worker-lcore-thread-management.md) | [Español](../es/worker-lcore-thread-management.md)
 
 DPDKワーカースレッド、lcore、およびスレッド情報の管理・監視を行うコマンドです。
 

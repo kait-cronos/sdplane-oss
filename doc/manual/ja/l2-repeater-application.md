@@ -1,6 +1,6 @@
 # L2リピーターアプリケーション
 
-**言語 / Language:** [English](../l2-repeater-application.md) | **日本語** | [Français](../fr/l2-repeater-application.md) | [中文](../zh/l2-repeater-application.md) | [Deutsch](../de/l2-repeater-application.md) | [Italiano](../it/l2-repeater-application.md) | [한국어](../ko/l2-repeater-application.md) | [ไทย](../th/l2-repeater-application.md) | [Español](../es/l2-repeater-application.md)
+**言語 / Language:** [English](../en/l2-repeater-application.md) | **日本語** | [Français](../fr/l2-repeater-application.md) | [中文](../zh/l2-repeater-application.md) | [Deutsch](../de/l2-repeater-application.md) | [Italiano](../it/l2-repeater-application.md) | [한국어](../ko/l2-repeater-application.md) | [ไทย](../th/l2-repeater-application.md) | [Español](../es/l2-repeater-application.md)
 
 L2リピーターアプリケーションは、基本的なポート間リピート機能を備えた、DPDKポート間でのシンプルなレイヤー2パケット転送を提供します。
 

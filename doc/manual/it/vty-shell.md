@@ -1,6 +1,6 @@
 # Gestione VTY e Shell
 
-**Lingua / Language:** [English](../vty-shell.md) | [日本語](../ja/vty-shell.md) | [Français](../fr/vty-shell.md) | [中文](../zh/vty-shell.md) | [Deutsch](../de/vty-shell.md) | **Italiano** | [한국어](../ko/vty-shell.md) | [ไทย](../th/vty-shell.md) | [Español](../es/vty-shell.md)
+**Lingua / Language:** [English](../en/vty-shell.md) | [日本語](../ja/vty-shell.md) | [Français](../fr/vty-shell.md) | [中文](../zh/vty-shell.md) | [Deutsch](../de/vty-shell.md) | **Italiano** | [한국어](../ko/vty-shell.md) | [ไทย](../th/vty-shell.md) | [Español](../es/vty-shell.md)
 
 Comandi per gestire VTY (Virtual Terminal) e shell.
 

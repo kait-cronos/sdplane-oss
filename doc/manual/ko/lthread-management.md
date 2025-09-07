@@ -1,6 +1,6 @@
 # lthread 관리
 
-**언어 / Language:** [English](../lthread-management.md) | [日本語](../ja/lthread-management.md) | [Français](../fr/lthread-management.md) | [中文](../zh/lthread-management.md) | [Deutsch](../de/lthread-management.md) | [Italiano](../it/lthread-management.md) | **한국어**
+**언어 / Language:** [English](../en/lthread-management.md) | [日本語](../ja/lthread-management.md) | [Français](../fr/lthread-management.md) | [中文](../zh/lthread-management.md) | [Deutsch](../de/lthread-management.md) | [Italiano](../it/lthread-management.md) | **한국어**
 
 lthread(경량 스레드) 관리를 수행하는 명령어입니다.
 

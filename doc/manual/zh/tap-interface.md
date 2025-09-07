@@ -1,6 +1,6 @@
 # TAP接口
 
-**语言 / Language:** [English](../tap-interface.md) | [日本語](../ja/tap-interface.md) | [Français](../fr/tap-interface.md) | **中文** | [Deutsch](../de/tap-interface.md) | [Italiano](../it/tap-interface.md) | [한국어](../ko/tap-interface.md) | [ไทย](../th/tap-interface.md) | [Español](../es/tap-interface.md)
+**语言 / Language:** [English](../en/tap-interface.md) | [日本語](../ja/tap-interface.md) | [Français](../fr/tap-interface.md) | **中文** | [Deutsch](../de/tap-interface.md) | [Italiano](../it/tap-interface.md) | [한국어](../ko/tap-interface.md) | [ไทย](../th/tap-interface.md) | [Español](../es/tap-interface.md)
 
 管理TAP接口的命令。
 

@@ -1,6 +1,6 @@
 # 장치 관리
 
-**언어 / Language:** [English](../device-management.md) | [日本語](../ja/device-management.md) | [Français](../fr/device-management.md) | [中文](../zh/device-management.md) | [Deutsch](../de/device-management.md) | [Italiano](../it/device-management.md) | **한국어**
+**언어 / Language:** [English](../en/device-management.md) | [日本語](../ja/device-management.md) | [Français](../fr/device-management.md) | [中文](../zh/device-management.md) | [Deutsch](../de/device-management.md) | [Italiano](../it/device-management.md) | **한국어**
 
 DPDK 장치와 드라이버 관리를 수행하는 명령어입니다.
 

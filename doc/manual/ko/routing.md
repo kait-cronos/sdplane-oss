@@ -1,6 +1,6 @@
 # RIB·라우팅
 
-**언어 / Language:** [English](../routing.md) | [日本語](../ja/routing.md) | [Français](../fr/routing.md) | [中文](../zh/routing.md) | [Deutsch](../de/routing.md) | [Italiano](../it/routing.md) | **한국어**
+**언어 / Language:** [English](../en/routing.md) | [日本語](../ja/routing.md) | [Français](../fr/routing.md) | [中文](../zh/routing.md) | [Deutsch](../de/routing.md) | [Italiano](../it/routing.md) | **한국어**
 
 RIB(Routing Information Base)와 시스템 리소스 정보를 관리하는 명령어입니다.
 

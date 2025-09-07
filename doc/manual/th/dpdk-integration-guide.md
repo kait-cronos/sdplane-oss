@@ -1,6 +1,6 @@
 # คู่มือการบูรณาการ DPDK
 
-**ภาษา / Language:** [English](../dpdk-integration-guide.md) | [日本語](../ja/dpdk-integration-guide.md) | [Français](../fr/dpdk-integration-guide.md) | [中文](../zh/dpdk-integration-guide.md) | [Deutsch](../de/dpdk-integration-guide.md) | [Italiano](../it/ดoใผ-integration-guide.md) | [한국어](../ko/dpdk-integration-guide.md) | **ไทย**
+**ภาษา / Language:** [English](../en/dpdk-integration-guide.md) | [日本語](../ja/dpdk-integration-guide.md) | [Français](../fr/dpdk-integration-guide.md) | [中文](../zh/dpdk-integration-guide.md) | [Deutsch](../de/dpdk-integration-guide.md) | [Italiano](../it/ดoใผ-integration-guide.md) | [한국어](../ko/dpdk-integration-guide.md) | **ไทย**
 
 คู่มือนี้ให้ข้อมูลที่ครอบคลุมเกี่ยวกับการบูรณาการ DPDK (Data Plane Development Kit) กับ sdplane รวมถึงการติดตั้ง การตั้งค่า และการปรับแต่งประสิทธิภาพ
 
