@@ -329,32 +329,32 @@ Only one command that calls `rte_eal_init()` should be invoked from the configur
 
 Comprehensive user guides and command references are available:
 
-- [User Guide](doc/manual/README.md) - Complete overview and command classification
+- [User Guide](doc/manual/en/README.md) - Complete overview and command classification
 
 **Application Guides:**
-- [L2 Repeater Application](doc/manual/l2-repeater-application.md) - Simple Layer 2 packet forwarding with MAC learning
-- [Enhanced Repeater Application](doc/manual/enhanced-repeater-application.md) - VLAN-aware switching with TAP interfaces
-- [Packet Generator Application](doc/manual/packet-generator-application.md) - High-performance traffic generation and testing
+- [L2 Repeater Application](doc/manual/en/l2-repeater-application.md) - Simple Layer 2 packet forwarding with MAC learning
+- [Enhanced Repeater Application](doc/manual/en/enhanced-repeater-application.md) - VLAN-aware switching with TAP interfaces
+- [Packet Generator Application](doc/manual/en/packet-generator-application.md) - High-performance traffic generation and testing
 
 **Configuration Guides:**
-- [Port Management & Statistics](doc/manual/port-management.md) - DPDK port management and statistics
-- [Worker & lcore Management & Thread Information](doc/manual/worker-lcore-thread-management.md) - Worker threads, lcore, and thread information management
-- [Debug & Logging](doc/manual/debug-logging.md) - Debug and logging functions
-- [VTY & Shell Management](doc/manual/vty-shell.md) - VTY and shell management
-- [System Information & Monitoring](doc/manual/system-monitoring.md) - System information and monitoring
-- [RIB & Routing](doc/manual/routing.md) - RIB and routing functions
-- [Queue Configuration](doc/manual/queue-configuration.md) - Queue configuration and management
-- [Packet Generation](doc/manual/packet-generation.md) - Packet generation using PKTGEN
-- [TAP Interface](doc/manual/tap-interface.md) - TAP interface management
-- [lthread Management](doc/manual/lthread-management.md) - lthread management
-- [Device Management](doc/manual/device-management.md) - Device and driver management
-- [Enhanced Repeater](doc/manual/enhanced-repeater.md) - Virtual switching, VLAN processing, and TAP interfaces
+- [Port Management & Statistics](doc/manual/en/port-management.md) - DPDK port management and statistics
+- [Worker & lcore Management & Thread Information](doc/manual/en/worker-lcore-thread-management.md) - Worker threads, lcore, and thread information management
+- [Debug & Logging](doc/manual/en/debug-logging.md) - Debug and logging functions
+- [VTY & Shell Management](doc/manual/en/vty-shell.md) - VTY and shell management
+- [System Information & Monitoring](doc/manual/en/system-monitoring.md) - System information and monitoring
+- [RIB & Routing](doc/manual/en/routing.md) - RIB and routing functions
+- [Queue Configuration](doc/manual/en/queue-configuration.md) - Queue configuration and management
+- [Packet Generation](doc/manual/en/packet-generation.md) - Packet generation using PKTGEN
+- [TAP Interface](doc/manual/en/tap-interface.md) - TAP interface management
+- [lthread Management](doc/manual/en/lthread-management.md) - lthread management
+- [Device Management](doc/manual/en/device-management.md) - Device and driver management
+- [Enhanced Repeater](doc/manual/en/enhanced-repeater.md) - Virtual switching, VLAN processing, and TAP interfaces
 
 ## Developer's Guide
 
 ### Integration Guide
 
-- [DPDK Application Integration Guide](doc/manual/dpdk-integration-guide.md) - How to integrate DPDK applications into sdplane using DPDK-dock approach
+- [DPDK Application Integration Guide](doc/manual/en/dpdk-integration-guide.md) - How to integrate DPDK applications into sdplane using DPDK-dock approach
 
 ### Documentation
 
