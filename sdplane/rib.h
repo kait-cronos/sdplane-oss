@@ -21,6 +21,16 @@
 
 #include <rte_ether.h>
 
+struct route_entry
+{
+  struct in_addr dst4;
+  struct in6_addr dst6;
+  struct in_addr gw4;
+  struct in6_addr gw6;
+  uint32_t oif; // output interface index
+  uint32_t prefixlen;
+};
+
 struct router_if
 {
   int sockfd; // tap sockfd.
@@ -149,6 +159,7 @@ struct rib_info
   struct neigh_table neigh_tables[NEIGH_NR_TABLES];
   struct fdb_entry fdb[FDB_SIZE];
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
+  struct route_entry route_entries[1024];
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);

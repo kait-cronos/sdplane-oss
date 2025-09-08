@@ -1026,6 +1026,7 @@ rib_manager_process_message (void *msgp)
   struct internal_msg_eth_link *msg_eth_link;
   struct internal_msg_qconf *msg_qconf;
   struct internal_msg_neigh_entry *msg_neigh_entry;
+  struct internal_msg_route_entry *msg_route_entry;
 
   msg_header = (struct internal_msg_header *) msgp;
   switch (msg_header->type)
@@ -1220,6 +1221,13 @@ rib_manager_process_message (void *msgp)
         }
 
       vswitch_link_delete (new->rib_info, link->vswitch_link_id);
+      break;
+
+    case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
+      msg_route_entry =
+          (struct internal_msg_route_entry *) (msg_header + 1);
+      DEBUG_SDPLANE_LOG (RIB, "route entry add: %p.", msgp);
+      new->rib_info->msg_route_entry = msg_route_entry;
       break;
 
     case INTERNAL_MSG_TYPE_ROUTER_IF_SET:
