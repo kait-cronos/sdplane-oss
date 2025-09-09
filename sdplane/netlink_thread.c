@@ -319,9 +319,9 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
                                   &msg_neigh_entry, sizeof (msg_neigh_entry));
     }
 
-  if (! msg_queue_neigh)
-    DEBUG_SDPLANE_LOG (NETLINK, "error: neigh_manager is not started.");
-  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+  if (! msg_queue_rib)
+    DEBUG_SDPLANE_LOG (NETLINK, "error: queue_rib is not created.");
+  internal_msg_send_to (msg_queue_rib, msgp, NULL);
 
   return 0;
 }
@@ -399,8 +399,13 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
                                   &msg_route_entry, sizeof (msg_route_entry));
     } else {
       DEBUG_SDPLANE_LOG (NETLINK, "error: Neither RTM_DELROUTE nor RTM_ADDROUTE.");
-      return 0;
     }
+
+  if (! msg_queue_neigh)
+    DEBUG_SDPLANE_LOG (NETLINK, "error: neigh_manager is not started.");
+  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+
+  return 0;
 
 }
 
