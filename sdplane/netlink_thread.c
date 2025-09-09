@@ -341,31 +341,28 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
-  void *msgp;
-  struct internal_msg_route_entry msg_route_entry;
   
-  switch (h->nlmsg_type) {
     struct rtmsg *rtm = (struct rtmsg *)NLMSG_DATA(h);
     struct rtattr *rta;
     int len = RTM_PAYLOAD(h);
 
-    msg_route_entry.prefixlen = rtm->rtm_dst_len;
     void *msgp;
     struct internal_msg_route_entry msg_route_entry;
     memset(&msg_route_entry, 0, sizeof(msg_route_entry));
+    msg_route_entry.prefixlen = rtm->rtm_dst_len;
 
     for (rta = RTM_RTA(rtm); RTA_OK(rta, len); rta = RTA_NEXT(rta, len)) {
-      switch (rta->rta_type) {
       if (rtm->rtm_family == AF_INET) {
     // IPv4
     switch (rta->rta_type) {
       case RTA_DST:
         memcpy(&msg_route_entry.dst4, RTA_DATA(rta), sizeof(msg_route_entry.dst4));
         break;
-    DEBUG_SDPLANE_LOG (NETLINK, "error: Neither RTM_DELROUTE nor RTM_ADDROUTE.");
-    return 0;
       case RTA_GATEWAY:
         memcpy(&msg_route_entry.gw4, RTA_DATA(rta), sizeof(msg_route_entry.gw4));
+        break;
+      case RTA_OIF:
+        msg_route_entry.oif = *(int *)RTA_DATA(rta);
         break;
     }
 
@@ -380,15 +377,13 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
         memcpy(&msg_route_entry.gw6, RTA_DATA(rta), sizeof(msg_route_entry.gw6));
         break;
 
-    }
-}
-      
       case RTA_OIF:
         msg_route_entry.oif = *(int *)RTA_DATA(rta);
         break;
+    }
+}
+      
       }
-    }       
-  }
 
   if (h->nlmsg_type == RTM_NEWROUTE)
     {
