@@ -403,9 +403,9 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       DEBUG_SDPLANE_LOG (NETLINK, "error: Neither RTM_DELROUTE nor RTM_ADDROUTE.");
     }
 
-  if (! msg_queue_neigh)
-    DEBUG_SDPLANE_LOG (NETLINK, "error: neigh_manager is not started.");
-  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+  if (! msg_queue_rib)
+    DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
+  internal_msg_send_to (msg_queue_rib, msgp, NULL);
 
   return 0;
 
