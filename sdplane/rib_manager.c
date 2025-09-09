@@ -1230,7 +1230,7 @@ rib_manager_process_message (void *msgp)
                          msg_route_entry->dst4,
                          msg_route_entry->gw4,
                          msg_route_entry->oif);
-      break;10
+      break;
 
     case INTERNAL_MSG_TYPE_ROUTER_IF_SET:
       struct internal_msg_tap_dev *msg_router_if_set;

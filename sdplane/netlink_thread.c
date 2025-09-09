@@ -392,9 +392,11 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
 
   if (h->nlmsg_type == RTM_NEWROUTE)
     {
+      DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_add.");
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
                                   &msg_route_entry, sizeof (msg_route_entry));
     } else if (h->nlmsg_type == RTM_DELROUTE) {
+      DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_dell.");
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
                                   &msg_route_entry, sizeof (msg_route_entry));
     } else {
