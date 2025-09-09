@@ -14,6 +14,7 @@
 #define FDB_STATE_NONE          0
 #define FDB_STATE_ACTIVE        1
 #define FDB_AGING_TIME_DEFAULT  300 /* Default aging time: 300 seconds */
+#define MAX_ROUTE_TABLE_SIZE 1024
 
 #define ETH_LINK_DUPLEX_STR(v)  ((v) ? "full" : "half")
 #define ETH_LINK_AUTONEG_STR(v) ((v) ? "on" : "off")
@@ -23,10 +24,16 @@
 
 struct route_entry
 {
-  struct in_addr dst4;
-  struct in6_addr dst6;
-  struct in_addr gw4;
-  struct in6_addr gw6;
+  union
+  {
+    struct in_addr dst4;
+    struct in6_addr dst6;
+  } ip_addr;
+  union
+  {
+    struct in_addr gw4;
+    struct in6_addr gw6;
+  } gateway;
   uint32_t oif; // output interface index
   uint32_t prefixlen;
 };
@@ -160,6 +167,7 @@ struct rib_info
   struct fdb_entry fdb[FDB_SIZE];
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
   struct route_entry route_entries[1024];
+  struct route_entry route_tables[MAX_ROUTE_TABLE_SIZE];
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);
