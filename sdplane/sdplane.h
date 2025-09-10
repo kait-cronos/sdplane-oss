@@ -115,7 +115,7 @@ EXTERN_COMMAND (show_port_promiscuous);
 EXTERN_COMMAND (show_port_flowcontrol);
 EXTERN_COMMAND (set_port_flowcontrol);
 
-void lthread_main (__rte_unused void *dummy);
+int lthread_main (__rte_unused void *dummy);
 
 void sdplane_cmd_init (struct command_set *cmdset);
 void sdplane_init ();

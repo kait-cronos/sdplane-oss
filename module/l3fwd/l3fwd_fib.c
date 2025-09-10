@@ -46,7 +46,7 @@ static struct rte_fib6 *ipv6_l3fwd_fib_lookup_struct[NB_SOCKETS];
 static inline void
 fib_parse_packet(struct rte_mbuf *mbuf,
 		uint32_t *ipv4, uint32_t *ipv4_cnt,
-		uint8_t ipv6[RTE_FIB6_IPV6_ADDR_SIZE],
+		uint8_t ipv6[RTE_IPV6_ADDR_SIZE],
 		uint32_t *ipv6_cnt, uint8_t *ip_type)
 {
 	struct rte_ether_hdr *eth_hdr;
@@ -120,7 +120,7 @@ fib_send_packets(int nb_rx, struct rte_mbuf **pkts_burst,
 		uint16_t portid, struct lcore_conf *qconf)
 {
 	uint32_t ipv4_arr[nb_rx];
-	uint8_t ipv6_arr[nb_rx][RTE_FIB6_IPV6_ADDR_SIZE];
+	uint8_t ipv6_arr[nb_rx][RTE_IPV6_ADDR_SIZE];
 	uint16_t hops[nb_rx];
 	uint64_t hopsv4[nb_rx], hopsv6[nb_rx];
 	uint8_t type_arr[nb_rx];
@@ -159,7 +159,7 @@ fib_send_packets(int nb_rx, struct rte_mbuf **pkts_burst,
 	/* Lookup IPv6 hops if IPv6 packets are present. */
 	if (ipv6_cnt > 0)
 		rte_fib6_lookup_bulk(qconf->ipv6_lookup_struct,
-				ipv6_arr, hopsv6, ipv6_cnt);
+				(const struct rte_ipv6_addr *)ipv6_arr, hopsv6, ipv6_cnt);
 
 	/* Add IPv4 and IPv6 hops to one array depending on type. */
 	for (i = 0; i < nb_rx; i++) {
@@ -270,7 +270,7 @@ fib_event_loop(struct l3fwd_event_resources *evt_rsrc,
 	unsigned int lcore_id;
 
 	uint32_t ipv4_arr[MAX_PKT_BURST];
-	uint8_t ipv6_arr[MAX_PKT_BURST][RTE_FIB6_IPV6_ADDR_SIZE];
+	uint8_t ipv6_arr[MAX_PKT_BURST][RTE_IPV6_ADDR_SIZE];
 	uint64_t hopsv4[MAX_PKT_BURST], hopsv6[MAX_PKT_BURST];
 	uint16_t nh, hops[MAX_PKT_BURST];
 	uint8_t type_arr[MAX_PKT_BURST];
@@ -352,7 +352,7 @@ fib_event_loop(struct l3fwd_event_resources *evt_rsrc,
 		/* Lookup IPv6 hops if IPv6 packets are present. */
 		if (ipv6_cnt > 0)
 			rte_fib6_lookup_bulk(lconf->ipv6_lookup_struct,
-					ipv6_arr, hopsv6, ipv6_cnt);
+					(const struct rte_ipv6_addr *)ipv6_arr, hopsv6, ipv6_cnt);
 
 		/* Assign ports looked up in fib depending on IPv4 or IPv6 */
 		for (i = 0; i < nb_deq; i++) {
@@ -480,7 +480,7 @@ fib_process_event_vector(struct rte_event_vector *vec, uint8_t *type_arr,
 	if (ipv6_cnt > 0)
 		rte_fib6_lookup_bulk(
 			lconf->ipv6_lookup_struct,
-			(uint8_t(*)[RTE_FIB6_IPV6_ADDR_SIZE])ipv6_arr, hopsv6,
+			(const struct rte_ipv6_addr *)ipv6_arr, hopsv6,
 			ipv6_cnt);
 
 	/* Assign ports looked up in fib depending on IPv4 or IPv6 */
@@ -533,7 +533,7 @@ fib_event_loop_vector(struct l3fwd_event_resources *evt_rsrc,
 		"vector_fib",
 		(sizeof(uint32_t) + sizeof(uint8_t) + sizeof(uint64_t) +
 		 sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint8_t *) +
-		 (sizeof(uint8_t) * RTE_FIB6_IPV6_ADDR_SIZE)) *
+		 (sizeof(uint8_t) * RTE_IPV6_ADDR_SIZE)) *
 			evt_rsrc->vector_size,
 		RTE_CACHE_LINE_SIZE);
 	if (mem == 0)
@@ -547,7 +547,7 @@ fib_event_loop_vector(struct l3fwd_event_resources *evt_rsrc,
 
 	ptr = (uint8_t *)&ipv6_arr[evt_rsrc->vector_size];
 	for (i = 0; i < evt_rsrc->vector_size; i++)
-		ipv6_arr[i] = &ptr[RTE_FIB6_IPV6_ADDR_SIZE + i];
+		ipv6_arr[i] = &ptr[RTE_IPV6_ADDR_SIZE + i];
 
 	if (event_p_id < 0) {
 		rte_free((void *)mem);
@@ -732,7 +732,7 @@ setup_fib(const int socketid)
 		rte_eth_dev_info_get(route_base_v6[i].if_out,
 				     &dev_info);
 		ret = rte_fib6_add(ipv6_l3fwd_fib_lookup_struct[socketid],
-			route_base_v6[i].ip_8,
+			(const struct rte_ipv6_addr *)route_base_v6[i].ip_8,
 			route_base_v6[i].depth,
 			route_base_v6[i].if_out);
 

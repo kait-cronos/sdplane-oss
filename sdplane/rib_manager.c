@@ -957,7 +957,7 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_VSWITCH_SET:
       struct internal_msg_vswitch *msg_vswitch_set;
       DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_set: %p.", msgp);
-      msg_vswitch_set = (struct internal_msg_vswitch_set *) (msg_header + 1);
+      msg_vswitch_set = (struct internal_msg_vswitch *) (msg_header + 1);
       vswitch = vswitch_new (new->rib_info, msg_vswitch_set->vswitch_id,
                              msg_vswitch_set->vlan_id);
       if (vswitch)

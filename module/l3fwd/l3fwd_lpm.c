@@ -80,10 +80,10 @@ lpm_get_ipv6_dst_port(const struct rte_ipv6_hdr *ipv6_hdr,
 		      uint16_t portid,
 		      struct rte_lpm6 *ipv6_l3fwd_lookup_struct)
 {
-	const uint8_t *dst_ip = &ipv6_hdr->dst_addr;
+	const uint8_t *dst_ip = (const uint8_t *)&ipv6_hdr->dst_addr;
 	uint32_t next_hop;
 
-	if (rte_lpm6_lookup(ipv6_l3fwd_lookup_struct, dst_ip, &next_hop) == 0)
+	if (rte_lpm6_lookup(ipv6_l3fwd_lookup_struct, (const struct rte_ipv6_addr *)dst_ip, &next_hop) == 0)
 		return next_hop;
 	else
 		return portid;
@@ -611,11 +611,12 @@ setup_lpm(const int socketid)
 	snprintf(s, sizeof(s), "IPV4_L3FWD_LPM_%d", socketid);
 	ipv4_l3fwd_lpm_lookup_struct[socketid] =
 			rte_lpm_create(s, socketid, &config_ipv4);
-	if (ipv4_l3fwd_lpm_lookup_struct[socketid] == NULL)
-		rte_exit(EXIT_FAILURE,
+	if (ipv4_l3fwd_lpm_lookup_struct[socketid] == NULL) {
+		rte_warn(EXIT_FAILURE,
 			"Unable to create the l3fwd LPM table on socket %d\n",
 			socketid);
-
+        return;
+    }
 	/* populate the LPM table */
 	for (i = 0; i < route_num_v4; i++) {
 		struct in_addr in;
@@ -625,8 +626,11 @@ setup_lpm(const int socketid)
 				enabled_port_mask) == 0)
 			continue;
 
-		rte_eth_dev_info_get(route_base_v4[i].if_out,
-				     &dev_info);
+		if (rte_eth_dev_info_get(route_base_v4[i].if_out,
+				     &dev_info) < 0) {
+			rte_warn(EXIT_FAILURE, "Unable to get info on device\n");
+            return;
+        }
 		ret = rte_lpm_add(ipv4_l3fwd_lpm_lookup_struct[socketid],
 			route_base_v4[i].ip,
 			route_base_v4[i].depth,
@@ -634,9 +638,10 @@ setup_lpm(const int socketid)
 
 		if (ret < 0) {
 			lpm_free_routes();
-			rte_exit(EXIT_FAILURE,
+			rte_warn(EXIT_FAILURE,
 				"Unable to add entry %u to the l3fwd LPM table on socket %d\n",
 				i, socketid);
+            return;
 		}
 
 		in.s_addr = htonl(route_base_v4[i].ip);
@@ -656,9 +661,10 @@ setup_lpm(const int socketid)
 				&config);
 	if (ipv6_l3fwd_lpm_lookup_struct[socketid] == NULL) {
 		lpm_free_routes();
-		rte_exit(EXIT_FAILURE,
+		rte_warn(EXIT_FAILURE,
 			"Unable to create the l3fwd LPM table on socket %d\n",
 			socketid);
+        return;
 	}
 
 	/* populate the LPM table */
@@ -669,18 +675,22 @@ setup_lpm(const int socketid)
 				enabled_port_mask) == 0)
 			continue;
 
-		rte_eth_dev_info_get(route_base_v6[i].if_out,
-				     &dev_info);
+		if (rte_eth_dev_info_get(route_base_v6[i].if_out,
+				     &dev_info) < 0) {
+			rte_warn(EXIT_FAILURE, "Unable to get info on device\n");
+            return;
+        }
 		ret = rte_lpm6_add(ipv6_l3fwd_lpm_lookup_struct[socketid],
-			route_base_v6[i].ip_8,
+			(const struct rte_ipv6_addr *)route_base_v6[i].ip_8,
 			route_base_v6[i].depth,
 			route_base_v6[i].if_out);
 
 		if (ret < 0) {
 			lpm_free_routes();
-			rte_exit(EXIT_FAILURE,
+			rte_warn(EXIT_FAILURE,
 				"Unable to add entry %u to the l3fwd LPM table on socket %d\n",
 				i, socketid);
+            return;
 		}
 
 		printf("LPM: Adding route %s / %d (%d) [%s]\n",
