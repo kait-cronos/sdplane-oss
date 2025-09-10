@@ -391,7 +391,7 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       char gw[INET_ADDRSTRLEN];
       inet_ntop(AF_INET, &msg_route_entry.dst4, addr, INET_ADDRSTRLEN);
       inet_ntop(AF_INET, &msg_route_entry.gw4, gw, INET_ADDRSTRLEN);
-      DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s gw=%s oif=%s", addr,
+      DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s gw=%s oif=%d", addr,
                          gw, msg_route_entry.oif);
       DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_add.");
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
