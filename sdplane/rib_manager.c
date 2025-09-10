@@ -1226,10 +1226,7 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
       msg_route_entry =
           (struct internal_msg_route_entry *) (msg_header + 1);
-      DEBUG_SDPLANE_LOG (RIB, "ipv4: %d gw4: %d oif: %d.",
-                         msg_route_entry->dst4,
-                         msg_route_entry->gw4,
-                         msg_route_entry->oif);
+
       break;
 
     case INTERNAL_MSG_TYPE_ROUTER_IF_SET:
