@@ -1,5 +1,7 @@
 ## sdplane tests
 
+This test framework allows you to write unit tests that send some packets to sdplane and expect some packets from specific ports. It uses DPDK's [Ring Based PMD](https://doc.dpdk.org/guides-25.07/nics/pcap_ring.html#rings-based-pmd), so it doesn't require any special hardware including NICs. You can run the tests on a regular Linux machine even in a VM or container.
+
 ### How to run
 
 ```
