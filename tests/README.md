@@ -7,7 +7,11 @@ This test framework allows you to write unit tests that send some packets to sdp
 ```
 cd tests
 make test
+# You can also run tests inside Docker container
+make docker
 ```
+
+You can see the test logs in `tests/logs` directory.
 
 ### How to add test case
 
