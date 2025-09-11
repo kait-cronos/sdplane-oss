@@ -787,7 +787,7 @@ rib_replace (struct rib *new)
                      rib_rcu_replace, old, new,
                      (old && old->rib_info ? old->rib_info->ver : -1),
                      (old ? old->rib_info : NULL),
-                     (new && new->rib_info ? new->rib_info->ver : -1),
+                     (new &&new->rib_info ? new->rib_info->ver : -1),
                      (new ? new->rib_info : NULL));
 
   /* reclaim old */
