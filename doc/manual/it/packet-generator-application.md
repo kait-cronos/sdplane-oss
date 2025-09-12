@@ -1,5 +1,7 @@
 # Applicazione Generatore di Pacchetti (PKTGEN)
 
+Created by Keith Wiles @ Intel 2010-2025 from https://github.com/pktgen/Pktgen-DPDK
+
 **Language:** [English](../en/packet-generator-application.md) | [日本語](../ja/packet-generator-application.md) | [Français](../fr/packet-generator-application.md) | [中文](../zh/packet-generator-application.md) | [Deutsch](../de/packet-generator-application.md) | **Italiano** | [한국어](../ko/packet-generator-application.md) | [ไทย](../th/packet-generator-application.md) | [Español](../es/packet-generator-application.md)
 
 L'applicazione Generatore di Pacchetti (PKTGEN) fornisce funzionalità di generazione pacchetti ad alte prestazioni e test del traffico utilizzando il framework di elaborazione pacchetti ottimizzato DPDK.
