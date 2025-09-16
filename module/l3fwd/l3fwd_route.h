@@ -2,6 +2,8 @@
  * Copyright(c) 2021 Intel Corporation
  */
 
+#include "rte_override.h"
+
 /* Log file related character defs. */
 #define COMMENT_LEAD_CHAR	('#')
 #define ROUTE_LEAD_CHAR		('R')
