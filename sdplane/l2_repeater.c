@@ -107,6 +107,7 @@ l2_repeater_tx_burst ()
       if (unlikely (nb_rx == 0))
         continue;
 
+      rte_eth_tx_burst (portid, tx_queueid, pkts_burst, nb_rx);
       DEBUG_SDPLANE_LOG (L2_REPEATER,
                          "lcore[%d]: tx_burst: port: %d queue: %d pkts: %d",
                          lcore_id, portid, tx_queueid, nb_rx);
