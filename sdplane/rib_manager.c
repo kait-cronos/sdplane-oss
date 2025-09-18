@@ -606,7 +606,6 @@ rib_check (struct rib *new)
 
   struct rte_eth_conf port_conf =
     { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, },
-      .intr_conf = { .lsc = 1 },
     };
   struct rte_eth_dev_info dev_info;
 
@@ -626,6 +625,10 @@ rib_check (struct rib *new)
         port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
       else
         port_conf.txmode.offloads &= (~RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE);
+      if (*dev_info.dev_flags & RTE_ETH_DEV_INTR_LSC)
+        {
+          port_conf.intr_conf.lsc = 1;
+        }
       DEBUG_SDPLANE_LOG (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d", i,
                          nrxq, ntxq);
       ret = rte_eth_dev_stop (i);
@@ -853,6 +856,7 @@ rib_manager_process_message (void *msgp)
   int ret;
   int i, j;
   DEBUG_SDPLANE_LOG (RIB, "%s: msg: %p.", __func__, msgp);
+
 
 #if HAVE_LIBURCU_QSBR
   struct rib *new, *old;
