@@ -243,7 +243,7 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
           &neigh_tables[msg_neigh_entry->index], msg_neigh_entry->index,
           &msg_neigh_entry->data.ip_addr, &msg_neigh_entry->data);
       if (ret < 0)
-        return;
+        break;
       msg_neigh_entry->hash = ret;
       new_msgp =
           internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
@@ -258,7 +258,7 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
                                         msg_neigh_entry->index,
                                         &msg_neigh_entry->data.ip_addr);
       if (ret < 0)
-        return;
+        break;
       msg_neigh_entry->hash = ret;
       new_msgp =
           internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL,
