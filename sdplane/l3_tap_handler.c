@@ -39,6 +39,8 @@
 
 #include "log_packet.h"
 
+#include "tap_handler.h"
+
 static __thread uint64_t loop_counter = 0;
 static __thread struct rib *rib = NULL;
 
@@ -130,6 +132,7 @@ l3_tap_handler_handle_packet_up ()
                              vswitch->router_if.tap_ring_id);
           log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
 
+          send_fdb_entry_add_msg (m);
           if (capture_fd >= 0)
             l3_tap_handler_write_capture_if (capture_fd, m);
           if (router_fd >= 0)

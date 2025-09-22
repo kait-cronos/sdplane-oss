@@ -39,6 +39,8 @@
 
 #include "log_packet.h"
 
+#include "tap_handler.h"
+
 int capture_fd = -1;
 char capture_ifname[64] = { 0 };
 int capture_if_persistent = 0;
@@ -300,6 +302,7 @@ tap_handler_handle_packet_up ()
                              m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
           log_packet (m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
 
+          send_fdb_entry_add_msg (m);
           tap_handler_write_peek (m);
           tap_handler_write_port_all (m);
 

@@ -7,6 +7,8 @@
 #include "sdplane.h"
 #include "rib_manager.h"
 
+#include "internal_message.h"
+
 extern int capture_fd;
 extern char capture_ifname[64];
 extern int capture_if_persistent;
@@ -36,6 +38,18 @@ l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
                 ret);
       rte_pktmbuf_free (c);
     }
+}
+
+static inline __attribute__ ((always_inline)) void
+send_fdb_entry_add_msg (struct rte_mbuf *m)
+{
+  struct internal_msg_fdb_entry fdb_entry_add;
+  struct internal_msg_header *msgp;
+  fdb_entry_add.m = m;
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_FDB_ENTRY_ADD, &fdb_entry_add,
+                              sizeof (fdb_entry_add));
+  rib_manager_send_message (msgp, NULL);
 }
 
 int tap_handler (__rte_unused void *dummy);
