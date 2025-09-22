@@ -724,21 +724,6 @@ CLI_COMMAND2 (show_rcu, "show rcu", SHOW_HELP, "show rcu-information.\n")
   return 0;
 }
 
-CLI_COMMAND2 (show_fdb, "show fdb", SHOW_HELP, "show fdb-information.\n")
-{
-  struct shell *shell = (struct shell *) context;
-  FILE *t = shell->terminal;
-  int i;
-  char buf[32];
-  for (i = 0; i < FDB_SIZE; i++)
-    {
-      rte_ether_format_addr (buf, sizeof (buf), &fdb[i].l2addr);
-      if (! rte_is_zero_ether_addr (&fdb[i].l2addr))
-        fprintf (t, "fdb[%d]: %s port %d%s", i, buf, fdb[i].port, shell->NL);
-    }
-  return 0;
-}
-
 CLI_COMMAND2 (show_vswitch, "show vswitch", SHOW_HELP,
               "show legacy vswitch information.\n")
 {
@@ -896,7 +881,6 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_loop_count);
   INSTALL_COMMAND2 (cmdset, show_version);
   INSTALL_COMMAND2 (cmdset, show_rcu);
-  INSTALL_COMMAND2 (cmdset, show_fdb);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, sleep_cmd);
   INSTALL_COMMAND2 (cmdset, set_locale);

@@ -56,14 +56,6 @@ struct vswitch
 };
 extern struct vswitch vswitch0;
 
-#define FDB_SIZE 16
-struct fdb_entry
-{
-  struct rte_ether_addr l2addr;
-  int port;
-};
-extern struct fdb_entry fdb[FDB_SIZE];
-
 // #define SHOW_HELP "show information\n"
 #define CLEAR_HELP        "clear information\n"
 #define SET_HELP          "set information\n"
