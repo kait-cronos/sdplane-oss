@@ -36,6 +36,8 @@
 #include "log_packet.h"
 #include "tap_handler.h"
 
+#include "control_packet.h"
+
 static __thread uint64_t loop_counter = 0;
 static __thread struct rib *rib = NULL;
 
@@ -130,7 +132,12 @@ l3_tap_handler_handle_packet_up ()
 
           send_fdb_entry_add_msg (m, vswitch->vlan_id);
           if (capture_fd >= 0)
-            l3_tap_handler_write_capture_if (capture_fd, m);
+            {
+              if (is_control_packet (m))
+              {
+                l3_tap_handler_write_capture_if (capture_fd, m);
+              }
+            }
           if (router_fd >= 0)
             l3_tap_handler_write_router_if (router_fd, m);
 
