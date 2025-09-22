@@ -318,6 +318,36 @@ CLI_COMMAND2 (show_rib_capture_if,
   return 0;
 }
 
+CLI_COMMAND2 (show_fdb,
+              "show fdb",
+              SHOW_HELP,
+              "show fdb information.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  int i, count = 0;
+  char mac_str[32];
+
+  fprintf (shell->terminal, "fdb:%s", shell->NL);
+  for (i = 0; i < FDB_SIZE; i++)
+    {
+      if (rib->rib_info->fdb[i].state != FDB_STATE_NONE)
+        {
+          rte_ether_format_addr (mac_str, sizeof (mac_str),
+                                 &rib->rib_info->fdb[i].l2addr);
+          fprintf (shell->terminal,
+                   "  fdb[%d]: %s vlan:%u port:%d last_seen:%lu%s",
+                   i, mac_str, rib->rib_info->fdb[i].vlan_id,
+                   rib->rib_info->fdb[i].port,
+                   rib->rib_info->fdb[i].last_seen, shell->NL);
+          count++;
+        }
+    }
+  fprintf (shell->terminal, "total fdb entries: %d/%d%s", count, FDB_SIZE,
+           shell->NL);
+  return 0;
+}
+
 CLI_COMMAND2 (set_vswitch,
               "set vswitch <1-4094> vlan <1-4094>",
               SET_HELP,
@@ -574,6 +604,7 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib_vswitch_link);
   INSTALL_COMMAND2 (cmdset, show_rib_router_if);
   INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
+  INSTALL_COMMAND2 (cmdset, show_fdb);
   INSTALL_COMMAND2 (cmdset, set_vswitch);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port_tag_swap);

@@ -9,10 +9,14 @@
 #define MAX_VLAN_PER_PORT       4
 #define MAX_ETH_PORTS           8
 #define MAX_NEIGHBOR_TABLE_SIZE 1024
+#define FDB_SIZE                1024
+#define FDB_STATE_NONE          0
+#define FDB_STATE_ACTIVE        1
+#define FDB_AGING_TIME_DEFAULT  300 /* Default aging time: 300 seconds */
 
 #define ETH_LINK_DUPLEX_STR(v)  ((v) ? "full" : "half")
-#define ETH_LINK_AUTONEG_STR(v) ((v) ? "on"   : "off")
-#define ETH_LINK_STATUS_STR(v)  ((v) ? "up"   : "down")
+#define ETH_LINK_AUTONEG_STR(v) ((v) ? "on" : "off")
+#define ETH_LINK_STATUS_STR(v)  ((v) ? "up" : "down")
 
 #include <rte_ether.h>
 
@@ -111,6 +115,15 @@ struct neigh_table
   struct neigh_entry entries[MAX_NEIGHBOR_TABLE_SIZE];
 };
 
+struct fdb_entry
+{
+  struct rte_ether_addr l2addr;
+  int port;
+  uint16_t vlan_id;
+  uint8_t state;
+  time_t last_seen;
+};
+
 struct rib_info
 {
   uint32_t ver;
@@ -124,21 +137,24 @@ struct rib_info
   struct port_conf port[MAX_ETH_PORTS];
   struct lcore_qconf lcore_qconf[RTE_MAX_LCORE];
   struct neigh_table neigh_tables[NEIGH_NR_TABLES];
+  struct fdb_entry fdb[FDB_SIZE];
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);
+EXTERN_COMMAND (show_rib_vswitch);
+EXTERN_COMMAND (show_rib_vswitch_link);
+EXTERN_COMMAND (show_rib_router_if);
+EXTERN_COMMAND (show_rib_capture_if);
+EXTERN_COMMAND (show_fdb);
 EXTERN_COMMAND (set_vswitch);
-EXTERN_COMMAND (delete_vswitch);
-EXTERN_COMMAND (show_vswitch_rib);
-EXTERN_COMMAND (set_vswitch_link);
-EXTERN_COMMAND (delete_vswitch_link);
-EXTERN_COMMAND (show_vswitch_link);
+EXTERN_COMMAND (set_vswitch_port);
+EXTERN_COMMAND (set_vswitch_port_tag_swap);
 EXTERN_COMMAND (set_router_if);
-EXTERN_COMMAND (delete_router_if);
-EXTERN_COMMAND (show_router_if);
 EXTERN_COMMAND (set_capture_if);
-EXTERN_COMMAND (delete_capture_if);
-EXTERN_COMMAND (show_capture_if);
+EXTERN_COMMAND (no_set_vswitch);
+EXTERN_COMMAND (no_set_vswitch_port);
+EXTERN_COMMAND (no_set_router_if);
+EXTERN_COMMAND (no_set_capture_if);
 
 void rib_cmd_init (struct command_set *cmdset);
 
