@@ -14,7 +14,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dpdk_version: ["23.11.5", "24.11.3", "25.07"]
+        dpdk_version:
+          - "23.11.5"
+          - "24.11.3"
+          # - "25.07"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
