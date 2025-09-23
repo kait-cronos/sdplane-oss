@@ -164,7 +164,7 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
 }
 
-void
+int
 lthread_main (__rte_unused void *dummy)
 {
   lthread_t *lt = NULL;
@@ -197,9 +197,9 @@ lthread_main (__rte_unused void *dummy)
   thread_id = thread_lookup (lthread_main);
   if (thread_id < 0)
     thread_id =
-        thread_register (lthread_core, lt, lthread_main, "lthread_main", NULL);
+        thread_register (lthread_core, lt, (lthread_func)lthread_main, "lthread_main", NULL);
   else
-    thread_update (thread_id, lthread_core, lt, lthread_main, "lthread_main",
+    thread_update (thread_id, lthread_core, lt, (lthread_func)lthread_main, "lthread_main",
                    NULL);
   thread_register_loop_counter (thread_id, &loop_counter);
 
@@ -265,4 +265,5 @@ lthread_main (__rte_unused void *dummy)
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_unregister_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
+  return ret;
 }
