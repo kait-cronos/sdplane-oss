@@ -23,6 +23,9 @@
 #include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
+#include <rte_ether.h>
+#include "l2fwd_export.h"
+
 #include "sdplane.h"
 #include "thread_info.h"
 
@@ -115,18 +118,11 @@ dhcp_server_rx ()
 int
 dhcp_server (__rte_unused void *dummy)
 {
-  int ret;
-
   unsigned lcore_id;
-  struct rte_ring *tap_ring;
 
+  lcore_id = rte_lcore_id ();
   DEBUG_SDPLANE_LOG (DHCP_SERVER, "start thread on lcore[%d].",
-                     rte_lcore_id ());
-
-  int i, j;
-  memset (fdb, 0, sizeof (fdb));
-
-  unsigned lcore_id = rte_lcore_id ();
+                     lcore_id);
 
   int thread_id;
   thread_id = thread_lookup_by_lcore (dhcp_server, lcore_id);
@@ -139,7 +135,7 @@ dhcp_server (__rte_unused void *dummy)
   urcu_qsbr_register_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
 
-  while (! force_quit && ! force_stop[tap_handler_id])
+  while (! force_quit && ! force_stop[lcore_id])
     {
       // lthread_sleep (0); // yield.
       // printf ("%s: schedule: %lu.\n", __func__, loop_counter);
