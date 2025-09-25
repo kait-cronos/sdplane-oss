@@ -25,6 +25,10 @@
     }                                                                         \
   while (0)
 
+#if RTE_VERSION < RTE_VERSION_NUM(24,0,0,0)
+  #define RTE_IPV6_ADDR_SIZE 16
+#endif
+
 #if RTE_VERSION < RTE_VERSION_NUM(25,0,0,0)
   #define __rte_packed_begin
   #define __rte_packed_end __rte_packed
