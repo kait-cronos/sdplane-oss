@@ -10,6 +10,7 @@
 #define MAX_ETH_PORTS           8
 #define MAX_NEIGHBOR_TABLE_SIZE 1024
 #define FDB_SIZE                1024
+#define FDB_HASH_MASK           0x3FF
 #define FDB_STATE_NONE          0
 #define FDB_STATE_ACTIVE        1
 #define FDB_AGING_TIME_DEFAULT  300 /* Default aging time: 300 seconds */

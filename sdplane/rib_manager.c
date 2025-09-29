@@ -362,7 +362,7 @@ fdb_jenkins_hash (const struct rte_ether_addr *mac_addr, uint16_t vlan_id)
   uint16_t vlan_be = rte_cpu_to_be_16 (vlan_id);
   memcpy (data + RTE_ETHER_ADDR_LEN, &vlan_be, sizeof (uint16_t));
 
-  return jenkins_hash (data, sizeof (data)) % FDB_SIZE;
+  return jenkins_hash (data, sizeof (data)) & FDB_HASH_MASK;
 }
 
 static inline __attribute__ ((always_inline)) int
@@ -374,7 +374,7 @@ fdb_add_entry (struct rib_info *rib_info,
   time_t current_time = time (NULL);
 
   hash = fdb_jenkins_hash (mac_addr, vlan_id);
-  offset = hash % FDB_SIZE;
+  offset = hash;
 
   while (rib_info->fdb[offset].state != FDB_STATE_NONE)
     {
