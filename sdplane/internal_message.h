@@ -31,6 +31,7 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_VSWITCH_PORT_NO_SET   15
 #define INTERNAL_MSG_TYPE_ROUTER_IF_NO_SET      16
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET     17
+#define INTERNAL_MSG_TYPE_FDB_ENTRY_ADD         18
 
 struct internal_msg_eth_link
 {
@@ -74,6 +75,13 @@ struct internal_msg_neigh_entry
   int index; // NEIGH_ARP_TABLE or NEIGH_ND_TABLE.
   int hash;
   struct neigh_entry data;
+};
+
+struct internal_msg_fdb_entry
+{
+  struct rte_ether_addr mac_addr;
+  uint16_t vlan_id;
+  uint16_t port;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);

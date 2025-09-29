@@ -39,6 +39,8 @@
 
 #include "log_packet.h"
 
+#include "tap_handler.h"
+
 int capture_fd = -1;
 char capture_ifname[64] = { 0 };
 int capture_if_persistent = 0;
@@ -46,7 +48,6 @@ int capture_if_persistent = 0;
 int port_fd[RTE_MAX_ETHPORTS];
 
 struct vswitch vswitch0;
-struct fdb_entry fdb[FDB_SIZE];
 
 static __thread uint64_t loop_counter = 0;
 static __thread struct rib *rib = NULL;
@@ -168,42 +169,6 @@ vswitch_port_update ()
           "vswport[%d]: id: %d type: %d name: %s sockfd: %d lcore_id: %d ring[0/1]: %p/%p ",
           i, vswport->id, vswport->type, vswport->name, vswport->sockfd,
           vswport->lcore_id, vswport->ring[0], vswport->ring[1]);
-    }
-}
-
-static inline __attribute__ ((always_inline)) void
-tap_handler_register_fdb (struct rte_mbuf *m)
-{
-  int j;
-  char eth_src[32];
-  struct rte_ether_hdr *eth;
-
-  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  rte_ether_format_addr (eth_src, sizeof (eth_src), &eth->src_addr);
-
-  /* register in FDB */
-  for (j = 0; j < FDB_SIZE; j++)
-    {
-      if (rte_is_zero_ether_addr (&fdb[j].l2addr))
-        {
-          fdb[j].l2addr = eth->src_addr;
-          fdb[j].port = m->port;
-          DEBUG_SDPLANE_LOG (FDB_CHANGE,
-                             "m: %p new: in fdb[%d]: addr: %s port: %d", m, j,
-                             eth_src, m->port);
-          break;
-        }
-      if (rte_is_same_ether_addr (&fdb[j].l2addr, &eth->src_addr))
-        {
-          fdb[j].port = m->port;
-          DEBUG_SDPLANE_LOG (FDB, "m: %p found: in fdb[%d]: addr: %s port: %d",
-                             m, j, eth_src, m->port);
-          break;
-        }
-      char buf[32];
-      rte_ether_format_addr (buf, sizeof (buf), &fdb[j].l2addr);
-      DEBUG_SDPLANE_LOG (FDB, "m: %p fdb[%d]: addr: %s port: %d", m, j, buf,
-                         fdb[j].port);
     }
 }
 
@@ -337,7 +302,7 @@ tap_handler_handle_packet_up ()
                              m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
           log_packet (m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
 
-          tap_handler_register_fdb (m);
+          send_fdb_entry_add_msg (m);
           tap_handler_write_peek (m);
           tap_handler_write_port_all (m);
 
@@ -373,7 +338,7 @@ tap_handler_handle_packet_down ()
         break;
 
       fds[nfds].fd = vswport->sockfd;
-      fds[nfds].events = POLL_IN;
+      fds[nfds].events = POLLIN;
       nfds++;
     }
 
@@ -500,7 +465,6 @@ tap_handler (__rte_unused void *dummy)
     }
 
   int i, j;
-  memset (fdb, 0, sizeof (fdb));
 
   unsigned tap_handler_id = rte_lcore_id ();
 

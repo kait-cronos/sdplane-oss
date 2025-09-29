@@ -330,6 +330,140 @@ port_add_tagged_vlan (struct rib_info *new, struct port_conf *port,
   port->vswitch_link_id_of_vlan[index] = vswitch_link->vswitch_link_id;
 }
 
+static inline __attribute__ ((always_inline)) uint32_t
+jenkins_hash (uint8_t *key, int key_len)
+{
+  int i;
+  uint32_t hash = 0;
+
+  hash = 0;
+  for (i = 0; i < key_len; i++)
+    {
+      hash += key[i];
+      hash += hash << 10;
+      hash ^= hash >> 6;
+    }
+  hash += hash << 3;
+  hash ^= hash >> 11;
+  hash += hash << 15;
+
+  return hash;
+}
+
+static inline __attribute__ ((always_inline)) uint32_t
+fdb_jenkins_hash (const struct rte_ether_addr *mac_addr, uint16_t vlan_id)
+{
+  uint8_t data[RTE_ETHER_ADDR_LEN + sizeof (uint16_t)];
+
+  // Copy MAC address
+  memcpy (data, mac_addr->addr_bytes, RTE_ETHER_ADDR_LEN);
+
+  // Copy VLAN ID in network byte order for consistent hashing
+  uint16_t vlan_be = rte_cpu_to_be_16 (vlan_id);
+  memcpy (data + RTE_ETHER_ADDR_LEN, &vlan_be, sizeof (uint16_t));
+
+  return jenkins_hash (data, sizeof (data)) & FDB_HASH_MASK;
+}
+
+static inline __attribute__ ((always_inline)) int
+fdb_add_entry (struct rib_info *rib_info,
+               const struct rte_ether_addr *mac_addr, uint16_t vlan_id,
+               int port)
+{
+  uint32_t hash, offset;
+  time_t current_time = time (NULL);
+
+  hash = fdb_jenkins_hash (mac_addr, vlan_id);
+  offset = hash;
+
+  while (rib_info->fdb[offset].state != FDB_STATE_NONE)
+    {
+      if (rte_is_same_ether_addr (&rib_info->fdb[offset].l2addr, mac_addr) &&
+          rib_info->fdb[offset].vlan_id == vlan_id)
+        {
+          rib_info->fdb[offset].port = port;
+          rib_info->fdb[offset].last_seen = current_time;
+          rib_info->fdb[offset].state = FDB_STATE_ACTIVE;
+          DEBUG_SDPLANE_LOG (FDB, "updated fdb[%u]: port %d", offset, port);
+          return offset;
+        }
+
+      ++offset;
+      if (offset >= FDB_SIZE)
+        offset = 0;
+      if (offset == hash)
+        {
+          DEBUG_SDPLANE_LOG (FDB, "fdb table is full.");
+          return -1;
+        }
+    }
+
+  rib_info->fdb[offset].l2addr = *mac_addr;
+  rib_info->fdb[offset].port = port;
+  rib_info->fdb[offset].vlan_id = vlan_id;
+  rib_info->fdb[offset].last_seen = current_time;
+  rib_info->fdb[offset].state = FDB_STATE_ACTIVE;
+
+  char mac_str[32];
+  rte_ether_format_addr (mac_str, sizeof (mac_str), mac_addr);
+  DEBUG_SDPLANE_LOG (FDB, "added fdb[%u]: %s vlan:%u port:%d", offset, mac_str,
+                     vlan_id, port);
+  return offset;
+}
+
+int
+fdb_lookup_entry (const struct rib_info *rib_info,
+                  const struct rte_ether_addr *mac_addr, uint16_t vlan_id)
+{
+  uint32_t hash, offset;
+
+  hash = fdb_jenkins_hash (mac_addr, vlan_id);
+  offset = hash;
+
+  while (rib_info->fdb[offset].state != FDB_STATE_NONE)
+    {
+      if (rte_is_same_ether_addr (&rib_info->fdb[offset].l2addr, mac_addr) &&
+          rib_info->fdb[offset].vlan_id == vlan_id)
+        {
+          if (rib_info->fdb[offset].state == FDB_STATE_ACTIVE)
+            {
+              DEBUG_SDPLANE_LOG (FDB, "lookup hit at fdb[%u]: port %d", offset,
+                                 rib_info->fdb[offset].port);
+              return rib_info->fdb[offset].port;
+            }
+        }
+
+      ++offset;
+      if (offset >= FDB_SIZE)
+        offset = 0;
+      if (offset == hash)
+        break;
+    }
+
+  DEBUG_SDPLANE_LOG (FDB, "lookup missed");
+  return -1;
+}
+
+static inline __attribute__ ((always_inline)) void
+fdb_aging_process (struct rib_info *rib_info, time_t max_age)
+{
+  int i;
+  time_t current_time = time (NULL);
+
+  for (i = 0; i < FDB_SIZE; i++)
+    {
+      if (rib_info->fdb[i].state == FDB_STATE_ACTIVE &&
+          current_time - rib_info->fdb[i].last_seen > max_age)
+        {
+          char mac_str[32];
+          rte_ether_format_addr (mac_str, sizeof (mac_str),
+                                 &rib_info->fdb[i].l2addr);
+          DEBUG_SDPLANE_LOG (FDB, "aged out fdb[%d]: %s", i, mac_str);
+          rib_info->fdb[i].state = FDB_STATE_NONE;
+        }
+    }
+}
+
 #if 0
 static inline __attribute__ ((always_inline)) void
 rib_info_hard_coding (struct rib_info *new)
@@ -1173,6 +1307,16 @@ rib_manager_process_message (void *msgp)
         }
       break;
 
+    case INTERNAL_MSG_TYPE_FDB_ENTRY_ADD:
+      struct internal_msg_fdb_entry *msg_fdb_entry_add;
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_fdb_entry_add: %p.", msgp);
+
+      msg_fdb_entry_add = (struct internal_msg_fdb_entry *) (msg_header + 1);
+
+      fdb_add_entry (new->rib_info, &msg_fdb_entry_add->mac_addr,
+                     msg_fdb_entry_add->vlan_id, msg_fdb_entry_add->port);
+      break;
+
     default:
       DEBUG_SDPLANE_LOG (RIB, "recv msg unknown: %p.", msgp);
       break;
@@ -1200,6 +1344,7 @@ rib_manager_send_message (void *msgp, struct shell *shell)
 }
 
 static __thread uint64_t loop_counter = 0;
+static __thread time_t last_fdb_aging_time = 0;
 
 void
 rib_manager (void *arg)
@@ -1222,6 +1367,9 @@ rib_manager (void *arg)
   thread_id = thread_lookup (rib_manager);
   thread_register_loop_counter (thread_id, &loop_counter);
 
+  /* initialize fdb aging timer */
+  last_fdb_aging_time = time (NULL);
+
   while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (0); // yield.
@@ -1230,6 +1378,20 @@ rib_manager (void *arg)
       msgp = internal_msg_recv (msg_queue_rib);
       if (msgp)
         rib_manager_process_message (msgp);
+
+      /* fdb aging process - run every 60 seconds */
+      time_t current_time = time (NULL);
+      struct rib *current_rib = NULL;
+#if HAVE_LIBURCU_QSBR
+      current_rib = rcu_dereference (rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
+      if (current_time - last_fdb_aging_time >= 60 && current_rib &&
+          current_rib->rib_info)
+        {
+          fdb_aging_process (current_rib->rib_info, FDB_AGING_TIME_DEFAULT);
+          DEBUG_SDPLANE_LOG (FDB, "fdb aging process executed");
+          last_fdb_aging_time = current_time;
+        }
 
       loop_counter++;
     }
