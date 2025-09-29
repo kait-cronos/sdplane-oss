@@ -331,34 +331,38 @@ port_add_tagged_vlan (struct rib_info *new, struct port_conf *port,
 }
 
 static inline __attribute__ ((always_inline)) uint32_t
-fdb_jenkins_hash (const struct rte_ether_addr *mac_addr, uint16_t vlan_id)
+jenkins_hash (uint8_t *key, int key_len)
 {
-  uint32_t hash = 0;
   int i;
+  uint32_t hash = 0;
 
-  // MAC Address
-  for (i = 0; i < RTE_ETHER_ADDR_LEN; i++)
+  hash = 0;
+  for (i = 0; i < key_len; i++)
     {
-      hash += mac_addr->addr_bytes[i];
+      hash += key[i];
       hash += hash << 10;
       hash ^= hash >> 6;
     }
-
-  // VLAN ID
-  hash += vlan_id & 0xFF;
-  hash += hash << 10;
-  hash ^= hash >> 6;
-
-  hash += (vlan_id >> 8) & 0xFF;
-  hash += hash << 10;
-  hash ^= hash >> 6;
-
-  // Final mixing
   hash += hash << 3;
   hash ^= hash >> 11;
   hash += hash << 15;
 
-  return hash % FDB_SIZE;
+  return hash;
+}
+
+static inline __attribute__ ((always_inline)) uint32_t
+fdb_jenkins_hash (const struct rte_ether_addr *mac_addr, uint16_t vlan_id)
+{
+  uint8_t data[RTE_ETHER_ADDR_LEN + sizeof (uint16_t)];
+
+  // Copy MAC address
+  memcpy (data, mac_addr->addr_bytes, RTE_ETHER_ADDR_LEN);
+
+  // Copy VLAN ID in network byte order for consistent hashing
+  uint16_t vlan_be = rte_cpu_to_be_16 (vlan_id);
+  memcpy (data + RTE_ETHER_ADDR_LEN, &vlan_be, sizeof (uint16_t));
+
+  return jenkins_hash (data, sizeof (data)) % FDB_SIZE;
 }
 
 static inline __attribute__ ((always_inline)) int
@@ -370,7 +374,7 @@ fdb_add_entry (struct rib_info *rib_info,
   time_t current_time = time (NULL);
 
   hash = fdb_jenkins_hash (mac_addr, vlan_id);
-  offset = hash;
+  offset = hash % FDB_SIZE;
 
   while (rib_info->fdb[offset].state != FDB_STATE_NONE)
     {
@@ -1305,21 +1309,12 @@ rib_manager_process_message (void *msgp)
 
     case INTERNAL_MSG_TYPE_FDB_ENTRY_ADD:
       struct internal_msg_fdb_entry *msg_fdb_entry_add;
-      struct rte_ether_hdr *eth;
-      uint16_t vlan_id = 0;
       DEBUG_SDPLANE_LOG (RIB, "recv msg_fdb_entry_add: %p.", msgp);
 
       msg_fdb_entry_add = (struct internal_msg_fdb_entry *) (msg_header + 1);
-      eth = rte_pktmbuf_mtod (msg_fdb_entry_add->m, struct rte_ether_hdr *);
 
-      if (rte_be_to_cpu_16 (eth->ether_type) == RTE_ETHER_TYPE_VLAN)
-        {
-          struct rte_vlan_hdr *vlan_hdr = (struct rte_vlan_hdr *) (eth + 1);
-          vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_hdr->vlan_tci));
-        }
-
-      fdb_add_entry (new->rib_info, &eth->src_addr, vlan_id,
-                     msg_fdb_entry_add->m->port);
+      fdb_add_entry (new->rib_info, &msg_fdb_entry_add->mac_addr,
+                     msg_fdb_entry_add->vlan_id, msg_fdb_entry_add->port);
       break;
 
     default:
@@ -1386,17 +1381,15 @@ rib_manager (void *arg)
 
       /* fdb aging process - run every 60 seconds */
       time_t current_time = time (NULL);
-      if (current_time - last_fdb_aging_time >= 60)
-        {
+      struct rib *current_rib = NULL;
 #if HAVE_LIBURCU_QSBR
-          struct rib *current_rib = rcu_dereference (rcu_global_ptr_rib);
-          if (current_rib && current_rib->rib_info)
-            {
-              fdb_aging_process (current_rib->rib_info,
-                                 FDB_AGING_TIME_DEFAULT);
-              DEBUG_SDPLANE_LOG (FDB, "fdb aging process executed");
-            }
+      current_rib = rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
+      if (current_time - last_fdb_aging_time >= 60 && current_rib &&
+          current_rib->rib_info)
+        {
+          fdb_aging_process (current_rib->rib_info, FDB_AGING_TIME_DEFAULT);
+          DEBUG_SDPLANE_LOG (FDB, "fdb aging process executed");
           last_fdb_aging_time = current_time;
         }
 
