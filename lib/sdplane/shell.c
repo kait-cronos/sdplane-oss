@@ -840,6 +840,26 @@ shell_read (struct shell *shell)
     }
 #endif
 
+  int nb_line = 0;
+  int nb_terminate = 0;
+  for (i = 0; i < ret; i++)
+    {
+      if ((i == 0 || (buf[i - 1] == '\r' || buf[i - 1] == '\n')) &&
+          buf[i] != '\r' && buf[i] != '\n' && buf[i] != '\0')
+        nb_line++;
+      if (nb_line > nb_terminate && (buf[i] == '\r' || buf[i] == '\n'))
+        nb_terminate++;
+    }
+  if (nb_terminate)
+    DEBUG_ZCMDSH_LOG (PAGER, "read: size: %d "
+                      "(nb_line: %d nb_terminate: %d)",
+                      ret, nb_line, nb_terminate);
+  if (nb_terminate >= 2)
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "is_pasting: true");
+      shell->is_pasting = true;
+    }
+
   int ret_shell = 0;
   for (i = 0; i < ret; i++)
     {
@@ -851,6 +871,9 @@ shell_read (struct shell *shell)
           break;
         }
     }
+
+  /* pasting will end in a single read. */
+  shell->is_pasting = false;
 
   return ret_shell;
 }
