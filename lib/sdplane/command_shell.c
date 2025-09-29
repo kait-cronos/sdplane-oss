@@ -534,9 +534,8 @@ shell_read_nowait_paging (struct shell *shell)
             }
           else
             {
-              DEBUG_ZCMDSH_LOG (PAGER,
-                                "pager: read() from fd: %d returned %d: %s",
-                                readfd, ret, strerror (errno));
+              DEBUG_ZCMDSH_LOG (PAGER, "pager: read(): fd: %d, %d bytes",
+                                readfd, ret);
 
               nwrite = write (writefd, buf, ret);
               if (nwrite < 0)
@@ -626,7 +625,8 @@ command_shell_execute (struct shell *shell)
       /* remove unnecessary spaces. */
       shell_format2 (shell);
 
-      if (shell->pager)
+      /* do not enter pager mode when pasting. */
+      if (shell->pager && ! shell->is_pasting)
         pager_start (shell);
 
       //shell_linefeed (shell);
