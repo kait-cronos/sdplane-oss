@@ -79,7 +79,9 @@ struct internal_msg_neigh_entry
 
 struct internal_msg_fdb_entry
 {
-  struct rte_mbuf *m;
+  struct rte_ether_addr mac_addr;
+  uint16_t vlan_id;
+  uint16_t port;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);
