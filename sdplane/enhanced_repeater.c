@@ -330,8 +330,8 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
       if (vswitch_link->vswitch_id == rib->rib_info->vswitch[i].vswitch_id)
         {
           vswitch = &rib->rib_info->vswitch[i];
-        };
-    };
+        }
+    }
 
   unsigned tx_queueid = lcore_id;
 
@@ -356,6 +356,10 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
           DEBUG_SDPLANE_LOG (ENHANCED_REPEATER, "m: %p split horizon.", m);
           continue;
         }
+
+      /* skip if the tx_port is stopped. */
+      if (unlikely (rib->rib_info->port[tx_portid].is_stopped))
+        continue;
 
       /* forward to dpdk ports, accoding to the vswitch_link. */
       enhanced_repeater_send_link (m, rx_portid, rx_queueid, tx_portid,
@@ -398,6 +402,10 @@ enhanced_repeater_rx_burst ()
       portid = lcore_qconf->rx_queue_list[i].port_id;
       queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
+      /* skip if the rx_port is stopped. */
+      if (unlikely (rib->rib_info->port[portid].is_stopped))
+        continue;
+
       nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
       // nb_rx_burst++;
 
@@ -411,20 +419,19 @@ enhanced_repeater_rx_burst ()
           m = pkts_burst[j];
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
-#if 1
           enhanced_repeater_select (m, portid, queueid);
-#else
-          vlan_switch_run (m, portid, queueid);
-#endif
 
           rte_pktmbuf_free (m);
         }
     }
 }
 
-#define ROUTER_IF_PORT_ID  UINT16_MAX // for marker to unused split-horizon
-#define ROUTER_IF_QUEUE_ID 0          // for debug
+/* imaginary port_id/queue_id to avoid
+   split-horizon check in transmission. */
+#define ROUTER_IF_TX_SELF_PORT_ID  UINT16_MAX
+#define ROUTER_IF_TX_SELF_QUEUE_ID 0
 
+/* tx function of packets from router_if to physical port. */
 static inline __attribute__ ((always_inline)) void
 enhanced_repeater_tx_burst ()
 {
@@ -476,8 +483,8 @@ enhanced_repeater_tx_burst ()
               if (vswitch_link->vswitch_id != vswitch->vswitch_id)
                 continue;
 
-              enhanced_repeater_send_link (
-                  m, ROUTER_IF_PORT_ID, ROUTER_IF_QUEUE_ID,
+              enhanced_repeater_send_link (m,
+                  ROUTER_IF_TX_SELF_PORT_ID, ROUTER_IF_TX_SELF_QUEUE_ID,
                   vswitch_link->port_id, tx_queueid, vswitch_link);
             }
 
@@ -497,7 +504,6 @@ enhanced_repeater (__rte_unused void *dummy)
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
   uint16_t nb_ports;
-  bool ready;
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
 
@@ -525,21 +531,8 @@ enhanced_repeater (__rte_unused void *dummy)
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      /* check port ready */
-      ready = true;
-      nb_ports = rte_eth_dev_count_avail ();
-      for (int i = 0; i < nb_ports; i++)
-        {
-          if (unlikely (rib->rib_info->port[i].is_stopped))
-            {
-              ready = false;
-              DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                                 "port %d link is down, waiting...", i);
-              break;
-            }
-        }
-      if (unlikely (! ready))
-        continue;
+      /* better to add processing here only when absolutely necessary
+         or cannot be postponed. */
 
       diff_tsc = cur_tsc - prev_tsc;
       if (unlikely (diff_tsc > drain_tsc))
