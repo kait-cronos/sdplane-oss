@@ -29,6 +29,8 @@
 
 // clang-format off
 
+bool rte_eal_init_done = false;
+
 volatile bool force_stop[RTE_MAX_LCORE];
 
 struct lcore_worker lcore_workers[RTE_MAX_LCORE];
@@ -380,6 +382,7 @@ CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command")
                  shell->NL);
       return -1;
     }
+  rte_eal_init_done = true;
   return 0;
 }
 

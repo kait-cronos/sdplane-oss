@@ -76,7 +76,7 @@ pid_file_lock (char *path)
             *p = '\0';
           fprintf (stderr, "Another process(%s) running.\n", buf);
         }
-      //exit (-1);
+      exit (-1);
     }
 
   snprintf (buf, sizeof (buf), "%d\n", (int) pid);

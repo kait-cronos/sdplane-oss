@@ -114,7 +114,6 @@ dhcp_server_rx ()
  
       dhcp_server_read (m);
  
-      DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p: free.", m);
       rte_pktmbuf_free (m);
     }
 }

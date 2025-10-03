@@ -28,6 +28,8 @@
 #include "rib.h"
 #include "tap_cmd.h"
 
+void dhcp_server_init ();
+
 CLI_COMMAND2 (init_dhcp_server,
               "init dhcp-server",
               "init\n",
@@ -35,6 +37,12 @@ CLI_COMMAND2 (init_dhcp_server,
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
+  if (! rte_eal_init_done)
+    {
+      fprintf (shell->terminal,
+               "init dhcp-server must be called after rte_eal_init.\n");
+      return -1;
+    }
   dhcp_server_init ();
 }
 

@@ -123,6 +123,7 @@ CLI_COMMAND2 (pktgen_init,
   char **argvp = argv_list[index];
 
   _pktgen_main_init (*argcp, argvp);
+  rte_eal_init_done = true;
   return 0;
 }
 
