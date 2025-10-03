@@ -80,9 +80,10 @@ enhanced_repeater_tx_flush ()
     }
 }
 
-static inline __attribute__ ((always_inline)) void
-enhanced_repeater_send_router_if (struct rte_mbuf *m, unsigned rx_portid,
-                                  unsigned rx_queueid, struct router_if *rif)
+static inline __attribute__ ((always_inline)) int
+enhanced_repeater_send_ring (struct rte_mbuf *m,
+                             unsigned rx_portid, unsigned rx_queueid,
+                             struct rte_ring *ring)
 {
   struct rte_mbuf *c;
   uint32_t pkt_len;
@@ -92,62 +93,27 @@ enhanced_repeater_send_router_if (struct rte_mbuf *m, unsigned rx_portid,
   data_len = rte_pktmbuf_data_len (m);
 
   DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                     "m: %p port %d queue %d to ring_up: %p", m, rx_portid,
-                     rx_queueid, rif->ring_up);
+                     "m: %p port %d queue %d to ring: %s (%p)",
+                     m, rx_portid, rx_queueid, ring->name, ring);
 
   c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
-  ret = rte_ring_enqueue (rif->ring_up, c);
+  if (! c)
+    return -1;
+
+  ret = rte_ring_enqueue (ring, c);
   if (ret)
     {
-      if (ret == -ENOBUFS)
-        DEBUG_SDPLANE_LOG (
-            ENHANCED_REPEATER,
-            "lcore[%d]: m: %p port %d queue %d to router_if ring: "
-            "ENOBUFS: %d",
-            lcore_id, m, rx_portid, rx_queueid, ret);
-      else
-        DEBUG_SDPLANE_LOG (
-            ENHANCED_REPEATER,
-            "lcore[%d]: m: %p port %d queue %d to router_if ring: "
-            "failed: %d",
-            lcore_id, m, rx_portid, rx_queueid, ret);
+      /* enqueue failed */
+      DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
+          "lcore[%d]: m: %p port %d queue %d to ring %s: %s: %d",
+          lcore_id, m, rx_portid, rx_queueid,
+          ring->name, (ret == -ENOBUFS ? "ENOBUFS" : "failed"), ret);
+
       rte_pktmbuf_free (c);
+      return -1;
     }
-}
 
-static inline __attribute__ ((always_inline)) void
-enhanced_repeater_send_capture_if (struct rte_mbuf *m, unsigned rx_portid,
-                                   unsigned rx_queueid, struct capture_if *cif)
-{
-  struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
-  int ret;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
-
-  DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                     "m: %p port %d queue %d to ring_up: %p", m, rx_portid,
-                     rx_queueid, cif->ring_up);
-
-  c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
-  ret = rte_ring_enqueue (cif->ring_up, c);
-  if (ret)
-    {
-      if (ret == -ENOBUFS)
-        DEBUG_SDPLANE_LOG (
-            ENHANCED_REPEATER,
-            "lcore[%d]: m: %p port %d queue %d to capture_if ring: "
-            "ENOBUFS: %d",
-            lcore_id, m, rx_portid, rx_queueid, ret);
-      else
-        DEBUG_SDPLANE_LOG (
-            ENHANCED_REPEATER,
-            "lcore[%d]: m: %p port %d queue %d to capture_if ring: "
-            "failed: %d",
-            lcore_id, m, rx_portid, rx_queueid, ret);
-      rte_pktmbuf_free (c);
-    }
+  return 0;
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -258,6 +224,7 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
   struct router_if *rif;
   struct capture_if *cif;
   int i;
+  int ret;
 
   DEBUG_SDPLANE_LOG (ENHANCED_REPEATER, "m: %p received on port: %d queue: %d",
                      m, rx_portid, rx_queueid);
@@ -324,14 +291,16 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
       return;
     }
 
-  struct vswitch_conf *vswitch;
+  struct vswitch_conf *vswitch = NULL;
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       if (vswitch_link->vswitch_id == rib->rib_info->vswitch[i].vswitch_id)
         {
           vswitch = &rib->rib_info->vswitch[i];
+          break;
         }
     }
+  assert (vswitch);
 
   unsigned tx_queueid = lcore_id;
 
@@ -367,33 +336,28 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   rif = &vswitch->router_if;
-  cif = &vswitch->capture_if;
-
   if (rif->sockfd >= 0 && rif->ring_up)
     {
-      enhanced_repeater_send_router_if (m, rx_portid, rx_queueid, rif);
+      enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
+                                   rif->ring_up);
     }
 
+  cif = &vswitch->capture_if;
   if (cif->sockfd >= 0 && cif->ring_up)
     {
-      enhanced_repeater_send_capture_if (m, rx_portid, rx_queueid, cif);
+      enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
+                                   cif->ring_up);
     }
 
   extern struct rte_ring *ring_dhcp_rx;
   if (ring_dhcp_rx)
     {
-      struct rte_mbuf *c;
-      c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
-      if (c)
-        {
-          int ret;
-          ret = rte_ring_enqueue (ring_dhcp_rx, c);
-          if (ret)
-            {
-              /* enqueue failed. */
-              rte_pktmbuf_free (c);
-            }
-        }
+      ret = enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
+                                         ring_dhcp_rx);
+#if 0
+      if (ret < 0)
+        DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p dropped in ring_dhcp_rx.", m);
+#endif
     }
 
   return;
