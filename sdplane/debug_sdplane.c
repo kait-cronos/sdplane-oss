@@ -51,6 +51,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_STARTUP_CONFIG, "startup-config" },
   { DEBUG_SDPLANE_ENHANCED_REPEATER, "enhanced-repeater" },
   { DEBUG_SDPLANE_NEIGH, "neighbor" },
+  { DEBUG_SDPLANE_L2_SWITCH, "l2-switch" },
 };
 
 struct command_header debug_sdplane_cmd;
