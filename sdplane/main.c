@@ -84,6 +84,46 @@ pid_file_lock (char *path)
   close (fd);
 }
 
+void
+pid_file_without_lock (char *path)
+{
+  pid_t pid;
+  int fd;
+  char buf[32];
+  char *p;
+
+  pid = getpid ();
+  fd = open (path, O_RDWR | O_CREAT | O_EXCL, 0644);
+  if (fd < 0)
+    {
+      fd = open (path, O_RDONLY);
+      if (fd < 0)
+        fprintf (stderr, "Can't create pid lock file.\n");
+      else
+        {
+          read (fd, buf, sizeof (buf));
+          p = index (buf, '\n');
+          if (p)
+            *p = '\0';
+          fprintf (stderr, "Overriding the pid-file by process(%s).\n", buf);
+        }
+    }
+
+  if (fd < 0)
+    {
+      fd = open (path, O_RDWR, 0644);
+      if (fd < 0)
+        {
+          fprintf (stderr, "Can't override the pid-file.\n");
+          return;
+        }
+    }
+
+  snprintf (buf, sizeof (buf), "%d\n", (int) pid);
+  write (fd, buf, strlen (buf));
+  close (fd);
+}
+
 char *pid_path = "/var/run/sdplane.pid";
 
 int
@@ -115,7 +155,7 @@ main (int argc, char **argv)
         }
     }
 
-  pid_file_lock (pid_path);
+  pid_file_without_lock (pid_path);
 
   debug_log_init (progname);
   sdplane_init ();
