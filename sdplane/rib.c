@@ -73,7 +73,7 @@ CLI_COMMAND2 (show_rib,
 
   // show rib information version
   fprintf (shell->terminal, "rib information version: %lu (%p)%s",
-           rib->rib_info->ver,
+           (unsigned long) rib->rib_info->ver,
            rib->rib_info, shell->NL);
 
 #if 0
@@ -119,7 +119,7 @@ CLI_COMMAND2 (show_rib,
                port->dpdk_port_id, shell->NL);
       fprintf (shell->terminal,
               "    link: speed=%luMbps duplex=%s autoneg=%s status=%s%s",
-              port->link.link_speed,
+              (unsigned long) port->link.link_speed,
               ETH_LINK_DUPLEX_STR(port->link.link_duplex),
               ETH_LINK_AUTONEG_STR(port->link.link_autoneg),
               ETH_LINK_STATUS_STR(port->link.link_status),
