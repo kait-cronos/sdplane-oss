@@ -23,6 +23,7 @@
 #include "tap_handler.h"
 #include "l2_repeater.h"
 #include "enhanced_repeater.h"
+#include "l2_switch.h"
 
 #include "thread_info.h"
 
@@ -92,7 +93,7 @@ stop_lcore (struct shell *shell, int lcore_id)
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore <0-16> "
     "(|none|l2fwd|l3fwd|l3fwd-lpm|"
-    "tap-handler|l2-repeater|nettlp-thread|vlan-switch|l3-tap-handler|enhanced-repeater"
+    "tap-handler|l2-repeater|nettlp-thread|vlan-switch|l3-tap-handler|enhanced-repeater|l2-switch"
 #ifdef ENABLE_PKTGEN
     "|pktgen"
 #endif
@@ -109,6 +110,7 @@ CLI_COMMAND2 (set_worker,
     "set lcore to launch vlan-switch\n"
     "set lcore to launch l3-tap-handler\n"
     "set lcore to launch enhanced-repeater\n"
+    "set lcore to launch l2-switch\n"
     "set lcore to launch pktgen\n"
     )
 {
@@ -138,6 +140,8 @@ CLI_COMMAND2 (set_worker,
     func = l3_tap_handler;
   else if (! strcmp (argv[4], "enhanced-repeater"))
     func = enhanced_repeater;
+  else if (! strcmp (argv[4], "l2-switch"))
+    func = l2_switch;
 #ifdef ENABLE_PKTGEN
   else if (! strcmp (argv[4], "pktgen"))
     func = pktgen_launch_one_lcore;
@@ -175,6 +179,8 @@ CLI_COMMAND2 (set_worker,
     func_name = "l3-tap-handler";
   else if (func == enhanced_repeater)
     func_name = "enhanced-repeater";
+  else if (func == l2_switch)
+    func_name = "l2-switch";
 #ifdef ENABLE_PKTGEN
   else if (func == pktgen_launch_one_lcore)
     func_name = "pktgen";
