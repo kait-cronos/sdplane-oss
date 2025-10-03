@@ -67,16 +67,16 @@ pid_file_lock (char *path)
     {
       fd = open (path, O_RDONLY);
       if (fd < 0)
-        fprintf (stderr, "Can't create pid lock file, exit.\n");
+        fprintf (stderr, "Can't create pid lock file.\n");
       else
         {
           read (fd, buf, sizeof (buf));
           p = index (buf, '\n');
           if (p)
             *p = '\0';
-          fprintf (stderr, "Another process(%s) running, exit.\n", buf);
+          fprintf (stderr, "Another process(%s) running.\n", buf);
         }
-      exit (-1);
+      //exit (-1);
     }
 
   snprintf (buf, sizeof (buf), "%d\n", (int) pid);

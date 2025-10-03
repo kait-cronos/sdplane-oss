@@ -57,7 +57,7 @@ dhcp_server_read (struct rte_mbuf *m)
     DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p warning: multi-seg mbuf: %u < %u",
                        m, data_len, pkt_len);
 
-  DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p packet [%d/%d] received.",
+  DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p packet [size: %d/%d] received.",
                      m, data_len, pkt_len);
 }
 
@@ -95,6 +95,9 @@ dhcp_server_rx ()
   unsigned int dequeued = 0, avail = 0;
   struct rte_mbuf *m;
   int i;
+
+  if (! ring_dhcp_rx)
+    return;
  
   dequeued = rte_ring_dequeue_burst (ring_dhcp_rx,
                                      (void **) pkts_burst,
@@ -111,8 +114,16 @@ dhcp_server_rx ()
  
       dhcp_server_read (m);
  
+      DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p: free.", m);
       rte_pktmbuf_free (m);
     }
+}
+
+void
+dhcp_server_init ()
+{
+  ring_dhcp_rx = rte_ring_create ("dhcp_rx", 32, SOCKET_ID_ANY,
+                                  RING_F_SC_DEQ);
 }
 
 int

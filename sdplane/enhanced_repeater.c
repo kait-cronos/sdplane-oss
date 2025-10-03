@@ -379,6 +379,18 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
       enhanced_repeater_send_capture_if (m, rx_portid, rx_queueid, cif);
     }
 
+  extern struct rte_ring *ring_dhcp_rx;
+  if (ring_dhcp_rx)
+    {
+      int ret;
+      struct rte_mbuf *c;
+      c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+      DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p <- %p.", c, m);
+      ret = rte_ring_enqueue (ring_dhcp_rx, c);
+      if (ret)
+        rte_pktmbuf_free (c);
+    }
+
   return;
 }
 
