@@ -897,6 +897,7 @@ sdplane_cmd_init (struct command_set *cmdset)
 #endif
 
   nettlp_cmd_init (cmdset);
+  dhcp_cmd_init (cmdset);
 }
 
 void

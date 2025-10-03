@@ -29,6 +29,8 @@
 
 // clang-format off
 
+bool rte_eal_init_done = false;
+
 volatile bool force_stop[RTE_MAX_LCORE];
 
 struct lcore_worker lcore_workers[RTE_MAX_LCORE];
@@ -90,6 +92,8 @@ stop_lcore (struct shell *shell, int lcore_id)
     }
 }
 
+int dhcp_server (__rte_unused void *dummy);
+
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore <0-16> "
     "(|none|l2fwd|l3fwd|l3fwd-lpm|"
@@ -98,6 +102,7 @@ CLI_COMMAND2 (set_worker,
     "|pktgen"
 #endif
     "|linkflap-generator"
+    "|dhcp-server"
     ")",
     SET_HELP, RESET_HELP, START_HELP, RESTART_HELP,
     WORKER_HELP, LCORE_HELP, LCORE_NUMBER_HELP,
@@ -111,7 +116,11 @@ CLI_COMMAND2 (set_worker,
     "set lcore to launch l3-tap-handler\n"
     "set lcore to launch enhanced-repeater\n"
     "set lcore to launch l2-switch\n"
+#ifdef ENABLE_PKTGEN
     "set lcore to launch pktgen\n"
+#endif
+    "set lcore to launch link-flap-generator\n"
+    "set lcore to launch dhcp-server\n"
     )
 {
   struct shell *shell = (struct shell *) context;
@@ -146,6 +155,8 @@ CLI_COMMAND2 (set_worker,
   else if (! strcmp (argv[4], "pktgen"))
     func = pktgen_launch_one_lcore;
 #endif
+  else if (! strcmp (argv[4], "dhcp-server"))
+    func = dhcp_server;
   else if (! strcmp (argv[4], "l3fwd-lpm"))
     func = lpm_main_loop;
   else /* if (! strcmp (argv[4], "l3fwd")) */
@@ -185,6 +196,8 @@ CLI_COMMAND2 (set_worker,
   else if (func == pktgen_launch_one_lcore)
     func_name = "pktgen";
 #endif
+  else if (func == dhcp_server)
+    func_name = "dhcp-server";
   else
     func_name = "none";
 
@@ -369,6 +382,7 @@ CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command")
                  shell->NL);
       return -1;
     }
+  rte_eal_init_done = true;
   return 0;
 }
 

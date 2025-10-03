@@ -16,6 +16,7 @@ extern int l3fwd_argc;
 extern char *argv_list[ARGV_LIST_MAX][ARGV_LIST_ARGV_MAX];
 extern int argv_list_argc[ARGV_LIST_MAX];
 
+extern bool rte_eal_init_done;
 extern volatile bool force_quit;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 

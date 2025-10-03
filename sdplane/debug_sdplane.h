@@ -35,6 +35,7 @@
 #define DEBUG_SDPLANE_STARTUP_CONFIG     (1ULL << 30)
 #define DEBUG_SDPLANE_ENHANCED_REPEATER  (1ULL << 31)
 #define DEBUG_SDPLANE_NEIGH              (1ULL << 32)
+#define DEBUG_SDPLANE_DHCP_SERVER        (1ULL << 33)
 #define DEBUG_SDPLANE_L2_SWITCH          (1ULL << 34)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \

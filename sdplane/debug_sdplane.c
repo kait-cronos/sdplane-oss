@@ -52,6 +52,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_ENHANCED_REPEATER, "enhanced-repeater" },
   { DEBUG_SDPLANE_NEIGH, "neighbor" },
   { DEBUG_SDPLANE_L2_SWITCH, "l2-switch" },
+  { DEBUG_SDPLANE_DHCP_SERVER, "dhcp-server" },
 };
 
 struct command_header debug_sdplane_cmd;
@@ -125,8 +126,11 @@ debug_sdplane_func (void *context, int argc, char **argv)
   return 0;
 }
 
-CLI_COMMAND2 (show_debug_sdplane, "show debugging sdplane", SHOW_HELP,
-              "show debugging information.\n", "sdplane\n")
+CLI_COMMAND2 (show_debug_sdplane,
+              "show debugging sdplane",
+              SHOW_HELP,
+              "show debugging information.\n",
+              "sdplane\n")
 {
   struct shell *shell = (struct shell *) context;
   int i;
@@ -135,13 +139,9 @@ CLI_COMMAND2 (show_debug_sdplane, "show debugging sdplane", SHOW_HELP,
 
   for (i = 0; i < debug_type_size; i++)
     {
-      fprintf (
-          shell->terminal, "debug: sdplane: %s: %s.%s",
-          debug_sdplane_types[i].name,
-          (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), debug_sdplane_types[i].flag)
-               ? "on"
-               : "off"),
-          shell->NL);
+      if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), debug_sdplane_types[i].flag))
+        fprintf (shell->terminal, "debug: sdplane: %s: %s.%s",
+                 debug_sdplane_types[i].name, "on", shell->NL);
     }
   return 0;
 }
