@@ -343,7 +343,7 @@ CLI_COMMAND2 (set_vswitch,
   vswitch_set.vlan_id = vlan_id;
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_SET, &vswitch_set,
                               sizeof (vswitch_set));
-  rib_manager_send_message (msgp, shell);
+  shell_rib_send_message (msgp, shell);
 
   return 0;
 }
@@ -380,7 +380,7 @@ CLI_COMMAND2 (set_vswitch_port,
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_PORT_SET,
                               &vswitch_port_set, sizeof (vswitch_port_set));
-  rib_manager_send_message (msgp, shell);
+  shell_rib_send_message (msgp, shell);
 
   return 0;
 }
@@ -419,7 +419,7 @@ CLI_COMMAND2 (set_vswitch_port_tag_swap,
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_PORT_SET,
                               &vswitch_port_set_tag_swap,
                               sizeof (vswitch_port_set_tag_swap));
-  rib_manager_send_message (msgp, shell);
+  shell_rib_send_message (msgp, shell);
 
   return 0;
 }
@@ -447,7 +447,7 @@ CLI_COMMAND2 (set_router_if,
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_SET, &router_if_set,
                               sizeof (router_if_set));
-  rib_manager_send_message (msgp, shell);
+  shell_rib_send_message (msgp, shell);
 
   return 0;
 }
@@ -475,7 +475,7 @@ CLI_COMMAND2 (set_capture_if,
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_CAPTURE_IF_SET,
                               &capture_if_set, sizeof (capture_if_set));
-  rib_manager_send_message (msgp, shell);
+  shell_rib_send_message (msgp, shell);
 
   return 0;
 }
@@ -496,7 +496,7 @@ CLI_COMMAND2 (no_set_vswitch,
   vswitch_no_set.vswitch_id = vswitch_id;
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_NO_SET,
                               &vswitch_no_set, sizeof (vswitch_no_set));
-  rib_manager_send_message (msgp, shell);
+  shell_rib_send_message (msgp, shell);
 
   return 0;
 }
@@ -521,7 +521,7 @@ CLI_COMMAND2 (no_set_vswitch_port,
   msgp =
       internal_msg_create (INTERNAL_MSG_TYPE_VSWITCH_PORT_NO_SET,
                            &vswitch_port_no_set, sizeof (vswitch_port_no_set));
-  rib_manager_send_message (msgp, shell);
+  shell_rib_send_message (msgp, shell);
 
   return 0;
 }
@@ -544,7 +544,7 @@ CLI_COMMAND2 (no_set_router_if,
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_NO_SET,
                               &router_if_no_set, sizeof (router_if_no_set));
-  rib_manager_send_message (msgp, shell);
+  shell_rib_send_message (msgp, shell);
 
   return 0;
 }
@@ -567,7 +567,7 @@ CLI_COMMAND2 (no_set_capture_if,
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET,
                               &capture_if_no_set, sizeof (capture_if_no_set));
-  rib_manager_send_message (msgp, shell);
+  shell_rib_send_message (msgp, shell);
 
   return 0;
 }

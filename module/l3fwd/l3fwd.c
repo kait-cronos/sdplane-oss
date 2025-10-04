@@ -146,7 +146,7 @@ static struct rte_mempool *vector_pool[RTE_MAX_ETHPORTS];
 static struct rte_mempool *pktmbuf_pool[RTE_MAX_ETHPORTS][NB_SOCKETS];
 static uint8_t lkp_per_socket[NB_SOCKETS];
 
-void lthread_main (__rte_unused void *dummy);
+int lthread_main (__rte_unused void *dummy);
 void soft_dplane_init ();
 
 struct l3fwd_lkp_mode

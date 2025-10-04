@@ -156,7 +156,7 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
 }
 
-void
+int
 lthread_main (__rte_unused void *dummy)
 {
   lthread_t *lt = NULL;
@@ -257,4 +257,6 @@ lthread_main (__rte_unused void *dummy)
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_unregister_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
+
+  return 0;
 }
