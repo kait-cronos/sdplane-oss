@@ -28,9 +28,38 @@ extern struct rte_ring *capture_if_ring_up[MAX_VSWITCH];
 extern struct rte_ring *capture_if_ring_dn[MAX_VSWITCH];
 
 void rib_manager_recv_message (void *msgp);
-void rib_manager_send_message (void *msgp, struct shell *shell);
+//void rib_manager_send_message (void *msgp, struct shell *shell);
 
 int fdb_lookup_entry (const struct rib_info *rib_info,
                       const struct rte_ether_addr *mac_addr, uint16_t vlan_id);
+
+#include <sdplane/debug.h>
+#include <sdplane/debug_cmd.h>
+#include <sdplane/debug_log.h>
+#include <sdplane/debug_category.h>
+#include "debug_sdplane.h"
+
+#define rib_send_message(msgp) \
+do { \
+  if (msg_queue_rib) \
+    { \
+      DEBUG_SDPLANE_LOG (RIB, "sending message to rib: %p.", (msgp)); \
+      rte_ring_enqueue (msg_queue_rib, (msgp)); \
+    } \
+} while (0)
+
+#define shell_rib_send_message(msgp, shell) \
+do { \
+  if (msg_queue_rib) \
+    { \
+      DEBUG_SDPLANE_LOG (RIB, "sending message to rib: %p.", (msgp)); \
+      rte_ring_enqueue (msg_queue_rib, (msgp)); \
+    } \
+  else if (shell)\
+    { \
+      fprintf ((shell)->terminal, "can't send message to rib: queue: NULL.%s", \
+               (shell)->NL); \
+    } \
+} while (0)
 
 #endif /*__RIB_MANAGER_H__*/

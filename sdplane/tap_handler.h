@@ -61,7 +61,7 @@ send_fdb_entry_add_msg (struct rte_mbuf *m)
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_FDB_ENTRY_ADD, &fdb_entry_add,
                               sizeof (fdb_entry_add));
-  rib_manager_send_message (msgp, NULL);
+  rib_send_message (msgp);
 }
 
 int tap_handler (__rte_unused void *dummy);

@@ -1,5 +1,8 @@
 #include "include.h"
 
+#include <linux/if.h>
+#include <linux/if_tun.h>
+
 #include <lthread.h>
 
 #include <rte_common.h>
@@ -989,8 +992,7 @@ rib_manager_process_message (void *msgp)
 {
   int ret;
   int i, j;
-  DEBUG_SDPLANE_LOG (RIB, "%s: msg: %p.", __func__, msgp);
-
+  //DEBUG_SDPLANE_LOG (RIB, "msg: %p.", msgp);
 
 #if HAVE_LIBURCU_QSBR
   struct rib *new, *old;
@@ -1108,6 +1110,11 @@ rib_manager_process_message (void *msgp)
       struct internal_msg_vswitch *msg_vswitch_set;
       DEBUG_SDPLANE_LOG (RIB, "recv msg_vswitch_set: %p.", msgp);
       msg_vswitch_set = (struct internal_msg_vswitch *) (msg_header + 1);
+      if (vswitch_lookup (new->rib_info, msg_vswitch_set->vswitch_id))
+        {
+          DEBUG_SDPLANE_LOG (RIB, "vswitch already exists.");
+          break;
+        }
       vswitch = vswitch_new (new->rib_info, msg_vswitch_set->vswitch_id,
                              msg_vswitch_set->vlan_id);
       if (vswitch)
@@ -1222,6 +1229,7 @@ rib_manager_process_message (void *msgp)
       rif = &vswitch->router_if;
 
       rif->sockfd = tap_open (msg_router_if_set->tap_name);
+      ioctl (rif->sockfd, TUNSETPERSIST, 1);
       rif->tap_ring_id = msg_router_if_set->vswitch_id;
       snprintf (rif->tap_name, sizeof (rif->tap_name), "%s",
                 msg_router_if_set->tap_name);
@@ -1273,6 +1281,7 @@ rib_manager_process_message (void *msgp)
       cif = &vswitch->capture_if;
 
       cif->sockfd = tap_open (msg_capture_if_set->tap_name);
+      ioctl (cif->sockfd, TUNSETPERSIST, 1);
       cif->tap_ring_id = msg_capture_if_set->vswitch_id;
       snprintf (cif->tap_name, sizeof (cif->tap_name), "%s",
                 msg_capture_if_set->tap_name);
@@ -1328,6 +1337,7 @@ rib_manager_process_message (void *msgp)
 #endif /*HAVE_LIBURCU_QSBR*/
 }
 
+#if 0
 void
 rib_manager_send_message (void *msgp, struct shell *shell)
 {
@@ -1342,6 +1352,7 @@ rib_manager_send_message (void *msgp, struct shell *shell)
                shell->NL);
     }
 }
+#endif
 
 static __thread uint64_t loop_counter = 0;
 static __thread time_t last_fdb_aging_time = 0;
