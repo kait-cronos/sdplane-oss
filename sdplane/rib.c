@@ -44,55 +44,19 @@ CLI_COMMAND2 (show_rib,
       return 0;
     }
 
-#if 0
-  nb_ports = rte_eth_dev_count_avail ();
-
-  fprintf (shell->terminal, "rib: ver: %llu%s", rib->ver, shell->NL);
-  for (i = 0; i < nb_ports; i++)
-    fprintf (shell->terminal, "link[%d]: speed: %lu "
-             "duplex: %d autoneg: %d status: %d%s", i,
-             rib->link[i].link_speed, rib->link[i].link_duplex,
-             rib->link[i].link_autoneg, rib->link[i].link_status,
-             shell->NL);
-
-  for (i = 0; i < RTE_MAX_LCORE; i++)
-    {
-      struct sdplane_queue_conf *qconf;
-      qconf = &rib->qconf[i];
-      for (j = 0; j < qconf->nrxq; j++)
-        {
-          struct port_queue_conf *rx_queue;
-          rx_queue = &qconf->rx_queue_list[j];
-          fprintf (shell->terminal,
-                   "lcore[%d]: rx_queue[%d] { port_id: %d queue_id: %d }%s",
-                   i, j, rx_queue->port_id, rx_queue->queue_id,
-                   shell->NL);
-        }
-    }
-#endif
-
   // show rib information version
   fprintf (shell->terminal, "rib information version: %lu (%p)%s",
            (unsigned long) rib->rib_info->ver,
            rib->rib_info, shell->NL);
-
-#if 0
-  fprintf (shell->terminal, "rib_info: tapif_size: %d%s",
-           rib->rib_info->tapif_size, shell->NL);
-  for (i = 0; i < rib->rib_info->tapif_size; i++)
-    {
-      struct tap_if_conf *tapconf;
-      tapconf = &rib->rib_info->tap_if[i];
-      fprintf (shell->terminal, "rib_info: tapif[%d]: sockfd: %d%s",
-               i, tapconf->sockfd, shell->NL);
-    }
-#endif
 
   // show vswitches
   fprintf (shell->terminal, "vswitches: %s", shell->NL);
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
+
+      if (vswitch->is_deleted)
+        continue;
 
       // show vswitch links
       fprintf (shell->terminal, "  vswitch[%d]: %s", i, shell->NL);
@@ -176,14 +140,19 @@ CLI_COMMAND2 (show_rib_vswitch,
       return 0;
     }
 
+#if 0
   fprintf (shell->terminal, "total vswitches: %d%s",
            rib->rib_info->vswitch_size, shell->NL);
+#endif
 
   // show vswitches
   fprintf (shell->terminal, "vswitches: %s", shell->NL);
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
+
+      if (vswitch->is_deleted)
+        continue;
 
       // show vswitch links attached to vswitch[i]
       fprintf (shell->terminal, "  vswitch[%d]: %s", i, shell->NL);
@@ -202,6 +171,13 @@ CLI_COMMAND2 (show_rib_vswitch,
 
   return 0;
 }
+/* End of 🤖 生成AI (CLAUDE) */
+
+ALIAS_COMMAND (show_vswitch,
+               show_rib_vswitch,
+              "show vswitch",
+              SHOW_HELP
+              "show vswitch information.\n");
 
 /* 🤖 生成AI (CLAUDE) */
 CLI_COMMAND2 (show_rib_vswitch_link,
@@ -605,6 +581,7 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib_router_if);
   INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
   INSTALL_COMMAND2 (cmdset, show_fdb);
+  INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, set_vswitch);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port_tag_swap);
