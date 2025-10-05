@@ -9,6 +9,8 @@
 
 #include "internal_message.h"
 
+#include "rte_override.h"
+
 extern int capture_fd;
 extern char capture_ifname[64];
 extern int capture_if_persistent;
