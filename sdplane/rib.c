@@ -155,7 +155,8 @@ CLI_COMMAND2 (show_rib_vswitch,
         continue;
 
       // show vswitch links attached to vswitch[i]
-      fprintf (shell->terminal, "  vswitch[%d]: %s", i, shell->NL);
+      fprintf (shell->terminal, "  vswitch[%d]: id: %d vlan: %d%s",
+               i, vswitch->vswitch_id, vswitch->vlan_id, shell->NL);
       for (j = 0; j < vswitch->vswitch_port_size; j++)
         {
           uint16_t vswitch_link_id = vswitch->vswitch_link_id[j];
