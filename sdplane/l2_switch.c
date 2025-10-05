@@ -310,7 +310,7 @@ l2_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
     }
 
   if (vswitch_link->vswitch_id < 0 ||
-      rib->rib_info->vswitch_size >= MAX_VSWITCH)
+      rib->rib_info->vswitch_size > MAX_VSWITCH)
     {
       DEBUG_SDPLANE_LOG (L2_SWITCH,
                          "m: %p a broken vswitch link: "
