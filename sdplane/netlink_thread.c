@@ -319,9 +319,9 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
                                   &msg_neigh_entry, sizeof (msg_neigh_entry));
     }
 
-  if (! msg_queue_rib)
-    DEBUG_SDPLANE_LOG (NETLINK, "error: queue_rib is not created.");
-  internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  if (! msg_queue_neigh)
+    DEBUG_SDPLANE_LOG (NETLINK, "error: neigh_manager is not started.");
+  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
 
   return 0;
 }
