@@ -37,6 +37,7 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       20 
 #define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21 
 
+//TODO: use union
 struct internal_msg_route_entry
 {
   struct in_addr dst4;

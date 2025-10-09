@@ -22,8 +22,10 @@
 
 #include <rte_ether.h>
 
+//sample
 struct route_entry
 {
+  int family;
   union
   {
     struct in_addr dst4;
