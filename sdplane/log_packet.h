@@ -10,6 +10,8 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
   char transport_str[512];
   char payload_str[512];
 
+  struct rte_vlan_hdr *vlan;
+
   struct rte_ether_hdr *eth;
   char eth_dst[32];
   char eth_src[32];
@@ -33,9 +35,29 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
   snprintf (ether_str, sizeof (ether_str), "ether: type: 0x%04hx %s -> %s",
             eth_type, eth_src, eth_dst);
 
-  if (RTE_ETH_IS_IPV4_HDR (m->packet_type))
+  ipv4 = NULL;
+  ipv6 = NULL;
+  
+  if (eth_type==0x8100) 
     {
-      ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
+      vlan = (struct rte_vlan_hdr *) (eth+1);
+      unsigned short eth_proto;
+      eth_proto = rte_be_to_cpu_16 (vlan->eth_proto);
+      if (eth_proto == RTE_ETHER_TYPE_IPV4)
+        ipv4 = (struct rte_ipv4_hdr *) (vlan + 1);
+      else if (eth_proto == RTE_ETHER_TYPE_IPV6)
+        ipv6 = (struct rte_ipv6_hdr *) (vlan + 1);
+    }
+  else 
+    {
+      if (RTE_ETH_IS_IPV4_HDR (m->packet_type))
+        ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
+      else if (RTE_ETH_IS_IPV6_HDR (m->packet_type))
+        ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
+    }
+
+  if (ipv4)
+    {
       inet_ntop (AF_INET, &ipv4->src_addr, ip_src, sizeof (ip_src));
       inet_ntop (AF_INET, &ipv4->dst_addr, ip_dst, sizeof (ip_dst));
       snprintf (ip_str, sizeof (ip_str),
@@ -48,9 +70,8 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
                 ipv4->next_proto_id, rte_be_to_cpu_16 (ipv4->hdr_checksum),
                 ip_src, ip_dst);
     }
-  else if (RTE_ETH_IS_IPV6_HDR (m->packet_type))
+  else if (ipv6)
     {
-      ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
       inet_ntop (AF_INET6, &ipv6->src_addr, ip_src, sizeof (ip_src));
       inet_ntop (AF_INET6, &ipv6->dst_addr, ip_dst, sizeof (ip_dst));
       snprintf (ip_str, sizeof (ip_str),
