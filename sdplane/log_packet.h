@@ -6,23 +6,24 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
               uint16_t rx_portid, uint16_t rx_queueid)
 {
   char ether_str[512];
+  char vlan_str[128];
   char ip_str[512];
   char transport_str[512];
   char payload_str[512];
-
-  struct rte_vlan_hdr *vlan;
 
   struct rte_ether_hdr *eth;
   char eth_dst[32];
   char eth_src[32];
   unsigned short eth_type;
 
+  struct rte_vlan_hdr *vlan;
   struct rte_ipv4_hdr *ipv4;
   struct rte_ipv6_hdr *ipv6;
   char ip_src[64];
   char ip_dst[64];
 
   memset (ether_str, 0, sizeof (ether_str));
+  memset (vlan_str, 0, sizeof (vlan_str));
   memset (ip_str, 0, sizeof (ip_str));
   memset (transport_str, 0, sizeof (transport_str));
   memset (payload_str, 0, sizeof (payload_str));
@@ -38,11 +39,16 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
   ipv4 = NULL;
   ipv6 = NULL;
   
-  if (eth_type==0x8100) 
+  if (eth_type == RTE_ETHER_TYPE_VLAN)
     {
-      vlan = (struct rte_vlan_hdr *) (eth+1);
-      unsigned short eth_proto;
+      uint16_t vlan_tci, eth_proto;
+      vlan = (struct rte_vlan_hdr *) (eth + 1);
+      vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
       eth_proto = rte_be_to_cpu_16 (vlan->eth_proto);
+      snprintf (vlan_str, sizeof (vlan_str),
+                " vlan: pri: %d dei: %d vlan-id: %d proto: %#x",
+                RTE_VLAN_TCI_PRI (vlan_tci), RTE_VLAN_TCI_DEI (vlan_tci),
+                RTE_VLAN_TCI_ID (vlan_tci), eth_proto);
       if (eth_proto == RTE_ETHER_TYPE_IPV4)
         ipv4 = (struct rte_ipv4_hdr *) (vlan + 1);
       else if (eth_proto == RTE_ETHER_TYPE_IPV6)
@@ -84,8 +90,9 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
 
   if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), DEBUG_TYPE (SDPLANE, PACKET)))
     debug_log ("%s[%d] %s(): m: %p rx_port: %d rx_queue: %d "
-               "%s %s %s %s",
-               file, line, func, m, rx_portid, rx_queueid, ether_str, ip_str,
+               "%s%s %s %s %s",
+               file, line, func, m, rx_portid, rx_queueid,
+               ether_str, vlan_str, ip_str,
                transport_str, payload_str);
 }
 
