@@ -176,9 +176,19 @@ The project follows GNU coding standards. Use the provided scripts to check and 
 ./style/check_gnu_style.sh update
 ```
 
+## How to debug DPDK library
+
+```bash
+vi config/rte_config.h
+#define RTE_LIBRTE_MBUF_DEBUG 1
+
+meson setup build
+meson configure build -Dbuildtype=debug
+```
+
 ## License
 
-This project is open source. See the LICENSE file for license details.
+See the LICENSE file for license details.
 
 ## Author
 
