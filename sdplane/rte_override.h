@@ -19,7 +19,9 @@
 
 #if RTE_VERSION < RTE_VERSION_NUM(24,0,0,0)
   #define RTE_IPV6_ADDR_SIZE 16
+  #ifndef RTE_VLAN_TCI_ID
   #define RTE_VLAN_TCI_ID(vlan_tci) ((vlan_tci) & 0x0fff)
+  #endif
 #endif
 
 #if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
