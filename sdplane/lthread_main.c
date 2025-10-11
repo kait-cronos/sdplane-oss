@@ -188,11 +188,11 @@ lthread_main (__rte_unused void *dummy)
 
   thread_id = thread_lookup (lthread_main);
   if (thread_id < 0)
-    thread_id =
-        thread_register (lthread_core, lt, lthread_main, "lthread_main", NULL);
+    thread_id = thread_register (lthread_core, lt, (lthread_func) lthread_main,
+                                 "lthread_main", NULL);
   else
-    thread_update (thread_id, lthread_core, lt, lthread_main, "lthread_main",
-                   NULL);
+    thread_update (thread_id, lthread_core, lt, (lthread_func) lthread_main,
+                   "lthread_main", NULL);
   thread_register_loop_counter (thread_id, &loop_counter);
 
 #if HAVE_LIBURCU_QSBR

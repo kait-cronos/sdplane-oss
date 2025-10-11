@@ -861,8 +861,7 @@ rib_check (struct rib *new)
             {
               snprintf (ring_name, sizeof (ring_name), "router_up[%d]", i);
               router_if_ring_up[i] = rte_ring_create (
-                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
-                  RING_F_SP_ENQ | RING_F_SC_DEQ);
+                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (), 0);
               DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  router_if_ring_up[i]);
             }
@@ -870,8 +869,7 @@ rib_check (struct rib *new)
             {
               snprintf (ring_name, sizeof (ring_name), "router_dn[%d]", i);
               router_if_ring_dn[i] = rte_ring_create (
-                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
-                  RING_F_SP_ENQ | RING_F_SC_DEQ);
+                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (), 0);
               DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  router_if_ring_dn[i]);
             }
@@ -886,8 +884,7 @@ rib_check (struct rib *new)
             {
               snprintf (ring_name, sizeof (ring_name), "capture_up[%d]", i);
               capture_if_ring_up[i] = rte_ring_create (
-                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
-                  RING_F_SP_ENQ | RING_F_SC_DEQ);
+                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (), 0);
               DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  capture_if_ring_up[i]);
             }
@@ -895,8 +892,7 @@ rib_check (struct rib *new)
             {
               snprintf (ring_name, sizeof (ring_name), "capture_dn[%d]", i);
               capture_if_ring_dn[i] = rte_ring_create (
-                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
-                  RING_F_SP_ENQ | RING_F_SC_DEQ);
+                  ring_name, RING_TO_TAP_SIZE, rte_socket_id (), 0);
               DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  capture_if_ring_dn[i]);
             }
