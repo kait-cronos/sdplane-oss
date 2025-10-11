@@ -454,6 +454,48 @@ CLI_COMMAND2 (set_router_if,
   return 0;
 }
 
+CLI_COMMAND2 (set_router_if_hwaddr,
+              "set vswitch <1-4094> router-if <WORD> hwaddr <WORD>",
+              SET_HELP,
+              "vswitch\n",
+              "vswitch id\n",
+              "router interface\n",
+              "tap name\n",
+              "set hardware address\n",
+              "specify MAC address\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  int vswitch_id;
+  char *tap_name;
+  char *hwaddr_str;
+  struct rte_ether_addr eth_addr;
+  int i;
+  struct vswitch_conf *matched = NULL;
+
+  vswitch_id = atoi (argv[2]);
+  tap_name = argv[4];
+  hwaddr_str = argv[6];
+
+  if (rib && rib->rib_info)
+    {
+  for (i = 0; i < rib->rib_info->vswitch_size; i++)
+    {
+      struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
+      if (vswitch->vswitch_id == vswitch_id)
+        matched = vswitch;
+    }
+
+  if (! matched)
+    return -1;
+    }
+
+  rte_ether_unformat_addr (hwaddr_str, &eth_addr);
+  tap_set_hwaddr (tap_name, &eth_addr);
+
+  return 0;
+}
+
 CLI_COMMAND2 (set_capture_if,
               "set vswitch <1-4094> capture-if <WORD>",
               SET_HELP,
@@ -588,6 +630,7 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_vswitch_port);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port_tag_swap);
   INSTALL_COMMAND2 (cmdset, set_router_if);
+  INSTALL_COMMAND2 (cmdset, set_router_if_hwaddr);
   INSTALL_COMMAND2 (cmdset, set_capture_if);
   INSTALL_COMMAND2 (cmdset, no_set_vswitch);
   INSTALL_COMMAND2 (cmdset, no_set_vswitch_port);

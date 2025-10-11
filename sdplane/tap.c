@@ -4,6 +4,9 @@
 
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <linux/if_arp.h>
+
+#include <rte_ether.h>
 
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
@@ -80,3 +83,36 @@ tap_admin_up (char *ifname)
       sockfd = -1;
     }
 }
+
+void
+tap_set_hwaddr (char *ifname, struct rte_ether_addr *hwaddr)
+{
+  int ret;
+  int sockfd;
+  struct ifreq ifr;
+
+  sockfd = socket (AF_INET, SOCK_DGRAM, 0);
+  if (sockfd < 0)
+    {
+      DEBUG_SDPLANE_LOG (TAPHANDLER, "socket() failed: %s", strerror (errno));
+    }
+  else
+    {
+      memset (&ifr, 0, sizeof (ifr));
+      snprintf (ifr.ifr_name, IFNAMSIZ, "%s", ifname);
+
+      ifr.ifr_hwaddr.sa_family = ARPHRD_ETHER;
+      memcpy (&ifr.ifr_hwaddr.sa_data[0], hwaddr,
+              sizeof (struct rte_ether_addr));
+
+      ret = ioctl (sockfd, SIOCSIFHWADDR, &ifr);
+      if (ret < 0)
+        {
+          DEBUG_SDPLANE_LOG (TAPHANDLER, "ioctl (SOICSIFHWADDR) failed: %s",
+                             strerror (errno));
+          close (sockfd);
+          sockfd = -1;
+        }
+    }
+}
+
