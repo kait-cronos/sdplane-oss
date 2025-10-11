@@ -177,9 +177,9 @@ CLI_COMMAND2 (show_rib_vswitch,
 
 ALIAS_COMMAND (show_vswitch,
                show_rib_vswitch,
-              "show vswitch",
-              SHOW_HELP
-              "show vswitch information.\n");
+               "show vswitch",
+               SHOW_HELP
+               "show vswitch information.\n");
 
 /* 🤖 生成AI (CLAUDE) */
 CLI_COMMAND2 (show_rib_vswitch_link,
@@ -479,15 +479,15 @@ CLI_COMMAND2 (set_router_if_hwaddr,
 
   if (rib && rib->rib_info)
     {
-  for (i = 0; i < rib->rib_info->vswitch_size; i++)
-    {
-      struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
-      if (vswitch->vswitch_id == vswitch_id)
-        matched = vswitch;
-    }
+      for (i = 0; i < rib->rib_info->vswitch_size; i++)
+        {
+          struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
+          if (vswitch->vswitch_id == vswitch_id)
+            matched = vswitch;
+        }
 
-  if (! matched)
-    return -1;
+      if (! matched)
+        return -1;
     }
 
   rte_ether_unformat_addr (hwaddr_str, &eth_addr);
