@@ -152,6 +152,7 @@ l3_tap_handler_handle_packet_down ()
   int i;
   char data[9000];
   char *pkt;
+  int size;
 
   struct vswitch_conf *vswitch;
   int vswitch_id;
@@ -206,12 +207,22 @@ l3_tap_handler_handle_packet_down ()
 
       if (vswitch->router_if.ring_dn)
         {
-          int socket = rte_lcore_to_socket_id (rte_lcore_id ());
           struct rte_mempool *mp = l2fwd_pktmbuf_pool;
           struct rte_mbuf *m = rte_pktmbuf_alloc (mp);
-          rte_pktmbuf_append (m, ret);
+
+          size = ret;
+          if (size >= m->buf_len)
+            {
+              DEBUG_LOG_MSG ("m: %p insufficient buf: %d bytes read, "
+                             "m->buf_len: %d",
+                             m, ret, m->buf_len);
+              size = m->buf_len;
+            }
+
+          rte_pktmbuf_append (m, size);
           pkt = rte_pktmbuf_mtod (m, char *);
-          memcpy (pkt, data, ret);
+          memcpy (pkt, data, size);
+
           rte_ring_enqueue (vswitch->router_if.ring_dn, m);
           DEBUG_SDPLANE_LOG (TAPHANDLER, "packet: sockfd %d -> ring_dn %d",
                              vswitch->router_if.sockfd,
