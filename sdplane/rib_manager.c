@@ -990,11 +990,12 @@ rib_manager_process_message (void *msgp)
   int i, j;
   //DEBUG_SDPLANE_LOG (RIB, "msg: %p.", msgp);
 
-#if HAVE_LIBURCU_QSBR
   struct rib *new, *old;
 
   /* retrieve old */
+#if HAVE_LIBURCU_QSBR
   old = rcu_dereference (rcu_global_ptr_rib);
+#endif /*HAVE_LIBURCU_QSBR*/
 
   new = rib_create (old);
 
@@ -1016,14 +1017,6 @@ rib_manager_process_message (void *msgp)
       DEBUG_SDPLANE_LOG (RIB, "recv msg_port_status: %p.", msgp);
       update_port_status (new);
       break;
-
-#if 0
-    case INTERNAL_MSG_TYPE_ETH_LINK:
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_eth_link: %p.", msgp);
-      /* this message is functionally substituted by the above
-         update_port_status(). */
-      break;
-#endif
 
     case INTERNAL_MSG_TYPE_QCONF:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_qconf: %p.", msgp);
@@ -1053,15 +1046,18 @@ rib_manager_process_message (void *msgp)
       /* for qconf change, we need strict rib_check(). */
       set_stop_flag (old);
       ret = rib_check (new);
+      delete_stop_flag (old);
+
+      /* if rib_check() is not a pass */
       if (ret < 0)
         {
           DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+          free (msgp);
           return;
         }
-      delete_stop_flag (old);
 
-      /* for qconf change, we need an intermittent state to avoid
-         a conflict between different cores. */
+      /* for qconf change, we need an NULL intermittent state
+         to avoid a conflict between different cores. */
       /* XXX, we can use smarter intermittent state. */
       struct rib *zero;
       zero = malloc (sizeof (struct rib));
@@ -1238,12 +1234,15 @@ rib_manager_process_message (void *msgp)
       // set router_if ring
       set_stop_flag (old);
       ret = rib_check (new);
+      delete_stop_flag (old);
+
+      /* if rib_check() is not a pass */
       if (ret < 0)
         {
           DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+          free (msgp);
           return;
         }
-      delete_stop_flag (old);
 
       break;
 
@@ -1290,12 +1289,15 @@ rib_manager_process_message (void *msgp)
       // set capture_if ring
       set_stop_flag (old);
       ret = rib_check (new);
+      delete_stop_flag (old);
+
+      /* if rib_check() is not a pass */
       if (ret < 0)
         {
           DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+          free (msgp);
           return;
         }
-      delete_stop_flag (old);
 
       break;
 
@@ -1330,7 +1332,6 @@ rib_manager_process_message (void *msgp)
   free (msgp);
 
   rib_replace (new);
-#endif /*HAVE_LIBURCU_QSBR*/
 }
 
 #if 0
