@@ -13,7 +13,7 @@ libsdplane_la_SOURCES = \
 	sdplane/log_cmd.c sdplane/shell_keyfunc.c sdplane/debug_log.c \
 	sdplane/debug_zcmdsh.c \
 	sdplane/shell_telnet.c sdplane/exec_limit.c \
-        sdplane/shell_debug.c
+        sdplane/shell_debug.c sdplane/libsdplane_version.c
 
 nobase_include_HEADERS = \
 	sdplane/log.h sdplane/vector.h sdplane/termio.h sdplane/flag.h \
@@ -23,4 +23,15 @@ nobase_include_HEADERS = \
         sdplane/debug_log.h sdplane/debug_category.h sdplane/debug_zcmdsh.h \
 	sdplane/debug_backtrace.h \
         sdplane/shell_telnet.h sdplane/exec_limit.h \
-        sdplane/shell_debug.h
+        sdplane/shell_debug.h sdplane/libsdplane_version.h
+
+FORCE:
+.PHONY: FORCE clean-version
+
+sdplane/libsdplane_version.c: FORCE
+	top_srcdir=$(top_srcdir) bash $(top_srcdir)/lib/sdplane/libsdplane-version-c.sh > $(top_srcdir)/lib/sdplane/libsdplane_version.c
+
+clean-local: clean-version
+clean-version:
+	-rm -f libsdplane_version.c
+
