@@ -52,6 +52,9 @@
 #define DEBUG_SDPLANE_FLAG(flag, format, ...)                                 \
   DEBUG_LOG_FLAG (SDPLANE, flag, format, ##__VA_ARGS__)
 
+#define DEBUG_CHECK(cate, type) \
+  (FLAG_CHECK (DEBUG_CONFIG (cate), DEBUG_TYPE(cate, type)))
+
 EXTERN_COMMAND (debug_sdplane);
 EXTERN_COMMAND (show_debug_sdplane);
 void debug_sdplane_cmd_init ();

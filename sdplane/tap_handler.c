@@ -300,7 +300,8 @@ tap_handler_handle_packet_up ()
 
           DEBUG_SDPLANE_LOG (PACKET, "m: %p received from port: %d queue: %d",
                              m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
-          log_packet (m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
+          if (DEBUG_CHECK (SDPLANE, PACKET))
+            log_packet (m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
 
           send_fdb_entry_add_msg (m);
           tap_handler_write_peek (m);

@@ -28,7 +28,7 @@
 #include "rib.h"
 #include "tap_cmd.h"
 
-void dhcp_server_init ();
+#include "dhcp_server.h"
 
 CLI_COMMAND2 (init_dhcp_server,
               "init dhcp-server",
@@ -49,6 +49,6 @@ CLI_COMMAND2 (init_dhcp_server,
 void
 dhcp_cmd_init (struct command_set *cmdset)
 {
-  INSTALL_COMMAND2 (cmdset, init_dhcp_server);
+  //INSTALL_COMMAND2 (cmdset, init_dhcp_server);
 }
 
