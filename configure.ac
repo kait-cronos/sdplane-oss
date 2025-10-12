@@ -48,6 +48,8 @@ AC_CHECK_LIB([sdplane], [main])
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h locale.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/ioctl.h sys/socket.h unistd.h])
 
+AC_CHECK_HEADERS([sdplane/libsdplane_version.h])
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
 AC_C_INLINE

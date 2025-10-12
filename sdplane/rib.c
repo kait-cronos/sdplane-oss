@@ -26,6 +26,8 @@
 
 #include "internal_message.h"
 
+#include "tap.h"
+
 // clang-format off
 
 CLI_COMMAND2 (show_rib,

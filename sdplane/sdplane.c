@@ -10,6 +10,9 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
+#ifdef HAVE_SDPLANE_LIBSDPLANE_VERSION_H
+#include <sdplane/libsdplane_version.h>
+#endif
 
 #include "l3fwd.h"
 #include "l2fwd_export.h"
@@ -32,6 +35,9 @@ CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
+#ifdef HAVE_SDPLANE_LIBSDPLANE_VERSION_H
+  fprintf (t, "libsdplane version: %s%s", libsdplane_version, shell->NL);
+#endif
   fprintf (t, "sdplane version: %s%s", sdplane_version, shell->NL);
 }
 
