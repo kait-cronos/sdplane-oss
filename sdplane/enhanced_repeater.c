@@ -38,6 +38,8 @@
 #include "rib_manager.h"
 #include "thread_info.h"
 
+#include "dhcp_server.h"
+
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
@@ -352,12 +354,16 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
   extern struct rte_ring *ring_dhcp_rx;
   if (ring_dhcp_rx)
     {
-      ret = enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
-                                         ring_dhcp_rx);
+      if (is_dhcp_packet (m))
+        {
+          ret = enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
+                                             ring_dhcp_rx);
 #if 0
-      if (ret < 0)
-        DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p dropped in ring_dhcp_rx.", m);
+          if (ret < 0)
+            DEBUG_SDPLANE_LOG (DHCP_SERVER,
+                               "m: %p dropped in ring_dhcp_rx.", m);
 #endif
+        }
     }
 
   return;

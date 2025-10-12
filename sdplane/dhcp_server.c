@@ -2,6 +2,7 @@
 
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <netinet/icmp6.h>
 
 #include <lthread.h>
 
@@ -35,11 +36,59 @@
 
 #include "log_packet.h"
 
-static __thread uint64_t loop_counter = 0;
+static __thread uint64_t loop_counter_dhcp = 0;
 static __thread struct rib *rib = NULL;
 
 struct rte_ring *ring_dhcp_rx = NULL;
 //struct rte_ring *ring_dhcp_tx = NULL;
+
+bool
+is_dhcp_packet (struct rte_mbuf *m)
+{
+  struct rte_ether_hdr *eth;
+  uint16_t eth_type;
+  struct rte_vlan_hdr *vlan = NULL;
+  struct rte_ipv4_hdr *ipv4 = NULL;
+  struct rte_ipv6_hdr *ipv6 = NULL;
+  struct rte_icmp_hdr *icmp = NULL;
+  struct rte_udp_hdr *udp = NULL;
+  struct rte_tcp_hdr *tcp = NULL;
+
+  __parse_packet (m, &eth, &vlan, &ipv4, &ipv6, &icmp, &udp, &tcp);
+
+  uint16_t src_port;
+  uint16_t dst_port;
+  if (udp)
+    {
+      src_port = rte_be_to_cpu_16 (udp->src_port);
+      dst_port = rte_be_to_cpu_16 (udp->dst_port);
+    }
+  else if (tcp)
+    {
+      src_port = rte_be_to_cpu_16 (tcp->src_port);
+      dst_port = rte_be_to_cpu_16 (tcp->dst_port);
+    }
+
+  /* ipv6 ND router-solicit/router-advert */
+  if (ipv6 && icmp &&
+      (icmp->icmp_type == ND_ROUTER_SOLICIT ||
+       icmp->icmp_type == ND_ROUTER_ADVERT))
+    return true;
+
+  /* ipv4 bootps/bootpc (DHCP) */
+  if (ipv4 && udp &&
+      ((src_port == 67 || src_port == 68) ||
+      (dst_port == 67 || dst_port == 68)))
+    return true;
+
+  /* ipv6 dhcpv6-client/dhcpv6-server */
+  if (ipv6 && udp &&
+      ((src_port == 546 || src_port == 547) ||
+      (dst_port == 546 || dst_port == 547)))
+    return true;
+
+  return false;
+}
 
 static inline __attribute__ ((always_inline)) void
 dhcp_server_read (struct rte_mbuf *m)
@@ -59,6 +108,8 @@ dhcp_server_read (struct rte_mbuf *m)
 
   DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p packet [size: %d/%d] received.",
                      m, data_len, pkt_len);
+  if (DEBUG_CHECK (SDPLANE, DHCP_SERVER))
+    log_packet (m, 0, 0);
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -109,11 +160,7 @@ dhcp_server_rx ()
       if (! m)
         continue;
  
-      DEBUG_SDPLANE_LOG (PACKET, "m: %p received from ring_dhcp_rx.", m);
-      log_packet (m, 0, 0);
- 
       dhcp_server_read (m);
- 
       rte_pktmbuf_free (m);
     }
 }
@@ -134,20 +181,24 @@ dhcp_server (__rte_unused void *dummy)
   DEBUG_SDPLANE_LOG (DHCP_SERVER, "start thread on lcore[%d].",
                      lcore_id);
 
+  dhcp_server_init ();
+
   int thread_id;
   thread_id = thread_lookup_by_lcore (dhcp_server, lcore_id);
-  thread_register_loop_counter (thread_id, &loop_counter);
+  thread_register_loop_counter (thread_id, &loop_counter_dhcp);
 
   DEBUG_SDPLANE_LOG (DHCP_SERVER, "start main loop on lcore[%d].",
                      lcore_id);
 
+#if 0
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_register_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
+#endif
 
   while (! force_quit && ! force_stop[lcore_id])
     {
-      // lthread_sleep (0); // yield.
+      lthread_sleep (0); // yield.
       // printf ("%s: schedule: %lu.\n", __func__, loop_counter);
 
 #if HAVE_LIBURCU_QSBR
@@ -162,14 +213,16 @@ dhcp_server (__rte_unused void *dummy)
       urcu_qsbr_quiescent_state ();
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      loop_counter++;
+      loop_counter_dhcp++;
     }
 
   printf ("%s on lcore[%d]: finished.\n", __func__, rte_lcore_id ());
 
+#if 0
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_unregister_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
+#endif
 
   return 0;
 }

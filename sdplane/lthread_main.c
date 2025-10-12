@@ -61,6 +61,8 @@
 #include "vty_shell.h"
 #include "thread_info.h"
 
+#include "dhcp_server.h"
+
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
@@ -147,6 +149,20 @@ CLI_COMMAND2 (set_worker_lthread_neigh_manager,
   return 0;
 }
 
+CLI_COMMAND2 (set_worker_lthread_dhcp_server,
+              "set worker lthread dhcp-server", SET_HELP, WORKER_HELP,
+              "lthread information\n", "dhcp-server\n")
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) dhcp_server, NULL);
+  thread_register (lthread_core, lt, (lthread_func) dhcp_server,
+                   "dhcp-server", NULL);
+  lthread_detach2 (lt);
+  return 0;
+}
+
 void
 lthread_cmd_init (struct command_set *cmdset)
 {
@@ -154,6 +170,7 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_rib_manager);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_netlink_thread);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_dhcp_server);
 }
 
 int

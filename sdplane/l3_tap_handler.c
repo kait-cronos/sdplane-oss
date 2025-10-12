@@ -128,7 +128,8 @@ l3_tap_handler_handle_packet_up ()
           if (! m)
             continue;
 
-          log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
+          if (DEBUG_CHECK (SDPLANE, PACKET))
+            log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
 
           send_fdb_entry_add_msg (m);
           if (capture_fd >= 0)
