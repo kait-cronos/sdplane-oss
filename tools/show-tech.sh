@@ -85,10 +85,26 @@ cmd="ip route show"
 print_cmd_and_exec
 
 echo "*******"
+cmd="ip -6 route show"
+print_cmd_and_exec
+
+echo "*******"
 for file in `ls /etc/netplan/*.yaml`; do
   cmd="sudo cat $file"
   print_cmd_and_exec
 done
+
+echo "*******"
+for file in `ls /etc/iptables/*`; do
+  cmd="sudo cat $file"
+  print_cmd_and_exec
+done
+
+cmd="sudo iptables -nL"
+print_cmd_and_exec
+
+cmd="sudo ip6tables -nL"
+print_cmd_and_exec
 
 echo "*******"
 if [ -f /var/run/sdplane.pid ]; then
@@ -109,13 +125,11 @@ print_cmd_and_exec
 echo "*******"
 execs=`find /usr -type f -name sdplane`
 for exec in $execs; do
+  #cmd="$exec -v"
+  #print_cmd_and_exec
   cmd="ldd $exec"
   print_cmd_and_exec
 done
-#for exec in $execs; do
-#  cmd="$exec -v"
-#  print_cmd_and_exec
-#done
 
 echo "*******"
 cmd="systemctl status sdplane"
@@ -127,3 +141,4 @@ echo "show tech completed."
 # } 2>&1 | tee $dir/$filename
 } > $dir/$filename 2>&1
 
+echo "show tech completed."
