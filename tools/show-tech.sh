@@ -125,8 +125,8 @@ print_cmd_and_exec
 echo "*******"
 execs=`find /usr -type f -name sdplane`
 for exec in $execs; do
-  #cmd="$exec -v"
-  #print_cmd_and_exec
+  cmd="$exec -v"
+  print_cmd_and_exec
   cmd="ldd $exec"
   print_cmd_and_exec
 done
