@@ -137,6 +137,18 @@ void debug_log_init (char *progname);
       DEBUG_LOG_MSG (format, ##__VA_ARGS__);                                  \
   } while (0)
 
+#define ERROR_MSG(format, ...)                                                \
+  do {                                                                        \
+    debug_log ("%s[%d] %s(): *error*: " format,                               \
+               __FILE__, __LINE__, __func__, ##__VA_ARGS__);                  \
+  } while (0)
+
+#define WARNING(format, ...)                                                  \
+  do {                                                                        \
+    debug_log ("%s[%d] %s(): warning: " format,                               \
+               __FILE__, __LINE__, __func__, ##__VA_ARGS__);                  \
+  } while (0)
+
 /* default types */
 #define DEBUG_DEFAULT_LOGGING   (1ULL << 0)
 #define DEBUG_DEFAULT_BACKTRACE (1ULL << 1)
