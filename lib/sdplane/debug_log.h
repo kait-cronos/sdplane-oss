@@ -80,6 +80,12 @@ void debug_log_init (char *progname);
     }                                                                         \
   while (0)
 
+/* category */
+#define DEBUG_DEFAULT      0
+#define DEBUG_ZCMDSH       1
+#define DEBUG_SDPLANE      2
+#define DEBUG_CATEGORY_MAX 3
+
 #define DEBUG_CONFIG(cate)     (debug_config_g[DEBUG_##cate])
 #define DEBUG_TYPE(cate, type) (DEBUG_##cate##_##type)
 
@@ -119,5 +125,47 @@ void debug_log_init (char *progname);
 
 #define DEBUG_DEFAULT_LOG(type, format, ...)                                  \
   DEBUG_LOG (DEFAULT, type, format, ##__VA_ARGS__)
+
+/* types in zcmdsh category */
+#define DEBUG_ZCMDSH_SHELL   (1ULL << 0)
+#define DEBUG_ZCMDSH_COMMAND (1ULL << 1)
+#define DEBUG_ZCMDSH_PAGER   (1ULL << 2)
+#define DEBUG_ZCMDSH_TIMER   (1ULL << 3)
+#define DEBUG_ZCMDSH_UNICODE (1ULL << 4)
+#define DEBUG_ZCMDSH_TERMIO  (1ULL << 5)
+#define DEBUG_ZCMDSH_TELNET  (1ULL << 6)
+#define DEBUG_ZCMDSH_COMMAND_SHELL   (1ULL << 7)
+#define DEBUG_ZCMDSH_COMMAND_LOG   (1ULL << 8)
+#define DEBUG_ZCMDSH_PAGER_CONTENTS   (1ULL << 9)
+
+#define DEBUG_ZCMDSH_LOG(type, format, ...)                                   \
+  DEBUG_LOG (ZCMDSH, type, format, ##__VA_ARGS__)
+
+#if 0
+#define DEBUG_ZCMDSH(type, format, ...) \
+  DEBUG_LOG(ZCMDSH, type, format, ##__VA_ARGS__)
+#endif
+
+#include <sdplane/command.h>
+
+EXTERN_COMMAND (debug_zcmdsh);
+EXTERN_COMMAND (show_debug_zcmdsh);
+void debug_zcmdsh_cmd_init ();
+
+extern uint64_t debug_config;
+
+#define DEBUG_SHELL           (1ULL << 0)
+#define DEBUG_COMMAND         (1ULL << 1)
+#define DEBUG_TERMIO          (1ULL << 2)
+#define DEBUG_TIMER           (1ULL << 3)
+#define DEBUG_SDPLANE_WIRETAP (1ULL << 4)
+
+// if (FLAG_CHECK (debug_config, DEBUG_SHELL))
+
+struct debug_type
+{
+  uint64_t flag;
+  const char *name;
+};
 
 #endif /*__DEBUG_LOG_H__*/

@@ -4,7 +4,7 @@
 
 #include <includes.h>
 
-#include "debug.h"
+#include "debug_log.h"
 #include "flag.h"
 
 #include "command.h"
