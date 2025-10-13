@@ -103,12 +103,12 @@ dhcp_server_read (struct rte_mbuf *m)
   pkt = rte_pktmbuf_mtod (m, char *);
 
   if (data_len < pkt_len)
-    DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p warning: multi-seg mbuf: %u < %u",
-                       m, data_len, pkt_len);
+    ERROR_MSG ("m: %p warning: multi-seg mbuf: %u < %u",
+               m, data_len, pkt_len);
 
-  DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p packet [size: %d/%d] received.",
+  DEBUG_NEW (DHCP_SERVER, "DEBUG_NEW: m: %p packet [size: %d/%d] received.",
                      m, data_len, pkt_len);
-  if (DEBUG_CHECK (SDPLANE, DHCP_SERVER))
+  if (IS_DEBUG (DHCP_SERVER))
     log_packet (m, 0, 0);
 }
 
@@ -135,8 +135,8 @@ dhcp_server_write (char *data, int size, unsigned vswitch_id)
   memcpy (pkt, data, size);
 
   rte_ring_enqueue (vswitch->router_if.ring_dn, m);
-  DEBUG_SDPLANE_LOG (DHCP_SERVER, "m: %p size: %d -> vswitch %d ring_dn %d",
-                     m, size, vswitch_id, vswitch->router_if.tap_ring_id);
+  DEBUG_NEW (DHCP_SERVER, "m: %p size: %d -> vswitch %d ring_dn %d",
+             m, size, vswitch_id, vswitch->router_if.tap_ring_id);
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -178,8 +178,7 @@ dhcp_server (__rte_unused void *dummy)
   unsigned lcore_id;
 
   lcore_id = rte_lcore_id ();
-  DEBUG_SDPLANE_LOG (DHCP_SERVER, "start thread on lcore[%d].",
-                     lcore_id);
+  DEBUG_NEW (DHCP_SERVER, "start thread on lcore[%d].", lcore_id);
 
   dhcp_server_init ();
 
@@ -187,8 +186,8 @@ dhcp_server (__rte_unused void *dummy)
   thread_id = thread_lookup_by_lcore (dhcp_server, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter_dhcp);
 
-  DEBUG_SDPLANE_LOG (DHCP_SERVER, "start main loop on lcore[%d].",
-                     lcore_id);
+  //DEBUG_NEW (DHCP_SERVER, "start main loop on lcore[%d].", lcore_id);
+  WARNING ("start main loop on lcore[%d].", lcore_id);
 
 #if 0
 #if HAVE_LIBURCU_QSBR
