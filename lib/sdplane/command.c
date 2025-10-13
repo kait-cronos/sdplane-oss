@@ -673,9 +673,6 @@ command_install2 (struct command_set *cmdset, char *command_line,
           if (strlen (subword))
             {
               word_help = strsep (&hstringp, COMMAND_HELP_DELIMITERS);
-              if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-                printf ("%s: subword: %s help: %s\n", __func__, subword,
-                        word_help);
             }
 
           /* for each parent, add the subword node below it,
@@ -689,9 +686,6 @@ command_install2 (struct command_set *cmdset, char *command_line,
               if (! strlen (subword))
                 {
                   vector_add (parent, next_parents);
-                  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-                    printf ("%s: vector_add: node: %p to vector: %p\n",
-                            __func__, (void *) parent, (void *) next_parents);
                   continue;
                 }
 
@@ -705,33 +699,19 @@ command_install2 (struct command_set *cmdset, char *command_line,
                   vector_sort (command_node_cmp_qsort, parent->cmdvec);
                 }
 
-              if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-                printf ("%s: parent: %p (%s) -> child: %p (%s)\n", __func__,
-                        (void *) parent, parent->cmdstr,
-                        (void *) node, node->cmdstr);
               vector_add (node, next_parents);
-              if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-                printf ("%s: vector_add: node: %p to vector: %p\n", __func__,
-                        (void *) node, (void *) next_parents);
             }
         }
 
-      if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-        printf ("%s: vector_delete: %p\n", __func__, (void *) parents);
       vector_delete (parents);
       parents = next_parents;
       next_parents = vector_create ();
-      if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-        printf ("%s: vector_create: %p\n", __func__, (void *) next_parents);
     }
 
   for (vn = vector_head (parents); vn; vn = vector_next (vn))
     {
       node = (struct command_node *) vn->data;
       node->func = func;
-      if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-        printf ("%s: node: %p (%s) add func %p\n", __func__, (void *) node,
-                node->cmdstr, (void *) func);
     }
 
   /* attache the string memory to free in the last processed node. */
@@ -739,15 +719,8 @@ command_install2 (struct command_set *cmdset, char *command_line,
     {
   node->cmdmem = cmd_dup;
   node->helpmem = help_dup;
-  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-    printf ("%s: save memory for free: node: %p\n", __func__, (void *) node);
     }
 
-  if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-    {
-      printf ("%s: vector_delete: %p\n", __func__, (void *) parents);
-      printf ("%s: vector_delete: %p\n", __func__, (void *) next_parents);
-    }
   vector_delete (parents);
   vector_delete (next_parents);
 }
@@ -993,14 +966,6 @@ command_execute (char *command_line, struct command_set *cmdset, void *context)
 
   if (match && match->func)
     {
-      if (FLAG_CHECK (debug_config, DEBUG_COMMAND))
-        {
-          printf ("%s[%d]: %s: argv[%d]:", __FILE__, __LINE__, __func__, argc);
-          for (int i = 0; i < argc; i++)
-            printf (" %s", argv[i]);
-          printf ("\n");
-        }
-
       ret = (*match->func) (context, argc, argv);
       if (ret < 0)
         {

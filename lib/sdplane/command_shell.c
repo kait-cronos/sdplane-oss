@@ -716,11 +716,6 @@ print_dirent (struct shell *shell, struct dirent *dirent, int num, int ncolumn,
     suffix = "/";
   snprintf (printname, sizeof (printname), "%s%s", dirent->d_name, suffix);
 
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    fprintf (shell->terminal, "%snum: %d ptr: %p ncolumn: %d %s dirent: %s%s",
-             shell->NL, num, dirent, ncolumn, printname, dirent->d_name,
-             shell->NL);
-
   if (num % ncolumn == 0)
     fprintf (shell->terminal, "  ");
 
@@ -744,11 +739,6 @@ file_ls_candidate (struct shell *shell, char *file_path)
   int i;
 
   path_disassemble (path, &dirname, &filename);
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    {
-      fprintf (shell->terminal, "  path: %s dir: %s filename: %s%s", file_path,
-               dirname, filename, shell->NL);
-    }
 
   dir = opendir (dirname);
   if (dir == NULL)
@@ -790,14 +780,6 @@ file_ls_candidate (struct shell *shell, char *file_path)
   ncolumn = (shell->winsize.ws_col - 2) / (maxlen + 2);
   if (ncolumn == 0)
     ncolumn = 1;
-
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    {
-      fprintf (shell->terminal,
-               "  %s: nentry: %d maxlen: %d ncol: %d "
-               "sort_vector: %p%s",
-               __func__, nentry, maxlen, ncolumn, sort_vector, shell->NL);
-    }
 
   fprintf (shell->terminal, "%s", shell->NL);
 
