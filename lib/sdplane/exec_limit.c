@@ -8,7 +8,6 @@
 
 
 #include "debug.h"
-#include "log.h"
 #include "debug_category.h"
 #include "debug_log.h"
 #include "debug_zcmdsh.h"

@@ -11,7 +11,6 @@
 #endif /*HAVE_UTIL_H*/
 
 #include "debug.h"
-#include "log.h"
 
 #include "command.h"
 #include "command_shell.h"

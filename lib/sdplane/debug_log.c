@@ -14,6 +14,8 @@
 uint64_t debug_config_g[DEBUG_CATEGORY_MAX];
 uint64_t debug_output;
 
+uint64_t debug_config = 0;
+
 /* syslog */
 char *ident = "debug_log";
 int option = LOG_CONS | LOG_NDELAY | LOG_PID;
@@ -176,3 +178,35 @@ debug_log_init (char *progname)
   DEBUG_SET (DEFAULT, LOGGING);
   DEBUG_SET (DEFAULT, BACKTRACE);
 }
+
+#ifdef HAVE_EXECINFO_H
+#include <execinfo.h>
+#endif
+
+#define BACKTRACE_FRAME_SIZE 128
+static inline __attribute__ ((always_inline)) void
+debug_backtrace ()
+{
+  int nptrs;
+  void *frames[BACKTRACE_FRAME_SIZE];
+  char **strings;
+  int i;
+
+  nptrs = backtrace (frames, BACKTRACE_FRAME_SIZE);
+  DEBUG_LOG (DEFAULT, BACKTRACE, "backtrace frames: %d", nptrs);
+
+  strings = backtrace_symbols (frames, nptrs);
+  if (! strings)
+    {
+      DEBUG_LOG (DEFAULT, BACKTRACE, "backtrace_symbols: null.");
+      return;
+    }
+
+  for (i = 0; i < nptrs; i++)
+    {
+      DEBUG_LOG (DEFAULT, LOGGING, "%s", strings[i]);
+    }
+
+  free (strings);
+}
+
