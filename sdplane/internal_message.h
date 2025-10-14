@@ -32,6 +32,7 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_ROUTER_IF_NO_SET      16
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET     17
 #define INTERNAL_MSG_TYPE_FDB_ENTRY_ADD         18
+#define INTERNAL_MSG_TYPE_APPLICATION_SLOT      19
 
 struct internal_msg_eth_link
 {

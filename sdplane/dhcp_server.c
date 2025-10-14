@@ -29,10 +29,9 @@
 
 #include "sdplane.h"
 #include "thread_info.h"
-
 #include "rib_manager.h"
-
 #include "tap.h"
+#include "internal_message.h"
 
 #include "log_packet.h"
 
@@ -182,12 +181,27 @@ dhcp_server (__rte_unused void *dummy)
 
   dhcp_server_init ();
 
+  /* register an application slot entry in rib,
+     to receive packets from enhanced_repeater. */
+  struct internal_msg_header *msgp;
+  struct application_slot_entry msg_appli_slot, *app;
+  msg_appli_slot.name = "dhcp-server";
+  msg_appli_slot.ring = ring_dhcp_rx;
+  msg_appli_slot.is_packet_match = is_dhcp_packet;
+  app = &msg_appli_slot;
+  DEBUG_NEW (DHCP_SERVER,
+             "registering appli_slot: %s ring: %p is_packet_match: %p",
+             app->name, app->ring, app->is_packet_match);
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_APPLICATION_SLOT,
+                              &msg_appli_slot, sizeof (msg_appli_slot));
+  rib_send_message (msgp);
+
+  /* register the thread loop_counter. */
   int thread_id;
   thread_id = thread_lookup_by_lcore (dhcp_server, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter_dhcp);
 
-  //DEBUG_NEW (DHCP_SERVER, "start main loop on lcore[%d].", lcore_id);
-  WARNING ("start main loop on lcore[%d].", lcore_id);
+  DEBUG_NEW (DHCP_SERVER, "start main loop on lcore[%d].", lcore_id);
 
 #if 0
 #if HAVE_LIBURCU_QSBR
