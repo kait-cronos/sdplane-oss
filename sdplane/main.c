@@ -48,7 +48,9 @@ void
 print_version ()
 {
   FILE *f = stdout;
+#ifdef HAVE_SDPLANE_LIBSDPLANE_VERSION_H
   fprintf (f, "libsdplane version: %s\n", libsdplane_version);
+#endif
   fprintf (f, "sdplane version: %s\n", sdplane_version);
 }
 
