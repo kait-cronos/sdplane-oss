@@ -47,4 +47,7 @@ int thread_info_init ();
 void lthread_cancel_all ();
 void lthread_join_all ();
 
+bool is_lthread ();
+#define IS_LTHREAD is_lthread
+
 #endif /*__THREAD_INFO_H__*/
