@@ -125,6 +125,14 @@ struct fdb_entry
   time_t last_seen;
 };
 
+#define APPLI_SLOT_SIZE 4
+struct application_slot_entry
+{
+  char *name;
+  struct rte_ring *ring;
+  bool (*is_packet_match) (struct rte_mbuf *m);
+};
+
 struct rib_info
 {
   uint32_t ver;
@@ -133,12 +141,14 @@ struct rib_info
   uint8_t vswitch_link_size;
   uint8_t port_size;
   uint8_t lcore_size;
+  uint8_t application_slot_size;
   struct vswitch_conf vswitch[MAX_VSWITCH];
   struct vswitch_link vswitch_link[MAX_VSWITCH_LINK];
   struct port_conf port[MAX_ETH_PORTS];
   struct lcore_qconf lcore_qconf[RTE_MAX_LCORE];
   struct neigh_table neigh_tables[NEIGH_NR_TABLES];
   struct fdb_entry fdb[FDB_SIZE];
+  struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);

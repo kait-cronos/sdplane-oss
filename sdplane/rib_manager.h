@@ -8,11 +8,6 @@
 
 struct rib
 {
-#if 0
-  uint64_t ver;
-  struct rte_eth_link link[RTE_MAX_ETHPORTS];
-  struct sdplane_queue_conf qconf[RTE_MAX_LCORE];
-#endif
   struct rib_info *rib_info;
 } __rte_cache_aligned;
 

@@ -984,6 +984,23 @@ delete_stop_flag (struct rib *old)
 }
 
 void
+application_slot_add (struct rib_info *rib_info,
+                      struct application_slot_entry *msg_appli_slot)
+{
+  if (rib_info->application_slot_size == APPLI_SLOT_SIZE)
+    {
+      WARNING ("application_slot: full: %d entries.",
+               rib_info->application_slot_size);
+      return;
+    }
+  memcpy (&rib_info->application_slot[rib_info->application_slot_size],
+          msg_appli_slot, sizeof (struct application_slot_entry));
+  rib_info->application_slot_size++;
+  DEBUG_NEW (RIB, "application_slot added: %d entries.",
+             rib_info->application_slot_size);
+}
+
+void
 rib_manager_process_message (void *msgp)
 {
   int ret;
@@ -1322,6 +1339,14 @@ rib_manager_process_message (void *msgp)
 
       fdb_add_entry (new->rib_info, &msg_fdb_entry_add->mac_addr,
                      msg_fdb_entry_add->vlan_id, msg_fdb_entry_add->port);
+      break;
+
+    case INTERNAL_MSG_TYPE_APPLICATION_SLOT:
+      struct application_slot_entry *msg_appli_slot;
+      DEBUG_NEW (RIB, "recv msg_appli_slot: %p.", msgp);
+      msg_appli_slot =
+        (struct application_slot_entry *) (msg_header + 1);
+      application_slot_add (new->rib_info, msg_appli_slot);
       break;
 
     default:

@@ -42,7 +42,6 @@ int vlan_switch (void *arg);
 #ifdef ENABLE_PKTGEN
 int pktgen_launch_one_lcore(void *arg __rte_unused);
 #endif
-int linkflap_generator (void *arg);
 
 void
 start_lcore (struct shell *shell, int lcore_id)
@@ -101,7 +100,6 @@ CLI_COMMAND2 (set_worker,
 #ifdef ENABLE_PKTGEN
     "|pktgen"
 #endif
-    "|linkflap-generator"
     "|dhcp-server"
     ")",
     SET_HELP, RESET_HELP, START_HELP, RESTART_HELP,
@@ -139,8 +137,6 @@ CLI_COMMAND2 (set_worker,
     func = tap_handler;
   else if (! strcmp (argv[4], "l2-repeater"))
     func = l2_repeater;
-  else if (! strcmp (argv[4], "linkflap-generator"))
-    func = linkflap_generator;
   else if (! strcmp (argv[4], "nettlp-thread"))
     func = nettlp_thread;
   else if (! strcmp (argv[4], "vlan-switch"))
@@ -180,8 +176,6 @@ CLI_COMMAND2 (set_worker,
     func_name = "tap-handler";
   else if (func == l2_repeater)
     func_name = "l2-repeater";
-  else if (func == linkflap_generator)
-    func_name = "linkflap-generator";
   else if (func == nettlp_thread)
     func_name = "nettlp-thread";
   else if (func == vlan_switch)
