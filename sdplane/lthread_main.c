@@ -163,6 +163,20 @@ CLI_COMMAND2 (set_worker_lthread_dhcp_server,
   return 0;
 }
 
+CLI_COMMAND2 (set_worker_lthread_l3_tap_handler,
+              "set worker lthread l3-tap-handler", SET_HELP, WORKER_HELP,
+              "lthread information\n", "l3-tap-handler\n")
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) l3_tap_handler, NULL);
+  thread_register (lthread_core, lt, (lthread_func) l3_tap_handler,
+                   "l3_tap_handler", NULL);
+  lthread_detach2 (lt);
+  return 0;
+}
+
 void
 lthread_cmd_init (struct command_set *cmdset)
 {
@@ -171,6 +185,7 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_netlink_thread);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_dhcp_server);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_l3_tap_handler);
 }
 
 int
