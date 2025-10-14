@@ -202,16 +202,18 @@ dhcp_server (__rte_unused void *dummy)
   thread_register_loop_counter (thread_id, &loop_counter_dhcp);
 
   DEBUG_NEW (DHCP_SERVER, "start main loop on lcore[%d].", lcore_id);
+  if (IS_LTHREAD ())
+    DEBUG_NEW (DHCP_SERVER, "started as a lthread.");
 
-#if 0
 #if HAVE_LIBURCU_QSBR
-  urcu_qsbr_register_thread ();
+  if (! IS_LTHREAD ())
+    urcu_qsbr_register_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
-#endif
 
   while (! force_quit && ! force_stop[lcore_id])
     {
-      lthread_sleep (0); // yield.
+      if (IS_LTHREAD ())
+        lthread_sleep (0); // yield.
       // printf ("%s: schedule: %lu.\n", __func__, loop_counter);
 
 #if HAVE_LIBURCU_QSBR
@@ -231,11 +233,10 @@ dhcp_server (__rte_unused void *dummy)
 
   printf ("%s on lcore[%d]: finished.\n", __func__, rte_lcore_id ());
 
-#if 0
 #if HAVE_LIBURCU_QSBR
-  urcu_qsbr_unregister_thread ();
+  if (! IS_LTHREAD ())
+    urcu_qsbr_unregister_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
-#endif
 
   return 0;
 }
