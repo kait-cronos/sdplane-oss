@@ -388,12 +388,6 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
         }
     }
 
-  if (msgp == NULL)
-    {
-      DEBUG_SDPLANE_LOG (NETLINK, "msgp is NULL");
-      return 0;
-    }
-
   if (h->nlmsg_type == RTM_NEWROUTE)
     {
       if (rtm->rtm_family == AF_INET)
@@ -421,6 +415,12 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
     }
   else
     DEBUG_SDPLANE_LOG (NETLINK, "error: Neither RTM_DELROUTE nor RTM_ADDROUTE.");
+
+  if (msgp == NULL)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "msgp is NULL");
+      return 0;
+    }
 
   if (! msg_queue_rib)
     DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
