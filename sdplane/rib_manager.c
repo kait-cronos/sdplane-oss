@@ -1226,7 +1226,7 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
       msg_route_entry =
           (struct internal_msg_route_entry *) (msg_header + 1);
-      //TODO: store to rib_info and map OIFs and dpdk-ports
+      //TODO: store to rib_info and map OIFs to dpdk-ports
       break;
 
     case INTERNAL_MSG_TYPE_ROUTER_IF_SET:
