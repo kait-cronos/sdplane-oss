@@ -429,7 +429,15 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
   if (! msg_queue_rib)
     DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
 
-  internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  if (msgp)
+    {
+      internal_msg_send_to (msg_queue_rib, msgp, NULL);
+    }
+  else
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "route msgp is NULL.");
+    }
+
 
   return 0;
 
