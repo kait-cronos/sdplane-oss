@@ -168,7 +168,6 @@ struct rib_info
   struct neigh_table neigh_tables[NEIGH_NR_TABLES];
   struct fdb_entry fdb[FDB_SIZE];
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
-  struct route_entry route_entries[1024];
   struct route_entry route_tables[MAX_ROUTE_TABLE_SIZE];
 } __rte_cache_aligned;
 

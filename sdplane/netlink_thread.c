@@ -341,52 +341,52 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
   
-    struct rtmsg *rtm = (struct rtmsg *)NLMSG_DATA(h);
-    struct rtattr *rta;
-    int len = RTM_PAYLOAD(h);
+  struct rtmsg *rtm = (struct rtmsg *)NLMSG_DATA(h);
+  struct rtattr *rta;
+  int len = RTM_PAYLOAD(h);
 
-    void *msgp;
-    struct internal_msg_route_entry msg_route_entry;
-    memset(&msg_route_entry, 0, sizeof(msg_route_entry));
-    msg_route_entry.prefixlen = rtm->rtm_dst_len;
+  void *msgp;
+  struct internal_msg_route_entry msg_route_entry;
+  memset(&msg_route_entry, 0, sizeof(msg_route_entry));
+  msg_route_entry.prefixlen = rtm->rtm_dst_len;
 
-    for (rta = RTM_RTA(rtm); RTA_OK(rta, len); rta = RTA_NEXT(rta, len))
-      {
-        if (rtm->rtm_family == AF_INET)
-          {
-            // IPv4
-            switch (rta->rta_type)
-              {
-                case RTA_DST:
-                  memcpy(&msg_route_entry.dst4, RTA_DATA(rta), sizeof(msg_route_entry.dst4));
-                  break;
-                case RTA_GATEWAY:
-                  memcpy(&msg_route_entry.gw4, RTA_DATA(rta), sizeof(msg_route_entry.gw4));
-                  break;
-                case RTA_OIF:
-                  msg_route_entry.oif = *(int *)RTA_DATA(rta);
-                  break;
-              }
-          }
-        else if (rtm->rtm_family == AF_INET6)
-          {
-            // IPv6
-            switch (rta->rta_type)
-              {
-                case RTA_DST:
-                  memcpy(&msg_route_entry.dst6, RTA_DATA(rta), sizeof(msg_route_entry.dst6));
-                  break;
-
-                case RTA_GATEWAY:
-                  memcpy(&msg_route_entry.gw6, RTA_DATA(rta), sizeof(msg_route_entry.gw6));
-                  break;
-
-                case RTA_OIF:
-                  msg_route_entry.oif = *(int *)RTA_DATA(rta);
-                  break;
-                }
+  for (rta = RTM_RTA(rtm); RTA_OK(rta, len); rta = RTA_NEXT(rta, len))
+    {
+      if (rtm->rtm_family == AF_INET)
+        {
+          // IPv4
+          switch (rta->rta_type)
+            {
+              case RTA_DST:
+                memcpy(&msg_route_entry.dst4, RTA_DATA(rta), sizeof(msg_route_entry.dst4));
+                break;
+              case RTA_GATEWAY:
+                memcpy(&msg_route_entry.gw4, RTA_DATA(rta), sizeof(msg_route_entry.gw4));
+                break;
+              case RTA_OIF:
+                msg_route_entry.oif = *(int *)RTA_DATA(rta);
+                break;
             }
-      }
+        }
+      else if (rtm->rtm_family == AF_INET6)
+        {
+          // IPv6
+          switch (rta->rta_type)
+            {
+              case RTA_DST:
+                memcpy(&msg_route_entry.dst6, RTA_DATA(rta), sizeof(msg_route_entry.dst6));
+                break;
+
+              case RTA_GATEWAY:
+                memcpy(&msg_route_entry.gw6, RTA_DATA(rta), sizeof(msg_route_entry.gw6));
+                break;
+
+              case RTA_OIF:
+                msg_route_entry.oif = *(int *)RTA_DATA(rta);
+                break;
+            }
+        }
+    }
 
   if (h->nlmsg_type == RTM_NEWROUTE)
     {
@@ -399,17 +399,19 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
           DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s gw=%s oif=%d", addr,
                                       gw, msg_route_entry.oif);
           DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_add.");
-        }
-      msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
+          msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
                                   &msg_route_entry, sizeof (msg_route_entry));
+        }
       //TODO: debug_sdplane for ipv6
     } 
   else if (h->nlmsg_type == RTM_DELROUTE)
     {
-      DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_dell.");
-      msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
-                              &msg_route_entry,
-                        sizeof (msg_route_entry));
+      if (rtm->rtm_family == AF_INET)
+        {
+          DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_dell.");
+          msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
+                                  &msg_route_entry, sizeof (msg_route_entry));
+        }
     }
   else
     DEBUG_SDPLANE_LOG (NETLINK, "error: Neither RTM_DELROUTE nor RTM_ADDROUTE.");
