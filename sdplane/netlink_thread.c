@@ -327,6 +327,121 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
 }
 
 int
+netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
+{
+  struct ndmsg *ndm = (struct ndmsg *) NLMSG_DATA (h);
+
+  if (h->nlmsg_len < NLMSG_LENGTH (sizeof (struct nlmsgerr)))
+    {
+      DEBUG_SDPLANE_LOG (NETLINK,
+                         "%s: invalid len: %d < "
+                         "NLMSG_LEN(nlmsgerr): %d",
+                         nlsock->name, h->nlmsg_len,
+                         NLMSG_LENGTH (sizeof (struct nlmsgerr)));
+      return -1;
+    }
+  
+  struct rtmsg *rtm = (struct rtmsg *)NLMSG_DATA(h);
+  struct rtattr *rta;
+  int len = RTM_PAYLOAD(h);
+
+  void *msgp = NULL;
+  struct internal_msg_route_entry msg_route_entry;
+  memset(&msg_route_entry, 0, sizeof(msg_route_entry));
+  msg_route_entry.prefixlen = rtm->rtm_dst_len;
+
+  for (rta = RTM_RTA(rtm); RTA_OK(rta, len); rta = RTA_NEXT(rta, len))
+    {
+      if (rtm->rtm_family == AF_INET)
+        {
+          // IPv4
+          switch (rta->rta_type)
+            {
+              case RTA_DST:
+                memcpy(&msg_route_entry.dst4, RTA_DATA(rta), sizeof(msg_route_entry.dst4));
+                break;
+              case RTA_GATEWAY:
+                memcpy(&msg_route_entry.gw4, RTA_DATA(rta), sizeof(msg_route_entry.gw4));
+                break;
+              case RTA_OIF:
+                msg_route_entry.oif = *(int *)RTA_DATA(rta);
+                break;
+            }
+        }
+      else if (rtm->rtm_family == AF_INET6)
+        {
+          // IPv6
+          switch (rta->rta_type)
+            {
+              case RTA_DST:
+                memcpy(&msg_route_entry.dst6, RTA_DATA(rta), sizeof(msg_route_entry.dst6));
+                break;
+
+              case RTA_GATEWAY:
+                memcpy(&msg_route_entry.gw6, RTA_DATA(rta), sizeof(msg_route_entry.gw6));
+                break;
+
+              case RTA_OIF:
+                msg_route_entry.oif = *(int *)RTA_DATA(rta);
+                break;
+            }
+        }
+    }
+
+  if (h->nlmsg_type == RTM_NEWROUTE)
+    {
+      if (rtm->rtm_family == AF_INET)
+        {
+          char addr[INET_ADDRSTRLEN];
+          char gw[INET_ADDRSTRLEN];
+          inet_ntop(AF_INET, &msg_route_entry.dst4, addr, INET_ADDRSTRLEN);
+          inet_ntop(AF_INET, &msg_route_entry.gw4, gw, INET_ADDRSTRLEN);
+          DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s gw=%s oif=%d", addr,
+                                      gw, msg_route_entry.oif);
+          DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_add.");
+          if (msg_route_entry.oif != 0)
+            {
+              msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
+                                      &msg_route_entry, sizeof (msg_route_entry));
+            }
+          else 
+            msgp = NULL;
+        }
+      //TODO: debug_sdplane for ipv6
+    } 
+  else if (h->nlmsg_type == RTM_DELROUTE)
+    {
+      if (rtm->rtm_family == AF_INET)
+        {
+          if (msg_route_entry.oif != 0)
+            {
+              DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_dell.");
+              msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
+                                      &msg_route_entry, sizeof (msg_route_entry));
+            }
+          else 
+            msgp = NULL;
+        }
+    }
+  else
+    DEBUG_SDPLANE_LOG (NETLINK, "error: Neither RTM_DELROUTE nor RTM_ADDROUTE.");
+
+  if (! msg_queue_rib)
+    DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
+
+  if (msgp)
+    {
+      internal_msg_send_to (msg_queue_rib, msgp, NULL);
+    }
+  else
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "route msgp is NULL.");
+    }
+
+  return 0;
+}
+
+int
 netlink_read (struct netlink_sock *nlsock)
 {
   char buf[8192];
@@ -411,6 +526,10 @@ netlink_read (struct netlink_sock *nlsock)
             case RTM_NEWNEIGH:
             case RTM_DELNEIGH:
               netlink_read_nlmsg_neigh (nlsock, h);
+              break;
+            case RTM_NEWROUTE:
+            case RTM_DELROUTE:
+              netlink_read_nlmsg_route (nlsock, h);
               break;
             default:
               break;

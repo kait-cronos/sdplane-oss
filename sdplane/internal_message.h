@@ -4,6 +4,7 @@
 #include <rte_ring.h>
 
 #include <rte_ethdev.h>
+#include <stdint.h>
 #include "queue_config.h"
 #include "neigh_manager.h"
 
@@ -33,6 +34,19 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET     17
 #define INTERNAL_MSG_TYPE_FDB_ENTRY_ADD         18
 #define INTERNAL_MSG_TYPE_APPLICATION_SLOT      19
+#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       20 
+#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21 
+
+//TODO: use union
+struct internal_msg_route_entry
+{
+  struct in_addr dst4;
+  struct in6_addr dst6;
+  struct in_addr gw4;
+  struct in6_addr gw6;
+  uint32_t oif; // output interface index
+  uint32_t prefixlen;
+};
 
 struct internal_msg_eth_link
 {
