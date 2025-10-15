@@ -340,7 +340,6 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
                          NLMSG_LENGTH (sizeof (struct nlmsgerr)));
       return -1;
     }
-
   
     struct rtmsg *rtm = (struct rtmsg *)NLMSG_DATA(h);
     struct rtattr *rta;
@@ -391,26 +390,29 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
 
   if (h->nlmsg_type == RTM_NEWROUTE)
     {
-      char addr[INET_ADDRSTRLEN];
-      char gw[INET_ADDRSTRLEN];
-      inet_ntop(AF_INET, &msg_route_entry.dst4, addr, INET_ADDRSTRLEN);
-      inet_ntop(AF_INET, &msg_route_entry.gw4, gw, INET_ADDRSTRLEN);
-      DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s gw=%s oif=%d", addr,
-                         gw, msg_route_entry.oif);
-      DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_add.");
+      if (rtm->rtm_family == AF_INET)
+        {
+          char addr[INET_ADDRSTRLEN];
+          char gw[INET_ADDRSTRLEN];
+          inet_ntop(AF_INET, &msg_route_entry.dst4, addr, INET_ADDRSTRLEN);
+          inet_ntop(AF_INET, &msg_route_entry.gw4, gw, INET_ADDRSTRLEN);
+          DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s gw=%s oif=%d", addr,
+                                      gw, msg_route_entry.oif);
+          DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_add.");
+        }
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
                                   &msg_route_entry, sizeof (msg_route_entry));
       //TODO: debug_sdplane for ipv6
     } 
-    else if (h->nlmsg_type == RTM_DELROUTE)
-      {
-        DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_dell.");
-        msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
-                                &msg_route_entry,
-                          sizeof (msg_route_entry));
-      }
-    else
-      DEBUG_SDPLANE_LOG (NETLINK, "error: Neither RTM_DELROUTE nor RTM_ADDROUTE.");
+  else if (h->nlmsg_type == RTM_DELROUTE)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_dell.");
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
+                              &msg_route_entry,
+                        sizeof (msg_route_entry));
+    }
+  else
+    DEBUG_SDPLANE_LOG (NETLINK, "error: Neither RTM_DELROUTE nor RTM_ADDROUTE.");
 
   if (! msg_queue_rib)
     DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
