@@ -345,7 +345,7 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
   struct rtattr *rta;
   int len = RTM_PAYLOAD(h);
 
-  void *msgp;
+  void *msgp = NULL;
   struct internal_msg_route_entry msg_route_entry;
   memset(&msg_route_entry, 0, sizeof(msg_route_entry));
   msg_route_entry.prefixlen = rtm->rtm_dst_len;
@@ -386,6 +386,12 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
                 break;
             }
         }
+    }
+
+  if (msgp == NULL)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "msgp is NULL");
+      return 0;
     }
 
   if (h->nlmsg_type == RTM_NEWROUTE)
