@@ -399,8 +399,13 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
           DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s gw=%s oif=%d", addr,
                                       gw, msg_route_entry.oif);
           DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_add.");
-          msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
-                                  &msg_route_entry, sizeof (msg_route_entry));
+          if (msg_route_entry.oif != 0)
+            {
+              msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
+                                      &msg_route_entry, sizeof (msg_route_entry));
+            }
+          else 
+            msgp = NULL;
         }
       //TODO: debug_sdplane for ipv6
     } 
@@ -408,19 +413,18 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
     {
       if (rtm->rtm_family == AF_INET)
         {
-          DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_dell.");
-          msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
-                                  &msg_route_entry, sizeof (msg_route_entry));
+          if (msg_route_entry.oif != 0)
+            {
+              DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_dell.");
+              msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
+                                      &msg_route_entry, sizeof (msg_route_entry));
+            }
+          else 
+            msgp = NULL;
         }
     }
   else
     DEBUG_SDPLANE_LOG (NETLINK, "error: Neither RTM_DELROUTE nor RTM_ADDROUTE.");
-
-  if (msgp == NULL)
-    {
-      DEBUG_SDPLANE_LOG (NETLINK, "msgp is NULL");
-      return 0;
-    }
 
   if (! msg_queue_rib)
     DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
