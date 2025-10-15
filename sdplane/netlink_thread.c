@@ -423,7 +423,6 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
 
 }
 
-
 int
 netlink_read (struct netlink_sock *nlsock)
 {
