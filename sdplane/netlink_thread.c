@@ -438,7 +438,6 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       DEBUG_SDPLANE_LOG (NETLINK, "route msgp is NULL.");
     }
 
-
   return 0;
 
 }
