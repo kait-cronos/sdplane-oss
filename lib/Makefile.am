@@ -18,6 +18,8 @@ nobase_include_HEADERS = \
 	sdplane/vector.h sdplane/termio.h sdplane/flag.h \
 	sdplane/shell.h sdplane/command.h sdplane/command_shell.h \
 	sdplane/debug_cmd.h \
+	sdplane/log.h sdplane/debug_category.h \
+	sdplane/debug_zcmdsh.h sdplane/debug_backtrace.h \
 	sdplane/log_cmd.h sdplane/shell_keyfunc.h \
 	sdplane/debug.h sdplane/debug_log.h \
 	sdplane/shell_telnet.h sdplane/exec_limit.h \
