@@ -348,7 +348,16 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
   void *msgp = NULL;
   struct internal_msg_route_entry msg_route_entry;
   memset(&msg_route_entry, 0, sizeof(msg_route_entry));
-  msg_route_entry.prefixlen = rtm->rtm_dst_len;
+
+  /* check if AF_INET or AF_INET6 */
+  if (rtm->rtm_family != AF_INET && rtm->rtm_family != AF_INET6)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "unsupported address family: %d",
+                          rtm->rtm_family);
+      return -1;
+    }
+  msg_route_entry.family = rtm->rtm_family;
+  msg_route_entry.plen = rtm->rtm_dst_len;
 
   for (rta = RTM_RTA(rtm); RTA_OK(rta, len); rta = RTA_NEXT(rta, len))
     {
@@ -358,11 +367,13 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
           switch (rta->rta_type)
             {
               case RTA_DST:
-                memcpy(&msg_route_entry.dst4, RTA_DATA(rta), sizeof(msg_route_entry.dst4));
+                memcpy(&msg_route_entry.dst.dst_ip4, RTA_DATA(rta), sizeof(msg_route_entry.dst.dst_ip4));
                 break;
+
               case RTA_GATEWAY:
-                memcpy(&msg_route_entry.gw4, RTA_DATA(rta), sizeof(msg_route_entry.gw4));
+                memcpy(&msg_route_entry.nexthop.nexthop4, RTA_DATA(rta), sizeof(msg_route_entry.nexthop.nexthop4));
                 break;
+
               case RTA_OIF:
                 msg_route_entry.oif = *(int *)RTA_DATA(rta);
                 break;
@@ -374,11 +385,11 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
           switch (rta->rta_type)
             {
               case RTA_DST:
-                memcpy(&msg_route_entry.dst6, RTA_DATA(rta), sizeof(msg_route_entry.dst6));
+                memcpy(&msg_route_entry.dst.dst_ip6, RTA_DATA(rta), sizeof(msg_route_entry.dst.dst_ip6));
                 break;
 
               case RTA_GATEWAY:
-                memcpy(&msg_route_entry.gw6, RTA_DATA(rta), sizeof(msg_route_entry.gw6));
+                memcpy(&msg_route_entry.nexthop.nexthop6, RTA_DATA(rta), sizeof(msg_route_entry.nexthop.nexthop6));
                 break;
 
               case RTA_OIF:
@@ -388,55 +399,63 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
         }
     }
 
+  uint16_t msg_type;
+  const char *action_type;
+
   if (h->nlmsg_type == RTM_NEWROUTE)
     {
-      if (rtm->rtm_family == AF_INET)
-        {
-          char addr[INET_ADDRSTRLEN];
-          char gw[INET_ADDRSTRLEN];
-          inet_ntop(AF_INET, &msg_route_entry.dst4, addr, INET_ADDRSTRLEN);
-          inet_ntop(AF_INET, &msg_route_entry.gw4, gw, INET_ADDRSTRLEN);
-          DEBUG_SDPLANE_LOG (NETLINK, "[NEW] dst=%s gw=%s oif=%d", addr,
-                                      gw, msg_route_entry.oif);
-          DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_add.");
-          if (msg_route_entry.oif != 0)
-            {
-              msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
-                                      &msg_route_entry, sizeof (msg_route_entry));
-            }
-          else 
-            msgp = NULL;
-        }
-      //TODO: debug_sdplane for ipv6
-    } 
+      msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD;
+      action_type = "NEW";
+    }
   else if (h->nlmsg_type == RTM_DELROUTE)
     {
-      if (rtm->rtm_family == AF_INET)
-        {
-          if (msg_route_entry.oif != 0)
-            {
-              DEBUG_SDPLANE_LOG (NETLINK, "create internal_msg_route_entry_dell.");
-              msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
-                                      &msg_route_entry, sizeof (msg_route_entry));
-            }
-          else 
-            msgp = NULL;
-        }
+      msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL;
+      action_type = "DEL";
     }
   else
-    DEBUG_SDPLANE_LOG (NETLINK, "error: Neither RTM_DELROUTE nor RTM_ADDROUTE.");
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "unexpected message type: %s(%u)",
+                         netlink_nlmsg_str (h->nlmsg_type), h->nlmsg_type);
+      return -1;
+    }
+
+  if (rtm->rtm_family == AF_INET)
+    {
+      char dst[INET_ADDRSTRLEN];
+      char nexthop[INET_ADDRSTRLEN];
+      inet_ntop (AF_INET, &msg_route_entry.dst.dst_ip4, dst, INET_ADDRSTRLEN);
+      inet_ntop (AF_INET, &msg_route_entry.nexthop.nexthop4, nexthop, INET_ADDRSTRLEN);
+      DEBUG_SDPLANE_LOG (NETLINK, "[%s] IPv4: dst=%s/%u nexthop=%s oif=%u",
+                          action_type, dst, msg_route_entry.plen, nexthop,
+                          msg_route_entry.oif);
+    }
+  else /* AF_INET6 */
+    {
+      char dst[INET6_ADDRSTRLEN];
+      char nexthop[INET6_ADDRSTRLEN];
+      inet_ntop (AF_INET6, &msg_route_entry.dst.dst_ip6, dst, INET6_ADDRSTRLEN);
+      inet_ntop (AF_INET6, &msg_route_entry.nexthop.nexthop6, nexthop, INET6_ADDRSTRLEN);
+      DEBUG_SDPLANE_LOG (NETLINK, "[%s] IPv6: dst=%s/%u nexthop=%s oif=%u (not supported yet)",
+                          action_type, dst, msg_route_entry.plen, nexthop,
+                          msg_route_entry.oif);
+      return 0;  // IPv6 is not implemented yet
+    }
+
+  msgp = internal_msg_create (msg_type, &msg_route_entry, sizeof (msg_route_entry));
+  if (! msgp)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "internal_message create failed");
+      return -1;
+    }
 
   if (! msg_queue_rib)
-    DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
+      internal_msg_delete (msgp);
+      return -1;
+    }
 
-  if (msgp)
-    {
-      internal_msg_send_to (msg_queue_rib, msgp, NULL);
-    }
-  else
-    {
-      DEBUG_SDPLANE_LOG (NETLINK, "route msgp is NULL.");
-    }
+  internal_msg_send_to (msg_queue_rib, msgp, NULL);
 
   return 0;
 }
