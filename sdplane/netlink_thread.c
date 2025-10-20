@@ -356,6 +356,8 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
                           rtm->rtm_family);
       return -1;
     }
+  if (rtm->rtm_table != 10)
+    return -1;
   msg_route_entry.family = rtm->rtm_family;
   msg_route_entry.plen = rtm->rtm_dst_len;
 
@@ -363,7 +365,6 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
     {
       if (rtm->rtm_family == AF_INET)
         {
-          // IPv4
           switch (rta->rta_type)
             {
               case RTA_DST:
@@ -379,9 +380,8 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
                 break;
             }
         }
-      else if (rtm->rtm_family == AF_INET6)
+      else // AF_INET6
         {
-          // IPv6
           switch (rta->rta_type)
             {
               case RTA_DST:
