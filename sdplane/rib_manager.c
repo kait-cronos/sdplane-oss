@@ -30,6 +30,9 @@
 
 #include "internal_message.h"
 
+#include "radix.h"
+#include "route_info.h"
+
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
@@ -576,6 +579,35 @@ rib_info_hard_coding (struct rib_info *new)
 }
 #endif
 
+/* copy RIB node */
+static struct rib_node *
+copy_rib_node (struct rib_node *n)
+{
+  struct rib_node *new;
+
+  if (n == NULL)
+    return NULL;
+
+  new = create_rib_node ();
+  if (new == NULL)
+    return NULL;
+
+  /* copy fields */
+  new->plen = n->plen;
+  new->valid = n->valid;
+  new->route = copy_route_info (n->route);
+
+  /* check if route_info copy failed */
+  if (n->route && !new->route)
+      return NULL;
+
+  /* copy recursive */
+  new->left = copy_rib_node (n->left);
+  new->right = copy_rib_node (n->right);
+
+  return new;
+}
+
 static inline __attribute__ ((always_inline)) struct rib_info *
 rib_info_create (struct rib_info *old)
 {
@@ -587,9 +619,29 @@ rib_info_create (struct rib_info *old)
     return NULL;
 
   if (! old)
-    memset (new, 0, sizeof (struct rib_info));
+    {
+      memset (new, 0, sizeof (struct rib_info));
+
+      new->rib_tree = malloc (sizeof (struct rib_tree));
+      if (new->rib_tree)
+        new->rib_tree->root = NULL;
+
+      new->fib_tree = malloc (sizeof (struct fib_tree));
+      if (new->fib_tree)
+        new->fib_tree->root = NULL;
+    }
   else
-    memcpy (new, old, sizeof (struct rib_info));
+    {
+      memcpy (new, old, sizeof (struct rib_info));
+
+      new->rib_tree = malloc (sizeof (struct rib_tree));
+      if (new->rib_tree)
+        new->rib_tree->root = copy_rib_node (old->rib_tree->root);
+
+      new->fib_tree = malloc (sizeof (struct fib_tree));
+      if (new->fib_tree)
+        new->fib_tree->root = NULL;
+    }
 
 #if 0
   /* XXX hard-coding part. */
@@ -600,9 +652,53 @@ rib_info_create (struct rib_info *old)
   return new;
 }
 
+/* free RIB node */
+static void
+free_rib_node (struct rib_node *n)
+{
+  if (n != NULL)
+    {
+      free_rib_node (n->left);
+      free_rib_node (n->right);
+
+      /* free route_info and its nexthops */
+      if (n->route)
+        route_info_free (n->route);
+
+      free (n);
+    }
+}
+
+/* free FIB node */
+static void
+free_fib_node (struct fib_node *n)
+{
+  int i;
+
+  if (n != NULL)
+    {
+      for (i = 0; i < BRANCH_SZ; i++)
+        {
+          if (n->child[i] != NULL)
+            free_fib_node (n->child[i]);
+        }
+      free (n);
+    }
+}
+
 static inline __attribute__ ((always_inline)) void
 rib_info_delete (struct rib_info *old)
 {
+  if (old->fib_tree)
+    {
+      free_fib_node (old->fib_tree->root);
+      free (old->fib_tree);
+    }
+  if (old->rib_tree)
+    {
+      free_rib_node (old->rib_tree->root);
+      free (old->rib_tree);
+    }
   free (old);
 }
 
@@ -1223,12 +1319,6 @@ rib_manager_process_message (void *msgp)
       vswitch_link_delete (new->rib_info, link->vswitch_link_id);
       break;
 
-    case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
-      msg_route_entry =
-          (struct internal_msg_route_entry *) (msg_header + 1);
-      //TODO: store to rib_info and map OIFs to dpdk-ports
-      break;
-
     case INTERNAL_MSG_TYPE_ROUTER_IF_SET:
       struct internal_msg_tap_dev *msg_router_if_set;
       struct router_if *rif;
@@ -1354,6 +1444,90 @@ rib_manager_process_message (void *msgp)
       msg_appli_slot =
         (struct application_slot_entry *) (msg_header + 1);
       application_slot_add (new->rib_info, msg_appli_slot);
+      break;
+
+    case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_add: %p.", msgp);
+      msg_route_entry =
+          (struct internal_msg_route_entry *) (msg_header + 1);
+      struct nexthop_info *nh;
+      struct route_info *ri;
+      uint8_t *key;
+
+      /* IPv6 is not implemented yet */
+      if (msg_route_entry->family == AF_INET)
+        {
+          nh = nexthop_create (AF_INET, &msg_route_entry->nexthop.nexthop4,
+                               msg_route_entry->oif);
+          ri = route_info_create ();
+          if (route_info_add_nexthop (ri, nh) != 0)
+            {
+              nexthop_free (nh);
+              route_info_free (ri);
+              break;
+            }
+
+          key = (uint8_t *)&msg_route_entry->dst.dst_ip4;
+          if (rib_route_add (new->rib_info->rib_tree, key, msg_route_entry->plen, ri) != 0)
+            {
+              DEBUG_SDPLANE_LOG (RIB, "failed to add route to RIB");
+              route_info_free (ri);
+              break;
+            }
+
+          if (rebuild_fib_from_rib (new->rib_info->rib_tree, new->rib_info->fib_tree) != 0)
+            {
+              DEBUG_SDPLANE_LOG (RIB, "failed to rebuild FIB");
+              route_info_free (ri);
+              break;
+            }
+
+          char dst[INET_ADDRSTRLEN];
+          char nexthop[INET_ADDRSTRLEN];
+          inet_ntop (AF_INET, &msg_route_entry->dst.dst_ip4, dst, INET_ADDRSTRLEN);
+          inet_ntop (AF_INET, &msg_route_entry->nexthop.nexthop4, nexthop, INET_ADDRSTRLEN);
+          DEBUG_SDPLANE_LOG (RIB, "route added: IPv4: dst=%s/%d nexthop=%s oif=%d",
+                             dst, msg_route_entry->plen,
+                             nexthop, msg_route_entry->oif);
+        }
+      break;
+    
+    case INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_del: %p.", msgp);
+      msg_route_entry =
+          (struct internal_msg_route_entry *) (msg_header + 1);
+      struct nexthop_info *nh_del;
+      uint8_t *key_del;
+
+      if (msg_route_entry->family == AF_INET)
+        {
+          nh_del = nexthop_create (AF_INET, &msg_route_entry->nexthop.nexthop4,
+                                   msg_route_entry->oif);
+          key_del = (uint8_t *)&msg_route_entry->dst.dst_ip4;
+          if (rib_route_delete (new->rib_info->rib_tree, key_del, msg_route_entry->plen, nh_del) != 0)
+            {
+              nexthop_free (nh_del);
+              break;
+            }
+
+          /* free nexthop used for matching */
+          nexthop_free (nh_del);
+
+          // new->rib_info->fib_tree->root = rebuild_fib_from_rib (new->rib_info->rib_tree);
+          if (rebuild_fib_from_rib (new->rib_info->rib_tree, new->rib_info->fib_tree) != 0)
+            {
+              DEBUG_SDPLANE_LOG (RIB, "failed to rebuild FIB");
+              break;
+            }
+
+          char dst[INET_ADDRSTRLEN];
+          char nexthop[INET_ADDRSTRLEN];
+          inet_ntop (AF_INET, &msg_route_entry->dst.dst_ip4, dst, INET_ADDRSTRLEN);
+          inet_ntop (AF_INET, &msg_route_entry->nexthop.nexthop4, nexthop, INET_ADDRSTRLEN);
+          DEBUG_SDPLANE_LOG (RIB, "route deleted: IPv4: dst=%s/%d nexthop=%s oif=%d",
+                             dst, msg_route_entry->plen,
+                             nexthop, msg_route_entry->oif);
+        }
       break;
 
     default:
