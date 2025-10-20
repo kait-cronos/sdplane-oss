@@ -167,6 +167,19 @@ struct fib_tree
   struct fib_node *root;
 };
 
+struct rib_node
+{
+  int valid;
+  int plen;
+  struct route_info *route;
+  struct rib_node *left;
+  struct rib_node *right;
+};
+struct rib_tree
+{
+  struct rib_node *root;
+};
+
 struct rib_info
 {
   uint32_t ver;
@@ -184,6 +197,7 @@ struct rib_info
   struct fdb_entry fdb[FDB_SIZE];
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
   struct fib_tree *fib_tree;
+  struct rib_tree *rib_tree;
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);
