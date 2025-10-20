@@ -2,11 +2,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
-#include "radix.h"
+#include <sdplane/debug.h>
+#include <sdplane/debug_cmd.h>
+#include <sdplane/debug_log.h>
 
-// key: byte array, b: bit index
-#define BIT_CHECK(key, b) (((uint8_t *)(key))[(b) >> 3] & (0x80 >> ((b)&0x7)))
+#include <sdplane/debug_category.h>
+#include <sdplane/debug_zcmdsh.h>
+#include "debug_sdplane.h"
+
+#include "fib.h"
 
 // key: address, s: start bit, n: number of bits
 static inline uint32_t
@@ -17,62 +24,26 @@ BIT_INDEX32 (const uint8_t *key, int s, int n)
   return (((uint64_t)(key32) << 32 >> (64 - ((s) + (n)))) & ((1 << (n)) - 1));
 }
 
-struct rib_tree *
-rib_new (struct rib_tree *t)
+static struct fib_node *
+_create_fib_node (void)
 {
-  if (!t)
-    {
-      t = malloc (sizeof (struct rib_tree));
-      if (!t)
-        return NULL;
-    }
-  t->root = NULL;
-  return t;
-}
+  struct fib_node *new;
 
-static void
-_free_rib_node (struct rib_node *n)
-{
-  int i;
-
-  if (n != NULL)
-    {
-      for (i = 0; i < BRANCH_SZ; i++)
-        _free_rib_node (n->child[i]);
-      free (n);
-    }
-}
-
-void
-rib_free (struct rib_tree *t)
-{
-  if (t != NULL)
-    {
-      _free_rib_node (t->root);
-      free (t);
-    }
-}
-
-static inline struct rib_node *
-_create_rib_node (void)
-{
-  struct rib_node *new;
-
-  new = malloc (sizeof (struct rib_node));
+  new = malloc (sizeof (struct fib_node));
   if (new != NULL)
-    memset (new, 0, sizeof (struct rib_node));
+    memset (new, 0, sizeof (struct fib_node));
   return new;
 }
 
-static struct rib_node *
-_add (struct rib_node *n, const uint8_t *key, int plen, void *data, int depth)
+static struct fib_node *
+_add (struct fib_node *n, const uint8_t *key, int plen, struct route_info *ri, int depth)
 {
   uint32_t index, i;
   uint32_t bits_in_depth, base, first, count;
   int exists = (n != NULL);
 
   if (!exists)
-    n = _create_rib_node ();
+    n = _create_fib_node ();
 
   /* case1: 階層がプレフィックスに到達した場合 */
   if (plen <= depth)
@@ -83,7 +54,7 @@ _add (struct rib_node *n, const uint8_t *key, int plen, void *data, int depth)
       if (!n->leaf && exists)
         {
           for (i = 0; i < BRANCH_SZ; i++)
-            n->child[i] = _add (n->child[i], key, plen, data, depth + K);
+            n->child[i] = _add (n->child[i], key, plen, ri, depth + K);
           return n;
         }
       /* 葉ノードの場合 */
@@ -93,11 +64,9 @@ _add (struct rib_node *n, const uint8_t *key, int plen, void *data, int depth)
           if (plen > n->plen)
             {
               n->plen = plen;
-              n->data = data;
-#ifdef DEBUG
-              printf ("update leaf plen=%d, data=%p, depth=%d\n", plen, data,
-                      depth);
-#endif
+              n->route = ri;
+              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "update leaf plen=%d depth=%d route_info=%p",
+                                 plen, depth, ri);
             }
           return n;
         }
@@ -106,10 +75,9 @@ _add (struct rib_node *n, const uint8_t *key, int plen, void *data, int depth)
         {
           n->leaf = 1;
           n->plen = plen;
-          n->data = data;
-#ifdef DEBUG
-          printf ("set leaf plen=%d, data=%p, depth=%d\n", plen, data, depth);
-#endif
+          n->route = ri;
+          DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "set leaf plen=%d depth=%d route_info=%p",
+                            plen, depth, ri);
           return n;
         }
     }
@@ -148,38 +116,40 @@ _add (struct rib_node *n, const uint8_t *key, int plen, void *data, int depth)
       for (i = 0; i < BRANCH_SZ; i++)
         {
           if (i >= first && i < first + count)
-            /* この範囲には新しいノードを登録 */
-            n->child[i] = _add (n->child[i], key, plen, data, depth + K);
+            {
+              /* この範囲には新しいノードを登録 */
+              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding to child[%d] (in range)", i);
+              n->child[i] = _add (n->child[i], key, plen, ri, depth + K);
+            }
           else if (n->leaf)
-            /* 範囲外には親ノードのデータをコピー */
-            n->child[i] = _add (n->child[i], key, n->plen, n->data, depth + K);
+            {
+              /* 範囲外には親ノードのデータをコピー */
+              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "copying parent to child[%d] (out of range, parent plen=%d)", i, n->plen);
+              n->child[i] = _add (n->child[i], key, n->plen, n->route, depth + K);
+            }
         }
       /* 現在のノードはもはや葉ノードではない */
       n->leaf = 0;
       n->plen = 0;
-      n->data = NULL;
+      n->route = NULL;
       return n;
     }
 
   /* case3: さらに深い階層へ再帰 */
   index = BIT_INDEX32 (key, depth, K);
-  n->child[index] = _add (n->child[index], key, plen, data, depth + K);
+  n->child[index] = _add (n->child[index], key, plen, ri, depth + K);
   return n;
 }
 
 int
-rib_route_add (struct rib_tree *t, const uint8_t *key, int plen, void *data)
+fib_route_add (struct fib_tree *t, const uint8_t *key, int plen, struct route_info *ri)
 {
-#ifdef DEBUG
-  static int count = 0;
-  count++;
-  printf ("----- Add %d: key=%u.%u.%u.%u/%d, data=%p -----\n", count, key[0],
-          key[1], key[2], key[3], plen, data);
-#endif
-  t->root = _add (t->root, key, plen, data, 0);
+  t->root = _add (t->root, key, plen, ri, 0);
   return (t->root == NULL) ? -1 : 0; /* error(-1) if root is NULL */
 }
 
+/* it is unnecessary as it will be recreated from the RIB */
+#if 0
 static int
 _shrink (struct rib_node *n)
 {
@@ -236,9 +206,10 @@ rib_route_delete (struct rib_tree *t, uint8_t *key, int plen)
   t->root = _delete (t->root, key, plen, 0);
   return 0; /* 削除成功 */
 }
+#endif
 
-static struct rib_node *
-_lookup (struct rib_node *n, struct rib_node *cand, const uint8_t *key,
+static struct fib_node *
+_lookup (struct fib_node *n, struct fib_node *cand, const uint8_t *key,
          int depth)
 {
   uint32_t index;
@@ -250,15 +221,13 @@ _lookup (struct rib_node *n, struct rib_node *cand, const uint8_t *key,
     cand = n;
 
   index = BIT_INDEX32 (key, depth, K);
-#ifdef DEBUG
-  printf ("depth=%d, index=%d\n", depth, index);
-#endif
+  DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "depth=%d, index=%d", depth, index);
 
   return _lookup (n->child[index], cand, key, depth + K);
 }
 
-struct rib_node *
-rib_route_lookup (struct rib_tree *t, const uint8_t *key)
+struct fib_node *
+fib_route_lookup (struct fib_tree *t, const uint8_t *key)
 {
   return _lookup (t->root, NULL, key, 0);
 }

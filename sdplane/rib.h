@@ -155,6 +155,18 @@ struct route_info
   struct nexthop_info *nexthops;  // linked list of nexthops
 };
 
+struct fib_node
+{
+  struct fib_node *child[BRANCH_SZ];
+  int leaf; // 0: non-leaf, 1: leaf
+  int plen;
+  struct route_info *route;
+};
+struct fib_tree
+{
+  struct fib_node *root;
+};
+
 struct rib_info
 {
   uint32_t ver;
@@ -171,6 +183,7 @@ struct rib_info
   struct neigh_table neigh_tables[NEIGH_NR_TABLES];
   struct fdb_entry fdb[FDB_SIZE];
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
+  struct fib_tree *fib_tree;
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);
