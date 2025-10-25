@@ -21,6 +21,10 @@
   #define RTE_IPV6_ADDR_SIZE 16
   #ifndef RTE_VLAN_TCI_ID
   #define RTE_VLAN_TCI_ID(vlan_tci) ((vlan_tci) & 0x0fff)
+  #define RTE_VLAN_TCI_PRI(vlan_tci) \
+    (((vlan_tci) & 0xe000) >> 13)
+  #define RTE_VLAN_TCI_DEI(vlan_tci) \
+    (((vlan_tci) & 0x1000) >> 12)
   #endif
 #endif
 

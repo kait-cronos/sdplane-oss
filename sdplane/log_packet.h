@@ -1,6 +1,8 @@
 #ifndef __LOG_PACKET_H__
 #define __LOG_PACKET_H__
 
+#include "rte_override.h"
+
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
 
