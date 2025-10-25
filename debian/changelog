@@ -1,3 +1,179 @@
+sdplane (0.1.3-346) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 25 Oct 2025 19:08:26 +0900
+
+sdplane (0.1.3-345) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 25 Oct 2025 17:46:18 +0900
+
+sdplane (0.1.3-344) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 25 Oct 2025 17:45:36 +0900
+
+sdplane (0.1.3-343) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 25 Oct 2025 17:45:01 +0900
+
+sdplane (0.1.3-342) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 25 Oct 2025 17:43:31 +0900
+
+sdplane (0.1.3-341) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge pull request #188 from kait-cronos/fix-dpdk-23
+  * fix DPDK-23 support about VLAN macros.
+  * Merge pull request #184 from kait-cronos/develop/rakus-add-mlx-pktgen
+  * add: example config for using pktgen on machines with Mellanox NICs. NIC used for testing: MCX75310AAS-NEAT
+  * Merge pull request #122 from kait-cronos/develop/kinoshita_tap_routing
+  * clean: blank
+  * clean: blank
+  * can not execute internal_msg_send_to
+  * change : null logic
+  * change : null return place
+  * add: early return if null
+  * fix : review
+  * fix: comment
+  * fix : blank line
+  * fix : LF
+  * fix: indent
+  * apply gnuestyle and add comment
+  * fix : I miss
+  * segmentfault
+  * inet_nhop for gw and addr
+  * wip
+  * add: msg_queue_rib
+  * add debug
+  * add interl_msg_send_to
+  * debug print
+  * debug for route_entry
+  * init first netlink struct
+  * ignore compile_commands.json for vscode clangd lsp
+  * Merge pull request #180 from kait-cronos/lthread-l3-tap-handler
+  * lthread-version l3-tap-handler is now working.
+  * Merge pull request #179 from kait-cronos/thread-choice
+  * now thread can behave accordingly depending on the thread-type (lthread or dpdk-pthread), by using IS_LTHREAD() checker.
+  * Merge pull request #178 from kait-cronos/application-slot
+  * register application-slot.
+  * Merge pull request #176 from kait-cronos/simple-router-example-config
+  * example-config for simple router: all sdplane is doing is just to connect to the upper linux router.
+  * Merge pull request #177 from kait-cronos/fix-libsdplane-version
+  * fix libsdplane-version.
+  * Merge pull request #175 from kait-cronos/adapt-new-log-system
+  * adapt to the new log-system. start using ERROR_MSG() and WARNING().
+  * Merge pull request #174 from kait-cronos/lthread-dhcp-server
+  * change dhcp_server to lthread mode. log_packet() is simplified and __parse_packet() is introduced.
+  * Merge pull request #173 from kait-cronos/update-show-tech
+  * update show-tech.sh. (major update part was mistakenly committed in the previous version.)
+  * Merge pull request #172 from kait-cronos/command-line-version
+  * print version by command-line.
+  * Merge pull request #171 from kait-cronos/libsdplane-version
+  * libsdplane version.
+  * Merge pull request #170 from kait-cronos/update-show-tech
+  * update show-tech.sh.
+  * Merge pull request #169 from kait-cronos/revise-l3-tap-handler
+  * revise l3_tap_handler.
+  * Merge pull request #168 from kait-cronos/fix-rib-imsg-memleak
+  * fix memleak in rib_manager when rib_check() failed.
+  * Merge pull request #167 from kait-cronos/tap_set_hwaddr
+  * fix indentation.
+  * rib.c: set_router_if_hwaddr cmd. tap.c: tap_set_hwaddr().
+  * Merge pull request #166 from kait-cronos/fix-access-contention
+  * fix crash by access contention. multiple enhanced_repeater threads are trying to process vswitch's ring_dn ring, which may cause corruption of a packet (rte_mbuf).
+  * Merge pull request #165 from kait-cronos/fix-readme
+  * update README.md for debugging DPDK lib.
+  * Merge pull request #163 from kait-cronos/fix-log-packet
+  * fix log_packet().
+  * Merge pull request #160 from kait-cronos/kinoshita/log_vlan_packet
+  * implment log packet for vlan
+  * Merge pull request #158 from kait-cronos/fix-dpdk-23
+  * fix-dpdk-23.
+  * Merge pull request #157 from kait-cronos/fix-max-vswitch
+  * fix for "show rib".
+  * fix max vswitch.
+  * Merge pull request #156 from kait-cronos/show-tech
+  * tools/show-tech.sh.
+  * Merge pull request #155 from kait-cronos/dup-vswitch-fix
+  * lthread_main type from void to int. make rib_manager_send_message() to macro so that line number can be output in DEBUG_SDPLANE_LOG(). prevent duplicate vswitches from being created. set TUNSETPERSIST to router_if and capture_if.
+  * Merge pull request #154 from kait-cronos/show_vswitch_replace
+  * show vswitch replace.
+  * Merge pull request #153 from kait-cronos/rte_override_h
+  * update rte_override.h
+  * Merge pull request #152 from kait-cronos/revise-enhanced-repeater
+  * revise send_ring func and its log messages.
+  * Merge pull request #151 from kait-cronos/dhcp-server
+  * fix back the pid_file_lock() message.
+  * fix dhcp-server read.
+  * dhcp-server receive okay.
+  * show debug now doesn't show "off" types.
+  * compiled okay.
+  * dhcp_server framework (draft).
+  * Merge pull request #150 from kait-cronos/pid_file_without_lock
+  * pid-file without lock.
+  * Merge pull request #149 from kait-cronos/feature/l2-switch
+  * feat: implement l2-switch
+  * feat: add source of l2-switch
+  * feat: add debug definition of l2-switch
+  * Merge pull request #148 from kait-cronos/remove-comment-action
+  * ci: remove clang-format diff comment warning
+  * Merge pull request #130 from kait-cronos/feature/l2-switch
+  * chore: change division to bit masking
+  * Merge pull request #139 from kait-cronos/enhanced-repeater-review
+  * fix: improve jenkins hash and fdb aging
+  * fix: extract necessary information and create internal message
+  * reviewing enhanced_repeater.
+  * Merge pull request #131 from kait-cronos/dpdk-version-matrix
+  * remove 25
+  * add dpdk version matrix
+  * refactor: add to send internal message for FDB addition
+  * refactor: remove legacy FDB data structures
+  * feat: implement FDB management in RIB system
+  * feat: add FDB data structures and messaging infrastructure
+  * Merge pull request #126 from kait-cronos/fix/yykzm-neighbug
+  * fix missing msgp free on neighbor entry add/del failure
+  * fix accidental removal of internal message handling for neighbor
+  * Merge pull request #121 from kait-cronos/tests-prepare
+  * remove unrequired diff
+  * edit README.md
+  * edit README.md
+  * remove ci test for now
+  * fix format
+  * add README.md
+  * 2コアしかないActionsでも動くように修正
+  * add ci
+  * fix test conf
+  * remove unrequired changes
+  * fix .gitignore
+  * add test_enhanced_repeater
+  * ログをファイルに出力
+  * 失敗時のみログを出力するように変更
+  * 複数テストケースに対応
+  * wip
+  * configを必要最低限にした
+  * clean up
+  * テストフレームワーク化
+  * update port link-status is removed
+  * add linkflap_generator.c to makefile
+  * wip: テストフレームワーク化
+  * ようやくとりあえず動く
+  * wip
+  * wip: l2_repeaterがデータを受け取ってくれない
+  * wip: test codes
+  * build tests
+  * wip
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 25 Oct 2025 16:25:10 +0900
+
 sdplane (0.1.3-167) UNRELEASED; urgency=low
 
   * release. update changelog.
