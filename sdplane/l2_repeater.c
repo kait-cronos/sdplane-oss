@@ -34,6 +34,8 @@
 #include "rib_manager.h"
 #include "thread_info.h"
 
+#include "log_packet.h"
+
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
@@ -230,6 +232,9 @@ l2_repeater_rx_burst ()
         {
           m = pkts_burst[j];
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
+
+          if (IS_DEBUG (L2_REPEATER) || IS_DEBUG (PACKET))
+            log_packet (m, portid, queueid);
 
           l2_repeater_tap_up (m, portid, queueid);
           l2_repeat (m, portid, queueid);
