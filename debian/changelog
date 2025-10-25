@@ -1,3 +1,10 @@
+sdplane (0.1.3-348) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge branch 'stable-march'
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sat, 25 Oct 2025 21:29:17 +0900
+
 sdplane (0.1.3-346) UNRELEASED; urgency=low
 
   * release. update changelog.
