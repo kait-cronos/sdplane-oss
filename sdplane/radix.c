@@ -18,8 +18,9 @@
 #include "radix.h"
 #include "fib.h"
 
-// key: byte array, b: bit index
-#define BIT_CHECK(key, b) (((uint8_t *)(key))[(b) >> 3] & (0x80 >> ((b)&0x7)))
+/* key: byte array, b: bit index */
+#define BIT_CHECK(key, b)                                                     \
+  (((uint8_t *) (key))[(b) >> 3] & (0x80 >> ((b) & 0x7)))
 
 struct rib_tree *
 rib_new (struct rib_tree *t)
@@ -78,8 +79,8 @@ _create_rib_node (void)
 }
 
 static struct rib_node *
-_add (struct rib_node *n, const uint8_t *key, int keylen, int idx,
-          int depth, int *success)
+_add (struct rib_node *n, const uint8_t *key, int keylen, int idx, int depth,
+      int *success)
 {
   if (! n)
     {
@@ -145,17 +146,17 @@ rib_route_add (struct rib_tree *t, const uint8_t *key, int keylen, int idx)
 }
 
 static struct rib_node *
-_shrink(struct rib_node *n)
+_shrink (struct rib_node *n)
 {
   if (! n)
     return NULL;
 
-  n->left = _shrink(n->left);
-  n->right = _shrink(n->right);
+  n->left = _shrink (n->left);
+  n->right = _shrink (n->right);
 
   if (! n->left && ! n->right && ! n->valid)
     {
-      free(n);
+      free (n);
       n = NULL;
       return NULL;
     }
@@ -226,8 +227,7 @@ _delete (struct rib_node *n, const uint8_t *key, int keylen, int depth,
 }
 
 int
-rib_route_delete (struct rib_tree *t, const uint8_t *key, int keylen,
-                  int idx)
+rib_route_delete (struct rib_tree *t, const uint8_t *key, int keylen, int idx)
 {
   int success = 0;
   t->root = _delete (t->root, key, keylen, 0, idx, &success);
@@ -296,10 +296,9 @@ _add_to_fib (struct rib_node *n, void *arg)
 
   uint8_t key_str[INET6_ADDRSTRLEN];
   inet_ntop (fib_tree->family, &n->key, key_str, sizeof (key_str));
-  DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
-                     "adding route to fib: keylen=%d key=%s",
+  DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding route to fib: keylen=%d key=%s",
                      n->keylen, key_str);
-       
+
   if (fib_tree->family == AF_INET)
     return fib_route_add4 (fib_tree, n->key, n->keylen, n->route_idx);
   else
@@ -326,7 +325,7 @@ rib_show_route (struct rib_node *n, void *arg)
   int family = show_arg->family;
   uint8_t prefix_str[INET6_ADDRSTRLEN];
   uint8_t nexthop_str[INET6_ADDRSTRLEN];
-  uint8_t dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 prefix/prefixlen string size
+  uint8_t dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 string size
   int i;
 
   /* format prefix */
@@ -340,11 +339,12 @@ rib_show_route (struct rib_node *n, void *arg)
         {
           struct route_entry *entry = &rib_info->route_table[idx];
 
-          inet_ntop (family, &entry->nexthop, nexthop_str, sizeof (nexthop_str));
-          snprintf (dst_str, sizeof(dst_str), "%s/%d", prefix_str, n->keylen);
+          inet_ntop (family, &entry->nexthop, nexthop_str,
+                     sizeof (nexthop_str));
+          snprintf (dst_str, sizeof (dst_str), "%s/%d", prefix_str, n->keylen);
 
-          fprintf (shell->terminal, "%-30s  via %-26s  dev %u%s",
-                   dst_str, nexthop_str, entry->oif, shell->NL);
+          fprintf (shell->terminal, "%-30s  via %-26s  dev %u%s", dst_str,
+                   nexthop_str, entry->oif, shell->NL);
         }
     }
 

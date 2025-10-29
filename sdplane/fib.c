@@ -55,8 +55,8 @@ count_nonzero (const int *arr, int len)
   int count = 0;
   for (int i = 0; i < len; i++)
     {
-        if (arr[i] != -1)
-          count++;
+      if (arr[i] != -1)
+        count++;
     }
   return count;
 }
@@ -93,9 +93,8 @@ _traverse (struct fib_node *n, fib_traverse_callback callback, void *arg,
   /* process current node if it's a leaf */
   if (n->leaf && n->num_routes != 0 && callback)
     {
-      DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
-                          "show route: depth=%d keylen=%d", depth,
-                          n->keylen);
+      DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "show route: depth=%d keylen=%d",
+                         depth, n->keylen);
       if (callback (n, arg) != 0)
         return -1;
     }
@@ -128,7 +127,7 @@ fib_show_route (struct fib_node *n, void *arg)
   int family = show_arg->family;
   uint8_t prefix_str[INET6_ADDRSTRLEN];
   uint8_t nexthop_str[INET6_ADDRSTRLEN];
-  uint8_t dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 prefix/prefixlen string size
+  uint8_t dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 string size
 
   int i;
 
@@ -143,11 +142,12 @@ fib_show_route (struct fib_node *n, void *arg)
         {
           struct route_entry *entry = &rib_info->route_table[idx];
 
-          inet_ntop (family, &entry->nexthop, nexthop_str, sizeof (nexthop_str));
-          snprintf (dst_str, sizeof(dst_str), "%s/%d", prefix_str, n->keylen);
-          
-          fprintf (shell->terminal, "%-30s  via %-26s  dev %u%s",
-                   dst_str, nexthop_str, entry->oif, shell->NL);
+          inet_ntop (family, &entry->nexthop, nexthop_str,
+                     sizeof (nexthop_str));
+          snprintf (dst_str, sizeof (dst_str), "%s/%d", prefix_str, n->keylen);
+
+          fprintf (shell->terminal, "%-30s  via %-26s  dev %u%s", dst_str,
+                   nexthop_str, entry->oif, shell->NL);
         }
     }
 

@@ -330,7 +330,8 @@ CLI_COMMAND2 (show_fdb,
   return 0;
 }
 
-CLI_COMMAND2 (show_fib_ip_route, "show fib (ipv4|ipv6) route",
+CLI_COMMAND2 (show_fib_ip_route,
+              "show fib (ipv4|ipv6) route",
               SHOW_HELP,
               "fib_tree\n",
               "IP\n",
@@ -354,14 +355,19 @@ CLI_COMMAND2 (show_fib_ip_route, "show fib (ipv4|ipv6) route",
   else if (! strcmp (argv[2], "ipv6"))
     show_arg.family = AF_INET6;
 
-  fprintf (shell->terminal, "%-30s  %-30s  Interface%s", "Destination", "Nexthop", shell->NL);
+  fprintf (shell->terminal, "%-30s  %-30s  Interface%s",
+           "Destination", "Nexthop", shell->NL);
 
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
-      if (rib->rib_info->fib_tree[i]->table_id == 254 && rib->rib_info->fib_tree[i]->family == show_arg.family) // main table only for test
+      /* main table only for test */
+      if (rib->rib_info->fib_tree[i]->table_id == 254 &&
+          rib->rib_info->fib_tree[i]->family == show_arg.family)
         {
-          fprintf (shell->terminal, "rib_tree_master[%d]:%p%s", i, rib_tree_master[i], shell->NL);
-          fib_traverse (rib->rib_info->fib_tree[i], fib_show_route, &show_arg);
+          fprintf (shell->terminal, "rib_tree_master[%d]:%p%s",
+                   i, rib_tree_master[i], shell->NL);
+          fib_traverse (rib->rib_info->fib_tree[i], fib_show_route,
+                        &show_arg);
           break;
         }
     }
@@ -369,7 +375,8 @@ CLI_COMMAND2 (show_fib_ip_route, "show fib (ipv4|ipv6) route",
   return 0;
 }
 
-CLI_COMMAND2 (show_rib_ip_route, "show rib (ipv4|ipv6) route",
+CLI_COMMAND2 (show_rib_ip_route,
+              "show rib (ipv4|ipv6) route",
               SHOW_HELP,
               "rib_tree\n",
               "IP\n",
@@ -393,14 +400,19 @@ CLI_COMMAND2 (show_rib_ip_route, "show rib (ipv4|ipv6) route",
   else if (! strcmp (argv[2], "ipv6"))
     show_arg.family = AF_INET6;
 
-  fprintf (shell->terminal, "%-30s  %-30s  Interface%s", "Destination", "Nexthop", shell->NL);
+  fprintf (shell->terminal, "%-30s  %-30s  Interface%s",
+           "Destination", "Nexthop", shell->NL);
 
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
-      if (rib_tree_master[i]->table_id == 254 && rib_tree_master[i]->family == show_arg.family) // main table only for test
+      /* main table only for test */
+      if (rib_tree_master[i]->table_id == 254 &&
+          rib_tree_master[i]->family == show_arg.family)
         {
-          fprintf (shell->terminal, "rib_tree_master[%d]:%p%s", i, rib_tree_master[i], shell->NL);
-          rib_traverse (rib_tree_master[i], rib_show_route, &show_arg);
+          fprintf (shell->terminal, "rib_tree_master[%d]:%p%s",
+                   i, rib_tree_master[i], shell->NL);
+          rib_traverse (rib_tree_master[i], rib_show_route,
+                        &show_arg);
           break;
         }
     }

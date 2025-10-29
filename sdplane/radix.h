@@ -37,7 +37,8 @@ int rib_traverse (struct rib_tree *t, rib_traverse_callback callback,
                   void *arg);
 
 /* FIB rebuild from RIB */
-int rebuild_fib_from_rib (struct rib_tree *rib_tree, struct fib_tree *fib_tree);
+int rebuild_fib_from_rib (struct rib_tree *rib_tree,
+                          struct fib_tree *fib_tree);
 
 int rib_show_route (struct rib_node *n, void *arg);
 

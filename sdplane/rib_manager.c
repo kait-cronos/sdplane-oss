@@ -502,11 +502,11 @@ route_table_add_entry (struct rib_info *rib_info,
       /* check if entry already exists */
       if (rib_info->route_table[offset].family == entry->family &&
           rib_info->route_table[offset].oif == entry->oif &&
-          memcmp (rib_info->route_table[offset].nexthop,
-                  entry->nexthop, sizeof (entry->nexthop)) == 0)
+          memcmp (rib_info->route_table[offset].nexthop, entry->nexthop,
+                  sizeof (entry->nexthop)) == 0)
         {
-          DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
-                            "route_table[%u] already exists", offset);
+          DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "route_table[%u] already exists",
+                             offset);
           return offset;
         }
 
@@ -524,10 +524,12 @@ route_table_add_entry (struct rib_info *rib_info,
   /* add new entry */
   rib_info->route_table[offset].family = entry->family;
   rib_info->route_table[offset].oif = entry->oif;
-  memcpy (rib_info->route_table[offset].nexthop, entry->nexthop, sizeof (entry->nexthop));
+  memcpy (rib_info->route_table[offset].nexthop, entry->nexthop,
+          sizeof (entry->nexthop));
 
   uint8_t nexthop_str[INET6_ADDRSTRLEN];
-  inet_ntop (entry->family, &entry->nexthop, nexthop_str, sizeof (nexthop_str));
+  inet_ntop (entry->family, &entry->nexthop, nexthop_str,
+             sizeof (nexthop_str));
   DEBUG_SDPLANE_LOG (RIB, "added route_table[%u]: nexthop=%s oif=%u",
                      offset, nexthop_str, entry->oif);
   return offset;
@@ -547,8 +549,8 @@ route_table_lookup_entry (const struct rib_info *rib_info,
     {
       if (rib_info->route_table[offset].family == entry->family &&
           rib_info->route_table[offset].oif == entry->oif &&
-          memcmp (rib_info->route_table[offset].nexthop,
-                  entry->nexthop, sizeof (entry->nexthop)) == 0)
+          memcmp (rib_info->route_table[offset].nexthop, entry->nexthop,
+                  sizeof (entry->nexthop)) == 0)
         {
           DEBUG_SDPLANE_LOG (RIB, "lookup hit at route_table[%u]", offset);
           return offset;
@@ -1471,8 +1473,7 @@ rib_manager_process_message (void *msgp)
 
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_add: %p.", msgp);
-      msg_route_entry =
-          (struct internal_msg_route_entry *) (msg_header + 1);
+      msg_route_entry = (struct internal_msg_route_entry *) (msg_header + 1);
       int route_idx_add, tree_idx_add;
       uint8_t dst_str_add[INET6_ADDRSTRLEN];
       uint8_t nexthop_str_add[INET6_ADDRSTRLEN];
@@ -1488,8 +1489,9 @@ rib_manager_process_message (void *msgp)
           if (rib_tree_master[i]->family == msg_route_entry->family &&
               rib_tree_master[i]->table_id == msg_route_entry->table_id)
             {
-              DEBUG_SDPLANE_LOG (RIB, "found existing RIB[%d]: family=%d table_id=%d",
-                                 i, msg_route_entry->family, msg_route_entry->table_id);
+              DEBUG_SDPLANE_LOG (
+                  RIB, "found existing RIB[%d]: family=%d table_id=%d",
+                  i, msg_route_entry->family, msg_route_entry->table_id);
               tree_idx_add = i;
               break;
             }
@@ -1505,57 +1507,59 @@ rib_manager_process_message (void *msgp)
                   rib_tree_master[i]->family = msg_route_entry->family;
                   rib_tree_master[i]->table_id = msg_route_entry->table_id;
                   tree_idx_add = i;
-                  DEBUG_SDPLANE_LOG (RIB, "registered new RIB[%d]: family=%d table_id=%d",
-                                     i, msg_route_entry->family, msg_route_entry->table_id);
+                  DEBUG_SDPLANE_LOG (
+                      RIB, "registered new RIB[%d]: family=%d table_id=%d",
+                      i, msg_route_entry->family, msg_route_entry->table_id);
                   break;
                 }
             }
         }
-      
+
       if (tree_idx_add >= 0)
         {
-          if (rib_route_add (rib_tree_master[tree_idx_add], msg_route_entry->dst_ip, msg_route_entry->plen, route_idx_add) != 0)
+          if (rib_route_add (rib_tree_master[tree_idx_add],
+                             msg_route_entry->dst_ip, msg_route_entry->plen,
+                             route_idx_add) != 0)
             {
               DEBUG_SDPLANE_LOG (RIB, "failed to add route to RIB");
               if (! new->rib_info->route_table[route_idx_add].ref_count)
-                memset (&new->rib_info->route_table[route_idx_add], 0, sizeof (struct route_entry));
+                memset (&new->rib_info->route_table[route_idx_add], 0,
+                        sizeof (struct route_entry));
               break;
             }
           new->rib_info->route_table[route_idx_add].ref_count++;
 
-          inet_ntop (msg_route_entry->family, &msg_route_entry->dst_ip, dst_str_add, sizeof (dst_str_add));
-          inet_ntop (msg_route_entry->family, &msg_route_entry->nexthop, nexthop_str_add, sizeof (nexthop_str_add));
-          DEBUG_SDPLANE_LOG (RIB, "route added: dst=%s/%d nexthop=%s oif=%d idx=%d",
-                            dst_str_add, msg_route_entry->plen,
-                            nexthop_str_add, msg_route_entry->oif, route_idx_add);
+          inet_ntop (msg_route_entry->family, &msg_route_entry->dst_ip,
+                     dst_str_add, sizeof (dst_str_add));
+          inet_ntop (msg_route_entry->family, &msg_route_entry->nexthop,
+                     nexthop_str_add, sizeof (nexthop_str_add));
+          DEBUG_SDPLANE_LOG (
+              RIB, "route added: dst=%s/%d nexthop=%s oif=%d idx=%d",
+              dst_str_add, msg_route_entry->plen, nexthop_str_add,
+              msg_route_entry->oif, route_idx_add);
         }
       else
         {
           DEBUG_SDPLANE_LOG (RIB, "no available RIB slot");
           /* clean up route_table entry */
           if (! new->rib_info->route_table[route_idx_add].ref_count)
-            memset (&new->rib_info->route_table[route_idx_add], 0, sizeof (struct route_entry));
+            memset (&new->rib_info->route_table[route_idx_add], 0,
+                    sizeof (struct route_entry));
           break;
         }
 
       break;
-    
+
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_del: %p.", msgp);
-      msg_route_entry =
-          (struct internal_msg_route_entry *) (msg_header + 1);
+      msg_route_entry = (struct internal_msg_route_entry *) (msg_header + 1);
       int route_idx_del, tree_idx_del;
       uint8_t dst_str_del[INET6_ADDRSTRLEN];
       uint8_t nexthop_str_del[INET6_ADDRSTRLEN];
 
       tree_idx_del = -1;
-
-      inet_ntop (msg_route_entry->family, &msg_route_entry->dst_ip, dst_str_del, sizeof (dst_str_del));
-      inet_ntop (msg_route_entry->family, &msg_route_entry->nexthop, nexthop_str_del, sizeof (nexthop_str_del));
-      DEBUG_SDPLANE_LOG (RIB, "IP: dst=%s/%d nexthop=%s oif=%d",
-                          dst_str_del, msg_route_entry->plen,
-                          nexthop_str_del, msg_route_entry->oif);
-      route_idx_del = route_table_lookup_entry (new->rib_info, msg_route_entry);
+      route_idx_del =
+          route_table_lookup_entry (new->rib_info, msg_route_entry);
       if (route_idx_del < 0)
         break;
 
@@ -1572,24 +1576,30 @@ rib_manager_process_message (void *msgp)
 
       if (tree_idx_del >= 0)
         {
-          if (rib_route_delete (rib_tree_master[tree_idx_del], msg_route_entry->dst_ip, msg_route_entry->plen, route_idx_del) != 0)
+          if (rib_route_delete (rib_tree_master[tree_idx_del],
+                                msg_route_entry->dst_ip, msg_route_entry->plen,
+                                route_idx_del) != 0)
             {
               DEBUG_SDPLANE_LOG (RIB, "failed to delete route to RIB");
               if (! new->rib_info->route_table[route_idx_add].ref_count)
-                memset (&new->rib_info->route_table[route_idx_add], 0, sizeof (struct route_entry));
+                memset (&new->rib_info->route_table[route_idx_add], 0,
+                        sizeof (struct route_entry));
               break;
             }
           new->rib_info->route_table[route_idx_del].ref_count--;
           if (! new->rib_info->route_table[route_idx_del].ref_count)
-            memset (&new->rib_info->route_table[route_idx_del], 0, sizeof (struct route_entry));
+            memset (&new->rib_info->route_table[route_idx_del], 0,
+                    sizeof (struct route_entry));
 
-          inet_ntop (msg_route_entry->family, &msg_route_entry->dst_ip, dst_str_del, sizeof (dst_str_del));
-          inet_ntop (msg_route_entry->family, &msg_route_entry->nexthop, nexthop_str_del, sizeof (nexthop_str_del));
+          inet_ntop (msg_route_entry->family, &msg_route_entry->dst_ip,
+                     dst_str_del, sizeof (dst_str_del));
+          inet_ntop (msg_route_entry->family, &msg_route_entry->nexthop,
+                     nexthop_str_del, sizeof (nexthop_str_del));
           DEBUG_SDPLANE_LOG (RIB, "route deleted: dst=%s/%d nexthop=%s oif=%d",
-                              dst_str_del, msg_route_entry->plen,
-                              nexthop_str_del, msg_route_entry->oif);
+                             dst_str_del, msg_route_entry->plen,
+                             nexthop_str_del, msg_route_entry->oif);
         }
-      
+
       break;
 
     default:
@@ -1606,9 +1616,10 @@ rib_manager_process_message (void *msgp)
       if (rib_tree_master[i] && new->rib_info->fib_tree[i] &&
           rib_tree_master[i]->family != 0)
         {
-          if (rebuild_fib_from_rib (rib_tree_master[i], new->rib_info->fib_tree[i]) != 0)
-            DEBUG_SDPLANE_LOG (RIB, "failed to rebuild FIB[%d] (family=%d)",
-                               i, rib_tree_master[i]->family);
+          if (rebuild_fib_from_rib (rib_tree_master[i],
+                                    new->rib_info->fib_tree[i]) != 0)
+            DEBUG_SDPLANE_LOG (RIB, "failed to rebuild FIB[%d] (family=%d)", i,
+                               rib_tree_master[i]->family);
         }
     }
   rib_replace (new);

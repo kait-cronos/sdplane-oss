@@ -22,11 +22,13 @@ int fib_traverse (struct fib_tree *t, fib_traverse_callback callback,
 int fib_show_route (struct fib_node *n, void *arg);
 
 /* IPv4 */
-int fib_route_add4 (struct fib_tree *t, const uint8_t *key, int keylen, int *route_idx);
+int fib_route_add4 (struct fib_tree *t, const uint8_t *key, int keylen,
+                    int *route_idx);
 struct fib_node *fib_route_lookup4 (struct fib_tree *t, const uint8_t *key);
 
 /* IPv6 */
-int fib_route_add6 (struct fib_tree *t, const uint8_t *key, int keylen, int *route_idx);
+int fib_route_add6 (struct fib_tree *t, const uint8_t *key, int keylen,
+                    int *route_idx);
 struct fib_node *fib_route_lookup6 (struct fib_tree *t, const uint8_t *key);
 
 #endif /* FIB_H */

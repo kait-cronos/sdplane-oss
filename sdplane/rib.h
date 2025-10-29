@@ -14,12 +14,12 @@
 #define FDB_STATE_NONE          0
 #define FDB_STATE_ACTIVE        1
 #define FDB_AGING_TIME_DEFAULT  300 /* Default aging time: 300 seconds */
-#define ROUTE_TABLE_SIZE 1024
-#define ROUTE_TABLE_HASH_MASK 0x3FF
-#define MAX_ECMP_ENTRY 4
-#define ROUTE_TREE_SIZE 2
-#define K 2
-#define BRANCH_SZ (1 << K)
+#define ROUTE_TABLE_SIZE        1024
+#define ROUTE_TABLE_HASH_MASK   0x3FF
+#define MAX_ECMP_ENTRY          4
+#define ROUTE_TREE_SIZE         2
+#define K                       2
+#define BRANCH_SZ               (1 << K)
 
 #define ETH_LINK_DUPLEX_STR(v)  ((v) ? "full" : "half")
 #define ETH_LINK_AUTONEG_STR(v) ((v) ? "on" : "off")
