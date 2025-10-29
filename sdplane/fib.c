@@ -13,221 +13,143 @@
 #include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
+#include "sdplane.h"
+
 #include "fib.h"
 
-// key: address, s: start bit, n: number of bits
-static inline uint32_t
-BIT_INDEX32 (const uint8_t *key, int s, int n)
+struct fib_tree *
+fib_new (struct fib_tree *t)
 {
-  uint32_t key32 = ((uint32_t)key[0] << 24) | ((uint32_t)key[1] << 16)
-                   | ((uint32_t)key[2] << 8) | ((uint32_t)key[3]);
-  return (((uint64_t)(key32) << 32 >> (64 - ((s) + (n)))) & ((1 << (n)) - 1));
-}
-
-static struct fib_node *
-_create_fib_node (void)
-{
-  struct fib_node *new;
-
-  new = malloc (sizeof (struct fib_node));
-  if (new != NULL)
-    memset (new, 0, sizeof (struct fib_node));
-  return new;
-}
-
-static struct fib_node *
-_add (struct fib_node *n, const uint8_t *key, int plen, struct route_info *ri, int depth)
-{
-  uint32_t index, i;
-  uint32_t bits_in_depth, base, first, count;
-  int exists = (n != NULL);
-
-  if (!exists)
-    n = _create_fib_node ();
-
-  /* case1: 階層がプレフィックスに到達した場合 */
-  if (plen <= depth)
+  if (! t)
     {
-      /* 葉ノードではない（=子ノードが存在する）かつ、
-       * 既にノードが存在する（=内部ノード）場合に
-       * 全ての子に新しいプレフィックスを伝播 */
-      if (!n->leaf && exists)
-        {
-          for (i = 0; i < BRANCH_SZ; i++)
-            n->child[i] = _add (n->child[i], key, plen, ri, depth + K);
-          return n;
-        }
-      /* 葉ノードの場合 */
-      else if (n->leaf)
-        {
-          /* より長いプレフィックスの場合に更新 */
-          if (plen > n->plen)
-            {
-              n->plen = plen;
-              n->route = ri;
-              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "update leaf plen=%d depth=%d route_info=%p",
-                                 plen, depth, ri);
-            }
-          return n;
-        }
-      /* 新規葉ノードとして登録 */
-      else
-        {
-          n->leaf = 1;
-          n->plen = plen;
-          n->route = ri;
-          DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "set leaf plen=%d depth=%d route_info=%p",
-                            plen, depth, ri);
-          return n;
-        }
+      t = malloc (sizeof (struct fib_tree));
+      if (! t)
+        return NULL;
     }
+  t->root = NULL;
+  t->family = 0;
+  t->table_id = 0;
+  return t;
+}
 
-  /* case2: プレフィックスが次の階層の途中で終わる場合 */
-  if (plen < depth + K)
+/* free FIB node */
+void
+free_fib_node (struct fib_node *n)
+{
+  int i;
+
+  if (n != NULL)
     {
-      /*
-       * - Example: K=2 (4-ary)
-       *   - 96.0.0.0/3 (0b011/3)
-       * ------------------------------------------
-       *    v depth=0
-       * root      v depth=2
-       *    |---- 01      v depth=4
-       *           |---- 00
-       *           |---- 01
-       *           |---- 10 <- new node: 96.0.0.0/3
-       *           |---- 11 <- new node: 96.0.0.0/3
-       * ------------------------------------------
-       * - plen=3. depth=2 (3 < 2 + 2)
-       *   - bits_in_depth: 3 - 2 = 1 (0b01|1*)
-       *                                    ^
-       *   - base = 0b01|10
-       *               ^x1 = 1
-       *   - first = 1 << (2 - 1) = 0b010 = 2
-       *   - count = 1 << (2 - 1) = 0b010 = 2
-       *   - range: child[2] to child[3]
-       */
-      /* 新しいプレフィックスが登録される子ノードの範囲を計算 */
-      bits_in_depth = plen - depth; // この階層で決定されるビット数（1〜K-1）
-      base = BIT_INDEX32 (key, depth, bits_in_depth);
-      first = base << (K - bits_in_depth); // 範囲の開始インデックス
-      count = 1 << (K - bits_in_depth);    // 範囲のサイズ
-
-      /* 全ての子ノードに対して */
       for (i = 0; i < BRANCH_SZ; i++)
         {
-          if (i >= first && i < first + count)
-            {
-              /* この範囲には新しいノードを登録 */
-              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding to child[%d] (in range)", i);
-              n->child[i] = _add (n->child[i], key, plen, ri, depth + K);
-            }
-          else if (n->leaf)
-            {
-              /* 範囲外には親ノードのデータをコピー */
-              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "copying parent to child[%d] (out of range, parent plen=%d)", i, n->plen);
-              n->child[i] = _add (n->child[i], key, n->plen, n->route, depth + K);
-            }
+          if (n->child[i] != NULL)
+            free_fib_node (n->child[i]);
         }
-      /* 現在のノードはもはや葉ノードではない */
-      n->leaf = 0;
-      n->plen = 0;
-      n->route = NULL;
-      return n;
+      free (n);
     }
-
-  /* case3: さらに深い階層へ再帰 */
-  index = BIT_INDEX32 (key, depth, K);
-  n->child[index] = _add (n->child[index], key, plen, ri, depth + K);
-  return n;
 }
 
 int
-fib_route_add (struct fib_tree *t, const uint8_t *key, int plen, struct route_info *ri)
+count_nonzero (const int *arr, int len)
 {
-  t->root = _add (t->root, key, plen, ri, 0);
-  return (t->root == NULL) ? -1 : 0; /* error(-1) if root is NULL */
-}
-
-/* it is unnecessary as it will be recreated from the RIB */
-#if 0
-static int
-_shrink (struct rib_node *n)
-{
-  return 0;
-}
-
-static struct rib_node *
-_delete (struct rib_node *n, uint8_t *key, int plen, int depth)
-{
-  uint32_t i;
-  uint32_t bits_in_depth, base, first, count;
-  uint32_t index;
-
-  if (n == NULL)
-    return NULL;
-
-  /* case1: 階層がプレフィックスに到達した場合 */
-  if (plen <= depth)
+  int count = 0;
+  for (int i = 0; i < len; i++)
     {
-      if (n->leaf)
-        {
-          /* 葉ノードを削除 */
-          free (n);
-          return NULL; /* 親が child[index] を NULL に更新できるように */
-        }
-      else
-        return n; /* 葉ノードでない場合は削除しない */
+        if (arr[i] != -1)
+          count++;
     }
-
-  /* case2: プレフィックスが次の階層の途中で終わる場合 */
-  if (plen < depth + K)
-    {
-      bits_in_depth = plen - depth; // この階層で決定されるビット数（1〜K-1）
-      base = BIT_INDEX32 (key, depth, bits_in_depth);
-      first = base << (K - bits_in_depth); // 範囲の開始インデックス
-      count = 1 << (K - bits_in_depth);    // 範囲のサイズ
-
-      /* 範囲内のすべての子ノードを削除 */
-      for (i = first; i < first + count; i++)
-        n->child[i] = _delete (n->child[i], key, plen, depth + K);
-
-      return n; /* 更新された親ノードを返す */
-    }
-
-  /* case3: さらに深い階層へ再帰 */
-  index = BIT_INDEX32 (key, depth, K);
-  n->child[index] = _delete (n->child[index], key, plen, depth + K);
-  return n; /* 更新された親ノードを返す */
-}
-
-int
-rib_route_delete (struct rib_tree *t, uint8_t *key, int plen)
-{
-  t->root = _delete (t->root, key, plen, 0);
-  return 0; /* 削除成功 */
-}
-#endif
-
-static struct fib_node *
-_lookup (struct fib_node *n, struct fib_node *cand, const uint8_t *key,
-         int depth)
-{
-  uint32_t index;
-
-  if (n == NULL)
-    return cand;
-
-  if (n->leaf)
-    cand = n;
-
-  index = BIT_INDEX32 (key, depth, K);
-  DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "depth=%d, index=%d", depth, index);
-
-  return _lookup (n->child[index], cand, key, depth + K);
+  return count;
 }
 
 struct fib_node *
-fib_route_lookup (struct fib_tree *t, const uint8_t *key)
+create_fib_node (void)
 {
-  return _lookup (t->root, NULL, key, 0);
+  struct fib_node *new;
+  int i;
+
+  new = malloc (sizeof (struct fib_node));
+  if (! new)
+    return NULL;
+
+  memset (new, 0, sizeof (struct fib_node));
+
+  /* initialize route_idx to -1 to distinguish from valid index 0 */
+  for (i = 0; i < MAX_ECMP_ENTRY; i++)
+    new->route_idx[i] = -1;
+
+  return new;
+}
+
+/* traverse FIB tree depth-first in-order */
+static int
+_traverse (struct fib_node *n, fib_traverse_callback callback, void *arg,
+           int depth)
+{
+  int i;
+
+  if (! n)
+    return 0;
+
+  /* process current node if it's a leaf */
+  if (n->leaf && n->num_routes != 0 && callback)
+    {
+      DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
+                          "show route: depth=%d keylen=%d", depth,
+                          n->keylen);
+      if (callback (n, arg) != 0)
+        return -1;
+    }
+
+  /* process children in order */
+  for (i = 0; i < BRANCH_SZ; i++)
+    {
+      if (_traverse (n->child[i], callback, arg, depth + K) != 0)
+        return -1;
+    }
+
+  return 0;
+}
+
+int
+fib_traverse (struct fib_tree *t, fib_traverse_callback callback, void *arg)
+{
+  if (! t || ! t->root || ! callback)
+    return 0;
+  return _traverse (t->root, callback, arg, 0);
+}
+
+/* callback for show ip route */
+int
+fib_show_route (struct fib_node *n, void *arg)
+{
+  struct show_route_arg *show_arg = (struct show_route_arg *) arg;
+  struct shell *shell = show_arg->shell;
+  struct rib_info *rib_info = show_arg->rib_info;
+  int family = show_arg->family;
+  uint8_t prefix_str[INET6_ADDRSTRLEN];
+  uint8_t nexthop_str[INET6_ADDRSTRLEN];
+  uint8_t dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 prefix/prefixlen string size
+
+  int i;
+
+  /* format prefix */
+  inet_ntop (family, n->key, prefix_str, sizeof (prefix_str));
+
+  /* show each route */
+  for (i = 0; i < n->num_routes; i++)
+    {
+      int idx = n->route_idx[i];
+      if (idx >= 0 && idx < ROUTE_TABLE_SIZE)
+        {
+          struct route_entry *entry = &rib_info->route_table[idx];
+
+          inet_ntop (family, &entry->nexthop, nexthop_str, sizeof (nexthop_str));
+          snprintf (dst_str, sizeof(dst_str), "%s/%d", prefix_str, n->keylen);
+          
+          fprintf (shell->terminal, "%-30s  via %-26s  dev %u%s",
+                   dst_str, nexthop_str, entry->oif, shell->NL);
+        }
+    }
+
+  return 0;
 }
