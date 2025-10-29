@@ -340,62 +340,47 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
                          NLMSG_LENGTH (sizeof (struct nlmsgerr)));
       return -1;
     }
-  
-  struct rtmsg *rtm = (struct rtmsg *)NLMSG_DATA(h);
+
+  struct rtmsg *rtm = (struct rtmsg *) NLMSG_DATA (h);
   struct rtattr *rta;
-  int len = RTM_PAYLOAD(h);
+  int len = RTM_PAYLOAD (h);
 
   void *msgp = NULL;
   struct internal_msg_route_entry msg_route_entry;
-  memset(&msg_route_entry, 0, sizeof(msg_route_entry));
+  memset (&msg_route_entry, 0, sizeof (msg_route_entry));
 
   /* check if AF_INET or AF_INET6 */
   if (rtm->rtm_family != AF_INET && rtm->rtm_family != AF_INET6)
     {
       DEBUG_SDPLANE_LOG (NETLINK, "unsupported address family: %d",
-                          rtm->rtm_family);
+                         rtm->rtm_family);
       return -1;
     }
-  if (rtm->rtm_table != 10)
+  if (rtm->rtm_table != 254) // main table only for test
     return -1;
+
   msg_route_entry.family = rtm->rtm_family;
+  msg_route_entry.table_id = rtm->rtm_table;
   msg_route_entry.plen = rtm->rtm_dst_len;
 
-  for (rta = RTM_RTA(rtm); RTA_OK(rta, len); rta = RTA_NEXT(rta, len))
+  for (rta = RTM_RTA (rtm); RTA_OK (rta, len); rta = RTA_NEXT (rta, len))
     {
-      if (rtm->rtm_family == AF_INET)
+      switch (rta->rta_type)
         {
-          switch (rta->rta_type)
-            {
-              case RTA_DST:
-                memcpy(&msg_route_entry.dst.dst_ip4, RTA_DATA(rta), sizeof(msg_route_entry.dst.dst_ip4));
-                break;
+        case RTA_DST:
+          memset (msg_route_entry.dst_ip, 0, sizeof (msg_route_entry.dst_ip));
+          memcpy (msg_route_entry.dst_ip, RTA_DATA (rta), RTA_PAYLOAD (rta));
+          break;
 
-              case RTA_GATEWAY:
-                memcpy(&msg_route_entry.nexthop.nexthop4, RTA_DATA(rta), sizeof(msg_route_entry.nexthop.nexthop4));
-                break;
+        case RTA_GATEWAY:
+          memset (msg_route_entry.nexthop, 0,
+                  sizeof (msg_route_entry.nexthop));
+          memcpy (msg_route_entry.nexthop, RTA_DATA (rta), RTA_PAYLOAD (rta));
+          break;
 
-              case RTA_OIF:
-                msg_route_entry.oif = *(int *)RTA_DATA(rta);
-                break;
-            }
-        }
-      else // AF_INET6
-        {
-          switch (rta->rta_type)
-            {
-              case RTA_DST:
-                memcpy(&msg_route_entry.dst.dst_ip6, RTA_DATA(rta), sizeof(msg_route_entry.dst.dst_ip6));
-                break;
-
-              case RTA_GATEWAY:
-                memcpy(&msg_route_entry.nexthop.nexthop6, RTA_DATA(rta), sizeof(msg_route_entry.nexthop.nexthop6));
-                break;
-
-              case RTA_OIF:
-                msg_route_entry.oif = *(int *)RTA_DATA(rta);
-                break;
-            }
+        case RTA_OIF:
+          msg_route_entry.oif = *(int *) RTA_DATA (rta);
+          break;
         }
     }
 
@@ -419,29 +404,18 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
-  if (rtm->rtm_family == AF_INET)
-    {
-      char dst[INET_ADDRSTRLEN];
-      char nexthop[INET_ADDRSTRLEN];
-      inet_ntop (AF_INET, &msg_route_entry.dst.dst_ip4, dst, INET_ADDRSTRLEN);
-      inet_ntop (AF_INET, &msg_route_entry.nexthop.nexthop4, nexthop, INET_ADDRSTRLEN);
-      DEBUG_SDPLANE_LOG (NETLINK, "[%s] IPv4: dst=%s/%u nexthop=%s oif=%u",
-                          action_type, dst, msg_route_entry.plen, nexthop,
-                          msg_route_entry.oif);
-    }
-  else /* AF_INET6 */
-    {
-      char dst[INET6_ADDRSTRLEN];
-      char nexthop[INET6_ADDRSTRLEN];
-      inet_ntop (AF_INET6, &msg_route_entry.dst.dst_ip6, dst, INET6_ADDRSTRLEN);
-      inet_ntop (AF_INET6, &msg_route_entry.nexthop.nexthop6, nexthop, INET6_ADDRSTRLEN);
-      DEBUG_SDPLANE_LOG (NETLINK, "[%s] IPv6: dst=%s/%u nexthop=%s oif=%u (not supported yet)",
-                          action_type, dst, msg_route_entry.plen, nexthop,
-                          msg_route_entry.oif);
-      return 0;  // IPv6 is not implemented yet
-    }
+  uint8_t dst_str[INET6_ADDRSTRLEN];
+  uint8_t nexthop_str[INET6_ADDRSTRLEN];
+  inet_ntop (msg_route_entry.family, &msg_route_entry.dst_ip, dst_str,
+             sizeof (dst_str));
+  inet_ntop (msg_route_entry.family, &msg_route_entry.nexthop, nexthop_str,
+             sizeof (nexthop_str));
+  DEBUG_SDPLANE_LOG (NETLINK, "[%s] dst=%s/%u nexthop=%s oif=%u", action_type,
+                     dst_str, msg_route_entry.plen, nexthop_str,
+                     msg_route_entry.oif);
 
-  msgp = internal_msg_create (msg_type, &msg_route_entry, sizeof (msg_route_entry));
+  msgp = internal_msg_create (msg_type, &msg_route_entry,
+                              sizeof (msg_route_entry));
   if (! msgp)
     {
       DEBUG_SDPLANE_LOG (NETLINK, "internal_message create failed");
