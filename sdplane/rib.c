@@ -27,6 +27,8 @@
 #include "internal_message.h"
 
 #include "tap.h"
+#include "fib.h"
+#include "radix.h"
 
 // clang-format off
 
@@ -325,6 +327,84 @@ CLI_COMMAND2 (show_fdb,
     }
   fprintf (shell->terminal, "total fdb entries: %d/%d%s", count, FDB_SIZE,
            shell->NL);
+  return 0;
+}
+
+CLI_COMMAND2 (show_fib_ip_route, "show fib (ipv4|ipv6) route",
+              SHOW_HELP,
+              "fib_tree\n",
+              "IP\n",
+              "routing table\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  struct show_route_arg show_arg;
+  int i;
+
+  if (! rib || ! rib->rib_info || ! rib->rib_info->fib_tree)
+    {
+      fprintf (shell->terminal, "no routing information%s", shell->NL);
+      return 0;
+    }
+
+  show_arg.shell = shell;
+  show_arg.rib_info = rib->rib_info;
+  if (! strcmp (argv[2], "ipv4"))
+    show_arg.family = AF_INET;
+  else if (! strcmp (argv[2], "ipv6"))
+    show_arg.family = AF_INET6;
+
+  fprintf (shell->terminal, "%-30s  %-30s  Interface%s", "Destination", "Nexthop", shell->NL);
+
+  for (i = 0; i < ROUTE_TREE_SIZE; i++)
+    {
+      if (rib->rib_info->fib_tree[i]->table_id == 254 && rib->rib_info->fib_tree[i]->family == show_arg.family) // main table only for test
+        {
+          fprintf (shell->terminal, "rib_tree_master[%d]:%p%s", i, rib_tree_master[i], shell->NL);
+          fib_traverse (rib->rib_info->fib_tree[i], fib_show_route, &show_arg);
+          break;
+        }
+    }
+
+  return 0;
+}
+
+CLI_COMMAND2 (show_rib_ip_route, "show rib (ipv4|ipv6) route",
+              SHOW_HELP,
+              "rib_tree\n",
+              "IP\n",
+              "routing table\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  struct show_route_arg show_arg;
+  int i;
+
+  if (! rib || ! rib->rib_info || ! rib_tree_master)
+    {
+      fprintf (shell->terminal, "no routing information%s", shell->NL);
+      return 0;
+    }
+
+  show_arg.shell = shell;
+  show_arg.rib_info = rib->rib_info;
+  if (! strcmp (argv[2], "ipv4"))
+    show_arg.family = AF_INET;
+  else if (! strcmp (argv[2], "ipv6"))
+    show_arg.family = AF_INET6;
+
+  fprintf (shell->terminal, "%-30s  %-30s  Interface%s", "Destination", "Nexthop", shell->NL);
+
+  for (i = 0; i < ROUTE_TREE_SIZE; i++)
+    {
+      if (rib_tree_master[i]->table_id == 254 && rib_tree_master[i]->family == show_arg.family) // main table only for test
+        {
+          fprintf (shell->terminal, "rib_tree_master[%d]:%p%s", i, rib_tree_master[i], shell->NL);
+          rib_traverse (rib_tree_master[i], rib_show_route, &show_arg);
+          break;
+        }
+    }
+
   return 0;
 }
 
@@ -628,6 +708,8 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
   INSTALL_COMMAND2 (cmdset, show_fdb);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
+  INSTALL_COMMAND2 (cmdset, show_fib_ip_route);
+  INSTALL_COMMAND2 (cmdset, show_rib_ip_route);
   INSTALL_COMMAND2 (cmdset, set_vswitch);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port_tag_swap);
