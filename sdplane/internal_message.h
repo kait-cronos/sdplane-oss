@@ -91,16 +91,9 @@ struct internal_msg_fdb_entry
 struct internal_msg_route_entry
 {
   int family;
-  union
-    {
-      struct in_addr dst_ip4;
-      struct in6_addr dst_ip6;
-    } dst;
-  union
-    {
-      struct in_addr nexthop4;
-      struct in6_addr nexthop6;
-    } nexthop;
+  int table_id;
+  uint8_t dst_ip[16];
+  uint8_t nexthop[16];
   uint32_t oif; // output interface index
   uint32_t plen;
 };
