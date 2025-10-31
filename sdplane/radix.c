@@ -299,10 +299,7 @@ _add_to_fib (struct rib_node *n, void *arg)
   DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding route to fib: keylen=%d key=%s",
                      n->keylen, key_str);
 
-  if (fib_tree->family == AF_INET)
-    return fib_route_add4 (fib_tree, n->key, n->keylen, n->route_idx);
-  else
-    return fib_route_add6 (fib_tree, n->key, n->keylen, n->route_idx);
+  return fib_route_add (fib_tree, n->key, n->keylen, n->route_idx);
 }
 
 /* rebuild FIB from RIB */

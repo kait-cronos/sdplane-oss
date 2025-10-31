@@ -720,8 +720,7 @@ rib_info_delete (struct rib_info *old)
       if (old->fib_tree[i])
         {
           /* free all FIB nodes in the tree */
-          free_fib_node (old->fib_tree[i]->root);
-          free (old->fib_tree[i]);
+          fib_free (old->fib_tree[i]);
         }
     }
   free (old);
