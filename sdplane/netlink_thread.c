@@ -583,6 +583,10 @@ netlink_thread (void *arg)
   printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
   DEBUG_SDPLANE_LOG (NETLINK, "%s: started.", __func__);
 
+  /* In case if the netlink is launched earlier,
+     initialize the neigh_manager. */
+  neigh_manager_init ();
+
   int thread_id;
   thread_id = thread_lookup (netlink_thread);
   thread_register_loop_counter (thread_id, &loop_counter);

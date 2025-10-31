@@ -22,7 +22,7 @@
 
 #include "internal_message.h"
 
-struct rte_ring *msg_queue_neigh;
+struct rte_ring *msg_queue_neigh = NULL;
 
 static __thread struct neigh_table primary_neigh_tables[NEIGH_NR_TABLES];
 
@@ -276,6 +276,15 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
   free (msgp);
 }
 
+void
+neigh_manager_init ()
+{
+  /* initialize */
+  if (! msg_queue_neigh)
+    msg_queue_neigh =
+      rte_ring_create ("msg_queue_neigh", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+}
+
 int
 neigh_manager (void *arg __rte_unused)
 {
@@ -286,9 +295,7 @@ neigh_manager (void *arg __rte_unused)
   printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
   DEBUG_SDPLANE_LOG (NEIGH, "%s: started.", __func__);
 
-  /* initialize */
-  msg_queue_neigh =
-      rte_ring_create ("msg_queue_neigh", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+  neigh_manager_init ();
 
   int thread_id;
   thread_id = thread_lookup (neigh_manager);
