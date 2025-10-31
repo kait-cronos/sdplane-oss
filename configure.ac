@@ -80,20 +80,20 @@ if test "x${CFLAGS}" = "x"; then
 fi
 
 tcflags=$(echo $CFLAGS | grep -- -g)
-if test x$tcflags = x; then
+if test "x$tcflags" = x; then
   CFLAGS="-g $CFLAGS"
 fi
 tcflags=$(echo $CFLAGS | grep -- -O)
-if test x$tcflags = x; then
+if test "x$tcflags" = x; then
   CFLAGS="-O0 $CFLAGS"
 fi
 tcflags=$(echo $CFLAGS | grep -- -W)
-if test x$tcflags = x; then
+if test "x$tcflags" = x; then
   CFLAGS="$CFLAGS -Wall"
 fi
 
 #tcflags=$(echo $CFLAGS | grep -- march)
-#if test x$tcflags = x; then
+#if test "x$tcflags" = x; then
 #  CFLAGS="$CFLAGS -march=x86-64-v2"
 #fi
 
