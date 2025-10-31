@@ -6,6 +6,8 @@
 
 #include "rib.h"
 
+extern struct rib_tree *rib_tree_master[ROUTE_TREE_SIZE];
+
 struct rib
 {
   struct rib_info *rib_info;

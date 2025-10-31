@@ -14,31 +14,19 @@
 #define FDB_STATE_NONE          0
 #define FDB_STATE_ACTIVE        1
 #define FDB_AGING_TIME_DEFAULT  300 /* Default aging time: 300 seconds */
-#define MAX_ROUTE_TABLE_SIZE 1024
+#define ROUTE_TABLE_SIZE        1024
+#define ROUTE_TABLE_HASH_MASK   0x3FF
+#define MAX_ECMP_ENTRY          4
+#define ROUTE_TREE_SIZE         2
+#define K                       2
+#define BRANCH_SZ               (1 << K)
 
 #define ETH_LINK_DUPLEX_STR(v)  ((v) ? "full" : "half")
 #define ETH_LINK_AUTONEG_STR(v) ((v) ? "on" : "off")
 #define ETH_LINK_STATUS_STR(v)  ((v) ? "up" : "down")
 
 #include <rte_ether.h>
-
-//sample
-struct route_entry
-{
-  int family;
-  union
-  {
-    struct in_addr dst4;
-    struct in6_addr dst6;
-  } ip_addr;
-  union
-  {
-    struct in_addr gw4;
-    struct in6_addr gw6;
-  } gateway;
-  uint32_t oif; // output interface index
-  uint32_t prefixlen;
-};
+#include <rte_ethdev.h>
 
 struct router_if
 {
@@ -152,6 +140,30 @@ struct application_slot_entry
   bool (*is_packet_match) (struct rte_mbuf *m);
 };
 
+struct route_entry
+{
+  int family;
+  int ref_count;
+  uint32_t oif; // output interface index
+  uint8_t nexthop[16];
+};
+
+struct fib_node
+{
+  int leaf; // 0: non-leaf, 1: leaf
+  uint8_t key[16];
+  int keylen;
+  int num_routes;
+  int route_idx[MAX_ECMP_ENTRY];
+  struct fib_node *child[BRANCH_SZ];
+};
+struct fib_tree
+{
+  int family;
+  int table_id;
+  struct fib_node *root;
+};
+
 struct rib_info
 {
   uint32_t ver;
@@ -168,7 +180,8 @@ struct rib_info
   struct neigh_table neigh_tables[NEIGH_NR_TABLES];
   struct fdb_entry fdb[FDB_SIZE];
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
-  struct route_entry route_tables[MAX_ROUTE_TABLE_SIZE];
+  struct route_entry route_table[ROUTE_TABLE_SIZE];
+  struct fib_tree *fib_tree[ROUTE_TREE_SIZE];
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);

@@ -37,17 +37,6 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       20 
 #define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21 
 
-//TODO: use union
-struct internal_msg_route_entry
-{
-  struct in_addr dst4;
-  struct in6_addr dst6;
-  struct in_addr gw4;
-  struct in6_addr gw6;
-  uint32_t oif; // output interface index
-  uint32_t prefixlen;
-};
-
 struct internal_msg_eth_link
 {
   struct rte_eth_link link[RTE_MAX_ETHPORTS];
@@ -97,6 +86,16 @@ struct internal_msg_fdb_entry
   struct rte_ether_addr mac_addr;
   uint16_t vlan_id;
   uint16_t port;
+};
+
+struct internal_msg_route_entry
+{
+  int family;
+  int table_id;
+  uint8_t dst_ip[16];
+  uint8_t nexthop[16];
+  uint32_t oif; // output interface index
+  uint32_t plen;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);
