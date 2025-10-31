@@ -364,8 +364,8 @@ CLI_COMMAND2 (show_fib_ip_route,
       if (rib->rib_info->fib_tree[i]->table_id == 254 &&
           rib->rib_info->fib_tree[i]->family == show_arg.family)
         {
-          fprintf (shell->terminal, "rib_tree_master[%d]:%p%s",
-                   i, rib_tree_master[i], shell->NL);
+          fprintf (shell->terminal, "fib_tree[%d]:%p%s",
+                   i, rib->rib_info->fib_tree[i], shell->NL);
           fib_traverse (rib->rib_info->fib_tree[i], fib_show_route,
                         &show_arg);
           break;
