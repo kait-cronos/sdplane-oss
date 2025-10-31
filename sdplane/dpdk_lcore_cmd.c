@@ -321,16 +321,19 @@ char *rte_eal_argv[RTE_EAL_ARGV_MAX];
 int rte_eal_argc = 0;
 
 CLI_COMMAND2 (set_rte_eal_argv,
-              "set rte_eal argv <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+              "set rte_eal argv "
+              "<WORD> <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
               SET_HELP, "set rte_eal related information.\n",
-              "set command-line arguments.\n", "arbitrary word\n",
-              "arbitrary word\n", "arbitrary word\n", "arbitrary word\n",
+              "set command-line arguments.\n",
+              "arbitrary word\n", "arbitrary word\n",
+              "arbitrary word\n", "arbitrary word\n",
+              "arbitrary word\n", "arbitrary word\n",
               "arbitrary word\n", "arbitrary word\n")
 {
   struct shell *shell = (struct shell *) context;
   int i;
 
-  if (argc - 3 >= RTE_EAL_ARGV_MAX - 3)
+  if (argc - 3 > RTE_EAL_ARGV_MAX - 1)
     {
       fprintf (shell->terminal, "too many arguments: %d.%s", argc, shell->NL);
       return -1;
@@ -352,6 +355,14 @@ CLI_COMMAND2 (set_rte_eal_argv,
   return 0;
 }
 
+ALIAS_COMMAND (set_rte_eal_argv_1,
+               set_rte_eal_argv,
+               "set rte_eal argv <WORD>",
+               SET_HELP
+               "set rte_eal related information.\n"
+               "set command-line arguments.\n"
+               "arbitrary word\n");
+
 ALIAS_COMMAND (set_rte_eal_argv_2,
                set_rte_eal_argv,
                "set rte_eal argv <WORD> <WORD>",
@@ -361,19 +372,98 @@ ALIAS_COMMAND (set_rte_eal_argv_2,
                "arbitrary word\n"
                "arbitrary word\n");
 
-CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command")
+ALIAS_COMMAND (set_rte_eal_argv_3,
+               set_rte_eal_argv,
+               "set rte_eal argv <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set rte_eal related information.\n"
+               "set command-line arguments.\n"
+               "arbitrary word\n"
+               "arbitrary word\n"
+               "arbitrary word\n");
+
+ALIAS_COMMAND (set_rte_eal_argv_4,
+               set_rte_eal_argv,
+               "set rte_eal argv <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set rte_eal related information.\n"
+               "set command-line arguments.\n"
+               "arbitrary word\n"
+               "arbitrary word\n"
+               "arbitrary word\n"
+               "arbitrary word\n");
+
+ALIAS_COMMAND (set_rte_eal_argv_5,
+               set_rte_eal_argv,
+               "set rte_eal argv <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set rte_eal related information.\n"
+               "set command-line arguments.\n"
+               "arbitrary word\n"
+               "arbitrary word\n"
+               "arbitrary word\n"
+               "arbitrary word\n"
+               "arbitrary word\n");
+
+ALIAS_COMMAND (set_rte_eal_argv_6,
+               set_rte_eal_argv,
+               "set rte_eal argv <WORD> <WORD> <WORD> <WORD> <WORD> <WORD>",
+               SET_HELP
+               "set rte_eal related information.\n"
+               "set command-line arguments.\n"
+               "arbitrary word\n"
+               "arbitrary word\n"
+               "arbitrary word\n"
+               "arbitrary word\n"
+               "arbitrary word\n"
+               "arbitrary word\n");
+
+CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command\n")
 {
   struct shell *shell = (struct shell *) context;
   int ret;
   int i;
+
+  fprintf (shell->terminal, "rte_eal_init (");
+  for (i = 0; i < rte_eal_argc; i++)
+    {
+      if (i > 0)
+        fprintf (shell->terminal, " ");
+      fprintf (shell->terminal, "%s", rte_eal_argv[i]);
+      if (i < rte_eal_argc - 1)
+        fprintf (shell->terminal, ",");
+    }
+  fprintf (shell->terminal, ");%s", shell->NL);
+
   ret = rte_eal_init (rte_eal_argc, rte_eal_argv);
   if (ret < 0)
     {
       fprintf (shell->terminal, "Invalid EAL parameters.%s", shell->NL);
+      return -1;
+    }
+  rte_eal_init_done = true;
+  return 0;
+}
 
-      for (i = 0; i < rte_eal_argc; i++)
-        fprintf (shell->terminal, "rte_eal_argv[%d]: %s%s", i, rte_eal_argv[i],
-                 shell->NL);
+CLI_COMMAND2 (rte_eal_init_argv_list,
+              "rte_eal_init argv-list <0-7>",
+              "rte_eal_init command\n",
+              "specify argv-list\n",
+              "specify argv-list number\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+
+  int index;
+  index = strtol (argv[2], NULL, 0);
+
+  int *argcp = &argv_list_argc[index];
+  char **argvp = argv_list[index];
+
+  ret = rte_eal_init (*argcp, argvp);
+  if (ret < 0)
+    {
+      fprintf (shell->terminal, "Invalid EAL parameters.%s", shell->NL);
       return -1;
     }
   rte_eal_init_done = true;
@@ -388,6 +478,12 @@ dpdk_lcore_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_worker);
   INSTALL_COMMAND2 (cmdset, set_mempool);
   INSTALL_COMMAND2 (cmdset, set_rte_eal_argv);
+  INSTALL_COMMAND2 (cmdset, set_rte_eal_argv_1);
   INSTALL_COMMAND2 (cmdset, set_rte_eal_argv_2);
+  INSTALL_COMMAND2 (cmdset, set_rte_eal_argv_3);
+  INSTALL_COMMAND2 (cmdset, set_rte_eal_argv_4);
+  INSTALL_COMMAND2 (cmdset, set_rte_eal_argv_5);
+  INSTALL_COMMAND2 (cmdset, set_rte_eal_argv_6);
   INSTALL_COMMAND2 (cmdset, rte_eal_init);
+  INSTALL_COMMAND2 (cmdset, rte_eal_init_argv_list);
 }
