@@ -7,6 +7,7 @@
 
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include <stdbool.h>
 #include <sys/ioctl.h>
@@ -60,6 +61,7 @@ struct shell
   char subnego_buf[256];
 
   bool pager;
+  bool is_pasting;
   bool is_paging;
   char *pager_command;
   int pager_saved_readfd;

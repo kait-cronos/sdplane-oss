@@ -8,7 +8,6 @@
 
 
 #include "debug.h"
-#include "log.h"
 #include "debug_category.h"
 #include "debug_log.h"
 #include "debug_zcmdsh.h"
@@ -89,22 +88,11 @@ timer_check ()
   strftime (current_str, sizeof (current_str), "%Y/%m/%d %H:%M:%S",
             current_tm);
 
-  if (FLAG_CHECK (debug_config, DEBUG_TIMER))
-    {
-      printf ("%9s %d sec\n", "duration:", duration_limit);
-      printf ("%9s %s\n", "start:", start_str);
-      printf ("%9s %s\n", "current:", current_str);
-      printf ("%9s %s\n", "end:", end_str);
-      printf ("%9s %s\n", "limit:", limit_str);
-    }
-
   double diff_end, diff_limit;
 
   if (end)
     {
       diff_end = difftime (end, current);
-      if (FLAG_CHECK (debug_config, DEBUG_TIMER))
-        printf ("end diff: %.1lf\n", diff_end);
       if (diff_end < 0)
         {
           printf ("zcmdsh: beta-version: duration-limit: %'d secs\n",
@@ -114,14 +102,10 @@ timer_check ()
           exit (1);
         }
     }
-  else if (FLAG_CHECK (debug_config, DEBUG_TIMER))
-    printf ("end diff: not set\n");
 
   if (limit)
     {
       diff_limit = difftime (limit, current);
-      if (FLAG_CHECK (debug_config, DEBUG_TIMER))
-        printf ("limit diff: %.1lf\n", diff_limit);
       if (diff_limit < 0)
         {
           printf ("zcmdsh: beta-version: date-limit: %s\n", limit_str);
@@ -130,7 +114,5 @@ timer_check ()
           exit (1);
         }
     }
-  else if (FLAG_CHECK (debug_config, DEBUG_TIMER))
-    printf ("limit diff: not set\n");
 }
 

@@ -4,7 +4,7 @@
 
 #include <includes.h>
 
-#include "debug.h"
+#include "debug_log.h"
 #include "flag.h"
 
 #include "command.h"
@@ -35,10 +35,6 @@ print_dirent_fselect (struct shell *shell, struct dirent *dirent, int num,
   /* append necessary suffix. */
   suffix = (dirent->d_type == DT_DIR ? "/" : "");
   snprintf (printname, sizeof (printname), "%s%s", dirent->d_name, suffix);
-
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    fprintf (shell->terminal, "num: %d ncolumn: %d index: %d %s\n", num,
-             ncolumn, fselect_index, printname);
 
   if (num % ncolumn == 0)
     fprintf (shell->terminal, "  ");
@@ -79,16 +75,6 @@ fselect_ls_candidate (struct shell *shell)
   fselect_ncolumn = (shell->winsize.ws_col - 2) / (fselect_maxlen + 2);
   if (fselect_ncolumn == 0)
     fselect_ncolumn = 1;
-
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    {
-      fprintf (shell->terminal, "\n");
-      fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
-               fselect_path, fselect_dirname, fselect_filename);
-      fprintf (shell->terminal, "  maxlen: %d ncol: %d nentry: %d index: %d\n",
-               fselect_maxlen, fselect_ncolumn, fselect_nentry, fselect_index);
-      fprintf (shell->terminal, "\n");
-    }
 
   num = 0;
   while ((dirent = readdir (dir)) != NULL)
@@ -247,12 +233,6 @@ fselect_keyfunc_start (struct shell *shell)
   fselect_path = strdup (&shell->command_line[last_head]);
 
   path_disassemble (fselect_path, &fselect_dirname, &fselect_filename);
-
-  if (FLAG_CHECK (debug_config, DEBUG_SHELL))
-    {
-      fprintf (shell->terminal, "  path: %s dir: %s filename: %s\n",
-               fselect_path, fselect_dirname, fselect_filename);
-    }
 
   dir = opendir (fselect_dirname);
   if (dir == NULL)

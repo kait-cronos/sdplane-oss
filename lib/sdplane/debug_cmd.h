@@ -5,6 +5,8 @@
 #ifndef __DEBUG_CMD_H__
 #define __DEBUG_CMD_H__
 
+#include "debug_log.h"
+
 void debug_cmdstr_init (char *cate, char *cmdstr, int size,
                         struct debug_type *debug_types, int types_size);
 void debug_helpstr_init (char *cate, char *helpstr, int size,
