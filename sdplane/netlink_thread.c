@@ -319,7 +319,117 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
                                   &msg_neigh_entry, sizeof (msg_neigh_entry));
     }
 
+  if (! msg_queue_neigh)
+    DEBUG_SDPLANE_LOG (NETLINK, "error: neigh_manager is not started.");
   internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+
+  return 0;
+}
+
+int
+netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
+{
+  struct ndmsg *ndm = (struct ndmsg *) NLMSG_DATA (h);
+
+  if (h->nlmsg_len < NLMSG_LENGTH (sizeof (struct nlmsgerr)))
+    {
+      DEBUG_SDPLANE_LOG (NETLINK,
+                         "%s: invalid len: %d < "
+                         "NLMSG_LEN(nlmsgerr): %d",
+                         nlsock->name, h->nlmsg_len,
+                         NLMSG_LENGTH (sizeof (struct nlmsgerr)));
+      return -1;
+    }
+
+  struct rtmsg *rtm = (struct rtmsg *) NLMSG_DATA (h);
+  struct rtattr *rta;
+  int len = RTM_PAYLOAD (h);
+
+  void *msgp = NULL;
+  struct internal_msg_route_entry msg_route_entry;
+  memset (&msg_route_entry, 0, sizeof (msg_route_entry));
+
+  /* check if AF_INET or AF_INET6 */
+  if (rtm->rtm_family != AF_INET && rtm->rtm_family != AF_INET6)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "unsupported address family: %d",
+                         rtm->rtm_family);
+      return -1;
+    }
+  if (rtm->rtm_table != 254) // main table only for test
+    return -1;
+
+  msg_route_entry.family = rtm->rtm_family;
+  msg_route_entry.table_id = rtm->rtm_table;
+  msg_route_entry.plen = rtm->rtm_dst_len;
+
+  for (rta = RTM_RTA (rtm); RTA_OK (rta, len); rta = RTA_NEXT (rta, len))
+    {
+      switch (rta->rta_type)
+        {
+        case RTA_DST:
+          memset (msg_route_entry.dst_ip, 0, sizeof (msg_route_entry.dst_ip));
+          memcpy (msg_route_entry.dst_ip, RTA_DATA (rta), RTA_PAYLOAD (rta));
+          break;
+
+        case RTA_GATEWAY:
+          memset (msg_route_entry.nexthop, 0,
+                  sizeof (msg_route_entry.nexthop));
+          memcpy (msg_route_entry.nexthop, RTA_DATA (rta), RTA_PAYLOAD (rta));
+          break;
+
+        case RTA_OIF:
+          msg_route_entry.oif = *(int *) RTA_DATA (rta);
+          break;
+        }
+    }
+
+  uint16_t msg_type;
+  const char *action_type;
+
+  if (h->nlmsg_type == RTM_NEWROUTE)
+    {
+      msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD;
+      action_type = "NEW";
+    }
+  else if (h->nlmsg_type == RTM_DELROUTE)
+    {
+      msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL;
+      action_type = "DEL";
+    }
+  else
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "unexpected message type: %s(%u)",
+                         netlink_nlmsg_str (h->nlmsg_type), h->nlmsg_type);
+      return -1;
+    }
+
+  uint8_t dst_str[INET6_ADDRSTRLEN];
+  uint8_t nexthop_str[INET6_ADDRSTRLEN];
+  inet_ntop (msg_route_entry.family, &msg_route_entry.dst_ip, dst_str,
+             sizeof (dst_str));
+  inet_ntop (msg_route_entry.family, &msg_route_entry.nexthop, nexthop_str,
+             sizeof (nexthop_str));
+  DEBUG_SDPLANE_LOG (NETLINK, "[%s] dst=%s/%u nexthop=%s oif=%u", action_type,
+                     dst_str, msg_route_entry.plen, nexthop_str,
+                     msg_route_entry.oif);
+
+  msgp = internal_msg_create (msg_type, &msg_route_entry,
+                              sizeof (msg_route_entry));
+  if (! msgp)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "internal_message create failed");
+      return -1;
+    }
+
+  if (! msg_queue_rib)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
+      internal_msg_delete (msgp);
+      return -1;
+    }
+
+  internal_msg_send_to (msg_queue_rib, msgp, NULL);
 
   return 0;
 }
@@ -410,6 +520,10 @@ netlink_read (struct netlink_sock *nlsock)
             case RTM_DELNEIGH:
               netlink_read_nlmsg_neigh (nlsock, h);
               break;
+            case RTM_NEWROUTE:
+            case RTM_DELROUTE:
+              netlink_read_nlmsg_route (nlsock, h);
+              break;
             default:
               break;
             }
@@ -469,6 +583,10 @@ netlink_thread (void *arg)
   printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
   DEBUG_SDPLANE_LOG (NETLINK, "%s: started.", __func__);
 
+  /* In case if the netlink is launched earlier,
+     initialize the neigh_manager. */
+  neigh_manager_init ();
+
   int thread_id;
   thread_id = thread_lookup (netlink_thread);
   thread_register_loop_counter (thread_id, &loop_counter);
@@ -521,7 +639,7 @@ netlink_thread (void *arg)
 
   while (! force_quit && ! force_stop[lthread_core])
     {
-      lthread_sleep (100); // yield.
+      lthread_sleep (0); // yield.
       // DEBUG_SDPLANE_LOG (NETLINK, "%s: schedule.", __func__);
 
       netlink_read (&netlink_cmd);

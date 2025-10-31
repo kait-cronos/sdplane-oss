@@ -16,19 +16,11 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 
-#ifndef RTE_VLAN_TCI_ID
-#define RTE_VLAN_TCI_ID(vlan_tci) ((vlan_tci) & 0x0fff)
-#endif
-
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
 
-#include <sdplane/command.h>
-
 #include <sdplane/debug_log.h>
-#include <sdplane/debug_category.h>
-#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "l2fwd_export.h"
@@ -37,6 +29,8 @@
 
 #include "rib_manager.h"
 #include "thread_info.h"
+
+#include "dhcp_server.h"
 
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
@@ -67,11 +61,11 @@ enhanced_repeater_tx_flush ()
           sent = rte_eth_tx_buffer_flush (tx_portid, tx_queueid, buffer);
 
           if (sent || buffer->length)
-            DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                               "lcore[%d]: port %d queue %d flush: "
-                               "sent: %d buffer->length: %d",
-                               lcore_id, tx_portid, tx_queueid, sent,
-                               buffer->length);
+            DEBUG_NEW (ENHANCED_REPEATER,
+                       "lcore[%d]: port %d queue %d flush: "
+                       "sent: %d buffer->length: %d",
+                       lcore_id, tx_portid, tx_queueid, sent,
+                       buffer->length);
         }
       if (sent)
         {
@@ -80,9 +74,10 @@ enhanced_repeater_tx_flush ()
     }
 }
 
-static inline __attribute__ ((always_inline)) void
-enhanced_repeater_send_router_if (struct rte_mbuf *m, unsigned rx_portid,
-                                  unsigned rx_queueid, struct router_if *rif)
+static inline __attribute__ ((always_inline)) int
+enhanced_repeater_send_ring (struct rte_mbuf *m,
+                             unsigned rx_portid, unsigned rx_queueid,
+                             struct rte_ring *ring)
 {
   struct rte_mbuf *c;
   uint32_t pkt_len;
@@ -91,63 +86,28 @@ enhanced_repeater_send_router_if (struct rte_mbuf *m, unsigned rx_portid,
   pkt_len = rte_pktmbuf_pkt_len (m);
   data_len = rte_pktmbuf_data_len (m);
 
-  DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                     "m: %p port %d queue %d to ring_up: %p", m, rx_portid,
-                     rx_queueid, rif->ring_up);
+  DEBUG_NEW (ENHANCED_REPEATER,
+             "m: %p port %d queue %d to ring: %s (%p)",
+             m, rx_portid, rx_queueid, ring->name, ring);
 
   c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
-  ret = rte_ring_enqueue (rif->ring_up, c);
+  if (! c)
+    return -1;
+
+  ret = rte_ring_enqueue (ring, c);
   if (ret)
     {
-      if (ret == -ENOBUFS)
-        DEBUG_SDPLANE_LOG (
-            ENHANCED_REPEATER,
-            "lcore[%d]: m: %p port %d queue %d to router_if ring: "
-            "ENOBUFS: %d",
-            lcore_id, m, rx_portid, rx_queueid, ret);
-      else
-        DEBUG_SDPLANE_LOG (
-            ENHANCED_REPEATER,
-            "lcore[%d]: m: %p port %d queue %d to router_if ring: "
-            "failed: %d",
-            lcore_id, m, rx_portid, rx_queueid, ret);
+      /* enqueue failed */
+      DEBUG_NEW (ENHANCED_REPEATER,
+          "lcore[%d]: m: %p port %d queue %d to ring %s: %s: %d",
+          lcore_id, m, rx_portid, rx_queueid,
+          ring->name, (ret == -ENOBUFS ? "ENOBUFS" : "failed"), ret);
+
       rte_pktmbuf_free (c);
+      return -1;
     }
-}
 
-static inline __attribute__ ((always_inline)) void
-enhanced_repeater_send_capture_if (struct rte_mbuf *m, unsigned rx_portid,
-                                   unsigned rx_queueid, struct capture_if *cif)
-{
-  struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
-  int ret;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
-
-  DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                     "m: %p port %d queue %d to ring_up: %p", m, rx_portid,
-                     rx_queueid, cif->ring_up);
-
-  c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
-  ret = rte_ring_enqueue (cif->ring_up, c);
-  if (ret)
-    {
-      if (ret == -ENOBUFS)
-        DEBUG_SDPLANE_LOG (
-            ENHANCED_REPEATER,
-            "lcore[%d]: m: %p port %d queue %d to capture_if ring: "
-            "ENOBUFS: %d",
-            lcore_id, m, rx_portid, rx_queueid, ret);
-      else
-        DEBUG_SDPLANE_LOG (
-            ENHANCED_REPEATER,
-            "lcore[%d]: m: %p port %d queue %d to capture_if ring: "
-            "failed: %d",
-            lcore_id, m, rx_portid, rx_queueid, ret);
-      rte_pktmbuf_free (c);
-    }
+  return 0;
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -180,10 +140,10 @@ enhanced_repeater_send_link (struct rte_mbuf *m, unsigned rx_portid,
   c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
   if (! c)
     {
-      DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                         "lcore[%d]: m: %p router_if -> port %d "
-                         "rte_pktmbuf_copy() failed.",
-                         lcore_id, m, tx_portid);
+      DEBUG_NEW (ENHANCED_REPEATER,
+                 "lcore[%d]: m: %p router_if -> port %d "
+                 "rte_pktmbuf_copy() failed.",
+                 lcore_id, m, tx_portid);
       return;
     }
 
@@ -206,19 +166,19 @@ enhanced_repeater_send_link (struct rte_mbuf *m, unsigned rx_portid,
           old_vlan_tci = rte_be_to_cpu_16 (vlan_hdr->vlan_tci);
           new_vlan_tci =
               ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
-          DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                             "m: %p port[%d]: vlan_id modification: %u -> %u",
-                             m, vswitch_link->port_id, vlan_id,
-                             vswitch_link->tag_id);
+          DEBUG_NEW (ENHANCED_REPEATER,
+                     "m: %p port[%d]: vlan_id modification: %u -> %u",
+                     m, vswitch_link->port_id, vlan_id,
+                     vswitch_link->tag_id);
           vlan_hdr->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
       else if (vswitch_link->tag_id == 0)
         {
           /* remove vlan_hdr */
           rte_vlan_strip (c);
-          DEBUG_SDPLANE_LOG (
-              ENHANCED_REPEATER, "m: %p port[%d]: vlan_id strip: %u -> %u", m,
-              vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
+          DEBUG_NEW (ENHANCED_REPEATER,
+                     "m: %p port[%d]: vlan_id strip: %u -> %u",
+                     m, vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
         }
     }
   else
@@ -234,9 +194,9 @@ enhanced_repeater_send_link (struct rte_mbuf *m, unsigned rx_portid,
           old_vlan_tci = rte_be_to_cpu_16 (vlan_hdr->vlan_tci);
           new_vlan_tci =
               ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
-          DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                             "m: %p port[%d]: add vlan_id: %u", m,
-                             vswitch_link->port_id, vswitch_link->tag_id);
+          DEBUG_NEW (ENHANCED_REPEATER,
+                     "m: %p port[%d]: add vlan_id: %u",
+                     m, vswitch_link->port_id, vswitch_link->tag_id);
           vlan_hdr->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
     }
@@ -258,9 +218,10 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
   struct router_if *rif;
   struct capture_if *cif;
   int i;
+  int ret;
 
-  DEBUG_SDPLANE_LOG (ENHANCED_REPEATER, "m: %p received on port: %d queue: %d",
-                     m, rx_portid, rx_queueid);
+  DEBUG_NEW (ENHANCED_REPEATER, "m: %p received on port: %d queue: %d",
+             m, rx_portid, rx_queueid);
 
   port_config = &rib->rib_info->port[rx_portid];
   eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
@@ -270,12 +231,8 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
       uint16_t vlan_id;
       struct rte_vlan_hdr *vlan_hdr;
       vlan_hdr = (struct rte_vlan_hdr *) (eth_hdr + 1);
-#ifndef RTE_VLAN_TCI_ID
-#define RTE_VLAN_TCI_ID(vlan_tci) ((vlan_tci) & 0x0fff)
-#endif
       vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_hdr->vlan_tci));
-      DEBUG_SDPLANE_LOG (ENHANCED_REPEATER, "m: %p tagged: vlan: %u", m,
-                         vlan_id);
+      DEBUG_NEW (ENHANCED_REPEATER, "m: %p tagged: vlan: %u", m, vlan_id);
 
       for (i = 0; i < port_config->vlan_size; i++)
         {
@@ -285,9 +242,9 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
           if (link->tag_id == vlan_id)
             {
               vswitch_link = link;
-              DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                                 "m: %p tagged: vswitch: %u, vlan: %u", m,
-                                 vswitch_link->vswitch_id, vlan_id);
+              DEBUG_NEW (ENHANCED_REPEATER,
+                         "m: %p tagged: vswitch: %u, vlan: %u",
+                         m, vswitch_link->vswitch_id, vlan_id);
               break;
             }
         }
@@ -301,31 +258,42 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
           vswitch_link_id < rib->rib_info->vswitch_link_size)
         {
           vswitch_link = &rib->rib_info->vswitch_link[vswitch_link_id];
-          DEBUG_SDPLANE_LOG (ENHANCED_REPEATER, "m: %p untag: vswitch: %u", m,
-                             vswitch_link->vswitch_id);
+          DEBUG_NEW (ENHANCED_REPEATER,
+                     "m: %p untag: vswitch: %u",
+                     m, vswitch_link->vswitch_id);
         }
     }
 
   if (! vswitch_link)
     {
-      DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                         "m: %p cannot find the vswitch link", m);
+      DEBUG_NEW (ENHANCED_REPEATER, "m: %p cannot find the vswitch link", m);
       return;
     }
 
   if (vswitch_link->vswitch_id < 0 ||
-      rib->rib_info->vswitch_size <= vswitch_link->vswitch_id)
+      rib->rib_info->vswitch_size > MAX_VSWITCH)
     {
-      DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                         "m: %p a broken vswitch link: "
-                         "vswitch: %d vswitch_size: %d",
-                         m, vswitch_link->vswitch_id,
-                         rib->rib_info->vswitch_size);
+      DEBUG_NEW (ENHANCED_REPEATER,
+                 "m: %p a broken vswitch link: vswitch: %d vswitch_size: %d",
+                 m, vswitch_link->vswitch_id, rib->rib_info->vswitch_size);
       return;
     }
 
-  struct vswitch_conf *vswitch;
-  vswitch = &rib->rib_info->vswitch[vswitch_link->vswitch_id];
+  struct vswitch_conf *vswitch = NULL;
+  for (i = 0; i < rib->rib_info->vswitch_size; i++)
+    {
+      if (vswitch_link->vswitch_id == rib->rib_info->vswitch[i].vswitch_id)
+        {
+          vswitch = &rib->rib_info->vswitch[i];
+          break;
+        }
+    }
+
+  if (! vswitch)
+    {
+      DEBUG_NEW (ENHANCED_REPEATER, "m: %p cannot find the vswitch", m);
+      return;
+    }
 
   unsigned tx_queueid = lcore_id;
 
@@ -336,8 +304,7 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
           &rib->rib_info->vswitch_link[vswitch_link_id];
       unsigned tx_portid = link->port_id;
 
-      DEBUG_SDPLANE_LOG (
-          ENHANCED_REPEATER,
+      DEBUG_NEW (ENHANCED_REPEATER,
           "m: %p vswitch[%d]vswport[%d/%d]: vswitch_link_id: %u "
           "port: %d vlan: %d tag: %d (vswitch%u[%d])",
           m, vswitch_link->vswitch_id, i, vswitch->vswitch_port_size,
@@ -347,29 +314,46 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
       /* skip received link port. split-horizon */
       if (link == vswitch_link || tx_portid == rx_portid)
         {
-          DEBUG_SDPLANE_LOG (ENHANCED_REPEATER, "m: %p split horizon.", m);
+          DEBUG_NEW (ENHANCED_REPEATER, "m: %p split horizon.", m);
           continue;
         }
 
+      /* skip if the tx_port is stopped. */
+      if (unlikely (rib->rib_info->port[tx_portid].is_stopped))
+        continue;
+
       /* forward to dpdk ports, accoding to the vswitch_link. */
-      enhanced_repeater_send_link (m, rx_portid, rx_queueid, tx_portid,
-                                   tx_queueid, link);
+      enhanced_repeater_send_link (m, rx_portid, rx_queueid,
+                                   tx_portid, tx_queueid, link);
     }
 
+  /* router-if */
   rif = &vswitch->router_if;
-  cif = &vswitch->capture_if;
-
   if (rif->sockfd >= 0 && rif->ring_up)
     {
-      enhanced_repeater_send_router_if (m, rx_portid, rx_queueid, rif);
+      enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
+                                   rif->ring_up);
     }
 
+  /* capture-if */
+  cif = &vswitch->capture_if;
   if (cif->sockfd >= 0 && cif->ring_up)
     {
-      enhanced_repeater_send_capture_if (m, rx_portid, rx_queueid, cif);
+      enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
+                                   cif->ring_up);
     }
 
-  return;
+  /* application */
+  for (i = 0; i < rib->rib_info->application_slot_size; i++)
+    {
+      struct application_slot_entry *app;
+      app = &rib->rib_info->application_slot[i];
+      if (app->ring && (*app->is_packet_match) (m))
+        {
+          DEBUG_NEW (ENHANCED_REPEATER, "call appli_slot[%d]", i);
+          enhanced_repeater_send_ring (m, rx_portid, rx_queueid, app->ring);
+        }
+    }
 }
 
 //__thread uint32_t nb_rx_burst = 0;
@@ -392,6 +376,10 @@ enhanced_repeater_rx_burst ()
       portid = lcore_qconf->rx_queue_list[i].port_id;
       queueid = lcore_qconf->rx_queue_list[i].queue_id;
 
+      /* skip if the rx_port is stopped. */
+      if (unlikely (rib->rib_info->port[portid].is_stopped))
+        continue;
+
       nb_rx = rte_eth_rx_burst (portid, queueid, pkts_burst, MAX_PKT_BURST);
       // nb_rx_burst++;
 
@@ -405,20 +393,19 @@ enhanced_repeater_rx_burst ()
           m = pkts_burst[j];
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
-#if 1
           enhanced_repeater_select (m, portid, queueid);
-#else
-          vlan_switch_run (m, portid, queueid);
-#endif
 
           rte_pktmbuf_free (m);
         }
     }
 }
 
-#define ROUTER_IF_PORT_ID  UINT16_MAX // for marker to unused split-horizon
-#define ROUTER_IF_QUEUE_ID 0          // for debug
+/* imaginary port_id/queue_id to avoid
+   split-horizon check in transmission. */
+#define ROUTER_IF_TX_SELF_PORT_ID  UINT16_MAX
+#define ROUTER_IF_TX_SELF_QUEUE_ID 0
 
+/* tx function of packets from router_if to physical port. */
 static inline __attribute__ ((always_inline)) void
 enhanced_repeater_tx_burst ()
 {
@@ -470,8 +457,8 @@ enhanced_repeater_tx_burst ()
               if (vswitch_link->vswitch_id != vswitch->vswitch_id)
                 continue;
 
-              enhanced_repeater_send_link (
-                  m, ROUTER_IF_PORT_ID, ROUTER_IF_QUEUE_ID,
+              enhanced_repeater_send_link (m,
+                  ROUTER_IF_TX_SELF_PORT_ID, ROUTER_IF_TX_SELF_QUEUE_ID,
                   vswitch_link->port_id, tx_queueid, vswitch_link);
             }
 
@@ -491,7 +478,6 @@ enhanced_repeater (__rte_unused void *dummy)
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
   uint16_t nb_ports;
-  bool ready;
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
 
@@ -503,8 +489,7 @@ enhanced_repeater (__rte_unused void *dummy)
   thread_id = thread_lookup_by_lcore (enhanced_repeater, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter);
 
-  DEBUG_SDPLANE_LOG (ENHANCED_REPEATER, "entering main loop on lcore %u",
-                     lcore_id);
+  DEBUG_NEW (ENHANCED_REPEATER, "entering main loop on lcore %u", lcore_id);
 
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_register_thread ();
@@ -519,21 +504,8 @@ enhanced_repeater (__rte_unused void *dummy)
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      /* check port ready */
-      ready = true;
-      nb_ports = rte_eth_dev_count_avail ();
-      for (int i = 0; i < nb_ports; i++)
-        {
-          if (unlikely (rib->rib_info->port[i].is_stopped))
-            {
-              ready = false;
-              DEBUG_SDPLANE_LOG (ENHANCED_REPEATER,
-                                 "port %d link is down, waiting...", i);
-              break;
-            }
-        }
-      if (unlikely (! ready))
-        continue;
+      /* better to add processing here only when absolutely necessary
+         or cannot be postponed. */
 
       diff_tsc = cur_tsc - prev_tsc;
       if (unlikely (diff_tsc > drain_tsc))

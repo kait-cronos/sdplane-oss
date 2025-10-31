@@ -9,6 +9,6 @@ Homepage: http://www.yasuhironet.net/
 Package: sdplane
 Architecture: any
 Multi-Arch: foreign
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: libc6 (>= 2.35), libpcap0.8-dev (>= 1.10.1), libsdplane (>= 0.3.37), liburcu-dev (>= 0.13.1)
 Description: DPDK software data-plane,
   with interactive command shell.

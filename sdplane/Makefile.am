@@ -27,8 +27,9 @@ sdplane_SOURCES = \
         sdplane_version.c thread_info.c queue_config.c rib_manager.c \
         internal_message.c rib.c nettlp.c nettlp_support.c tap_cmd.c \
         dpdk_devbind.c netlink_thread.c stream_buf.c vlan_switch.c \
-        linkflap_generator.c \
-        enhanced_repeater.c l3_tap_handler.c neigh_manager.c
+        dhcp_server.c dhcp_cmd.c \
+        enhanced_repeater.c l3_tap_handler.c neigh_manager.c l2_switch.c \
+        radix.c fib.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
 sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
 
@@ -87,7 +88,7 @@ if ENABLE_PKTGEN
         $(PKTGEN_MODULE_DIR)/lib/utils/_atoip.c \
         $(PKTGEN_MODULE_DIR)/lib/plugin/plugin.c \
         pktgen_cmd.c
-  sdplane_CFLAGS += -I$(PKTGEN_MODULE_DIR)/lib/common -I$(PKTGEN_MODULE_DIR)/lib/lua -I$(PKTGEN_MODULE_DIR)/lib/cli -I$(PKTGEN_MODULE_DIR)/lib/utils -I$(PKTGEN_MODULE_DIR)/lib/plugin
+  sdplane_CFLAGS += -D_GNU_SOURCE -I$(PKTGEN_MODULE_DIR)/lib/common -I$(PKTGEN_MODULE_DIR)/lib/lua -I$(PKTGEN_MODULE_DIR)/lib/cli -I$(PKTGEN_MODULE_DIR)/lib/utils -I$(PKTGEN_MODULE_DIR)/lib/plugin
 endif
 
 FORCE:

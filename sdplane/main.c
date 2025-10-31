@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif /*HAVE_CONFIG_H*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -11,10 +15,14 @@
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
+#ifdef HAVE_SDPLANE_LIBSDPLANE_VERSION_H
+#include <sdplane/libsdplane_version.h>
+#endif
 
 #include "l3fwd.h"
 
 #include "sdplane.h"
+#include "sdplane_version.h"
 #include "thread_info.h"
 
 #include <unistd.h>
@@ -25,15 +33,26 @@ extern int optind, opterr, optopt;
 
 struct option longopts[] =
 {
+  { "version",     no_argument,       NULL, 'v' },
   { "config-file", required_argument, NULL, 'f' },
   { NULL,          no_argument,       NULL,  0  },
 };
-char *optstring = "f:";
+char *optstring = "vf:";
 
 int opt;
 int longindex;
 
 extern char *config_file;
+
+void
+print_version ()
+{
+  FILE *f = stdout;
+#ifdef HAVE_SDPLANE_LIBSDPLANE_VERSION_H
+  fprintf (f, "libsdplane version: %s\n", libsdplane_version);
+#endif
+  fprintf (f, "sdplane version: %s\n", sdplane_version);
+}
 
 void
 signal_handler (int signum)
@@ -60,6 +79,7 @@ pid_file_lock (char *path)
   int fd;
   char buf[32];
   char *p;
+  int ret;
 
   pid = getpid ();
   fd = open (path, O_RDWR | O_CREAT | O_EXCL, 0644);
@@ -70,7 +90,7 @@ pid_file_lock (char *path)
         fprintf (stderr, "Can't create pid lock file, exit.\n");
       else
         {
-          read (fd, buf, sizeof (buf));
+          ret = read (fd, buf, sizeof (buf));
           p = index (buf, '\n');
           if (p)
             *p = '\0';
@@ -80,7 +100,48 @@ pid_file_lock (char *path)
     }
 
   snprintf (buf, sizeof (buf), "%d\n", (int) pid);
-  write (fd, buf, strlen (buf));
+  ret = write (fd, buf, strlen (buf));
+  close (fd);
+}
+
+void
+pid_file_without_lock (char *path)
+{
+  pid_t pid;
+  int fd;
+  char buf[32];
+  char *p;
+  int ret;
+
+  pid = getpid ();
+  fd = open (path, O_RDWR | O_CREAT | O_EXCL, 0644);
+  if (fd < 0)
+    {
+      fd = open (path, O_RDONLY);
+      if (fd < 0)
+        fprintf (stderr, "Can't create pid lock file.\n");
+      else
+        {
+          ret = read (fd, buf, sizeof (buf));
+          p = index (buf, '\n');
+          if (p)
+            *p = '\0';
+          fprintf (stderr, "Overriding the pid-file by process(%s).\n", buf);
+        }
+    }
+
+  if (fd < 0)
+    {
+      fd = open (path, O_RDWR, 0644);
+      if (fd < 0)
+        {
+          fprintf (stderr, "Can't override the pid-file.\n");
+          return;
+        }
+    }
+
+  snprintf (buf, sizeof (buf), "%d\n", (int) pid);
+  ret = write (fd, buf, strlen (buf));
   close (fd);
 }
 
@@ -104,6 +165,10 @@ main (int argc, char **argv)
     {
       switch (opt)
         {
+        case 'v':
+          print_version ();
+          exit (0);
+          break;
         case 'f':
           config_file = optarg;
           break;
@@ -115,7 +180,7 @@ main (int argc, char **argv)
         }
     }
 
-  pid_file_lock (pid_path);
+  pid_file_without_lock (pid_path);
 
   debug_log_init (progname);
   sdplane_init ();

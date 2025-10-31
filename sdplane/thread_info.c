@@ -244,3 +244,12 @@ lthread_cancel_all ()
     }
   rte_rwlock_read_unlock (&thread_info_lock);
 }
+
+extern int lthread_core;
+bool
+is_lthread ()
+{
+  int lcore_id = rte_lcore_id ();
+  return (lthread_core == lcore_id);
+}
+

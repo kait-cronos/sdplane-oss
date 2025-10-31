@@ -19,8 +19,6 @@
 #include <sdplane/debug_cmd.h>
 
 #include <sdplane/debug_log.h>
-#include <sdplane/debug_category.h>
-#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "l3fwd.h"
@@ -34,51 +32,12 @@
 #include "thread_info.h"
 
 #include "rib_manager.h"
-
 #include "tap.h"
-
 #include "log_packet.h"
-
-extern struct fdb_entry fdb[FDB_SIZE];
+#include "tap_handler.h"
 
 static __thread uint64_t loop_counter = 0;
 static __thread struct rib *rib = NULL;
-
-static inline __attribute__ ((always_inline)) void
-l3_tap_handler_register_fdb (struct rte_mbuf *m)
-{
-  int j;
-  char eth_src[32];
-  struct rte_ether_hdr *eth;
-
-  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  rte_ether_format_addr (eth_src, sizeof (eth_src), &eth->src_addr);
-
-  /* register in FDB */
-  for (j = 0; j < FDB_SIZE; j++)
-    {
-      if (rte_is_zero_ether_addr (&fdb[j].l2addr))
-        {
-          fdb[j].l2addr = eth->src_addr;
-          fdb[j].port = m->port;
-          DEBUG_SDPLANE_LOG (FDB_CHANGE,
-                             "m: %p new: in fdb[%d]: addr: %s port: %d", m, j,
-                             eth_src, m->port);
-          break;
-        }
-      if (rte_is_same_ether_addr (&fdb[j].l2addr, &eth->src_addr))
-        {
-          fdb[j].port = m->port;
-          DEBUG_SDPLANE_LOG (FDB, "m: %p found: in fdb[%d]: addr: %s port: %d",
-                             m, j, eth_src, m->port);
-          break;
-        }
-      char buf[32];
-      rte_ether_format_addr (buf, sizeof (buf), &fdb[j].l2addr);
-      DEBUG_SDPLANE_LOG (FDB, "m: %p fdb[%d]: addr: %s port: %d", m, j, buf,
-                         fdb[j].port);
-    }
-}
 
 static inline __attribute__ ((always_inline)) void
 l3_tap_handler_write_capture_if (int capture_fd, struct rte_mbuf *m)
@@ -91,19 +50,18 @@ l3_tap_handler_write_capture_if (int capture_fd, struct rte_mbuf *m)
   pkt_len = rte_pktmbuf_pkt_len (m);
   data_len = rte_pktmbuf_data_len (m);
   pkt = rte_pktmbuf_mtod (m, char *);
-  ;
 
   /* write to capture_fd for packet capture. */
   if (capture_fd >= 0)
     {
       ret = write (capture_fd, pkt, data_len);
       if (ret < 0)
-        DEBUG_SDPLANE_LOG (TAPHANDLER, "warning: write () failed: %s",
-                           strerror (errno));
+        DEBUG_NEW (TAPHANDLER, "warning: write () failed: %s",
+                   strerror (errno));
       else
-        DEBUG_SDPLANE_LOG (
-            TAPHANDLER, "packet [%d/%d] (in_port: %d) written to capture I/F.",
-            data_len, pkt_len, m->port);
+        DEBUG_NEW (TAPHANDLER, "packet [%d/%d] (in_port: %d) "
+                   "written to capture I/F.",
+                   data_len, pkt_len, m->port);
     }
 }
 
@@ -120,16 +78,16 @@ l3_tap_handler_write_router_if (int router_fd, struct rte_mbuf *m)
   pkt = rte_pktmbuf_mtod (m, char *);
 
   if (data_len < pkt_len)
-    DEBUG_SDPLANE_LOG (TAPHANDLER, "warning: multi-seg mbuf: %u < %u",
-                       data_len, pkt_len);
+    DEBUG_NEW (TAPHANDLER, "warning: multi-seg mbuf: %u < %u",
+               data_len, pkt_len);
 
   ret = write (router_fd, pkt, data_len);
   if (ret < 0)
-    DEBUG_SDPLANE_LOG (TAPHANDLER, "write() failed: router_fd: %d error: %s.",
-                       router_fd, strerror (errno));
+    DEBUG_NEW (TAPHANDLER, "write() failed: router_fd: %d error: %s.",
+               router_fd, strerror (errno));
   else
-    DEBUG_SDPLANE_LOG (TAPHANDLER, "packet [%d/%d] router_fd: %d.", data_len,
-                       pkt_len, router_fd);
+    DEBUG_NEW (TAPHANDLER, "packet [%d/%d] router_fd: %d.", data_len,
+               pkt_len, router_fd);
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -149,7 +107,7 @@ l3_tap_handler_handle_packet_up ()
       int router_fd = vswitch->router_if.sockfd;
       int capture_fd = vswitch->capture_if.sockfd;
 
-      if (vswitch->router_if.tap_ring_id != vswitch_id)
+      if (vswitch->router_if.tap_ring_id != vswitch->vswitch_id)
         continue;
 
       tap_ring = vswitch->router_if.ring_up;
@@ -164,11 +122,10 @@ l3_tap_handler_handle_packet_up ()
           if (! m)
             continue;
 
-          DEBUG_SDPLANE_LOG (PACKET, "m: %p received from tap_ring: %d", m,
-                             vswitch->router_if.tap_ring_id);
-          log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
+          if (IS_DEBUG (PACKET))
+            log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
 
-          l3_tap_handler_register_fdb (m);
+          send_fdb_entry_add_msg (m);
           if (capture_fd >= 0)
             l3_tap_handler_write_capture_if (capture_fd, m);
           if (router_fd >= 0)
@@ -183,11 +140,12 @@ static inline __attribute__ ((always_inline)) void
 l3_tap_handler_handle_packet_down ()
 {
   int nfds = 0;
-  struct pollfd fds[MAX_VSWITCH_ID];
+  struct pollfd fds[MAX_VSWITCH];
   int ret;
   int i;
   char data[9000];
   char *pkt;
+  int size;
 
   struct vswitch_conf *vswitch;
   int vswitch_id;
@@ -197,7 +155,7 @@ l3_tap_handler_handle_packet_down ()
     {
       vswitch = &rib->rib_info->vswitch[vswitch_id];
 
-      if (nfds >= MAX_VSWITCH_ID)
+      if (nfds >= MAX_VSWITCH)
         break;
 
       fds[nfds].fd = vswitch->router_if.sockfd;
@@ -232,9 +190,8 @@ l3_tap_handler_handle_packet_down ()
       ret = read (vswitch->router_if.sockfd, data, sizeof (data));
       if (ret < 0)
         {
-          DEBUG_SDPLANE_LOG (TAPHANDLER,
-                             "read() failed on router_if vswitch[%d]: %s",
-                             vswitch_id, strerror (errno));
+          DEBUG_NEW (TAPHANDLER, "read() failed on router_if vswitch[%d]: %s",
+                     vswitch_id, strerror (errno));
           continue;
         }
       if (ret == 0)
@@ -242,16 +199,25 @@ l3_tap_handler_handle_packet_down ()
 
       if (vswitch->router_if.ring_dn)
         {
-          int socket = rte_lcore_to_socket_id (rte_lcore_id ());
           struct rte_mempool *mp = l2fwd_pktmbuf_pool;
           struct rte_mbuf *m = rte_pktmbuf_alloc (mp);
-          rte_pktmbuf_append (m, ret);
+
+          size = ret;
+          if (size >= m->buf_len)
+            {
+              WARNING ("m: %p insufficient buf: %d bytes read, "
+                       "m->buf_len: %d", m, ret, m->buf_len);
+              size = m->buf_len;
+            }
+
+          rte_pktmbuf_append (m, size);
           pkt = rte_pktmbuf_mtod (m, char *);
-          memcpy (pkt, data, ret);
+          memcpy (pkt, data, size);
+
           rte_ring_enqueue (vswitch->router_if.ring_dn, m);
-          DEBUG_SDPLANE_LOG (TAPHANDLER, "packet: sockfd %d -> ring_dn %d",
-                             vswitch->router_if.sockfd,
-                             vswitch->router_if.tap_ring_id);
+          DEBUG_NEW (TAPHANDLER, "packet: sockfd %d -> ring_dn %d",
+                     vswitch->router_if.sockfd,
+                     vswitch->router_if.tap_ring_id);
         }
     }
 }
@@ -264,11 +230,10 @@ l3_tap_handler (__rte_unused void *dummy)
   unsigned lcore_id;
   struct rte_ring *tap_ring;
 
-  DEBUG_SDPLANE_LOG (TAPHANDLER, "start thread on lcore[%d].",
-                     rte_lcore_id ());
+  DEBUG_NEW (TAPHANDLER, "start thread on lcore[%d].",
+             rte_lcore_id ());
 
   int i, j;
-  memset (fdb, 0, sizeof (fdb));
 
   unsigned tap_handler_id = rte_lcore_id ();
 
@@ -276,16 +241,20 @@ l3_tap_handler (__rte_unused void *dummy)
   thread_id = thread_lookup_by_lcore (l3_tap_handler, tap_handler_id);
   thread_register_loop_counter (thread_id, &loop_counter);
 
-  DEBUG_SDPLANE_LOG (TAPHANDLER, "start main loop on lcore[%d].",
-                     tap_handler_id);
+  DEBUG_NEW (TAPHANDLER, "start main loop on lcore[%d].",
+             tap_handler_id);
+  if (IS_LTHREAD ())
+    DEBUG_NEW (TAPHANDLER, "started as a lthread.");
 
 #if HAVE_LIBURCU_QSBR
-  urcu_qsbr_register_thread ();
+  if (! IS_LTHREAD ())
+    urcu_qsbr_register_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
 
   while (! force_quit && ! force_stop[tap_handler_id])
     {
-      // lthread_sleep (0); // yield.
+      if (IS_LTHREAD ())
+        lthread_sleep (0); // yield.
       // printf ("%s: schedule: %lu.\n", __func__, loop_counter);
 
 #if HAVE_LIBURCU_QSBR
@@ -307,7 +276,8 @@ l3_tap_handler (__rte_unused void *dummy)
   printf ("%s on lcore[%d]: finished.\n", __func__, rte_lcore_id ());
 
 #if HAVE_LIBURCU_QSBR
-  urcu_qsbr_unregister_thread ();
+  if (! IS_LTHREAD ())
+    urcu_qsbr_unregister_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
 
   return 0;

@@ -22,7 +22,7 @@
 
 #include "internal_message.h"
 
-struct rte_ring *msg_queue_neigh;
+struct rte_ring *msg_queue_neigh = NULL;
 
 static __thread struct neigh_table primary_neigh_tables[NEIGH_NR_TABLES];
 
@@ -140,7 +140,7 @@ neigh_manager_delete_entry (struct neigh_table *neigh_table, const int index,
   hash = jenkins_hash ((uint8_t *) key, neigh_key_lengths[index]);
   offset = hash;
 
-  while (neigh_table->entries[offset].state != NEIGH_STATE_NONE)
+  while (1)
     {
       if (! memcmp (&neigh_table->entries[offset].ip_addr, key,
                     neigh_key_lengths[index]))
@@ -216,7 +216,7 @@ neigh_manager_show_table (const int index, const struct shell *shell)
       rte_ether_format_addr (
           lladdr, sizeof (lladdr),
           &rib->rib_info->neigh_tables[index].entries[i].mac_addr);
-      fprintf (shell->terminal, "%s lladdr %s state %s%s", addr, lladdr,
+      fprintf (shell->terminal, "[%d] %s lladdr %s state %s%s", i, addr, lladdr,
                neigh_manager_state_str (
                    rib->rib_info->neigh_tables[index].entries[i].state),
                shell->NL);
@@ -243,7 +243,7 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
           &neigh_tables[msg_neigh_entry->index], msg_neigh_entry->index,
           &msg_neigh_entry->data.ip_addr, &msg_neigh_entry->data);
       if (ret < 0)
-        return;
+        break;
       msg_neigh_entry->hash = ret;
       new_msgp =
           internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
@@ -254,9 +254,11 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg_neigh_del_entry: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      neigh_manager_delete_entry (&neigh_tables[msg_neigh_entry->index],
-                                  msg_neigh_entry->index,
-                                  &msg_neigh_entry->data.ip_addr);
+      ret = neigh_manager_delete_entry (&neigh_tables[msg_neigh_entry->index],
+                                        msg_neigh_entry->index,
+                                        &msg_neigh_entry->data.ip_addr);
+      if (ret < 0)
+        break;
       msg_neigh_entry->hash = ret;
       new_msgp =
           internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL,
@@ -274,6 +276,15 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
   free (msgp);
 }
 
+void
+neigh_manager_init ()
+{
+  /* initialize */
+  if (! msg_queue_neigh)
+    msg_queue_neigh =
+      rte_ring_create ("msg_queue_neigh", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+}
+
 int
 neigh_manager (void *arg __rte_unused)
 {
@@ -284,9 +295,7 @@ neigh_manager (void *arg __rte_unused)
   printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
   DEBUG_SDPLANE_LOG (NEIGH, "%s: started.", __func__);
 
-  /* initialize */
-  msg_queue_neigh =
-      rte_ring_create ("msg_queue_neigh", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+  neigh_manager_init ();
 
   int thread_id;
   thread_id = thread_lookup (neigh_manager);
@@ -297,7 +306,7 @@ neigh_manager (void *arg __rte_unused)
 
   while (! force_quit && ! force_stop[lcore_id])
     {
-      lthread_sleep (100); // yield.
+      lthread_sleep (0); // yield.
       // DEBUG_SDPLANE_LOG (NEIGH, "%s: schedule.", __func__);
 
       msgp = internal_msg_recv (msg_queue_neigh);

@@ -16,6 +16,7 @@ extern int l3fwd_argc;
 extern char *argv_list[ARGV_LIST_MAX][ARGV_LIST_ARGV_MAX];
 extern int argv_list_argc[ARGV_LIST_MAX];
 
+extern bool rte_eal_init_done;
 extern volatile bool force_quit;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
@@ -55,14 +56,6 @@ struct vswitch
   struct vswitch_port port[VSWITCH_PORT_SIZE];
 };
 extern struct vswitch vswitch0;
-
-#define FDB_SIZE 16
-struct fdb_entry
-{
-  struct rte_ether_addr l2addr;
-  int port;
-};
-extern struct fdb_entry fdb[FDB_SIZE];
 
 // #define SHOW_HELP "show information\n"
 #define CLEAR_HELP        "clear information\n"
@@ -107,7 +100,7 @@ EXTERN_COMMAND (show_port_promiscuous);
 EXTERN_COMMAND (show_port_flowcontrol);
 EXTERN_COMMAND (set_port_flowcontrol);
 
-void lthread_main (__rte_unused void *dummy);
+int lthread_main (__rte_unused void *dummy);
 
 void sdplane_cmd_init (struct command_set *cmdset);
 void sdplane_init ();

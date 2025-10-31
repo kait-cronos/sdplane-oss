@@ -10,6 +10,9 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
+#ifdef HAVE_SDPLANE_LIBSDPLANE_VERSION_H
+#include <sdplane/libsdplane_version.h>
+#endif
 
 #include "l3fwd.h"
 #include "l2fwd_export.h"
@@ -32,6 +35,9 @@ CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
+#ifdef HAVE_SDPLANE_LIBSDPLANE_VERSION_H
+  fprintf (t, "libsdplane version: %s%s", libsdplane_version, shell->NL);
+#endif
   fprintf (t, "sdplane version: %s%s", sdplane_version, shell->NL);
 }
 
@@ -724,57 +730,6 @@ CLI_COMMAND2 (show_rcu, "show rcu", SHOW_HELP, "show rcu-information.\n")
   return 0;
 }
 
-CLI_COMMAND2 (show_fdb, "show fdb", SHOW_HELP, "show fdb-information.\n")
-{
-  struct shell *shell = (struct shell *) context;
-  FILE *t = shell->terminal;
-  int i;
-  char buf[32];
-  for (i = 0; i < FDB_SIZE; i++)
-    {
-      rte_ether_format_addr (buf, sizeof (buf), &fdb[i].l2addr);
-      if (! rte_is_zero_ether_addr (&fdb[i].l2addr))
-        fprintf (t, "fdb[%d]: %s port %d%s", i, buf, fdb[i].port, shell->NL);
-    }
-  return 0;
-}
-
-CLI_COMMAND2 (show_vswitch, "show vswitch", SHOW_HELP,
-              "show vswitch-information.\n")
-{
-  struct shell *shell = (struct shell *) context;
-  FILE *t = shell->terminal;
-  struct vswitch *vswitch = &vswitch0;
-  struct vswitch_port *vport;
-  char *type_str;
-  int i;
-  for (i = 0; i < vswitch->size; i++)
-    {
-      vport = &vswitch->port[i];
-      type_str = NULL;
-      switch (vport->type)
-        {
-        case VSWITCH_PORT_TYPE_NONE:
-          type_str = "none";
-          break;
-        case VSWITCH_PORT_TYPE_DPDK_LCORE:
-          type_str = "dpdk-port";
-          break;
-        case VSWITCH_PORT_TYPE_LINUX_TAP:
-          type_str = "linux-tap";
-          break;
-        default:
-          type_str = "unknown";
-          break;
-        }
-      fprintf (t, "vswport[%d]: [%d] %9s %s sock: %d lcore: %d ring[%p/%p]%s",
-               i, vport->id, type_str, vport->name, vport->sockfd,
-               vport->lcore_id, vport->ring[TAPDIR_UP],
-               vport->ring[TAPDIR_DOWN], shell->NL);
-    }
-  return 0;
-}
-
 CLI_COMMAND2 (sleep_cmd, "sleep <0-300>", "sleep command\n",
               "specify seconds to sleep.\n")
 {
@@ -896,8 +851,6 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_loop_count);
   INSTALL_COMMAND2 (cmdset, show_version);
   INSTALL_COMMAND2 (cmdset, show_rcu);
-  INSTALL_COMMAND2 (cmdset, show_fdb);
-  INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, sleep_cmd);
   INSTALL_COMMAND2 (cmdset, set_locale);
   INSTALL_COMMAND2 (cmdset, show_mempool);
@@ -913,6 +866,7 @@ sdplane_cmd_init (struct command_set *cmdset)
 #endif
 
   nettlp_cmd_init (cmdset);
+  dhcp_cmd_init (cmdset);
 }
 
 void

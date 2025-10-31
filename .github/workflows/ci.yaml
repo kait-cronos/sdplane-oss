@@ -9,9 +9,15 @@ on:
 
 jobs:
   build:
+    name: Build with DPDK ${{ matrix.dpdk_version }}
     runs-on: ubuntu-24.04
-    env:
-      DPDK_VERSION: 23.11.1
+    strategy:
+      fail-fast: false
+      matrix:
+        dpdk_version:
+          - "23.11.5"
+          - "24.11.3"
+          # - "25.07"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -47,23 +53,24 @@ jobs:
         env:
           cache-name: cache-dpdk
         with:
-          path: ~/dpdk-stable-${{ env.DPDK_VERSION }}
-          key: ${{ runner.os }}-dpdk-${{ env.DPDK_VERSION }}
+          path: ~/dpdk-${{ matrix.dpdk_version }}
+          key: ${{ runner.os }}-dpdk-${{ matrix.dpdk_version }}
 
       - name: Build DPDK
         if: ${{ steps.cache-dpdk.outputs.cache-hit != 'true' }}
         run: |
           cd ${HOME}
-          wget https://fast.dpdk.org/rel/dpdk-${DPDK_VERSION}.tar.xz
-          tar -xvJf dpdk-${DPDK_VERSION}.tar.xz
-          cd dpdk-stable-${DPDK_VERSION}
+          wget https://fast.dpdk.org/rel/dpdk-${{ matrix.dpdk_version }}.tar.xz
+          tar -xvJf dpdk-${{ matrix.dpdk_version }}.tar.xz
+          ls dpdk-${{ matrix.dpdk_version }} || mv dpdk-stable-${{ matrix.dpdk_version }} dpdk-${{ matrix.dpdk_version }}
+          cd dpdk-${{ matrix.dpdk_version }}
           meson setup build
           cd build
           ninja
 
       - name: Install DPDK
         run: |
-          cd ${HOME}/dpdk-stable-${DPDK_VERSION}/build
+          cd ${HOME}/dpdk-${{ matrix.dpdk_version }}/build
           sudo meson install
           sudo ldconfig
 

@@ -61,6 +61,8 @@
 #include "vty_shell.h"
 #include "thread_info.h"
 
+#include "dhcp_server.h"
+
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
@@ -147,6 +149,34 @@ CLI_COMMAND2 (set_worker_lthread_neigh_manager,
   return 0;
 }
 
+CLI_COMMAND2 (set_worker_lthread_dhcp_server,
+              "set worker lthread dhcp-server", SET_HELP, WORKER_HELP,
+              "lthread information\n", "dhcp-server\n")
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) dhcp_server, NULL);
+  thread_register (lthread_core, lt, (lthread_func) dhcp_server,
+                   "dhcp-server", NULL);
+  lthread_detach2 (lt);
+  return 0;
+}
+
+CLI_COMMAND2 (set_worker_lthread_l3_tap_handler,
+              "set worker lthread l3-tap-handler", SET_HELP, WORKER_HELP,
+              "lthread information\n", "l3-tap-handler\n")
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) l3_tap_handler, NULL);
+  thread_register (lthread_core, lt, (lthread_func) l3_tap_handler,
+                   "l3_tap_handler", NULL);
+  lthread_detach2 (lt);
+  return 0;
+}
+
 void
 lthread_cmd_init (struct command_set *cmdset)
 {
@@ -154,9 +184,11 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_rib_manager);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_netlink_thread);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_dhcp_server);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_l3_tap_handler);
 }
 
-void
+int
 lthread_main (__rte_unused void *dummy)
 {
   lthread_t *lt = NULL;
@@ -188,11 +220,11 @@ lthread_main (__rte_unused void *dummy)
 
   thread_id = thread_lookup (lthread_main);
   if (thread_id < 0)
-    thread_id =
-        thread_register (lthread_core, lt, lthread_main, "lthread_main", NULL);
+    thread_id = thread_register (lthread_core, lt, (lthread_func) lthread_main,
+                                 "lthread_main", NULL);
   else
-    thread_update (thread_id, lthread_core, lt, lthread_main, "lthread_main",
-                   NULL);
+    thread_update (thread_id, lthread_core, lt, (lthread_func) lthread_main,
+                   "lthread_main", NULL);
   thread_register_loop_counter (thread_id, &loop_counter);
 
 #if HAVE_LIBURCU_QSBR
@@ -257,4 +289,6 @@ lthread_main (__rte_unused void *dummy)
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_unregister_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
+
+  return 0;
 }

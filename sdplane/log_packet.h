@@ -1,41 +1,168 @@
 #ifndef __LOG_PACKET_H__
 #define __LOG_PACKET_H__
 
+#include "rte_override.h"
+
+#include <netinet/ip_icmp.h>
+#include <netinet/icmp6.h>
+
+static inline __attribute__ ((always_inline)) char *
+__icmp_type_str (uint8_t type)
+{
+  switch (type)
+    {
+    case ICMP_ECHOREPLY:     return "echo-reply";    //0
+    case ICMP_DEST_UNREACH:  return "dest-unreach";  //3
+    case ICMP_SOURCE_QUENCH: return "source-quench"; //4
+    case ICMP_REDIRECT:      return "redirect";      //5
+    case ICMP_ECHO:          return "echo-request";  //8
+    case ICMP_TIME_EXCEEDED: return "time-exceeded"; //11
+    case ICMP_PARAMETERPROB: return "param-problem"; //12
+    case ICMP_TIMESTAMP:     return "timestamp";     //13 
+    case ICMP_TIMESTAMPREPLY: return "timestamp-reply"; //14 
+    case ICMP_INFO_REQUEST:  return "info-request";  //15 
+    case ICMP_INFO_REPLY:    return "info-reply";    //16 
+    case ICMP_ADDRESS:       return "address";       //17 
+    case ICMP_ADDRESSREPLY:  return "address-reply"; //18 
+    default: break;
+    }
+  return "unknown";
+}
+
+static inline __attribute__ ((always_inline)) char *
+__icmp6_type_str (uint8_t type)
+{
+  switch (type)
+    {
+    case ICMP6_DST_UNREACH:      return "unreach";        //  1
+    case ICMP6_PACKET_TOO_BIG:   return "too-big";        //  2
+    case ICMP6_TIME_EXCEEDED:    return "time-exceeded";  //  3
+    case ICMP6_PARAM_PROB:       return "param-problem";  //  4
+    case ICMP6_ECHO_REQUEST:     return "echo-request";   //128
+    case ICMP6_ECHO_REPLY:       return "echo-reply";     //129
+    case MLD_LISTENER_QUERY:     return "mld-query";      //130
+    case MLD_LISTENER_REPORT:    return "mld-report";     //131
+    case MLD_LISTENER_REDUCTION: return "mld-reduction";  //132
+    case ND_ROUTER_SOLICIT:      return "router-solicit"; //133
+    case ND_ROUTER_ADVERT:       return "router-advert";  //134
+    case ND_NEIGHBOR_SOLICIT:    return "neigh-solicit";  //135
+    case ND_NEIGHBOR_ADVERT:     return "neigh-advert";   //136
+    case ND_REDIRECT:            return "redirect";       //137
+    case ICMPV6_EXT_ECHO_REQUEST:return "ext-echo-request"; //160
+    case ICMPV6_EXT_ECHO_REPLY:  return "ext-echo-reply"; //161
+    default: break;
+    }
+  return "unknown";
+}
+
+inline __attribute__ ((always_inline)) void
+__parse_packet (struct rte_mbuf *m,
+                struct rte_ether_hdr **eth, struct rte_vlan_hdr **vlan,
+                struct rte_ipv4_hdr **ipv4, struct rte_ipv6_hdr **ipv6,
+                struct rte_icmp_hdr **icmp,
+                struct rte_udp_hdr **udp, struct rte_tcp_hdr **tcp)
+{
+  *eth = NULL; *vlan = NULL; *ipv4 = NULL; *ipv6 = NULL;
+  *icmp = NULL; *udp = NULL; *tcp = NULL;
+  unsigned short eth_type;
+
+  *eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  eth_type = rte_be_to_cpu_16 ((*eth)->ether_type);
+
+  if (eth_type == RTE_ETHER_TYPE_VLAN)
+    {
+      uint16_t eth_proto;
+      *vlan = (struct rte_vlan_hdr *) ((*eth) + 1);
+      eth_proto = rte_be_to_cpu_16 ((*vlan)->eth_proto);
+      if (eth_proto == RTE_ETHER_TYPE_IPV4)
+        *ipv4 = (struct rte_ipv4_hdr *) ((*vlan) + 1);
+      else if (eth_proto == RTE_ETHER_TYPE_IPV6)
+        *ipv6 = (struct rte_ipv6_hdr *) ((*vlan) + 1);
+    }
+  else
+    {
+      if (eth_type == RTE_ETHER_TYPE_IPV4)
+        *ipv4 = (struct rte_ipv4_hdr *) ((*eth) + 1);
+      else if (eth_type == RTE_ETHER_TYPE_IPV6)
+        *ipv6 = (struct rte_ipv6_hdr *) ((*eth) + 1);
+    }
+
+  uint8_t ip_proto;
+  if (*ipv4)
+    {
+      ip_proto = (*ipv4)->next_proto_id;
+      if (ip_proto == IPPROTO_ICMP)
+        *icmp = (struct rte_icmp_hdr *) ((*ipv4) + 1);
+      else if (ip_proto == IPPROTO_UDP)
+        *udp = (struct rte_udp_hdr *) ((*ipv4) + 1);
+      else if (ip_proto == IPPROTO_TCP)
+        *tcp = (struct rte_tcp_hdr *) ((*ipv4) + 1);
+    }
+  else if (*ipv6)
+    {
+      ip_proto = (*ipv6)->proto;
+      if (ip_proto == IPPROTO_ICMPV6)
+        *icmp = (struct rte_icmp_hdr *) ((*ipv6) + 1);
+      else if (ip_proto == IPPROTO_UDP)
+        *udp = (struct rte_udp_hdr *) ((*ipv6) + 1);
+      else if (ip_proto == IPPROTO_TCP)
+        *tcp = (struct rte_tcp_hdr *) ((*ipv6) + 1);
+    }
+}
+
 static inline __attribute__ ((always_inline)) void
 __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
               uint16_t rx_portid, uint16_t rx_queueid)
 {
   char ether_str[512];
+  char vlan_str[128];
   char ip_str[512];
   char transport_str[512];
   char payload_str[512];
 
   struct rte_ether_hdr *eth;
-  char eth_dst[32];
-  char eth_src[32];
-  unsigned short eth_type;
-
-  struct rte_ipv4_hdr *ipv4;
-  struct rte_ipv6_hdr *ipv6;
-  char ip_src[64];
-  char ip_dst[64];
+  struct rte_vlan_hdr *vlan = NULL;
+  struct rte_ipv4_hdr *ipv4 = NULL;
+  struct rte_ipv6_hdr *ipv6 = NULL;
+  struct rte_icmp_hdr *icmp = NULL;
+  struct rte_udp_hdr *udp = NULL;
+  struct rte_tcp_hdr *tcp = NULL;
 
   memset (ether_str, 0, sizeof (ether_str));
+  memset (vlan_str, 0, sizeof (vlan_str));
   memset (ip_str, 0, sizeof (ip_str));
   memset (transport_str, 0, sizeof (transport_str));
   memset (payload_str, 0, sizeof (payload_str));
 
+  __parse_packet (m, &eth, &vlan, &ipv4, &ipv6, &icmp, &udp, &tcp);
+
   /* ether part */
-  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  unsigned short eth_type;
+  char eth_dst[32];
+  char eth_src[32];
   rte_ether_format_addr (eth_dst, sizeof (eth_dst), &eth->dst_addr);
   rte_ether_format_addr (eth_src, sizeof (eth_src), &eth->src_addr);
   eth_type = rte_be_to_cpu_16 (eth->ether_type);
   snprintf (ether_str, sizeof (ether_str), "ether: type: 0x%04hx %s -> %s",
             eth_type, eth_src, eth_dst);
 
-  if (RTE_ETH_IS_IPV4_HDR (m->packet_type))
+  if (vlan)
     {
-      ipv4 = (struct rte_ipv4_hdr *) (eth + 1);
+      uint16_t vlan_tci, eth_proto;
+      vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
+      eth_proto = rte_be_to_cpu_16 (vlan->eth_proto);
+      snprintf (vlan_str, sizeof (vlan_str),
+                " vlan: pri: %d dei: %d vlan-id: %d proto: %#x",
+                RTE_VLAN_TCI_PRI (vlan_tci), RTE_VLAN_TCI_DEI (vlan_tci),
+                RTE_VLAN_TCI_ID (vlan_tci), eth_proto);
+    }
+
+  uint8_t ip_proto;
+  char ip_src[64];
+  char ip_dst[64];
+
+  if (ipv4)
+    {
       inet_ntop (AF_INET, &ipv4->src_addr, ip_src, sizeof (ip_src));
       inet_ntop (AF_INET, &ipv4->dst_addr, ip_dst, sizeof (ip_dst));
       snprintf (ip_str, sizeof (ip_str),
@@ -48,9 +175,8 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
                 ipv4->next_proto_id, rte_be_to_cpu_16 (ipv4->hdr_checksum),
                 ip_src, ip_dst);
     }
-  else if (RTE_ETH_IS_IPV6_HDR (m->packet_type))
+  else if (ipv6)
     {
-      ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
       inet_ntop (AF_INET6, &ipv6->src_addr, ip_src, sizeof (ip_src));
       inet_ntop (AF_INET6, &ipv6->dst_addr, ip_dst, sizeof (ip_dst));
       snprintf (ip_str, sizeof (ip_str),
@@ -61,10 +187,43 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
                 ipv6->hop_limits, ip_src, ip_dst);
     }
 
-  if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), DEBUG_TYPE (SDPLANE, PACKET)))
+  uint16_t src_port;
+  uint16_t dst_port;
+  if (icmp)
+    {
+      snprintf (transport_str, sizeof (transport_str),
+                "icmp: type: %d (%s) code: %d "
+                "cksum: %#x ident: %d seqnum: %d",
+                icmp->icmp_type,
+                (ipv4 ? __icmp_type_str (icmp->icmp_type) :
+                        __icmp6_type_str (icmp->icmp_type)),
+                icmp->icmp_code,
+                rte_be_to_cpu_16 (icmp->icmp_cksum),
+                rte_be_to_cpu_16 (icmp->icmp_ident),
+                rte_be_to_cpu_16 (icmp->icmp_seq_nb));
+    }
+  else if (udp)
+    {
+      src_port = rte_be_to_cpu_16 (udp->src_port);
+      dst_port = rte_be_to_cpu_16 (udp->dst_port);
+      snprintf (transport_str, sizeof (transport_str),
+                "udp: src-port: %d dst-port: %d",
+                src_port, dst_port);
+    }
+  else if (tcp)
+    {
+      src_port = rte_be_to_cpu_16 (tcp->src_port);
+      dst_port = rte_be_to_cpu_16 (tcp->dst_port);
+      snprintf (transport_str, sizeof (transport_str),
+                "tcp: src-port: %d dst-port: %d",
+                src_port, dst_port);
+    }
+
+  //if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), DEBUG_TYPE (SDPLANE, PACKET)))
     debug_log ("%s[%d] %s(): m: %p rx_port: %d rx_queue: %d "
-               "%s %s %s %s",
-               file, line, func, m, rx_portid, rx_queueid, ether_str, ip_str,
+               "%s%s %s %s %s",
+               file, line, func, m, rx_portid, rx_queueid,
+               ether_str, vlan_str, ip_str,
                transport_str, payload_str);
 }
 

@@ -31,6 +31,7 @@
 .dirstamp
 Makefile.in
 Makefile
+!tests/Makefile
 
 /aclocal.m4
 /autom4te.cache
@@ -49,3 +50,9 @@ Makefile
 /missing
 /stamp-h1
 /build
+
+/tools/ip-neigh/*.sh
+
+/tests/build
+/tests/logs
+compile_commands.json
