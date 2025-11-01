@@ -102,6 +102,9 @@ EXTERN_COMMAND (set_port_flowcontrol);
 
 int lthread_main (__rte_unused void *dummy);
 
+void
+shell_read_response (struct shell *shell, struct rte_ring *ring_resp);
+
 void sdplane_cmd_init (struct command_set *cmdset);
 void sdplane_init ();
 

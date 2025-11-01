@@ -65,6 +65,8 @@
 #include "thread_info.h"
 #include "rib_manager.h"
 
+#include "dpdk_port_cmd.h"
+
 extern int lthread_core;
 
 void lthread_cancel_all ();
@@ -131,6 +133,14 @@ console_shell (void *arg)
   l3fwd_cmd_init (shell->cmdset);
   sdplane_cmd_init (shell->cmdset);
 
+  char ring_name[32];
+  struct rte_ring *ring_resp;
+  snprintf (ring_name, sizeof (ring_name), "console-resp");
+  ring_resp = rte_ring_create (ring_name, 4, rte_socket_id (), 0);
+#ifdef SHELL_RING_RESPONSE
+  shell->ring_response = ring_resp;
+#endif
+
   termio_init ();
 
   shell_clear (shell);
@@ -150,7 +160,9 @@ console_shell (void *arg)
       rib_tlocal = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      if (shell->is_paging)
+      if (rte_ring_count (ring_resp))
+        shell_read_response (shell, ring_resp);
+      else if (shell->is_paging)
         shell_read_nowait_paging (shell);
       else
         shell_read_nowait (shell);

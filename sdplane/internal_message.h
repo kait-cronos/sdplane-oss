@@ -10,6 +10,7 @@
 
 struct internal_msg_header
 {
+  struct rte_ring *ring_response;
   uint32_t type;
   uint32_t length; // not including the header size.
 };
@@ -36,6 +37,8 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_APPLICATION_SLOT      19
 #define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       20 
 #define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21 
+#define INTERNAL_MSG_TYPE_PORT_GET_REQUEST      22
+#define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     23
 
 struct internal_msg_eth_link
 {
@@ -96,6 +99,13 @@ struct internal_msg_route_entry
   uint8_t nexthop[16];
   uint32_t oif; // output interface index
   uint32_t plen;
+};
+
+struct internal_msg_port_info
+{
+  uint16_t port_id;
+  struct rte_eth_dev_info dev_info;
+  struct rte_eth_link link;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);

@@ -567,115 +567,6 @@ route_table_lookup_entry (const struct rib_info *rib_info,
   return -1;
 }
 
-#if 0
-static inline __attribute__ ((always_inline)) void
-rib_info_hard_coding (struct rib_info *new)
-{
-  uint8_t default_vlan_vswitch_id = 0;
-  struct vswitch_conf *default_vlan_vswitch;
-
-  uint16_t port_id;
-  struct port_conf *port;
-  uint16_t vswitch_link_id = 0;
-  struct vswitch_link *vswitch_link;
-
-  /* default vlan vswitch check */
-  /* default_vlan_vswitch_id is always 0. */
-  default_vlan_vswitch_id = 0;
-  if (new->vswitch_size == 0)
-    default_vlan_vswitch = vswitch_new (new, default_vlan_vswitch_id);
-  else
-    default_vlan_vswitch = &new->vswitch[default_vlan_vswitch_id];
-
-  new->port_size = rte_eth_dev_count_avail ();
-  for (port_id = 0; port_id < new->port_size; port_id++)
-    {
-      port = &new->port[port_id];
-      port->dpdk_port_id = port_id;
-
-      DEBUG_SDPLANE_LOG (RIB, "port_id: %d vswitch_link_id_of_native_vlan: %d",
-                         port_id, port->vswitch_link_id_of_native_vlan);
-
-      /* native vlan check. */
-      vswitch_link_id = port->vswitch_link_id_of_native_vlan;
-      DEBUG_SDPLANE_LOG (RIB, "vswitch[%d]: port_id: %d == port_id: %d",
-                         vswitch_link_id,
-                         new->vswitch_link[vswitch_link_id].port_id, port_id);
-      if (new->vswitch_link_size == 0 ||
-          new->vswitch_link[vswitch_link_id].port_id != port_id)
-        {
-          uint16_t vswitch_port_id;
-
-          /* create a new vswitch_link */
-          vswitch_link = vswitch_link_new (new, default_vlan_vswitch, port);
-
-          /* connect the vswitch_link to the dpdk port. */
-          port_set_native_vlan (new, port, vswitch_link);
-        }
-    }
-
-#if 0
-  int vswitch_id_2337 = -1;
-  int vswitch_id_2410 = -1;
-  int vswitch_id_2411 = -1;
-  int i;
-  for (i = 0; i < new->vswitch_size; i++)
-    {
-      struct vswitch_conf *vswitch = &new->vswitch[i];
-      if (vswitch->vlan_id == 2337)
-        vswitch_id_2337 = i;
-      else if (vswitch->vlan_id == 2410)
-        vswitch_id_2410 = i;
-      else if (vswitch->vlan_id == 2411)
-        vswitch_id_2411 = i;
-    }
-
-  struct vswitch_conf *vlan_2337 = NULL;
-  struct vswitch_conf *vlan_2410 = NULL;
-  struct vswitch_conf *vlan_2411 = NULL;
-  if (vswitch_id_2337 >= 0)
-    vlan_2337 = &new->vswitch[vswitch_id_2337];
-  if (vswitch_id_2410 >= 0)
-    vlan_2410 = &new->vswitch[vswitch_id_2410];
-  if (vswitch_id_2411 >= 0)
-    vlan_2411 = &new->vswitch[vswitch_id_2411];
-  struct port_conf *port_0 = &new->port[0];
-  struct port_conf *port_1 = &new->port[1];
-  struct port_conf *port_2 = &new->port[2];
-  struct port_conf *port_3 = &new->port[3];
-
-  if (! vlan_2337)
-    {
-      vlan_2337 = vswitch_new (new, 2337);
-      vswitch_link = vswitch_link_new (new, vlan_2337, port_0);
-      port_add_tagged_vlan (new, port_0, vswitch_link);
-      vswitch_link = vswitch_link_new (new, vlan_2337, port_1);
-      port_add_tagged_vlan (new, port_1, vswitch_link);
-    }
-
-  if (! vlan_2410) // BBIX
-    {
-      vlan_2410 = vswitch_new (new, 2410);
-      vswitch_link = vswitch_link_new (new, vlan_2410, port_0);
-      port_add_tagged_vlan (new, port_0, vswitch_link);
-      vswitch_link = vswitch_link_new (new, vlan_2410, port_1);
-      port_add_tagged_vlan (new, port_1, vswitch_link);
-    }
-
-
-  if (! vlan_2411)
-    {
-      vlan_2411 = vswitch_new (new, 2411);
-      vswitch_link = vswitch_link_new (new, vlan_2411, port_0);
-      port_add_tagged_vlan (new, port_0, vswitch_link);
-      vswitch_link = vswitch_link_new (new, vlan_2411, port_1);
-      //port_add_tagged_vlan (new, port_1, vswitch_link);
-      port_set_native_vlan (new, port_1, vswitch_link);
-    }
-#endif
-}
-#endif
-
 static inline __attribute__ ((always_inline)) struct rib_info *
 rib_info_create (struct rib_info *old)
 {
@@ -699,11 +590,6 @@ rib_info_create (struct rib_info *old)
       for (i = 0; i < ROUTE_TREE_SIZE; i++)
         new->fib_tree[i] = fib_new (NULL);
     }
-
-#if 0
-  /* XXX hard-coding part. */
-  rib_info_hard_coding (new);
-#endif
 
   new->ver++;
   return new;
@@ -1120,6 +1006,61 @@ application_slot_add (struct rib_info *rib_info,
              rib_info->application_slot_size);
 }
 
+#define RIB_RETFLAG_NONE               0
+#define RIB_RETFLAG_RETURN_IMMEDIATELY 1
+
+static uint16_t
+rib_manager_process_port_get (struct internal_msg_header *imsghdr)
+{
+  uint16_t retflag = 0;
+  struct internal_msg_port_info *port_info;
+  assert (imsghdr->type == INTERNAL_MSG_TYPE_PORT_GET_REQUEST);
+  port_info = (struct internal_msg_port_info *)
+    internal_msg_body (imsghdr);
+
+  DEBUG_NEW (RIB, "port_get_request: imsghdr: %p", imsghdr);
+
+  struct rib *new, *old;
+  old = rcu_dereference (rcu_global_ptr_rib);
+  new = rib_create (old);
+
+  /* get port info update. */
+  uint16_t port_id;
+  port_id = port_info->port_id;
+  new->rib_info->port[port_id].dpdk_port_id = port_id;
+  rte_eth_dev_info_get (port_id, &new->rib_info->port[port_id].dev_info);
+  rte_eth_link_get_nowait (port_id, &new->rib_info->port[port_id].link);
+
+  rib_replace (new);
+
+  struct internal_msg_header *resp;
+  struct internal_msg_port_info resp_port_info;
+  resp_port_info.port_id = port_id;
+  memcpy (&resp_port_info.dev_info,
+          &new->rib_info->port[port_id].dev_info,
+          sizeof (struct rte_eth_dev_info));
+  memcpy (&resp_port_info.link,
+          &new->rib_info->port[port_id].link,
+          sizeof (struct rte_eth_link));
+  resp = internal_msg_create (INTERNAL_MSG_TYPE_PORT_GET_RESPONSE,
+                              &resp_port_info, sizeof (resp_port_info));
+  if (imsghdr->ring_response)
+    {
+      internal_msg_send_to (imsghdr->ring_response, resp, NULL);
+      DEBUG_NEW (RIB, "send response: %p to ring: %p",
+                 resp, imsghdr->ring_response);
+    }
+  else
+    {
+      WARNING ("cannot send response: %p", resp);
+      WARNING ("probably no shell ring response. update libsdplane.");
+    }
+
+  free (imsghdr);
+  FLAG_SET (retflag, RIB_RETFLAG_RETURN_IMMEDIATELY);
+  return retflag;
+}
+
 void
 rib_manager_process_message (void *msgp)
 {
@@ -1149,8 +1090,18 @@ rib_manager_process_message (void *msgp)
   struct internal_msg_route_entry *msg_route_entry;
 
   msg_header = (struct internal_msg_header *) msgp;
+
+  uint16_t retflag = 0;
+
   switch (msg_header->type)
     {
+    case INTERNAL_MSG_TYPE_PORT_GET_REQUEST:
+      DEBUG_NEW (RIB, "port_get_request: receive");
+      retflag = rib_manager_process_port_get (msg_header);
+      if (FLAG_CHECK (retflag, RIB_RETFLAG_RETURN_IMMEDIATELY))
+        return;
+      break;
+
     case INTERNAL_MSG_TYPE_PORT_STATUS:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_port_status: %p.", msgp);
       update_port_status (new);
