@@ -39,6 +39,8 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21 
 #define INTERNAL_MSG_TYPE_PORT_GET_REQUEST      22
 #define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     23
+#define INTERNAL_MSG_TYPE_CMD_SUCCESS           24
+#define INTERNAL_MSG_TYPE_CMD_ERROR             25
 
 struct internal_msg_eth_link
 {
@@ -106,6 +108,16 @@ struct internal_msg_port_info
   uint16_t port_id;
   struct rte_eth_dev_info dev_info;
   struct rte_eth_link link;
+};
+
+struct internal_msg_cmd_success
+{
+  char message[64];
+};
+
+struct internal_msg_cmd_error
+{
+  char message[64];
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);

@@ -838,6 +838,34 @@ shell_read_response_port_get (struct shell *shell,
 }
 
 void
+shell_read_response_cmd_success (struct shell *shell,
+                                 struct internal_msg_header *imsghdr)
+{
+  FILE *t = shell->terminal;
+  struct internal_msg_cmd_success *cmd_success;
+  cmd_success = internal_msg_body (imsghdr);
+  if (strlen (cmd_success->message))
+    fprintf (t, "cmd success: %s", cmd_success->message);
+  else
+    fprintf (t, "cmd success.");
+  fflush (t);
+}
+
+void
+shell_read_response_cmd_error (struct shell *shell,
+                               struct internal_msg_header *imsghdr)
+{
+  FILE *t = shell->terminal;
+  struct internal_msg_cmd_error *cmd_error;
+  cmd_error = internal_msg_body (imsghdr);
+  if (strlen (cmd_error->message))
+    fprintf (t, "cmd error: %s", cmd_error->message);
+  else
+    fprintf (t, "cmd error.");
+  fflush (t);
+}
+
+void
 shell_read_response (struct shell *shell, struct rte_ring *ring_resp)
 {
   void *msgp;
@@ -850,6 +878,12 @@ shell_read_response (struct shell *shell, struct rte_ring *ring_resp)
     {
     case INTERNAL_MSG_TYPE_PORT_GET_RESPONSE:
       shell_read_response_port_get (shell, imsghdr);
+      break;
+    case INTERNAL_MSG_TYPE_CMD_SUCCESS:
+      shell_read_response_cmd_success (shell, imsghdr);
+      break;
+    case INTERNAL_MSG_TYPE_CMD_ERROR:
+      shell_read_response_cmd_error (shell, imsghdr);
       break;
     }
 }
