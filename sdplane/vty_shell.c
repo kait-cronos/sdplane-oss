@@ -35,6 +35,8 @@
 #include "sdplane_version.h"
 #include "rib_manager.h"
 
+#include "internal_message.h"
+
 int
 shell_keyfunc_clear_terminal (struct shell *shell)
 {
@@ -205,6 +207,14 @@ vty_shell (void *arg)
   l3fwd_cmd_init (shell->cmdset);
   sdplane_cmd_init (shell->cmdset);
 
+  char ring_name[32];
+  struct rte_ring *ring_resp;
+  snprintf (ring_name, sizeof (ring_name), "vty[%d]resp", client->id);
+  ring_resp = rte_ring_create (ring_name, 4, rte_socket_id (), 0);
+#ifdef SHELL_RING_RESPONSE
+  shell->ring_response = ring_resp;
+#endif
+
   // termio_init ();
 
   vty_will_echo (shell);
@@ -225,11 +235,10 @@ vty_shell (void *arg)
       rib_tlocal = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      if (shell->is_paging)
-        {
-          DEBUG_ZCMDSH_LOG (PAGER, "nowait_paging");
-          shell_read_nowait_paging (shell);
-        }
+      if (rte_ring_count (ring_resp))
+        shell_read_response (shell, ring_resp);
+      else if (shell->is_paging)
+        shell_read_nowait_paging (shell);
       else
         shell_read_nowait (shell);
 
