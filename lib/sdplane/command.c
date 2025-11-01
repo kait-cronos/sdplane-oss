@@ -524,6 +524,8 @@ is_command_node_variable (struct command_node *node)
       double_spec (node->cmdstr) || file_spec (node->cmdstr) ||
       line_spec (node->cmdstr) || var_spec (node->cmdstr))
     return 1;
+  if (word_spec (node->cmdstr))
+    return 1;
   return 0;
 }
 
