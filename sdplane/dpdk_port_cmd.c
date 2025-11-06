@@ -834,6 +834,39 @@ CLI_COMMAND2 (set_port_link_updown,
   return 0;
 }
 
+CLI_COMMAND2 (show_port_get_info,
+              "show port <0-16> get-info",
+              SHOW_HELP, PORT_HELP, PORT_NUMBER_HELP,
+              "port get-info\n")
+{
+  struct shell *shell = (struct shell *) context;
+  uint16_t port_id;
+  int ret;
+  struct rte_ring *ring_resp;
+  struct internal_msg_header *imsghdr;
+  void *msgp;
+  struct internal_msg_port_info port_info;
+
+  port_id = strtol (argv[2], NULL, 0);
+  port_info.port_id = port_id;
+  imsghdr = internal_msg_create (INTERNAL_MSG_TYPE_PORT_GET_REQUEST,
+                                 &port_info, sizeof (port_info));
+
+#ifdef SHELL_RING_RESPONSE
+  imsghdr->ring_response = shell->ring_response;
+#else
+  imsghdr->ring_response = NULL;
+#endif
+  internal_msg_send_to (msg_queue_rib, imsghdr, NULL);
+  fprintf (shell->terminal,
+           "created and sent PORT_GET_REQUEST: %p to rib%s",
+           imsghdr, shell->NL);
+  fflush (shell->terminal);
+
+  /* the response is processed in shell_read_response(). */
+
+  return 0;
+}
 
 void
 dpdk_port_cmd_init (struct command_set *cmdset)
@@ -843,6 +876,7 @@ dpdk_port_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_port_statistics);
   INSTALL_COMMAND2 (cmdset, show_port_promiscuous);
   INSTALL_COMMAND2 (cmdset, show_port_flowcontrol);
+  INSTALL_COMMAND2 (cmdset, show_port_get_info);
   INSTALL_COMMAND2 (cmdset, set_port_promiscuous);
   INSTALL_COMMAND2 (cmdset, set_port_flowcontrol);
   INSTALL_COMMAND2 (cmdset, set_port_dev_configure);

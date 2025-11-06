@@ -30,6 +30,7 @@
 
 #include "rib.h"
 #include "tap_cmd.h"
+#include "dpdk_port_cmd.h"
 
 CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 {
@@ -803,6 +804,88 @@ CLI_COMMAND2 (show_neighbor, "show neighbor (ipv4|ipv6)", SHOW_HELP,
     }
 
   return 0;
+}
+
+void
+shell_read_response_port_get (struct shell *shell,
+                              struct internal_msg_header *imsghdr)
+{
+  struct internal_msg_port_info *port_info;
+  struct rte_eth_dev_info *dev;
+  char link_capa[32];
+  char devname[32];
+  const char *businfo;
+  char drivername[32];
+
+  port_info = internal_msg_body (imsghdr);
+  dev = &port_info->dev_info;
+
+  snprintf (devname, sizeof (devname), "%s", rte_dev_name (dev->device));
+  businfo = rte_dev_bus_info (dev->device);
+  snprintf_flags (link_capa, sizeof (link_capa), dev->speed_capa,
+                  link_speeds, "|", LINK_SPEEDS_SIZE);
+  snprintf (drivername, sizeof (drivername), "%s", dev->driver_name);
+
+  FILE *t = shell->terminal;
+  fprintf (t, "resp: %p type: %d port_info: port_id: %d%s",
+           imsghdr, imsghdr->type, port_info->port_id, shell->NL);
+  fprintf (t, "dev_info.device: %s%s", devname, shell->NL);
+  fprintf (t, "dev_info.speed_capa: %s%s", link_capa, shell->NL);
+  fprintf (t, "dev_info.driver_name: %s%s", drivername, shell->NL);
+  fprintf (t, "  min_mtu: %'u max_mtu: %'u%s",
+           dev->min_mtu, dev->max_mtu, shell->NL);
+  fflush (t);
+}
+
+void
+shell_read_response_cmd_success (struct shell *shell,
+                                 struct internal_msg_header *imsghdr)
+{
+  FILE *t = shell->terminal;
+  struct internal_msg_cmd_success *cmd_success;
+  cmd_success = internal_msg_body (imsghdr);
+  if (strlen (cmd_success->message))
+    fprintf (t, "cmd success: %s", cmd_success->message);
+  else
+    fprintf (t, "cmd success.");
+  fflush (t);
+}
+
+void
+shell_read_response_cmd_error (struct shell *shell,
+                               struct internal_msg_header *imsghdr)
+{
+  FILE *t = shell->terminal;
+  struct internal_msg_cmd_error *cmd_error;
+  cmd_error = internal_msg_body (imsghdr);
+  if (strlen (cmd_error->message))
+    fprintf (t, "cmd error: %s", cmd_error->message);
+  else
+    fprintf (t, "cmd error.");
+  fflush (t);
+}
+
+void
+shell_read_response (struct shell *shell, struct rte_ring *ring_resp)
+{
+  void *msgp;
+  struct internal_msg_header *imsghdr;
+
+  msgp = internal_msg_recv (ring_resp);
+  imsghdr = msgp;
+
+  switch (imsghdr->type)
+    {
+    case INTERNAL_MSG_TYPE_PORT_GET_RESPONSE:
+      shell_read_response_port_get (shell, imsghdr);
+      break;
+    case INTERNAL_MSG_TYPE_CMD_SUCCESS:
+      shell_read_response_cmd_success (shell, imsghdr);
+      break;
+    case INTERNAL_MSG_TYPE_CMD_ERROR:
+      shell_read_response_cmd_error (shell, imsghdr);
+      break;
+    }
 }
 
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
