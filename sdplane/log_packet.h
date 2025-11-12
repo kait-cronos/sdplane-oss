@@ -5,6 +5,12 @@
 
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
+#include <rte_version.h>
+#if RTE_VERSION < RTE_VERSION_NUM(24, 0, 0, 0)
+  #include <rte_ip.h>
+#else
+  #include <rte_ip6.h>
+#endif
 
 static inline __attribute__ ((always_inline)) char *
 __icmp_type_str (uint8_t type)
@@ -59,11 +65,12 @@ inline __attribute__ ((always_inline)) void
 __parse_packet (struct rte_mbuf *m,
                 struct rte_ether_hdr **eth, struct rte_vlan_hdr **vlan,
                 struct rte_ipv4_hdr **ipv4, struct rte_ipv6_hdr **ipv6,
+                struct rte_ipv6_routing_ext **srh,
                 struct rte_icmp_hdr **icmp,
                 struct rte_udp_hdr **udp, struct rte_tcp_hdr **tcp)
 {
   *eth = NULL; *vlan = NULL; *ipv4 = NULL; *ipv6 = NULL;
-  *icmp = NULL; *udp = NULL; *tcp = NULL;
+  *srh = NULL; *icmp = NULL; *udp = NULL; *tcp = NULL;
   unsigned short eth_type;
 
   *eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
@@ -101,12 +108,23 @@ __parse_packet (struct rte_mbuf *m,
   else if (*ipv6)
     {
       ip_proto = (*ipv6)->proto;
+      void* transport_hdr = (*ipv6) + 1;
+      if (ip_proto == IPPROTO_ROUTING)
+        {
+          *srh = (struct rte_ipv6_routing_ext *) ((*ipv6) + 1);
+          if ((*srh)->type == RTE_IPV6_SRCRT_TYPE_4)
+            {
+              ip_proto = (*srh)->next_hdr;
+              uint16_t srh_len = ((*srh)->hdr_len +1) * 8;
+              transport_hdr = (void *)((char *)(*srh) + srh_len);
+            }
+        }
       if (ip_proto == IPPROTO_ICMPV6)
-        *icmp = (struct rte_icmp_hdr *) ((*ipv6) + 1);
+        *icmp = (struct rte_icmp_hdr *) transport_hdr;
       else if (ip_proto == IPPROTO_UDP)
-        *udp = (struct rte_udp_hdr *) ((*ipv6) + 1);
+        *udp = (struct rte_udp_hdr *) transport_hdr ;
       else if (ip_proto == IPPROTO_TCP)
-        *tcp = (struct rte_tcp_hdr *) ((*ipv6) + 1);
+        *tcp = (struct rte_tcp_hdr *) transport_hdr ;
     }
 }
 
@@ -117,6 +135,7 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
   char ether_str[512];
   char vlan_str[128];
   char ip_str[512];
+  char srh_str[512];
   char transport_str[512];
   char payload_str[512];
 
@@ -124,6 +143,7 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
   struct rte_vlan_hdr *vlan = NULL;
   struct rte_ipv4_hdr *ipv4 = NULL;
   struct rte_ipv6_hdr *ipv6 = NULL;
+  struct rte_ipv6_routing_ext *srh = NULL;
   struct rte_icmp_hdr *icmp = NULL;
   struct rte_udp_hdr *udp = NULL;
   struct rte_tcp_hdr *tcp = NULL;
@@ -131,10 +151,11 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
   memset (ether_str, 0, sizeof (ether_str));
   memset (vlan_str, 0, sizeof (vlan_str));
   memset (ip_str, 0, sizeof (ip_str));
+  memset (srh_str, 0, sizeof (srh_str));
   memset (transport_str, 0, sizeof (transport_str));
   memset (payload_str, 0, sizeof (payload_str));
 
-  __parse_packet (m, &eth, &vlan, &ipv4, &ipv6, &icmp, &udp, &tcp);
+  __parse_packet (m, &eth, &vlan, &ipv4, &ipv6, &srh, &icmp, &udp, &tcp);
 
   /* ether part */
   unsigned short eth_type;
@@ -185,6 +206,29 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
                 rte_be_to_cpu_32 (ipv6->vtc_flow),
                 rte_be_to_cpu_16 (ipv6->payload_len), ipv6->proto,
                 ipv6->hop_limits, ip_src, ip_dst);
+      if (srh)
+        {
+          snprintf (srh_str, sizeof (srh_str),
+                    " srv6: next_hdr: %d routing_type: %d"
+                    " segments_left: %d last_entry: %d tag: %08x",
+                    srh->next_hdr, srh->type, srh->segments_left,
+                    srh->last_entry, rte_be_to_cpu_32 (srh->flags));
+
+          size_t offset = strlen(srh_str);
+          char sid_str[INET6_ADDRSTRLEN];
+          struct in6_addr* sid_list = (struct in6_addr*)(srh+1);
+          for (int i=0; i < srh->last_entry + 1; i++)
+            {
+              size_t rem_len = sizeof(srh_str) - offset;
+              if (rem_len <= 1) break;
+              struct in6_addr* sid = &sid_list[i];
+              inet_ntop (AF_INET6, sid, sid_str, sizeof(sid_str));
+              const char* marker = (i == srh->segments_left) ? " (active)" : "";
+              int written = snprintf(srh_str+offset, rem_len,
+                                     " SL[%d]: %s%s ", i, marker, sid_str);
+              offset += written;
+            }
+        }
     }
 
   uint16_t src_port;
@@ -221,9 +265,9 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
 
   //if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), DEBUG_TYPE (SDPLANE, PACKET)))
     debug_log ("%s[%d] %s(): m: %p rx_port: %d rx_queue: %d "
-               "%s%s %s %s %s",
+               "%s%s %s%s %s %s",
                file, line, func, m, rx_portid, rx_queueid,
-               ether_str, vlan_str, ip_str,
+               ether_str, vlan_str, ip_str, srh_str,
                transport_str, payload_str);
 }
 
