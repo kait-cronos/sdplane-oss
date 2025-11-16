@@ -41,6 +41,10 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     23
 #define INTERNAL_MSG_TYPE_CMD_SUCCESS           24
 #define INTERNAL_MSG_TYPE_CMD_ERROR             25
+#define INTERNAL_MSG_TYPE_MAC_ADDR_ADD          26
+#define INTERNAL_MSG_TYPE_MAC_ADDR_DEL          27
+#define INTERNAL_MSG_TYPE_IP_ADDR_ADD           28
+#define INTERNAL_MSG_TYPE_IP_ADDR_DEL           29
 
 struct internal_msg_eth_link
 {
@@ -119,6 +123,23 @@ struct internal_msg_cmd_success
 struct internal_msg_cmd_error
 {
   char message[64];
+};
+
+struct internal_msg_mac_addr
+{
+  char ifname[16];
+  struct rte_ether_addr mac_addr;
+};
+
+struct internal_msg_ip_addr
+{
+  char ifname[16];
+  int family;
+  union
+    {
+      struct in_addr ipv4_addr;
+      struct in6_addr ipv6_addr;
+    } ip_addr;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);

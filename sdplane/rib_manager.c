@@ -1092,6 +1092,8 @@ rib_manager_process_message (void *msgp)
   struct internal_msg_qconf *msg_qconf;
   struct internal_msg_neigh_entry *msg_neigh_entry;
   struct internal_msg_route_entry *msg_route_entry;
+  struct internal_msg_mac_addr *msg_mac_addr;
+  struct internal_msg_ip_addr *msg_ip_addr;
 
   msg_header = (struct internal_msg_header *) msgp;
 
@@ -1582,6 +1584,134 @@ rib_manager_process_message (void *msgp)
           DEBUG_SDPLANE_LOG (RIB, "route deleted: dst=%s/%d nexthop=%s oif=%d",
                              dst_str_del, msg_route_entry->plen,
                              nexthop_str_del, msg_route_entry->oif);
+        }
+
+      break;
+
+    case INTERNAL_MSG_TYPE_MAC_ADDR_ADD:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_mac_addr_add: %p.", msgp);
+      msg_mac_addr = (struct internal_msg_mac_addr *) (msg_header + 1);
+      char mac_str_add[RTE_ETHER_ADDR_FMT_SIZE];
+
+      for (i = 0; i < new->rib_info->vswitch_size; i++)
+        {
+          if (memcmp (new->rib_info->vswitch[i].router_if.tap_name, msg_mac_addr->ifname,
+                      sizeof (msg_mac_addr->ifname)) == 0)
+            {
+              memcpy (&new->rib_info->vswitch[i].router_if.mac_addr, &msg_mac_addr->mac_addr,
+                      sizeof (struct rte_ether_addr));
+
+              rte_ether_format_addr (mac_str_add, sizeof (mac_str_add), &msg_mac_addr->mac_addr);
+              DEBUG_SDPLANE_LOG (RIB, "add MAC address: ifname=%s mac=%s",
+                                 msg_mac_addr->ifname, mac_str_add);
+              
+              break;
+            }
+        }
+
+      break;
+
+    case INTERNAL_MSG_TYPE_MAC_ADDR_DEL:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_mac_addr_del: %p.", msgp);
+      msg_mac_addr = (struct internal_msg_mac_addr *) (msg_header + 1);
+      char mac_str_del[RTE_ETHER_ADDR_FMT_SIZE];
+
+      for (i = 0; i < new->rib_info->vswitch_size; i++)
+        {
+          if (memcmp (new->rib_info->vswitch[i].router_if.tap_name, msg_mac_addr->ifname,
+                      sizeof (msg_mac_addr->ifname)) == 0 && 
+              memcmp (&new->rib_info->vswitch[i].router_if.mac_addr, &msg_mac_addr->mac_addr,
+                      sizeof (struct rte_ether_addr)))
+            {
+              memset (&new->rib_info->vswitch[i].router_if.mac_addr, 0,
+                      sizeof (struct rte_ether_addr));
+
+              rte_ether_format_addr (mac_str_del, sizeof (mac_str_del), &msg_mac_addr->mac_addr);
+              DEBUG_SDPLANE_LOG (RIB, "delete MAC address: ifname=%s mac=%s",
+                                 msg_mac_addr->ifname, mac_str_del);
+
+              break;
+            }
+        }
+
+      break;
+
+    case INTERNAL_MSG_TYPE_IP_ADDR_ADD:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_ip_addr_add: %p.", msgp);
+      msg_ip_addr = (struct internal_msg_ip_addr *) (msg_header + 1);
+      char ip_str_add[INET6_ADDRSTRLEN];
+
+      for (i = 0; i < new->rib_info->vswitch_size; i++)
+        {
+          if (memcmp (new->rib_info->vswitch[i].router_if.tap_name, msg_ip_addr->ifname,
+                      sizeof (msg_ip_addr->ifname)) == 0)
+            {
+              if (msg_ip_addr->family == AF_INET)
+                {
+                  memcpy (&new->rib_info->vswitch[i].router_if.ipv4_addr, &msg_ip_addr->ip_addr.ipv4_addr,
+                          sizeof (struct in_addr));
+
+                  inet_ntop (AF_INET, &msg_ip_addr->ip_addr.ipv4_addr, ip_str_add,
+                             sizeof (ip_str_add));
+                  DEBUG_SDPLANE_LOG (RIB, "add IPv4 address: ifname=%s ip=%s",
+                                     msg_ip_addr->ifname, ip_str_add);
+                }
+              else
+                {
+                  memcpy (&new->rib_info->vswitch[i].router_if.ipv6_addr, &msg_ip_addr->ip_addr.ipv6_addr,
+                          sizeof (struct in6_addr));
+
+                  inet_ntop (AF_INET6, &msg_ip_addr->ip_addr.ipv6_addr, ip_str_add,
+                             sizeof (ip_str_add));
+                  DEBUG_SDPLANE_LOG (RIB, "add IPv6 address: ifname=%s ip=%s",
+                                     msg_ip_addr->ifname, ip_str_add);
+                }
+
+              break;
+            }
+        }
+
+      break;
+
+    case INTERNAL_MSG_TYPE_IP_ADDR_DEL:
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_ip_addr_del: %p.", msgp);
+      msg_ip_addr = (struct internal_msg_ip_addr *) (msg_header + 1);
+      char ip_str_del[INET6_ADDRSTRLEN];
+
+      for (i = 0; i < new->rib_info->vswitch_size; i++)
+        {
+          if (memcmp (new->rib_info->vswitch[i].router_if.tap_name, msg_ip_addr->ifname,
+                      sizeof (msg_ip_addr->ifname)) == 0)
+            {
+              if (msg_ip_addr->family == AF_INET)
+                {
+                  if (memcmp (&new->rib_info->vswitch[i].router_if.ipv4_addr, &msg_ip_addr->ip_addr.ipv4_addr,
+                              sizeof (struct in_addr)) == 0)
+                    {
+                      memset (&new->rib_info->vswitch[i].router_if.ipv4_addr, 0, sizeof (struct in_addr));
+
+                      inet_ntop (AF_INET, &msg_ip_addr->ip_addr.ipv4_addr, ip_str_del,
+                                 sizeof (ip_str_del));
+                      DEBUG_SDPLANE_LOG (RIB, "delete IPv4 address: ifname=%s ip=%s",
+                                         msg_ip_addr->ifname, ip_str_del);
+                    }
+                }
+              else
+                {
+                  if (memcmp (&new->rib_info->vswitch[i].router_if.ipv6_addr, &msg_ip_addr->ip_addr.ipv6_addr,
+                              sizeof (struct in6_addr)) == 0)
+                    {
+                      memset (&new->rib_info->vswitch[i].router_if.ipv6_addr, 0, sizeof (struct in6_addr));
+
+                      inet_ntop (AF_INET6, &msg_ip_addr->ip_addr.ipv6_addr, ip_str_del,
+                                 sizeof (ip_str_del));
+                      DEBUG_SDPLANE_LOG (RIB, "delete IPv6 address: ifname=%s ip=%s",
+                                         msg_ip_addr->ifname, ip_str_del);
+                    }
+                }
+
+              break;
+            }
         }
 
       break;
