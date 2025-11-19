@@ -25,8 +25,8 @@ BIT_INDEX (const uint8_t *key, int s, int n)
   memcpy (key_safe, key, 16);
   key_safe[16] = 0;
 
-  /* 
-   *  extract from two bytes comprising byte to 
+  /*
+   *  extract from two bytes comprising byte to
    *  which s belongs and adjacent byte
    */
   return (((key_safe[s >> 3] << 8) | (key_safe[(s >> 3) + 1])) >>
