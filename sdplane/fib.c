@@ -108,7 +108,7 @@ _create_fib_node (void)
 
 static struct fib_node *
 _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
-      int depth, int *success)
+      int cur_plen, int *success)
 {
   uint32_t index, i;
   uint32_t bits_in_depth, first, count;
@@ -126,7 +126,7 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
     }
 
   /* case1: 階層がプレフィックスに到達した場合 */
-  if (keylen <= depth)
+  if (keylen <= cur_plen)
     {
       /* 葉ノードではない（=子ノードが存在する）かつ、
        * 既にノードが存在する（=内部ノード）場合に
@@ -135,7 +135,7 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
         {
           for (i = 0; i < BRANCH_SZ; i++)
             n->child[i] =
-                _add (n->child[i], key, keylen, route_idx, depth + K, success);
+                _add (n->child[i], key, keylen, route_idx, cur_plen + K, success);
           return n;
         }
       /* 葉ノードの場合 */
@@ -149,8 +149,8 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
               n->keylen = keylen;
               memcpy (n->route_idx, route_idx, sizeof (n->route_idx));
               n->num_routes = _count_nonzero (route_idx, MAX_ECMP_ENTRY);
-              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "update leaf keylen=%d depth=%d",
-                                 keylen, depth);
+              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "update leaf keylen=%d cur_plen=%d",
+                                 keylen, cur_plen);
             }
           *success = 0;
           return n;
@@ -164,8 +164,8 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
           n->keylen = keylen;
           memcpy (n->route_idx, route_idx, sizeof (n->route_idx));
           n->num_routes = _count_nonzero (route_idx, MAX_ECMP_ENTRY);
-          DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "set leaf keylen=%d depth=%d",
-                             keylen, depth);
+          DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "set leaf keylen=%d cur_plen=%d",
+                             keylen, cur_plen);
           *success = 0;
           return n;
         }
@@ -173,80 +173,65 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
 
   /* case2: プレフィックスが次の階層の途中で終わる場合, もしくは葉ノードの場合
    */
-  if (keylen < depth + K /* || n->leaf */)
+  if (keylen < cur_plen + K || n->leaf)
     {
       /*
-       * - Example: K=2 (4-ary)
-       *   - 96.0.0.0/3 (0b011/3)
+       * 例: K=2 (4-ary)
+       * - 96.0.0.0/3 (0b011/3) の経路を追加する場合
        * ------------------------------------------
-       *    v depth=0
-       * root      v depth=2
-       *    |---- 01      v depth=4
+       *    v cur_plen=0
+       * root      v cur_plen=2
+       *    |---- 01      v cur_plen=4
        *           |---- 00
        *           |---- 01
        *           |---- 10 <- new node: 96.0.0.0/3
        *           |---- 11 <- new node: 96.0.0.0/3
        * ------------------------------------------
-       * - keylen=3. depth=2 (3 < 2 + 2)
-       *   - bits_in_depth: 3 - 2 = 1 (0b01|1*)
-       *                                    ^
-       *   - base = 0b01|10
-       *               ^x1 = 1
-       *   - first = 1 << (2 - 1) = 0b010 = 2
-       *   - count = 1 << (2 - 1) = 0b010 = 2
-       *   - range: child[2] to child[3]
+       * - keylen=3, cur_plen=2 のとき case2 に該当
+       *   - bits_in_depth: 3 - 2 = 1
+       *     - 0b011*
+       *           ^ cur_plenから1ビット目まで確定
+       *   - base: 0b011* = 1
+       *               ^
+       *   - first = base << (2 - bits_in_depth)
+       *           = 0b01 << 1 = 0b10
+       *   - count = 1 << (2 - bits_in_depth)
+       *           = 0b01 << 1 = 0b10 = 2
+       *   - range: child[first] から child[first + count - 1]
+       *            -> child[2] から child[3] に新しいノードを登録
        */
       /* 新しいプレフィックスが登録される子ノードの範囲を計算 */
-      bits_in_depth = keylen - depth; // この階層で決定されるビット数（1〜K-1）
-      base = BIT_INDEX (key, depth, bits_in_depth);
+      bits_in_depth = keylen - cur_plen; // この階層で決定されるビット数（1〜K-1）
+      if (bits_in_depth > K - 1)
+        bits_in_depth = K;
+      base = BIT_INDEX (key, cur_plen, bits_in_depth);
       first = base << (K - bits_in_depth); // 範囲の開始インデックス
       count = 1 << (K - bits_in_depth);    // 範囲のサイズ
       DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
                          "bits_in_depth=%d, base=%d, first=%d, count=%d",
                          bits_in_depth, base, first, count);
-
       /* 全ての子ノードに対して */
       for (i = 0; i < BRANCH_SZ; i++)
         {
-          if (i >= first && i < first + count)
-            {
-              /* この範囲には新しいノードを登録 */
-              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding to child[%d] (in range)",
-                                 i);
-              n->child[i] = _add (n->child[i], key, keylen, route_idx,
-                                  depth + K, success);
-            }
-          else if (n->leaf)
+          if (n->leaf)
             {
               /* 範囲外には親ノードのデータをコピー */
               DEBUG_SDPLANE_LOG (
                   ROUTE_ENTRY,
                   "copying parent to child[%d] (out of range, parent keylen=%d)",
                   i, n->keylen);
-              n->child[i] = _add (n->child[i], n->key, n->keylen, n->route_idx,
-                                  depth + K, success);
+              n->child[i] = _add (n->child[i], n->key, n->keylen,
+                                  n->route_idx, cur_plen + K, success);
+            }
+          if (i >= first && i < first + count)
+            {
+              /* この範囲には新しいノードを登録 */
+              DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
+                                  "adding to child[%d] (in range)", i);
+              n->child[i] = _add (n->child[i], key, keylen, route_idx,
+                                  cur_plen + K, success);
             }
         }
-      /* 現在のノードはもはや葉ノードではない */
-      n->leaf = 0;
-      n->keylen = 0;
-      for (i = 0; i < MAX_ECMP_ENTRY; i++)
-        n->route_idx[i] = -1;
-      *success = 0;
-      return n;
-    }
-
-  /* 葉ノードの場合, かつkeylenが子ノードよりも大きい場合 (パッチ1) */
-  if (n->leaf)
-    {
-      /* まず全子ノードに親のデータを展開 */
-      for (i = 0; i < BRANCH_SZ; i++)
-        n->child[i] = _add (n->child[i], n->key, n->keylen, n->route_idx,
-                            depth + K, success);
-      /* indexに該当する子ノードのみcase3に遷移（新しいルートで更新） */
-      index = BIT_INDEX (key, depth, K);
-      n->child[index] =
-          _add (n->child[index], key, keylen, route_idx, depth + K, success);
       /* 現在のノードはもはや葉ノードではない */
       n->leaf = 0;
       n->keylen = 0;
@@ -257,9 +242,9 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
     }
 
   /* case3: さらに深い階層へ再帰 */
-  index = BIT_INDEX (key, depth, K);
+  index = BIT_INDEX (key, cur_plen, K);
   n->child[index] =
-      _add (n->child[index], key, keylen, route_idx, depth + K, success);
+      _add (n->child[index], key, keylen, route_idx, cur_plen + K, success);
   return n;
 }
 
@@ -278,7 +263,7 @@ static int
 _shrink (struct rib_node *n) {}
 
 static struct rib_node *
-_delete (struct rib_node *n, uint8_t *key, int keylen, int depth) {}
+_delete (struct rib_node *n, uint8_t *key, int keylen, int cur_plen) {}
 
 int
 rib_route_delete4 (struct rib_tree *t, uint8_t *key, int keylen) {}
@@ -286,7 +271,7 @@ rib_route_delete4 (struct rib_tree *t, uint8_t *key, int keylen) {}
 
 static struct fib_node *
 _lookup (struct fib_node *n, struct fib_node *cand, const uint8_t *key,
-         int depth)
+         int cur_plen)
 {
   uint16_t index;
 
@@ -296,10 +281,10 @@ _lookup (struct fib_node *n, struct fib_node *cand, const uint8_t *key,
   if (n->leaf)
     cand = n;
 
-  index = BIT_INDEX (key, depth, K);
-  DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "depth=%d, index=%d", depth, index);
+  index = BIT_INDEX (key, cur_plen, K);
+  DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "cur_plen=%d, index=%d", cur_plen, index);
 
-  return _lookup (n->child[index], cand, key, depth + K);
+  return _lookup (n->child[index], cand, key, cur_plen + K);
 }
 
 struct fib_node *
@@ -311,7 +296,7 @@ fib_route_lookup (struct fib_tree *t, const uint8_t *key)
 /* traverse FIB tree depth-first in-order */
 static int
 _traverse (struct fib_node *n, fib_traverse_callback callback, void *arg,
-           int depth)
+           int cur_plen)
 {
   int i;
 
@@ -321,7 +306,7 @@ _traverse (struct fib_node *n, fib_traverse_callback callback, void *arg,
   /* process current node if it's a leaf */
   if (n->leaf && n->num_routes != 0 && callback)
     {
-      DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "show route: depth=%d keylen=%d", depth,
+      DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "show route: cur_plen=%d keylen=%d", cur_plen,
                          n->keylen);
       if (callback (n, arg) != 0)
         return -1;
@@ -330,7 +315,7 @@ _traverse (struct fib_node *n, fib_traverse_callback callback, void *arg,
   /* process children in order */
   for (i = 0; i < BRANCH_SZ; i++)
     {
-      if (_traverse (n->child[i], callback, arg, depth + K) != 0)
+      if (_traverse (n->child[i], callback, arg, cur_plen + K) != 0)
         return -1;
     }
 
