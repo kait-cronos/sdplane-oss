@@ -22,7 +22,6 @@
 #include "stat_collector.h"
 #include "tap_handler.h"
 #include "debug_sdplane.h"
-#include "neigh_manager.h"
 
 #include <lthread.h>
 #include "thread_info.h"
@@ -773,39 +772,6 @@ CLI_COMMAND2 (show_mempool, "show mempool", SHOW_HELP, "show mempool.\n")
   return 0;
 }
 
-CLI_COMMAND2 (show_neighbor, "show neighbor (ipv4|ipv6)", SHOW_HELP,
-              "show neighbor table.\n", "show ARP table.\n",
-              "show ND table.\n")
-{
-  struct shell *shell = (struct shell *) context;
-  FILE *t = shell->terminal;
-  int thread_id;
-
-  thread_id = thread_lookup (neigh_manager);
-  if (thread_id < 0)
-    {
-      fprintf (t, "neigh_manager thread not found.%s", shell->NL);
-      return -1;
-    }
-
-  if (argc < 3)
-    {
-      fprintf (t, "Usage: %s\n", argv[0]);
-      return -1;
-    }
-  if (! strcmp (argv[2], "ipv4"))
-    neigh_manager_show_table (NEIGH_ARP_TABLE, shell);
-  else if (! strcmp (argv[2], "ipv6"))
-    neigh_manager_show_table (NEIGH_ND_TABLE, shell);
-  else
-    {
-      fprintf (t, "Unknown neighbor type: %s\n", argv[2]);
-      return -1;
-    }
-
-  return 0;
-}
-
 void
 shell_read_response_port_get (struct shell *shell,
                               struct internal_msg_header *imsghdr)
@@ -937,7 +903,6 @@ sdplane_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, sleep_cmd);
   INSTALL_COMMAND2 (cmdset, set_locale);
   INSTALL_COMMAND2 (cmdset, show_mempool);
-  INSTALL_COMMAND2 (cmdset, show_neighbor);
   thread_info_cmd_init (cmdset);
   queue_config_cmd_init (cmdset);
   lthread_cmd_init (cmdset);
