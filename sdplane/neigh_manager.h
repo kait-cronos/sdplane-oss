@@ -43,10 +43,21 @@ arp_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
     }
 }
 
+const char *neigh_manager_table_str (int type);
+const char *neigh_manager_state_str (uint8_t state);
+/**
+ * @brief Lookup a neighbor entry in the neighbor table.
+ *
+ * @param neigh_table The neighbor table to search.
+ * @param type The type of neighbor entry. NEIGH_ARP_TABLE or NEIGH_ND_TABLE.
+ * @param key The key to look up. (assuming union ip_addr)
+ * @param found Pointer to store the found neighbor entry. Can be NULL if not found.
+ * @return int The index of the found entry, or the position to insert/delete if not found.
+ */
 int neigh_manager_lookup (const struct neigh_table *neigh_table,
                           const int index, const void *key,
-                          struct neigh_entry *out);
-void neigh_manager_show_table (const int index, const struct shell *shell);
+                          struct neigh_entry **found);
+void neigh_manager_show_table (const int type, const struct shell *shell);
 void neigh_manager_process_message (void *msgp,
                                     struct neigh_table *neigh_tables);
 int neigh_manager (void *arg __rte_unused);

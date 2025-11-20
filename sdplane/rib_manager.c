@@ -1077,6 +1077,9 @@ rib_manager_process_message (void *msgp)
 
   new = rib_create (old);
 
+  /* related neigh table */
+  struct neigh_table *neigh_table;
+
   /* related vswitch operation */
   struct vswitch_conf *vswitch;
   struct port_conf *port;
@@ -1170,21 +1173,45 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_add: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      DEBUG_SDPLANE_LOG (NEIGH, "rib: add: index: %d offset: %d",
-                         msg_neigh_entry->index, msg_neigh_entry->hash);
-      memcpy (&new->rib_info->neigh_tables[msg_neigh_entry->index]
-                   .entries[msg_neigh_entry->hash],
+      neigh_table = &new->rib_info->neigh_tables[msg_neigh_entry->type];
+      /* If the master’s neighbor table has more entries than the RIB’s, 
+       * it indicates that a new entry has been inserted. */
+      if (msg_neigh_entry->num_entries > neigh_table->num_entries)
+        {
+          /* insert new entry */
+          DEBUG_SDPLANE_LOG (NEIGH, "rib: add: %s[%d]",
+                             neigh_manager_table_str (msg_neigh_entry->type),
+                             msg_neigh_entry->pos);
+          memmove (&neigh_table->entries[msg_neigh_entry->pos + 1],
+                   &neigh_table->entries[msg_neigh_entry->pos],
+                   sizeof (struct neigh_entry) *
+                       (neigh_table->num_entries - msg_neigh_entry->pos));
+        }
+      else
+        /* update entry */
+        DEBUG_SDPLANE_LOG (NEIGH, "rib: update: %s[%d]",
+                           neigh_manager_table_str (msg_neigh_entry->type),
+                           msg_neigh_entry->pos);
+      memcpy (&neigh_table->entries[msg_neigh_entry->pos],
               &msg_neigh_entry->data, sizeof (struct neigh_entry));
+      // same as "neigh_table->num_entries++;"
+      neigh_table->num_entries = msg_neigh_entry->num_entries;
       break;
 
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_del: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      DEBUG_SDPLANE_LOG (NEIGH, "rib: del: index: %d offset: %d",
-                         msg_neigh_entry->index, msg_neigh_entry->hash);
-      memset (&new->rib_info->neigh_tables[msg_neigh_entry->index]
-                   .entries[msg_neigh_entry->hash],
-              0, sizeof (struct neigh_entry));
+      /* delete entry */
+      DEBUG_SDPLANE_LOG (NEIGH, "rib: del: %s[%d]",
+                         neigh_manager_table_str (msg_neigh_entry->type),
+                         msg_neigh_entry->pos);
+      neigh_table = &new->rib_info->neigh_tables[msg_neigh_entry->type];
+      // same as "neigh_table->num_entries--;"
+      neigh_table->num_entries = msg_neigh_entry->num_entries;
+      memmove (&neigh_table->entries[msg_neigh_entry->pos],
+               &neigh_table->entries[msg_neigh_entry->pos + 1],
+               sizeof (struct neigh_entry) *
+                   (neigh_table->num_entries - msg_neigh_entry->pos));
       break;
 
     case INTERNAL_MSG_TYPE_VSWITCH_SET:

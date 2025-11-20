@@ -24,7 +24,7 @@
 
 struct rte_ring *msg_queue_neigh = NULL;
 
-static __thread struct neigh_table primary_neigh_tables[NEIGH_NR_TABLES];
+static __thread struct neigh_table master_neigh_tables[NEIGH_NR_TABLES];
 
 static __thread uint64_t loop_counter = 0;
 
@@ -33,10 +33,10 @@ const int neigh_key_lengths[NEIGH_NR_TABLES] = {
   [NEIGH_ND_TABLE] = sizeof (struct in6_addr),
 };
 
-static inline __attribute__ ((always_inline)) const char *
-neigh_manager_table_str (int index)
+const char *
+neigh_manager_table_str (int type)
 {
-  switch (index)
+  switch (type)
     {
     case NEIGH_ARP_TABLE:
       return "arp_table";
@@ -49,7 +49,7 @@ neigh_manager_table_str (int index)
   return NULL;
 }
 
-static inline __attribute__ ((always_inline)) const char *
+const char *
 neigh_manager_state_str (uint8_t state)
 {
   switch (state)
@@ -77,148 +77,137 @@ neigh_manager_state_str (uint8_t state)
     }
 }
 
-static inline __attribute__ ((always_inline)) uint32_t
-jenkins_hash (uint8_t *key, int key_len)
-{
-  int i;
-  uint32_t hash = 0;
-
-  hash = 0;
-  for (i = 0; i < key_len; i++)
-    {
-      hash += key[i];
-      hash += hash << 10;
-      hash ^= hash >> 6;
-    }
-  hash += hash << 3;
-  hash ^= hash >> 11;
-  hash += hash << 15;
-
-  return hash % MAX_NEIGHBOR_TABLE_SIZE;
-}
-
 static inline __attribute__ ((always_inline)) int
-neigh_manager_add_entry (struct neigh_table *neigh_table, const int index,
+neigh_manager_add_entry (struct neigh_table *neigh_table, const int type,
                          const void *key, const struct neigh_entry *data)
 {
-  uint32_t hash, offset;
-
-  hash = jenkins_hash ((uint8_t *) key, neigh_key_lengths[index]);
-  offset = hash;
-  while (neigh_table->entries[offset].state != NEIGH_STATE_NONE)
+  if (neigh_table->num_entries >= MAX_NEIGHBOR_ENTRY_SIZE)
     {
-      if (! memcmp (&neigh_table->entries[offset].ip_addr, key,
-                    neigh_key_lengths[index]))
-        {
-          DEBUG_SDPLANE_LOG (NEIGH, "duplicate entry at %s[%u]",
-                             neigh_manager_table_str (index), offset);
-          return -1;
-        }
-
-      ++offset;
-      if (offset >= MAX_NEIGHBOR_TABLE_SIZE)
-        offset = 0;
-      if (offset == hash)
-        {
-          DEBUG_SDPLANE_LOG (NEIGH, "neigh_table is full.");
-          return -1;
-        }
+      DEBUG_SDPLANE_LOG (NEIGH, "master: neigh_table %s is full.",
+                         neigh_manager_table_str (type));
+      return -1;
     }
-  memcpy (&neigh_table->entries[offset], data, sizeof (struct neigh_entry));
 
-  DEBUG_SDPLANE_LOG (NEIGH, "added entry at %s[%u]",
-                     neigh_manager_table_str (index), offset);
-  return (int) offset;
+  struct neigh_entry *found;
+  int pos;
+
+  pos = neigh_manager_lookup (neigh_table, type, key, &found);
+  if (found)
+    {
+      /* update existing entry */
+      DEBUG_SDPLANE_LOG (NEIGH, "master: update: %s[%d] (total %d)",
+                         neigh_manager_table_str (type), pos, neigh_table->num_entries);
+      memcpy (found, data, sizeof *found);
+      return pos;
+    }
+  else
+    {
+      if (pos < 0 || pos > neigh_table->num_entries)
+        {
+          DEBUG_SDPLANE_LOG (NEIGH, "invalid insertion position in %s.",
+                             neigh_manager_table_str (type));
+          return -1;
+        }
+      memmove (&neigh_table->entries[pos + 1], &neigh_table->entries[pos],
+               sizeof (struct neigh_entry) *
+                   (neigh_table->num_entries - pos));
+      memcpy (&neigh_table->entries[pos], data, sizeof (struct neigh_entry));
+      neigh_table->num_entries++;
+      DEBUG_SDPLANE_LOG (NEIGH, "master: add: %s[%d] (total %d)",
+                         neigh_manager_table_str (type), pos, neigh_table->num_entries);
+      return pos;
+    }
+
+  return -1;
 }
 
 static inline __attribute__ ((always_inline)) int
-neigh_manager_delete_entry (struct neigh_table *neigh_table, const int index,
+neigh_manager_delete_entry (struct neigh_table *neigh_table, const int type,
                             const void *key)
 {
-  uint32_t hash, offset;
+  struct neigh_entry *found;
+  int pos;
 
-  hash = jenkins_hash ((uint8_t *) key, neigh_key_lengths[index]);
-  offset = hash;
-
-  while (1)
+  pos = neigh_manager_lookup (neigh_table, type, key, &found);
+  if (found)
     {
-      if (! memcmp (&neigh_table->entries[offset].ip_addr, key,
-                    neigh_key_lengths[index]))
-        {
-          memset (&neigh_table->entries[offset], 0,
-                  sizeof (struct neigh_entry));
-          DEBUG_SDPLANE_LOG (NEIGH, "deleted entry at %s[%u]",
-                             neigh_manager_table_str (index), offset);
-          return (int) offset;
-        }
-
-      ++offset;
-      if (offset >= MAX_NEIGHBOR_TABLE_SIZE)
-        offset = 0;
-      if (offset == hash)
-        break;
+      neigh_table->num_entries--;
+      memmove (&neigh_table->entries[pos], &neigh_table->entries[pos + 1],
+               sizeof (struct neigh_entry) *
+                   (neigh_table->num_entries - pos));
+      DEBUG_SDPLANE_LOG (NEIGH, "master: del: %s[%d] (total %d)",
+                         neigh_manager_table_str (type), pos, neigh_table->num_entries);
+      return pos;
     }
+  else
+    DEBUG_SDPLANE_LOG (NEIGH, "master: no such entry in %s.",
+                       neigh_manager_table_str (type));
 
-  DEBUG_SDPLANE_LOG (NEIGH, "entry not found in %s",
-                     neigh_manager_table_str (index));
   return -1;
 }
 
 int
-neigh_manager_lookup (const struct neigh_table *neigh_table, const int index,
-                      const void *key, struct neigh_entry *out)
+neigh_manager_lookup (const struct neigh_table *neigh_table, const int type,
+                      const void *key, struct neigh_entry **found)
 {
-  uint32_t hash, offset;
+  *found = NULL;
 
-  hash = jenkins_hash ((uint8_t *) key, neigh_key_lengths[index]);
-  offset = hash;
+  int left = 0;
+  int right = neigh_table->num_entries - 1;
+  int mid, ret;
+  struct neigh_entry *tmp;
 
-  while (neigh_table->entries[offset].state != NEIGH_STATE_NONE)
+  /* binary search */
+  while (left <= right)
     {
-      if (! memcmp (&neigh_table->entries[offset].ip_addr, key,
-                    neigh_key_lengths[index]))
+      mid = (left + right) / 2;
+      tmp = &neigh_table->entries[mid];
+      ret = memcmp (&tmp->ip_addr, key, neigh_key_lengths[type]);
+      if (ret == 0)
         {
-          memcpy (out, &neigh_table->entries[offset],
-                  sizeof (struct neigh_entry));
-          DEBUG_SDPLANE_LOG (NEIGH, "lookup hit at %s[%u]",
-                             neigh_manager_table_str (index), offset);
-          return (int) offset;
+          /* found */
+          *found = tmp;
+          DEBUG_SDPLANE_LOG (NEIGH, "lookup hit in %s[%d].",
+                             neigh_manager_table_str (type), mid);
+          return mid;
         }
-
-      ++offset;
-      if (offset >= MAX_NEIGHBOR_TABLE_SIZE)
-        offset = 0;
-      if (offset == hash)
-        break;
+      else if (ret < 0)
+        left = mid + 1;
+      else
+        right = mid - 1;
     }
 
-  DEBUG_SDPLANE_LOG (NEIGH, "lookup failed in %s",
-                     neigh_manager_table_str (index));
-  return -1;
+  /* not found */
+  return left; // return the position to insert/delete the entry.
 }
 
 void
-neigh_manager_show_table (const int index, const struct shell *shell)
+neigh_manager_show_table (const int type, const struct shell *shell)
 {
   int i;
   char addr[64];
   char lladdr[RTE_ETHER_ADDR_FMT_SIZE];
   struct rib *rib = rib_tlocal;
 
-  for (i = 0; i < MAX_NEIGHBOR_TABLE_SIZE; i++)
+  fprintf (shell->terminal, "table type: %s (total %d)%s",
+           neigh_manager_table_str (type),
+           rib->rib_info->neigh_tables[type].num_entries, shell->NL);
+
+  for (i = 0; i < rib->rib_info->neigh_tables[type].num_entries; i++)
     {
-      if (rib->rib_info->neigh_tables[index].entries[i].state ==
+      if (rib->rib_info->neigh_tables[type].entries[i].state ==
           NEIGH_STATE_NONE)
         continue;
-      inet_ntop (rib->rib_info->neigh_tables[index].entries[i].family,
-                 &rib->rib_info->neigh_tables[index].entries[i].ip_addr, addr,
+      inet_ntop (rib->rib_info->neigh_tables[type].entries[i].family,
+                 &rib->rib_info->neigh_tables[type].entries[i].ip_addr, addr,
                  sizeof (addr));
       rte_ether_format_addr (
           lladdr, sizeof (lladdr),
-          &rib->rib_info->neigh_tables[index].entries[i].mac_addr);
-      fprintf (shell->terminal, "[%d] %s lladdr %s state %s%s", i, addr, lladdr,
+          &rib->rib_info->neigh_tables[type].entries[i].mac_addr);
+      fprintf (shell->terminal, "[%d] %s lladdr %s state %s%s", i, addr,
+               lladdr,
                neigh_manager_state_str (
-                   rib->rib_info->neigh_tables[index].entries[i].state),
+                   rib->rib_info->neigh_tables[type].entries[i].state),
                shell->NL);
     }
 }
@@ -239,12 +228,16 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg_neigh_add_entry: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
+      /* ret is the index where the entry was added. */
       ret = neigh_manager_add_entry (
-          &neigh_tables[msg_neigh_entry->index], msg_neigh_entry->index,
+          &neigh_tables[msg_neigh_entry->type], msg_neigh_entry->type,
           &msg_neigh_entry->data.ip_addr, &msg_neigh_entry->data);
+      /* if ret < 0, the table is full or entry already exists. */
       if (ret < 0)
         break;
-      msg_neigh_entry->hash = ret;
+      msg_neigh_entry->pos = ret;
+      msg_neigh_entry->num_entries =
+          neigh_tables[msg_neigh_entry->type].num_entries;
       new_msgp =
           internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
                                msg_neigh_entry, sizeof (*msg_neigh_entry));
@@ -254,19 +247,24 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg_neigh_del_entry: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
-      ret = neigh_manager_delete_entry (&neigh_tables[msg_neigh_entry->index],
-                                        msg_neigh_entry->index,
+      /* ret is the index where the entry was deleted. */
+      ret = neigh_manager_delete_entry (&neigh_tables[msg_neigh_entry->type],
+                                        msg_neigh_entry->type,
                                         &msg_neigh_entry->data.ip_addr);
+      /* if ret < 0, no such entry. */
       if (ret < 0)
         break;
-      msg_neigh_entry->hash = ret;
+      msg_neigh_entry->pos = ret;
+      msg_neigh_entry->num_entries =
+          neigh_tables[msg_neigh_entry->type].num_entries;
       new_msgp =
           internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_DEL,
                                msg_neigh_entry, sizeof (*msg_neigh_entry));
       internal_msg_send_to (msg_queue_rib, new_msgp, NULL);
       break;
 
-      // address resolution requests, etc.
+    /* address resolution requests, etc. */
+    // case INTERNAL_MSG_TYPE_NEIGH_XXX:
 
     default:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg unknown: %p.", msgp);
@@ -282,7 +280,7 @@ neigh_manager_init ()
   /* initialize */
   if (! msg_queue_neigh)
     msg_queue_neigh =
-      rte_ring_create ("msg_queue_neigh", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+        rte_ring_create ("msg_queue_neigh", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
 }
 
 int
@@ -301,8 +299,8 @@ neigh_manager (void *arg __rte_unused)
   thread_id = thread_lookup (neigh_manager);
   thread_register_loop_counter (thread_id, &loop_counter);
 
-  /* initialize primary neigh tables */
-  memset (primary_neigh_tables, 0, sizeof (primary_neigh_tables));
+  /* initialize master neigh tables */
+  memset (master_neigh_tables, 0, sizeof (master_neigh_tables));
 
   while (! force_quit && ! force_stop[lcore_id])
     {
@@ -311,7 +309,7 @@ neigh_manager (void *arg __rte_unused)
 
       msgp = internal_msg_recv (msg_queue_neigh);
       if (msgp)
-        neigh_manager_process_message (msgp, primary_neigh_tables);
+        neigh_manager_process_message (msgp, master_neigh_tables);
 
       loop_counter++;
     }
