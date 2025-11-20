@@ -19,6 +19,7 @@
 #include "debug_sdplane.h"
 
 #include "rib_manager.h"
+#include "neigh_manager.h"
 #include "sdplane.h"
 #include "thread_info.h"
 
@@ -327,6 +328,39 @@ CLI_COMMAND2 (show_fdb,
     }
   fprintf (shell->terminal, "total fdb entries: %d/%d%s", count, FDB_SIZE,
            shell->NL);
+  return 0;
+}
+
+CLI_COMMAND2 (show_neighbor, "show neighbor (ipv4|ipv6)", SHOW_HELP,
+              "show neighbor table.\n", "show ARP table.\n",
+              "show ND table.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  int thread_id;
+
+  thread_id = thread_lookup (neigh_manager);
+  if (thread_id < 0)
+    {
+      fprintf (t, "neigh_manager thread not found.%s", shell->NL);
+      return -1;
+    }
+
+  if (argc < 3)
+    {
+      fprintf (t, "Usage: %s\n", argv[0]);
+      return -1;
+    }
+  if (! strcmp (argv[2], "ipv4"))
+    neigh_manager_show_table (NEIGH_ARP_TABLE, shell);
+  else if (! strcmp (argv[2], "ipv6"))
+    neigh_manager_show_table (NEIGH_ND_TABLE, shell);
+  else
+    {
+      fprintf (t, "Unknown neighbor type: %s\n", argv[2]);
+      return -1;
+    }
+
   return 0;
 }
 
@@ -719,6 +753,7 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib_router_if);
   INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
   INSTALL_COMMAND2 (cmdset, show_fdb);
+  INSTALL_COMMAND2 (cmdset, show_neighbor);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, show_fib_ip_route);
   INSTALL_COMMAND2 (cmdset, show_rib_ip_route);
