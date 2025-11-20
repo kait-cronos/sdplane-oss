@@ -38,6 +38,7 @@
 #define DEBUG_SDPLANE_DHCP_SERVER        (1ULL << 33)
 #define DEBUG_SDPLANE_L2_SWITCH          (1ULL << 34)
 #define DEBUG_SDPLANE_ROUTE_ENTRY        (1ULL << 35)
+#define DEBUG_SDPLANE_ROUTER             (1ULL << 36)
 
 #define DEBUG_DOMAIN_OF_LTHREAD            SDPLANE
 #define DEBUG_DOMAIN_OF_CONSOLE            SDPLANE
@@ -74,6 +75,7 @@
 #define DEBUG_DOMAIN_OF_DHCP_SERVER        SDPLANE
 #define DEBUG_DOMAIN_OF_L2_SWITCH          SDPLANE
 #define DEBUG_DOMAIN_OF_ROUTE_ENTRY        SDPLANE
+#define DEBUG_DOMAIN_OF_ROUTER             SDPLANE
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)

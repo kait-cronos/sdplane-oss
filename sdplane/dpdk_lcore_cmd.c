@@ -24,6 +24,7 @@
 #include "l2_repeater.h"
 #include "enhanced_repeater.h"
 #include "l2_switch.h"
+#include "router.h"
 
 #include "thread_info.h"
 
@@ -96,7 +97,7 @@ int dhcp_server (__rte_unused void *dummy);
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore <0-16> "
     "(|none|l2fwd|l3fwd|l3fwd-lpm|"
-    "tap-handler|l2-repeater|nettlp-thread|vlan-switch|l3-tap-handler|enhanced-repeater|l2-switch"
+    "tap-handler|l2-repeater|nettlp-thread|vlan-switch|l3-tap-handler|enhanced-repeater|l2-switch|router"
 #ifdef ENABLE_PKTGEN
     "|pktgen"
 #endif
@@ -114,6 +115,7 @@ CLI_COMMAND2 (set_worker,
     "set lcore to launch l3-tap-handler\n"
     "set lcore to launch enhanced-repeater\n"
     "set lcore to launch l2-switch\n"
+    "set lcore to launch router"
 #ifdef ENABLE_PKTGEN
     "set lcore to launch pktgen\n"
 #endif
@@ -147,6 +149,8 @@ CLI_COMMAND2 (set_worker,
     func = enhanced_repeater;
   else if (! strcmp (argv[4], "l2-switch"))
     func = l2_switch;
+  else if (! strcmp (argv[4], "router"))
+    func = router;
 #ifdef ENABLE_PKTGEN
   else if (! strcmp (argv[4], "pktgen"))
     func = pktgen_launch_one_lcore;
@@ -186,6 +190,8 @@ CLI_COMMAND2 (set_worker,
     func_name = "enhanced-repeater";
   else if (func == l2_switch)
     func_name = "l2-switch";
+  else if (func == router)
+    func_name = "router";
 #ifdef ENABLE_PKTGEN
   else if (func == pktgen_launch_one_lcore)
     func_name = "pktgen";
