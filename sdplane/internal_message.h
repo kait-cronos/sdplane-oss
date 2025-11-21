@@ -81,8 +81,9 @@ struct internal_msg_tap_dev
 
 struct internal_msg_neigh_entry
 {
-  int index; // NEIGH_ARP_TABLE or NEIGH_ND_TABLE.
-  int hash;
+  int type; // NEIGH_ARP_TABLE or NEIGH_ND_TABLE.
+  int pos;
+  int num_entries;
   struct neigh_entry data;
 };
 

@@ -8,7 +8,7 @@
 #define MAX_VSWITCH_LINK        32
 #define MAX_VLAN_PER_PORT       4
 #define MAX_ETH_PORTS           8
-#define MAX_NEIGHBOR_TABLE_SIZE 1024
+#define MAX_NEIGHBOR_ENTRY_SIZE 1024
 #define FDB_SIZE                1024
 #define FDB_HASH_MASK           0x3FF
 #define FDB_STATE_NONE          0
@@ -115,12 +115,12 @@ struct neigh_entry
   } ip_addr;
   struct rte_ether_addr mac_addr;
   uint8_t state;
-  // e.g. router_if, state, timer
 };
 
 struct neigh_table
 {
-  struct neigh_entry entries[MAX_NEIGHBOR_TABLE_SIZE];
+  struct neigh_entry entries[MAX_NEIGHBOR_ENTRY_SIZE];
+  int num_entries;
 };
 
 struct fdb_entry

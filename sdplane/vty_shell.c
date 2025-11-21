@@ -5,6 +5,8 @@
 
 #include <lthread.h>
 
+#include <rte_errno.h>
+
 #include <rte_common.h>
 #include <rte_launch.h>
 #include <rte_ether.h>
@@ -211,6 +213,12 @@ vty_shell (void *arg)
   struct rte_ring *ring_resp;
   snprintf (ring_name, sizeof (ring_name), "vty[%d]resp", client->id);
   ring_resp = rte_ring_create (ring_name, 4, rte_socket_id (), 0);
+  if (! ring_resp)
+    {
+      fprintf (shell->terminal, "rte_ring_create(): %s%s",
+               rte_strerror (rte_errno), shell->NL);
+      FLAG_SET (shell->flag, SHELL_FLAG_EXIT);
+    }
 #ifdef SHELL_RING_RESPONSE
   shell->ring_response = ring_resp;
 #endif
@@ -235,7 +243,7 @@ vty_shell (void *arg)
       rib_tlocal = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      if (rte_ring_count (ring_resp))
+      if (ring_resp && rte_ring_count (ring_resp))
         shell_read_response (shell, ring_resp);
       else if (shell->is_paging)
         shell_read_nowait_paging (shell);
@@ -253,6 +261,8 @@ vty_shell (void *arg)
 
   DEBUG_SDPLANE_LOG (VTY, "terminating %s[%d]: client[%d]: %s.", "vty",
                      client->id, client->id, client_addr_str);
+
+  rte_ring_free (ring_resp);
 
   lthread_close (client->fd);
   client->fd = -1;
