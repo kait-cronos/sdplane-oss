@@ -135,6 +135,7 @@ struct internal_msg_ip_addr
 {
   char ifname[16];
   int family;
+  bool is_ll_addr;
   union
     {
       struct in_addr ipv4_addr;

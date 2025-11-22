@@ -232,7 +232,7 @@ CLI_COMMAND2 (show_rib_router_if,
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
   int i;
-  char mac_str[18], ipv4_str[16], ipv6_str[40];
+  char mac_str[18], ipv4_str[16], ipv6_str[40], ll_addr_str[40];
 
   if (! rib || ! rib->rib_info)
     {
@@ -251,12 +251,14 @@ CLI_COMMAND2 (show_rib_router_if,
       rte_ether_format_addr (mac_str, sizeof (mac_str), &rif->mac_addr);
       inet_ntop (AF_INET, &rif->ipv4_addr, ipv4_str, sizeof (ipv4_str));
       inet_ntop (AF_INET6, &rif->ipv6_addr, ipv6_str, sizeof (ipv6_str));
+      inet_ntop (AF_INET6, &rif->ll_addr, ll_addr_str, sizeof (ll_addr_str));
 
       fprintf (shell->terminal, "vswitch[%d]: router interface configured%s",
                rib->rib_info->vswitch[i].vswitch_id, shell->NL);
       fprintf (shell->terminal, "  tap_name: %s%s", rif->tap_name, shell->NL);
       fprintf (shell->terminal, "  MAC: %s, IPv4: %s, IPv6: %s%s", mac_str,
                ipv4_str, ipv6_str, shell->NL);
+      fprintf (shell->terminal, "  link local: %s%s", ll_addr_str, shell->NL);
       fprintf (shell->terminal, "  sockfd: %d, tap_ring_id: %u%s", rif->sockfd,
                rif->tap_ring_id, shell->NL);
       fprintf (shell->terminal, "  ring_up: %p, ring_dn: %p%s", rif->ring_up,

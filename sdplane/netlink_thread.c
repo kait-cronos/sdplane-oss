@@ -539,12 +539,12 @@ netlink_read_nlmsg_addr (struct netlink_sock *nlsock, struct nlmsghdr *h)
                          nlsock->name);
       return -1;
     }
-  if (ifa->ifa_scope == RT_SCOPE_LINK)
-    {
-      DEBUG_SDPLANE_LOG (NETLINK, "%s: Link Local address.",
-                         nlsock->name);
-      return -1;
-    }
+  // if (ifa->ifa_scope == RT_SCOPE_LINK)
+  //   {
+  //     DEBUG_SDPLANE_LOG (NETLINK, "%s: Link Local address.",
+  //                        nlsock->name);
+  //     return -1;
+  //   }
 
   char ip_addr_str[INET6_ADDRSTRLEN];
   memcpy (msg_ip_addr.ifname, ifname, sizeof (ifname));
@@ -558,9 +558,19 @@ netlink_read_nlmsg_addr (struct netlink_sock *nlsock, struct nlmsghdr *h)
         break;
 
       case AF_INET6:
-        memcpy (&msg_ip_addr.ip_addr.ipv6_addr,
-                RTA_DATA (rtas[IFA_ADDRESS]), sizeof (struct in6_addr));
-        inet_ntop (AF_INET6, &msg_ip_addr.ip_addr.ipv6_addr, ip_addr_str, sizeof (ip_addr_str));
+        if (ifa->ifa_scope == RT_SCOPE_LINK)
+          {
+            msg_ip_addr.is_ll_addr = true;
+            memcpy (&msg_ip_addr.ip_addr.ipv6_addr,
+                    RTA_DATA (rtas[IFA_ADDRESS]), sizeof (struct in6_addr));
+            inet_ntop (AF_INET6, &msg_ip_addr.ip_addr.ipv6_addr, ip_addr_str, sizeof (ip_addr_str));
+          }
+        else
+          {
+            memcpy (&msg_ip_addr.ip_addr.ipv6_addr,
+                    RTA_DATA (rtas[IFA_ADDRESS]), sizeof (struct in6_addr));
+            inet_ntop (AF_INET6, &msg_ip_addr.ip_addr.ipv6_addr, ip_addr_str, sizeof (ip_addr_str));
+          }
         break;
 
       default:

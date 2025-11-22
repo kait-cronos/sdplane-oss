@@ -1341,7 +1341,7 @@ rib_manager_process_message (void *msgp)
       rif = &vswitch->router_if;
 
       rif->sockfd = tap_open (msg_router_if_set->tap_name);
-      ioctl (rif->sockfd, TUNSETPERSIST, 1);
+      ioctl (rif->sockfd, TUNSETPERSIST, 0);
       rif->tap_ring_id = msg_router_if_set->vswitch_id;
       snprintf (rif->tap_name, sizeof (rif->tap_name), "%s",
                 msg_router_if_set->tap_name);
@@ -1658,8 +1658,12 @@ rib_manager_process_message (void *msgp)
                 }
               else
                 {
-                  memcpy (&new->rib_info->vswitch[i].router_if.ipv6_addr, &msg_ip_addr->ip_addr.ipv6_addr,
-                          sizeof (struct in6_addr));
+                  if (msg_ip_addr->is_ll_addr)
+                    memcpy (&new->rib_info->vswitch[i].router_if.ll_addr, &msg_ip_addr->ip_addr.ipv6_addr,
+                            sizeof (struct in6_addr));
+                  else
+                    memcpy (&new->rib_info->vswitch[i].router_if.ipv6_addr, &msg_ip_addr->ip_addr.ipv6_addr,
+                            sizeof (struct in6_addr));
 
                   inet_ntop (AF_INET6, &msg_ip_addr->ip_addr.ipv6_addr, ip_str_add,
                              sizeof (ip_str_add));
@@ -1698,15 +1702,31 @@ rib_manager_process_message (void *msgp)
                 }
               else
                 {
-                  if (memcmp (&new->rib_info->vswitch[i].router_if.ipv6_addr, &msg_ip_addr->ip_addr.ipv6_addr,
-                              sizeof (struct in6_addr)) == 0)
+                  if (msg_ip_addr->is_ll_addr)
                     {
-                      memset (&new->rib_info->vswitch[i].router_if.ipv6_addr, 0, sizeof (struct in6_addr));
+                      if (memcmp (&new->rib_info->vswitch[i].router_if.ll_addr, &msg_ip_addr->ip_addr.ipv6_addr,
+                                  sizeof (struct in6_addr)) == 0)
+                        {
+                          memset (&new->rib_info->vswitch[i].router_if.ll_addr, 0, sizeof (struct in6_addr));
 
-                      inet_ntop (AF_INET6, &msg_ip_addr->ip_addr.ipv6_addr, ip_str_del,
-                                 sizeof (ip_str_del));
-                      DEBUG_SDPLANE_LOG (RIB, "delete IPv6 address: ifname=%s ip=%s",
-                                         msg_ip_addr->ifname, ip_str_del);
+                          inet_ntop (AF_INET6, &msg_ip_addr->ip_addr.ipv6_addr, ip_str_del,
+                                    sizeof (ip_str_del));
+                          DEBUG_SDPLANE_LOG (RIB, "delete IPv6 address: ifname=%s ip=%s",
+                                            msg_ip_addr->ifname, ip_str_del);
+                        }
+                    }
+                  else
+                    {
+                      if (memcmp (&new->rib_info->vswitch[i].router_if.ipv6_addr, &msg_ip_addr->ip_addr.ipv6_addr,
+                                  sizeof (struct in6_addr)) == 0)
+                        {
+                          memset (&new->rib_info->vswitch[i].router_if.ipv6_addr, 0, sizeof (struct in6_addr));
+
+                          inet_ntop (AF_INET6, &msg_ip_addr->ip_addr.ipv6_addr, ip_str_del,
+                                    sizeof (ip_str_del));
+                          DEBUG_SDPLANE_LOG (RIB, "delete IPv6 address: ifname=%s ip=%s",
+                                            msg_ip_addr->ifname, ip_str_del);
+                        }
                     }
                 }
 
@@ -1803,6 +1823,8 @@ rib_manager (void *arg)
 #if HAVE_LIBURCU_QSBR
       current_rib = rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
+
+#if 0
       if (current_time - last_fdb_aging_time >= 60 && current_rib &&
           current_rib->rib_info)
         {
@@ -1810,6 +1832,7 @@ rib_manager (void *arg)
           DEBUG_SDPLANE_LOG (FDB, "fdb aging process executed");
           last_fdb_aging_time = current_time;
         }
+#endif
 
       loop_counter++;
     }
