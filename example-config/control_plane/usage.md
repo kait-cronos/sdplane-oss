@@ -8,9 +8,10 @@
 # 使用方法
 1. sdplane起動
 2. manage_control_plane.sh実行 (sh ./manage_control_plane.sh up)
+3. 対向のホスト(sdplaneと対向ホストそれぞれ物理NICが2つ必要)でnamespace/simple_router_ns.sh実行
 
 # 動作確認
-[l3_forwarding_slide](https://docs.google.com/presentation/d/13N_pKa9BP36nEVhAj8-dpRYjqbo1g-n0ulYnzIZ-qTQ/edit?slide=id.g3a6b29704ca_0_0#slide=id.g3a6b29704ca_0_0)
+[動作確認用トポロジ](https://github.com/kait-cronos/sdplane-dev/blob/feature/router/example-config/control_plane/topology.png)
 
 ## sdplane上でrouter_ifの情報を取得
 
@@ -75,6 +76,7 @@ C>* fe80::/64 is directly connected, enx00249b651913, weight 1, 00:01:26
 
 ## 疎通確認
 
+r1(lo) -> r2(lo)
 ```
 # ping 10.2.0.10 -c 5
 PING 10.2.0.10 (10.2.0.10) 56(84) bytes of data.
@@ -89,6 +91,7 @@ PING 10.2.0.10 (10.2.0.10) 56(84) bytes of data.
 rtt min/avg/max/mdev = 0.272/0.399/0.486/0.075 ms
 ```
 
+r1(lo) -> r2(lo)
 ```
 # ping 2001:2::10 -c 5
 PING 2001:2::10 (2001:2::10) 56 data bytes
