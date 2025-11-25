@@ -106,6 +106,7 @@ vswitch_new (struct rib_info *new, uint16_t vswitch_id, uint16_t vlan_id)
   vswitch->router_if.sockfd = -1;
   vswitch->capture_if.sockfd = -1;
   vswitch->router_if.tap_ring_id = -1;
+  vswitch->router_if.vlan_id = vlan_id;
   vswitch->capture_if.tap_ring_id = -1;
   vswitch->is_deleted = false;
   return vswitch;
@@ -1345,6 +1346,8 @@ rib_manager_process_message (void *msgp)
       rif->tap_ring_id = msg_router_if_set->vswitch_id;
       snprintf (rif->tap_name, sizeof (rif->tap_name), "%s",
                 msg_router_if_set->tap_name);
+      if (msg_router_if_set->vlan_id)
+        rif->vlan_id = msg_router_if_set->vlan_id;
       tap_admin_up (msg_router_if_set->tap_name);
 
       DEBUG_SDPLANE_LOG (RIB, "create succeeded: router_if: %s vswitch: %u",

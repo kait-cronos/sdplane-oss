@@ -206,6 +206,39 @@ enhanced_repeater_send_link (struct rte_mbuf *m, unsigned rx_portid,
     port_statistics[tx_portid].tx += sent;
 }
 
+static inline __attribute__ ((always_inline)) bool
+is_rte_vlan_hdr (struct rte_mbuf *m)
+{
+  struct rte_ether_hdr *eth_hdr;
+  eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  eth_type = rte_be_to_cpu_16 (eth_hdr->ether_type);
+  if (eth_type == RTE_ETHER_TYPE_VLAN)
+    return true;
+  return false;
+}
+
+static inline __attribute__ ((always_inline)) struct rte_vlan_hdr *
+rte_vlan_hdr (struct rte_mbuf *m)
+{
+  assert (is_rte_vlan_hdr (m));
+  struct rte_ether_hdr *eth_hdr;
+  eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  return (struct rte_vlan_hdr *) (eth_hdr + 1);
+}
+
+static inline __attribute__ ((always_inline)) void
+rte_vlan_hdr_set (struct rte_mbuf *m, uint16_t vlan_id)
+{
+  struct rte_vlan_hdr *vlan_hdr;
+  uint16_t old_vlan_tci, new_vlan_tci;
+  assert (is_rte_vlan_hdr (m));
+  vlan_hdr = rte_vlan_hdr (m);
+  old_vlan_tci = rte_be_to_cpu_16 (vlan_hdr->vlan_tci);
+  new_vlan_tci =
+      ((old_vlan_tci & 0xf000) | (vlan_id & 0x0fff));
+  vlan_hdr->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
+}
+
 static inline __attribute__ ((always_inline)) void
 enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
                           unsigned rx_queueid)
@@ -325,6 +358,44 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
       /* forward to dpdk ports, accoding to the vswitch_link. */
       enhanced_repeater_send_link (m, rx_portid, rx_queueid,
                                    tx_portid, tx_queueid, link);
+    }
+
+  /* router-if */
+  rif = &vswitch->router_if;
+  if (rif->sockfd >= 0 && rif->ring_up)
+    {
+      c = rte_pktmbuf_clone (m);
+      if (c)
+        {
+          if (rif->vlan_id)
+            {
+              if (is_rte_vlan_hdr (c))
+                {
+                  rte_vlan_hdr_set (c, rif->vlan_id);
+                }
+              else
+                {
+                  rte_vlan_insert (c);
+                  rte_vlan_hdr_set (c, rif->vlan_id);
+                }
+            }
+          else
+            {
+              if (is_rte_vlan_hdr (c))
+                rte_vlan_strip (c);
+            }
+
+          enhanced_repeater_send_ring (c, rx_portid, rx_queueid,
+                                       rif->ring_up);
+        }
+    }
+
+  /* capture-if */
+  cif = &vswitch->capture_if;
+  if (cif->sockfd >= 0 && cif->ring_up)
+    {
+      enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
+                                   cif->ring_up);
     }
 
   /* application */

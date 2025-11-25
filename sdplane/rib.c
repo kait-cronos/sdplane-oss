@@ -256,6 +256,7 @@ CLI_COMMAND2 (show_rib_router_if,
       fprintf (shell->terminal, "vswitch[%d]: router interface configured%s",
                rib->rib_info->vswitch[i].vswitch_id, shell->NL);
       fprintf (shell->terminal, "  tap_name: %s%s", rif->tap_name, shell->NL);
+      fprintf (shell->terminal, "  vlan-id: %d%s", rif->vlan_id, shell->NL);
       fprintf (shell->terminal, "  MAC: %s, IPv4: %s, IPv6: %s%s", mac_str,
                ipv4_str, ipv6_str, shell->NL);
       fprintf (shell->terminal, "  link local: %s%s", ll_addr_str, shell->NL);
@@ -577,12 +578,29 @@ CLI_COMMAND2 (set_router_if,
   snprintf (router_if_set.tap_name, sizeof (router_if_set.tap_name), "%s",
             tap_name);
 
+  if (argc > 5)
+    {
+      if (! strcmp (argv[5], "vlan-id"))
+        {
+          uint16_t vlan_id = strtol (argv[6]);
+          router_if_set.vlan_id = vlan_id;
+        }
+    }
+
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_SET, &router_if_set,
                               sizeof (router_if_set));
   shell_rib_send_message (msgp, shell);
 
   return 0;
 }
+
+ALIAS_COMMAND (set_router_if,
+              "set vswitch <1-4094> router-if <WORD> vlan-id <1-4094>",
+              SET_HELP
+              "vswitch\n"
+              "vswitch id\n"
+              "router interface\n"
+              "tap name\n");
 
 CLI_COMMAND2 (set_router_if_hwaddr,
               "set vswitch <1-4094> router-if <WORD> hwaddr <WORD>",
