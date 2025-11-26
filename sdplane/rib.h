@@ -132,7 +132,7 @@ struct fdb_entry
   time_t last_seen;
 };
 
-#define APPLI_SLOT_SIZE 4
+#define APPLI_SLOT_SIZE 32
 struct application_slot_entry
 {
   char *name;

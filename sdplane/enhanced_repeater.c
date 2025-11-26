@@ -327,22 +327,6 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
                                    tx_portid, tx_queueid, link);
     }
 
-  /* router-if */
-  rif = &vswitch->router_if;
-  if (rif->sockfd >= 0 && rif->ring_up)
-    {
-      enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
-                                   rif->ring_up);
-    }
-
-  /* capture-if */
-  cif = &vswitch->capture_if;
-  if (cif->sockfd >= 0 && cif->ring_up)
-    {
-      enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
-                                   cif->ring_up);
-    }
-
   /* application */
   for (i = 0; i < rib->rib_info->application_slot_size; i++)
     {

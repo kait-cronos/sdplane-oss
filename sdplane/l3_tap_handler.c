@@ -282,3 +282,9 @@ l3_tap_handler (__rte_unused void *dummy)
 
   return 0;
 }
+
+bool
+should_send_to_tap(struct rte_mbuf *m)
+{
+  return true;
+}
