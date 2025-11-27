@@ -1,39 +1,12 @@
 #!/bin/bash
 
-# === 設定項目 ===
-# --- インターフェース 1 ---
-TAP_IF1="rif1"
-VLAN_ID1="1"
-IPV4_ADDR1="198.18.1.1/24"
-IPV6_ADDR1="fd00:1::1/64"
-
-# --- インターフェース 2 ---
-TAP_IF2="rif2"
-VLAN_ID2="2"
-IPV4_ADDR2="198.18.2.1/24"
-IPV6_ADDR2="fd00:2::1/64"
-
-# === 関数定義 ===
-
 # ------------------------------------------------------------------------------
 # 設定を作成する関数
 # ------------------------------------------------------------------------------
 apply_config() {
-  echo "* setup tap dev start"
+  echo "* setup start"
 
-  echo "==> set IP address: $TAP_IF1 $TAP_IF2"
-  ip a add $IPV4_ADDR1 dev $TAP_IF1
-  ip -6 a add $IPV6_ADDR1 dev $TAP_IF1
-  ip a add $IPV4_ADDR2 dev $TAP_IF2
-  ip -6 a add $IPV6_ADDR2 dev $TAP_IF2
-
-  echo "* setup tap dev completed"
-
-  echo ""
-
-  echo "* setup frr start"
-
-  echo "==> setup frr config"
+  echo "==> set frr config"
   mkdir -p /etc/frr/sdplane
   cp ./daemons /etc/frr/sdplane/daemons
   cp ./frr.conf /etc/frr/sdplane/frr.conf
@@ -44,7 +17,7 @@ apply_config() {
   echo "==> start frr"
   /usr/lib/frr/frrinit.sh start "sdplane"
 
-  echo "* setup frr completed"
+  echo "* setup completed"
 }
 
 # ------------------------------------------------------------------------------
@@ -56,14 +29,6 @@ delete_config() {
   echo "==> cleanup frr config"
   /usr/lib/frr/frrinit.sh stop "sdplane"
   rm -rf /etc/frr/sdplane || true
-
-  echo "==> cleanup: $IPV4_ADDR1 $IPV6_ADDR1" 
-  ip a del $IPV4_ADDR1 dev $TAP_IF1 || true
-  ip -6 a del $IPV6_ADDR1 dev $TAP_IF1 || true
-
-  echo "==> cleanup: $IPV4_ADDR2 $IPV6_ADDR2"
-  ip a del $IPV4_ADDR2 dev $TAP_IF2 || true
-  ip -6 a del $IPV6_ADDR2 dev $TAP_IF2 || true
 
   echo "* cleanup completed"
 }
@@ -79,7 +44,6 @@ usage() {
     echo ""
     exit 1
 }
-
 
 # === メイン処理 ===
 
