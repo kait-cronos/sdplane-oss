@@ -25,6 +25,7 @@
 #include "sdplane.h"
 #include "thread_info.h"
 #include "tap.h"
+#include "l3_tap_handler.h"
 
 #include "l2fwd_export.h"
 
@@ -1324,6 +1325,7 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_ROUTER_IF_SET:
       struct internal_msg_tap_dev *msg_router_if_set;
       struct router_if *rif;
+      struct application_slot_entry app_slot;
       DEBUG_SDPLANE_LOG (RIB, "recv msg_router_if_set: %p.", msgp);
       msg_router_if_set = (struct internal_msg_tap_dev *) (msg_header + 1);
 
@@ -1351,6 +1353,11 @@ rib_manager_process_message (void *msgp)
       set_stop_flag (old);
       ret = rib_check (new);
       delete_stop_flag (old);
+
+      app_slot.name = L3_TAP_HANDLER_APP_NAME;
+      app_slot.ring = rif->ring_up;
+      app_slot.is_packet_match = should_send_to_tap;
+      application_slot_add (new->rib_info, &app_slot);
 
       /* if rib_check() is not a pass */
       if (ret < 0)
