@@ -405,6 +405,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
              struct vswitch_link *vswitch_link)
 {
   struct route_entry *route_entry;
+  struct neigh_entry *neigh_entry;
   struct rte_ether_addr *dst_mac;
   struct fib_node *fib_node;
   uint8_t dst_ip[16] = { 0 };
@@ -466,10 +467,9 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   /* neighbor table lookup */
   if (route_entry->family == AF_INET)
     {
-      offset =
-          neigh_manager_lookup (&rib->rib_info->neigh_tables[NEIGH_ARP_TABLE],
-                                NEIGH_ARP_TABLE, lookup_ip);
-      if (offset == -1)
+      neigh_manager_lookup (&rib->rib_info->neigh_tables[NEIGH_ARP_TABLE],
+                            NEIGH_ARP_TABLE, lookup_ip, &neigh_entry);
+      if (! neigh_entry)
         {
           DEBUG_SDPLANE_LOG (ROUTER,
                              "m: %p ARP lookup failed, send to router_if", m);
@@ -479,16 +479,12 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
             _send_router_if (m, rx_portid, rx_queueid, rif);
           return;
         }
-      dst_mac = &rib->rib_info->neigh_tables[NEIGH_ARP_TABLE]
-                     .entries[offset]
-                     .mac_addr;
     }
   else
     {
-      offset =
-          neigh_manager_lookup (&rib->rib_info->neigh_tables[NEIGH_ND_TABLE],
-                                NEIGH_ND_TABLE, lookup_ip);
-      if (offset == -1)
+      neigh_manager_lookup (&rib->rib_info->neigh_tables[NEIGH_ND_TABLE],
+                            NEIGH_ND_TABLE, lookup_ip, &neigh_entry);
+      if (! neigh_entry)
         {
           DEBUG_SDPLANE_LOG (ROUTER,
                              "m: %p ND lookup failed, send to router_if", m);
@@ -498,10 +494,8 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
             _send_router_if (m, rx_portid, rx_queueid, rif);
           return;
         }
-      dst_mac = &rib->rib_info->neigh_tables[NEIGH_ND_TABLE]
-                     .entries[offset]
-                     .mac_addr;
     }
+  dst_mac = &neigh_entry->mac_addr;
 
   char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
   rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str), dst_mac);
