@@ -1824,7 +1824,6 @@ rib_manager (void *arg)
       current_rib = rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-#if 0
       if (current_time - last_fdb_aging_time >= 60 && current_rib &&
           current_rib->rib_info)
         {
@@ -1832,7 +1831,6 @@ rib_manager (void *arg)
           DEBUG_SDPLANE_LOG (FDB, "fdb aging process executed");
           last_fdb_aging_time = current_time;
         }
-#endif
 
       loop_counter++;
     }
