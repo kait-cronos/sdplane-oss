@@ -42,6 +42,8 @@
 #include "log_packet.h"
 #include "tap_handler.h"
 
+#include "rte_override.h"
+
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
@@ -412,7 +414,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   if (ipv4)
     memcpy (dst_ip, &ipv4->dst_addr, sizeof (ipv4->dst_addr));
   else if (ipv6)
-    memcpy (dst_ip, ipv6->dst_addr, sizeof (ipv6->dst_addr));
+    memcpy (dst_ip, IPV6_ADDR_BYTES (ipv6->dst_addr), RTE_IPV6_ADDR_SIZE);
 
   /* FIB lookup */
   int tree_idx = (ipv4) ? 0 : 1; // IPv4=0, IPv6=1
@@ -731,8 +733,8 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
       else if (ipv4 && memcmp (&ipv4->dst_addr, &vswitch->router_if.ipv4_addr,
                                sizeof (struct in_addr)) == 0)
         is_control = true;
-      else if (ipv6 && memcmp (ipv6->dst_addr, &vswitch->router_if.ipv6_addr,
-                               sizeof (struct in6_addr)) == 0)
+      else if (ipv6 && memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
+               &vswitch->router_if.ipv6_addr, sizeof (struct in6_addr)) == 0)
         is_control = true;
 #define IPPROTO_OSPF 89
       else if (ipv4 && ipv4->next_proto_id == IPPROTO_OSPF)
