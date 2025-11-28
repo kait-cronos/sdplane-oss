@@ -1229,7 +1229,7 @@ rib_manager_process_message (void *msgp)
       vswitch = vswitch_new (new->rib_info, msg_vswitch_set->vswitch_id,
                              msg_vswitch_set->vlan_id);
       if (vswitch)
-        DEBUG_SDPLANE_LOG (RIB, "create successed: vswitch: %u vlan_id: %u",
+        DEBUG_SDPLANE_LOG (RIB, "create succeeded: vswitch: %u vlan_id: %u",
                            msg_vswitch_set->vswitch_id,
                            msg_vswitch_set->vlan_id);
       else
@@ -1279,7 +1279,7 @@ rib_manager_process_message (void *msgp)
         {
           port_set_native_vlan (new->rib_info, port, link);
           DEBUG_SDPLANE_LOG (
-              RIB, "create successed: link_id: %u vswitch: %u port: %u native",
+              RIB, "create succeeded: link_id: %u vswitch: %u port: %u native",
               link->vswitch_link_id, msg_vswitch_port_set->vswitch_id,
               msg_vswitch_port_set->port_id);
         }
@@ -1291,7 +1291,7 @@ rib_manager_process_message (void *msgp)
           port_add_tagged_vlan (new->rib_info, port, link);
           DEBUG_SDPLANE_LOG (
               RIB,
-              "create successed: link_id: %u vswitch: %u port: %u tag: %u",
+              "create succeeded: link_id: %u vswitch: %u port: %u tag: %u",
               link->vswitch_link_id, msg_vswitch_port_set->vswitch_id,
               msg_vswitch_port_set->port_id, msg_vswitch_port_set->tag_id);
         }
@@ -1347,7 +1347,7 @@ rib_manager_process_message (void *msgp)
                 msg_router_if_set->tap_name);
       tap_admin_up (msg_router_if_set->tap_name);
 
-      DEBUG_SDPLANE_LOG (RIB, "create successed: router_if: %s vswitch: %u",
+      DEBUG_SDPLANE_LOG (RIB, "create succeeded: router_if: %s vswitch: %u",
                          msg_router_if_set->tap_name,
                          msg_router_if_set->vswitch_id);
 

@@ -360,10 +360,6 @@ _switching (struct rte_mbuf *m, struct vswitch_conf *vswitch,
 
   /* L2 switching: lookup dst MAC in FDB */
   int dst_port = -1;
-  uint16_t vlan_id = 0;
-
-  if (eth_type == RTE_ETHER_TYPE_VLAN && vlan)
-    vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan->vlan_tci));
 
   /* search for the destination MAC in FDB */
   for (int i = 0; i < rib->rib_info->vswitch_size; i++)
@@ -409,7 +405,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   struct rte_ether_addr *dst_mac;
   struct fib_node *fib_node;
   uint8_t dst_ip[16] = { 0 };
-  int i, j, offset;
+  int i, j;
   struct vswitch_link *tx_link = NULL;
   int dst_port = -1;
 
@@ -499,8 +495,8 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
 
   char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
   rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str), dst_mac);
-  DEBUG_SDPLANE_LOG (ROUTER, "m: %p neighbor lookup success: offset=%d MAC=%s",
-                     m, offset, neigh_mac_str);
+  DEBUG_SDPLANE_LOG (ROUTER, "m: %p neighbor lookup succeeded: MAC=%s",
+                     m, neigh_mac_str);
 
   /* search tx vswitch_link */
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
