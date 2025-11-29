@@ -377,7 +377,7 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
                 }
               else
                 {
-                  rte_vlan_insert (c);
+                  rte_vlan_insert (&c);
                   rte_vlan_hdr_set (c, rif->vlan_id);
                 }
             }
