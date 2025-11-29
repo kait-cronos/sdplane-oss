@@ -31,6 +31,8 @@
 #include "tap_cmd.h"
 #include "dpdk_port_cmd.h"
 
+#include "rte_flow_support.h"
+
 CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -915,6 +917,8 @@ sdplane_cmd_init (struct command_set *cmdset)
 
   nettlp_cmd_init (cmdset);
   dhcp_cmd_init (cmdset);
+
+  rte_flow_cmd_init (cmdset);
 }
 
 void

@@ -3,36 +3,55 @@
 
 #include <rte_flow.h>
 
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+
 #define RTE_FLOW_MAX_PATTERNS 16
 #define RTE_FLOW_MAX_ITEMS 16
 #define RTE_FLOW_MAX_ACTIONS 4
+
+#define SET_HELP "set information\n"
 
 struct rte_flow_attr attr_incoming = { .ingress = 1 };
 struct rte_flow_item flow_pattern[RTE_FLOW_MAX_PATTERNS][RTE_FLOW_MAX_ITEMS];
 struct rte_flow_action flow_action[RTE_FLOW_MAX_ACTIONS];
 
-struct rte_flow_item_eth eth_spec;
-struct rte_flow_item_eth eth_mask;
-struct rte_flow_item_vlan vlan_spec;
-struct rte_flow_item_vlan vlan_mask;
-struct rte_flow_item_ipv4 ipv4_spec;
-struct rte_flow_item_ipv4 ipv4_mask;
+/* To support arbitrary order of commands, we need to hold/keep
+   all items in all patterns in memory. */
+struct rte_flow_item_union
+{
+  union
+    {
+      struct rte_flow_item_eth eth;
+      struct rte_flow_item_vlan vlan;
+      struct rte_flow_item_ipv4 ipv4;
+    } u;
+};
+struct rte_flow_item_union
+  spec_union[RTE_FLOW_MAX_PATTERNS][RTE_FLOW_MAX_ITEMS];
+struct rte_flow_item_union
+  mask_union[RTE_FLOW_MAX_PATTERNS][RTE_FLOW_MAX_ITEMS];
 
 CLI_COMMAND2 (set_rte_flow_pattern_ether_any,
               "set rte-flow-pattern <0-15> index <0-15> ether (any|zero)",
               SET_HELP)
 {
   struct shell *shell = (struct shell *) context;
+  struct rte_flow_item_eth *eth_spec;
+  struct rte_flow_item_eth *eth_mask;
   int pattern = 0;
   int index = 0;
   pattern = strtol (argv[2], NULL, 0);
   index = strtol (argv[4], NULL, 0);
-  memset (&eth_spec, 0, sizeof (eth_spec));
-  memset (&eth_mask, 0, sizeof (eth_mask));
+  eth_spec = &spec_union[pattern][index].u.eth;
+  eth_mask = &mask_union[pattern][index].u.eth;
+  memset (eth_spec, 0, sizeof (struct rte_flow_item_eth));
+  memset (eth_mask, 0, sizeof (struct rte_flow_item_eth));
   memset (&flow_pattern[pattern][index], 0, sizeof (struct rte_flow_item));
   flow_pattern[pattern][index].type = RTE_FLOW_ITEM_TYPE_ETH;
-  flow_pattern[pattern][index].spec = &eth_spec;
-  flow_pattern[pattern][index].mask = &eth_mask;
+  flow_pattern[pattern][index].spec = eth_spec;
+  flow_pattern[pattern][index].mask = eth_mask;
   return 0;
 }
 
@@ -41,16 +60,20 @@ CLI_COMMAND2 (set_rte_flow_pattern_vlan_any,
               SET_HELP)
 {
   struct shell *shell = (struct shell *) context;
+  struct rte_flow_item_vlan *vlan_spec;
+  struct rte_flow_item_vlan *vlan_mask;
   int pattern = 0;
   int index = 0;
   pattern = strtol (argv[2], NULL, 0);
   index = strtol (argv[4], NULL, 0);
-  memset (&vlan_spec, 0, sizeof (vlan_spec));
-  memset (&vlan_mask, 0, sizeof (vlan_mask));
+  vlan_spec = &spec_union[pattern][index].u.vlan;
+  vlan_mask = &mask_union[pattern][index].u.vlan;
+  memset (vlan_spec, 0, sizeof (struct rte_flow_item_vlan));
+  memset (vlan_mask, 0, sizeof (struct rte_flow_item_vlan));
   memset (&flow_pattern[pattern][index], 0, sizeof (struct rte_flow_item));
   flow_pattern[pattern][index].type = RTE_FLOW_ITEM_TYPE_VLAN;
-  flow_pattern[pattern][index].spec = &vlan_spec;
-  flow_pattern[pattern][index].mask = &vlan_mask;
+  flow_pattern[pattern][index].spec = vlan_spec;
+  flow_pattern[pattern][index].mask = vlan_mask;
   return 0;
 }
 
@@ -59,17 +82,21 @@ CLI_COMMAND2 (set_rte_flow_pattern_vlan_id,
               SET_HELP)
 {
   struct shell *shell = (struct shell *) context;
+  struct rte_flow_item_vlan *vlan_spec;
+  struct rte_flow_item_vlan *vlan_mask;
   int pattern = 0;
   int index = 0;
   int vlan_id;
   pattern = strtol (argv[2], NULL, 0);
   index = strtol (argv[4], NULL, 0);
+  vlan_spec = &spec_union[pattern][index].u.vlan;
+  vlan_mask = &mask_union[pattern][index].u.vlan;
   vlan_id = strtol (argv[7], NULL, 0);
-  vlan_spec.tci = rte_cpu_to_be_16 (vlan_id);
-  vlan_mask.tci = rte_cpu_to_be_16 (0x0fff);
+  vlan_spec->tci = rte_cpu_to_be_16 (vlan_id);
+  vlan_mask->tci = rte_cpu_to_be_16 (0x0fff);
   flow_pattern[pattern][index].type = RTE_FLOW_ITEM_TYPE_VLAN;
-  flow_pattern[pattern][index].spec = &vlan_spec;
-  flow_pattern[pattern][index].mask = &vlan_mask;
+  flow_pattern[pattern][index].spec = vlan_spec;
+  flow_pattern[pattern][index].mask = vlan_mask;
   return 0;
 }
 
@@ -78,16 +105,20 @@ CLI_COMMAND2 (set_rte_flow_pattern_ipv4_any,
               SET_HELP)
 {
   struct shell *shell = (struct shell *) context;
+  struct rte_flow_item_ipv4 *ipv4_spec;
+  struct rte_flow_item_ipv4 *ipv4_mask;
   int pattern = 0;
   int index = 0;
   pattern = strtol (argv[2], NULL, 0);
   index = strtol (argv[4], NULL, 0);
-  memset (&ipv4_spec, 0, sizeof (ipv4_spec));
-  memset (&ipv4_mask, 0, sizeof (ipv4_mask));
+  ipv4_spec = &spec_union[pattern][index].u.ipv4;
+  ipv4_mask = &mask_union[pattern][index].u.ipv4;
+  memset (ipv4_spec, 0, sizeof (struct rte_flow_item_ipv4));
+  memset (ipv4_mask, 0, sizeof (struct rte_flow_item_ipv4));
   memset (&flow_pattern[pattern][index], 0, sizeof (struct rte_flow_item));
   flow_pattern[pattern][index].type = RTE_FLOW_ITEM_TYPE_IPV4;
-  flow_pattern[pattern][index].spec = &ipv4_spec;
-  flow_pattern[pattern][index].mask = &ipv4_mask;
+  flow_pattern[pattern][index].spec = ipv4_spec;
+  flow_pattern[pattern][index].mask = ipv4_mask;
   return 0;
 }
 
@@ -96,27 +127,32 @@ CLI_COMMAND2 (set_rte_flow_pattern_ipv4_src_dst,
               SET_HELP)
 {
   struct shell *shell = (struct shell *) context;
+  struct rte_flow_item_ipv4 *ipv4_spec;
+  struct rte_flow_item_ipv4 *ipv4_mask;
   int pattern = 0;
   int index = 0;
   struct in_addr ipv4_addr;
   pattern = strtol (argv[2], NULL, 0);
   index = strtol (argv[4], NULL, 0);
+  ipv4_spec = &spec_union[pattern][index].u.ipv4;
+  ipv4_mask = &mask_union[pattern][index].u.ipv4;
+
   inet_pton (AF_INET, argv[7], &ipv4_addr);
 
   if (! strcmp (argv[6], "src"))
     {
-      ipv4_spec.hdr.src_addr = ipv4_addr.s_addr;
-      ipv4_mask.hdr.src_addr = rte_cpu_to_be_32 (0xffffffff);
+      ipv4_spec->hdr.src_addr = ipv4_addr.s_addr;
+      ipv4_mask->hdr.src_addr = rte_cpu_to_be_32 (0xffffffff);
     }
   else if (! strcmp (argv[6], "dst"))
     {
-      ipv4_spec.hdr.dst_addr = ipv4_addr.s_addr;
-      ipv4_mask.hdr.dst_addr = rte_cpu_to_be_32 (0xffffffff);
+      ipv4_spec->hdr.dst_addr = ipv4_addr.s_addr;
+      ipv4_mask->hdr.dst_addr = rte_cpu_to_be_32 (0xffffffff);
     }
 
   flow_pattern[pattern][index].type = RTE_FLOW_ITEM_TYPE_IPV4;
-  flow_pattern[pattern][index].spec = &ipv4_spec;
-  flow_pattern[pattern][index].mask = &ipv4_mask;
+  flow_pattern[pattern][index].spec = ipv4_spec;
+  flow_pattern[pattern][index].mask = ipv4_mask;
   return 0;
 }
 
@@ -125,20 +161,23 @@ CLI_COMMAND2 (set_rte_flow_pattern_ipv4_proto,
               SET_HELP)
 {
   struct shell *shell = (struct shell *) context;
+  struct rte_flow_item_ipv4 *ipv4_spec;
+  struct rte_flow_item_ipv4 *ipv4_mask;
   int pattern = 0;
   int index = 0;
   uint8_t proto;
   pattern = strtol (argv[2], NULL, 0);
   index = strtol (argv[4], NULL, 0);
+  ipv4_spec = &spec_union[pattern][index].u.ipv4;
+  ipv4_mask = &mask_union[pattern][index].u.ipv4;
   proto = strtol (argv[7], NULL, 0);
-  ipv4_spec.hdr.next_proto_id = proto;
-  ipv4_mask.hdr.next_proto_id = 0xff;
+  ipv4_spec->hdr.next_proto_id = proto;
+  ipv4_mask->hdr.next_proto_id = 0xff;
   flow_pattern[pattern][index].type = RTE_FLOW_ITEM_TYPE_IPV4;
-  flow_pattern[pattern][index].spec = &ipv4_spec;
-  flow_pattern[pattern][index].mask = &ipv4_mask;
+  flow_pattern[pattern][index].spec = ipv4_spec;
+  flow_pattern[pattern][index].mask = ipv4_mask;
   return 0;
 }
-
 
 CLI_COMMAND2 (set_rte_flow_pattern_end,
               "set rte-flow-pattern <0-15> index <0-15> end",
@@ -167,12 +206,14 @@ CLI_COMMAND2 (show_rte_flow_pattern,
   fprintf (shell->terminal, "attr: %p%s", &attr_incoming, shell->NL);
   fprintf (shell->terminal, "action: %p%s", &flow_action[0], shell->NL);
 
+#if 0
   fprintf (shell->terminal, "eth: spec: %p mask: %p%s",
            &eth_spec, &eth_mask, shell->NL);
   fprintf (shell->terminal, "vlan: spec: %p mask: %p%s",
            &vlan_spec, &vlan_mask, shell->NL);
   fprintf (shell->terminal, "ipv4: spec: %p mask: %p%s",
            &ipv4_spec, &ipv4_mask, shell->NL);
+#endif
 
   for (i = 0; i < RTE_FLOW_MAX_ITEMS; i++)
     {
@@ -191,6 +232,52 @@ CLI_COMMAND2 (show_rte_flow_pattern,
                "flow_pattern[%d][%d](%p): type: %d %s spec: %p mask: %p%s",
                pattern, i, item, item->type, typename, item->spec, item->mask,
                shell->NL);
+      switch (item->type)
+        {
+        case RTE_FLOW_ITEM_TYPE_END:
+          fprintf (shell->terminal, "end.%s", shell->NL);
+          break;
+
+        case RTE_FLOW_ITEM_TYPE_ETH: 
+          struct rte_flow_item_eth *eth_spec = item->spec;
+          struct rte_flow_item_eth *eth_mask = item->mask;
+          char eth_dst[16], eth_src[16];
+          rte_ether_format_addr (eth_dst, sizeof (eth_dst), &eth_spec->dst);
+          rte_ether_format_addr (eth_src, sizeof (eth_src), &eth_spec->src);
+          fprintf (shell->terminal, "eth spec: dst: %s src: %s type: %#x%s",
+                   eth_dst, eth_src, rte_be_to_cpu_16 (eth_spec->type),
+                   shell->NL);
+          rte_ether_format_addr (eth_dst, sizeof (eth_dst), &eth_mask->dst);
+          rte_ether_format_addr (eth_src, sizeof (eth_src), &eth_mask->src);
+          fprintf (shell->terminal, "eth mask: dst: %s src: %s type: %#x%s",
+                   eth_dst, eth_src, rte_be_to_cpu_16 (eth_mask->type),
+                   shell->NL);
+          break;
+
+        case RTE_FLOW_ITEM_TYPE_VLAN:
+          fprintf (shell->terminal, "vlan.%s", shell->NL);
+          break;
+
+        case RTE_FLOW_ITEM_TYPE_IPV4:
+          struct rte_flow_item_ipv4 *ipv4_spec = item->spec;
+          struct rte_flow_item_ipv4 *ipv4_mask = item->mask;
+          char ipv4_src[16], ipv4_dst[16];
+          inet_ntop (AF_INET, &ipv4_spec->hdr.src_addr,
+                     ipv4_src, sizeof (ipv4_src));
+          inet_ntop (AF_INET, &ipv4_spec->hdr.dst_addr,
+                     ipv4_dst, sizeof (ipv4_dst));
+          fprintf (shell->terminal, "ipv4 spec: src: %s dst: %s%s",
+                   ipv4_src, ipv4_dst, shell->NL);
+          fprintf (shell->terminal, "ipv4 mask: src: %#x dst: %#x%s",
+                   rte_be_to_cpu_32 (ipv4_mask->hdr.src_addr),
+                   rte_be_to_cpu_32 (ipv4_mask->hdr.dst_addr),
+                   shell->NL);
+          break;
+
+        default:
+          fprintf (shell->terminal, "unknown.%s", shell->NL);
+          break;
+        }
       if (item->type == RTE_FLOW_ITEM_TYPE_END)
         break;
     }
@@ -312,7 +399,7 @@ CLI_COMMAND2 (set_rte_flow_port_pattern_action_none_drop,
 }
 
 void
-sdplane_rte_flow_cmd_init (struct command_set *cmdset)
+rte_flow_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, set_rte_flow_pattern_ether_any);
   INSTALL_COMMAND2 (cmdset, set_rte_flow_pattern_vlan_any);
