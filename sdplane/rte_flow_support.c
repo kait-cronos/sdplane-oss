@@ -9,13 +9,15 @@
 
 #define RTE_FLOW_MAX_PATTERNS 16
 #define RTE_FLOW_MAX_ITEMS 16
+#define RTE_FLOW_MAX_ACTION_LIST 16
 #define RTE_FLOW_MAX_ACTIONS 4
 
 #define SET_HELP "set information\n"
 
+uint8_t action_list_size = 0;
 struct rte_flow_attr attr_incoming = { .ingress = 1 };
 struct rte_flow_item flow_pattern[RTE_FLOW_MAX_PATTERNS][RTE_FLOW_MAX_ITEMS];
-struct rte_flow_action flow_action[RTE_FLOW_MAX_ACTIONS];
+struct rte_flow_action flow_action[RTE_FLOW_MAX_ACTION_LIST][RTE_FLOW_MAX_ACTIONS];
 
 /* To support arbitrary order of commands, we need to hold/keep
    all items in all patterns in memory. */
@@ -32,6 +34,16 @@ struct rte_flow_item_union
   spec_union[RTE_FLOW_MAX_PATTERNS][RTE_FLOW_MAX_ITEMS];
 struct rte_flow_item_union
   mask_union[RTE_FLOW_MAX_PATTERNS][RTE_FLOW_MAX_ITEMS];
+
+struct rte_flow_action_union
+{
+  union
+    {
+      struct rte_flow_action_queue queue;
+    } u;
+};
+struct rte_flow_action_union
+  action_union[RTE_FLOW_MAX_ACTION_LIST][RTE_FLOW_MAX_ACTIONS];
 
 CLI_COMMAND2 (set_rte_flow_pattern_ether_any,
               "set rte-flow-pattern <0-15> index <0-15> ether (any|zero)",
@@ -195,18 +207,18 @@ CLI_COMMAND2 (set_rte_flow_pattern_end,
 }
 
 CLI_COMMAND2 (show_rte_flow_pattern,
-              "show rte-flow-pattern <0-15>",
+              "show rte-flow pattern <0-15>",
               SHOW_HELP)
 {
   struct shell *shell = (struct shell *) context;
   int pattern = 0;
-  pattern = strtol (argv[2], NULL, 0);
+  pattern = strtol (argv[3], NULL, 0);
   int i;
 
+#if 0
   fprintf (shell->terminal, "attr: %p%s", &attr_incoming, shell->NL);
   fprintf (shell->terminal, "action: %p%s", &flow_action[0], shell->NL);
 
-#if 0
   fprintf (shell->terminal, "eth: spec: %p mask: %p%s",
            &eth_spec, &eth_mask, shell->NL);
   fprintf (shell->terminal, "vlan: spec: %p mask: %p%s",
@@ -284,89 +296,106 @@ CLI_COMMAND2 (show_rte_flow_pattern,
   return 0;
 }
 
-//set rte-flow port 0 pattern 1 action queue 1
-CLI_COMMAND2 (set_rte_flow_port_pattern_action_queue,
-              "set rte-flow port <0-127> pattern <0-15> action queue <0-127>",
+CLI_COMMAND2 (set_rte_flow_action_queue,
+              "set rte-flow action <0-15> index <0-15> queue <0-127>",
               SET_HELP)
 {
   struct shell *shell = (struct shell *) context;
-  int ret;
-  int port_id = 0;
-  int pattern = 0;
+  int action_list_id = 0;
+  int action_index = 0;
   int queue_id = 0;
-  port_id = strtol (argv[3], NULL, 0);
-  pattern = strtol (argv[5], NULL, 0);
-  queue_id = strtol (argv[8], NULL, 0);
+  struct rte_flow_action_queue *queue;
+  struct rte_flow_action *action;
+  action_list_id = strtol (argv[3], NULL, 0);
+  action_index = strtol (argv[5], NULL, 0);
+  queue_id = strtol (argv[7], NULL, 0);
+  queue = &action_union[action_list_id][action_index].u.queue;
+  memset (queue, 0, sizeof (struct rte_flow_action_queue));
+  queue->index = queue_id;
 
-  struct rte_flow_action_queue queue;
-  memset (&queue, 0, sizeof (queue));
-  queue.index = queue_id;
-  memset (&flow_action, 0, sizeof (flow_action));
-  flow_action[0].type = RTE_FLOW_ACTION_TYPE_QUEUE;
-  flow_action[0].conf = &queue;
-  flow_action[1].type = RTE_FLOW_ACTION_TYPE_END;
-
-  struct rte_flow *flow = NULL;
-  struct rte_flow_error error;
-  ret = rte_flow_validate (port_id, &attr_incoming,
-                           flow_pattern[pattern], flow_action, &error);
-  if (ret)
-    {
-      fprintf (shell->terminal, "rte_flow_validate() failed: %d.%s",
-               ret, shell->NL);
-      fprintf (shell->terminal, "rte_flow_error: "
-               "type: %d obj: %p message: %s%s",
-               error.type, error.cause, error.message, shell->NL);
-      return -1;
-    }
-  else
-    fprintf (shell->terminal, "rte_flow_validate() succeeded: %d.%s",
-             ret, shell->NL);
-
-  flow = rte_flow_create (port_id, &attr_incoming,
-                          flow_pattern[pattern], flow_action, &error);
-  if (! flow)
-    {
-      fprintf (shell->terminal, "rte_flow_create() returned: NULL%s",
-               shell->NL);
-      fprintf (shell->terminal, "rte_flow_error: "
-               "type: %d obj: %p message: %s%s",
-               error.type, error.cause, error.message, shell->NL);
-      return -1;
-    }
-  else
-    fprintf (shell->terminal, "rte_flow_create() succeeded: flow: %p.%s",
-             flow, shell->NL);
-
+  action = &flow_action[action_list_id][action_index];
+  memset (action, 0, sizeof (struct rte_flow_action));
+  action->type = RTE_FLOW_ACTION_TYPE_QUEUE;
+  action->conf = &queue;
   return 0;
 }
 
-CLI_COMMAND2 (set_rte_flow_port_pattern_action_none_drop,
-              "set rte-flow port <0-127> pattern <0-15> action (none|drop)",
+CLI_COMMAND2 (set_rte_flow_action_drop_end,
+              "set rte-flow action <0-15> index <0-15> (drop|end)",
+              SET_HELP)
+{
+  struct shell *shell = (struct shell *) context;
+  int action_list_id = 0;
+  int action_index = 0;
+  int queue_id = 0;
+  struct rte_flow_action_queue *queue;
+  struct rte_flow_action *action;
+  action_list_id = strtol (argv[3], NULL, 0);
+  action_index = strtol (argv[5], NULL, 0);
+  action = &flow_action[action_list_id][action_index];
+  memset (action, 0, sizeof (struct rte_flow_action));
+  if (! strcmp (argv[6], "drop"))
+    action->type = RTE_FLOW_ACTION_TYPE_DROP;
+  else if (! strcmp (argv[6], "end"))
+    action->type = RTE_FLOW_ACTION_TYPE_END;
+  return 0;
+}
+
+CLI_COMMAND2 (show_rte_flow_action,
+              "show rte-flow action",
+              SHOW_HELP)
+{
+  struct shell *shell = (struct shell *) context;
+  struct rte_flow_action *action;
+  char *action_name = "none";
+  int i, j;
+  for (i = 0; i < RTE_FLOW_MAX_ACTION_LIST; i++)
+    {
+      for (j = 0; j < RTE_FLOW_MAX_ACTIONS; j++)
+        {
+          action = &flow_action[i][j];
+          switch (action->type)
+            {
+            case RTE_FLOW_ACTION_TYPE_QUEUE:
+              action_name = "queue";
+              break;
+            case RTE_FLOW_ACTION_TYPE_DROP:
+              action_name = "drop";
+              break;
+            case RTE_FLOW_ACTION_TYPE_END:
+              action_name = "end";
+              break;
+            default:
+              action_name = "unknown";
+              break;
+            }
+          fprintf (shell->terminal, "flow_action[%d][%d].type: %d (%s)%s",
+                   i, j, action->type, action_name, shell->NL);
+          if (action->type == RTE_FLOW_ACTION_TYPE_END)
+            break;
+        }
+    }
+  return 0;
+}
+
+//set rte-flow port 0 pattern 0 action 0
+CLI_COMMAND2 (set_rte_flow_port_pattern_action,
+              "set rte-flow port <0-127> pattern <0-15> action <0-15>",
               SET_HELP)
 {
   struct shell *shell = (struct shell *) context;
   int ret;
   int port_id = 0;
   int pattern = 0;
+  int action_list_id = 0;
   port_id = strtol (argv[3], NULL, 0);
   pattern = strtol (argv[5], NULL, 0);
-
-  memset (&flow_action, 0, sizeof (flow_action));
-  if (! strcmp (argv[7], "none"))
-    {
-      flow_action[0].type = RTE_FLOW_ACTION_TYPE_END;
-    }
-  else if (! strcmp (argv[7], "drop"))
-    {
-      flow_action[0].type = RTE_FLOW_ACTION_TYPE_DROP;
-      flow_action[1].type = RTE_FLOW_ACTION_TYPE_END;
-    }
+  action_list_id = strtol (argv[7], NULL, 0);
 
   struct rte_flow *flow = NULL;
   struct rte_flow_error error;
-  ret = rte_flow_validate (port_id, &attr_incoming,
-                           flow_pattern[pattern], flow_action, &error);
+  ret = rte_flow_validate (port_id, &attr_incoming, flow_pattern[pattern],
+                           flow_action[action_list_id], &error);
   if (ret)
     {
       fprintf (shell->terminal, "rte_flow_validate() failed: %d.%s",
@@ -374,14 +403,14 @@ CLI_COMMAND2 (set_rte_flow_port_pattern_action_none_drop,
       fprintf (shell->terminal, "rte_flow_error: "
                "type: %d obj: %p message: %s%s",
                error.type, error.cause, error.message, shell->NL);
-      return -1;
+      return 0;
     }
   else
     fprintf (shell->terminal, "rte_flow_validate() succeeded: %d.%s",
              ret, shell->NL);
 
-  flow = rte_flow_create (port_id, &attr_incoming,
-                          flow_pattern[pattern], flow_action, &error);
+  flow = rte_flow_create (port_id, &attr_incoming, flow_pattern[pattern],
+                           flow_action[action_list_id], &error);
   if (! flow)
     {
       fprintf (shell->terminal, "rte_flow_create() returned: NULL%s",
@@ -389,7 +418,7 @@ CLI_COMMAND2 (set_rte_flow_port_pattern_action_none_drop,
       fprintf (shell->terminal, "rte_flow_error: "
                "type: %d obj: %p message: %s%s",
                error.type, error.cause, error.message, shell->NL);
-      return -1;
+      return 0;
     }
   else
     fprintf (shell->terminal, "rte_flow_create() succeeded: flow: %p.%s",
@@ -410,7 +439,10 @@ rte_flow_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_rte_flow_pattern_end);
   INSTALL_COMMAND2 (cmdset, show_rte_flow_pattern);
 
-  INSTALL_COMMAND2 (cmdset, set_rte_flow_port_pattern_action_queue);
-  INSTALL_COMMAND2 (cmdset, set_rte_flow_port_pattern_action_none_drop);
+  INSTALL_COMMAND2 (cmdset, set_rte_flow_action_queue);
+  INSTALL_COMMAND2 (cmdset, set_rte_flow_action_drop_end);
+  INSTALL_COMMAND2 (cmdset, show_rte_flow_action);
+
+  INSTALL_COMMAND2 (cmdset, set_rte_flow_port_pattern_action);
 }
 
