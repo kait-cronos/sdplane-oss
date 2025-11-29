@@ -210,6 +210,7 @@ static inline __attribute__ ((always_inline)) bool
 is_rte_vlan_hdr (struct rte_mbuf *m)
 {
   struct rte_ether_hdr *eth_hdr;
+  uint16_t eth_type;
   eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
   eth_type = rte_be_to_cpu_16 (eth_hdr->ether_type);
   if (eth_type == RTE_ETHER_TYPE_VLAN)
@@ -364,7 +365,8 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
   rif = &vswitch->router_if;
   if (rif->sockfd >= 0 && rif->ring_up)
     {
-      c = rte_pktmbuf_clone (m);
+      struct rte_mbuf *c;
+      c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
       if (c)
         {
           if (rif->vlan_id)
