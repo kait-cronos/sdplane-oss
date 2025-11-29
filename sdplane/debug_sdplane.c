@@ -54,6 +54,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_L2_SWITCH, "l2-switch" },
   { DEBUG_SDPLANE_DHCP_SERVER, "dhcp-server" },
   { DEBUG_SDPLANE_ROUTE_ENTRY, "route-entry" },
+  { DEBUG_SDPLANE_ROUTER, "router" },
 };
 
 struct command_header debug_sdplane_cmd;

@@ -436,6 +436,185 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
 }
 
 int
+netlink_read_nlmsg_link (struct netlink_sock *nlsock, struct nlmsghdr *h)
+{
+  if (h->nlmsg_len < NLMSG_LENGTH (sizeof (struct ifinfomsg)))
+    {
+      DEBUG_SDPLANE_LOG (NETLINK,
+                         "%s: invalid len: %d < "
+                         "NLMSG_LEN(ifinfomsg): %d",
+                         nlsock->name, h->nlmsg_len,
+                         NLMSG_LENGTH (sizeof (struct ifinfomsg)));
+      return -1;
+    }
+
+  struct ifinfomsg *ifi = (struct ifinfomsg *) NLMSG_DATA (h);
+  struct rtattr *rtas[IFLA_MAX + 1] = { 0 };
+  char ifname[16] = { 0 };
+  if_indextoname (ifi->ifi_index, ifname);
+  struct rtattr *rta = (struct rtattr *) IFLA_RTA (ifi);
+  netlink_get_rtattr (rtas, IFLA_MAX, rta, IFLA_PAYLOAD (h));
+
+  void *msgp = NULL;
+  struct internal_msg_mac_addr msg_mac_addr;
+  memset (&msg_mac_addr, 0, sizeof (msg_mac_addr));
+
+  if (! rtas[IFLA_ADDRESS])
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "%s: no MAC address in message.",
+                         nlsock->name);
+      return -1;
+    }
+
+  memcpy (msg_mac_addr.ifname, ifname, sizeof (ifname));
+  memcpy (&msg_mac_addr.mac_addr, RTA_DATA (rtas[IFLA_ADDRESS]),
+          sizeof (struct rte_ether_addr));
+
+  uint16_t msg_type;
+
+  if (h->nlmsg_type == RTM_NEWLINK)
+    msg_type = INTERNAL_MSG_TYPE_MAC_ADDR_ADD;
+  else if (h->nlmsg_type == RTM_DELLINK)
+    msg_type = INTERNAL_MSG_TYPE_MAC_ADDR_DEL;
+  else
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "unexpected message type: %s(%u)",
+                         netlink_nlmsg_str (h->nlmsg_type), h->nlmsg_type);
+      return -1;
+    }
+
+  char mac_addr_str[RTE_ETHER_ADDR_FMT_SIZE];
+  rte_ether_format_addr (mac_addr_str, sizeof (mac_addr_str), &msg_mac_addr.mac_addr);
+  DEBUG_SDPLANE_LOG (NETLINK, "[%s] ifname=%s mac=%s ifindex=%u",
+                     (h->nlmsg_type == RTM_NEWLINK ? "NEW" : "DEL"),
+                     ifname, mac_addr_str, ifi->ifi_index);
+
+  msgp = internal_msg_create (msg_type, &msg_mac_addr,
+                              sizeof (msg_mac_addr));
+  if (! msgp)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "internal_message create failed");
+      return -1;
+    }
+
+  if (! msg_queue_rib)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
+      internal_msg_delete (msgp);
+      return -1;
+    }
+
+  internal_msg_send_to (msg_queue_rib, msgp, NULL);
+
+  return 0;
+}
+
+int
+netlink_read_nlmsg_addr (struct netlink_sock *nlsock, struct nlmsghdr *h)
+{
+  if (h->nlmsg_len < NLMSG_LENGTH (sizeof (struct ifaddrmsg)))
+    {
+      DEBUG_SDPLANE_LOG (NETLINK,
+                         "%s: invalid len: %d < "
+                         "NLMSG_LEN(ifaddrmsg): %d",
+                         nlsock->name, h->nlmsg_len,
+                         NLMSG_LENGTH (sizeof (struct ifaddrmsg)));
+      return -1;
+    }
+
+  struct ifaddrmsg *ifa = (struct ifaddrmsg *) NLMSG_DATA (h);
+  struct rtattr *rtas[IFA_MAX + 1] = { 0 };
+  char ifname[16] = { 0 };
+  if_indextoname (ifa->ifa_index, ifname);
+  struct rtattr *rta = (struct rtattr *) IFA_RTA (ifa);
+  netlink_get_rtattr (rtas, IFA_MAX, rta, IFA_PAYLOAD (h));
+
+  void *msgp = NULL;
+  struct internal_msg_ip_addr msg_ip_addr;
+  memset (&msg_ip_addr, 0, sizeof (msg_ip_addr));
+
+  if (! rtas[IFA_ADDRESS])
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "%s: no IP address in message.",
+                         nlsock->name);
+      return -1;
+    }
+  // if (ifa->ifa_scope == RT_SCOPE_LINK)
+  //   {
+  //     DEBUG_SDPLANE_LOG (NETLINK, "%s: Link Local address.",
+  //                        nlsock->name);
+  //     return -1;
+  //   }
+
+  char ip_addr_str[INET6_ADDRSTRLEN];
+  memcpy (msg_ip_addr.ifname, ifname, sizeof (ifname));
+  msg_ip_addr.family = ifa->ifa_family;
+  switch (ifa->ifa_family)
+    {
+      case AF_INET:
+        memcpy (&msg_ip_addr.ip_addr.ipv4_addr,
+                RTA_DATA (rtas[IFA_ADDRESS]), sizeof (struct in_addr));
+        inet_ntop (AF_INET, &msg_ip_addr.ip_addr.ipv4_addr, ip_addr_str, sizeof (ip_addr_str));
+        break;
+
+      case AF_INET6:
+        if (ifa->ifa_scope == RT_SCOPE_LINK)
+          {
+            msg_ip_addr.is_ll_addr = true;
+            memcpy (&msg_ip_addr.ip_addr.ipv6_addr,
+                    RTA_DATA (rtas[IFA_ADDRESS]), sizeof (struct in6_addr));
+            inet_ntop (AF_INET6, &msg_ip_addr.ip_addr.ipv6_addr, ip_addr_str, sizeof (ip_addr_str));
+          }
+        else
+          {
+            memcpy (&msg_ip_addr.ip_addr.ipv6_addr,
+                    RTA_DATA (rtas[IFA_ADDRESS]), sizeof (struct in6_addr));
+            inet_ntop (AF_INET6, &msg_ip_addr.ip_addr.ipv6_addr, ip_addr_str, sizeof (ip_addr_str));
+          }
+        break;
+
+      default:
+        return -1;
+    }
+
+  uint16_t msg_type;
+
+  if (h->nlmsg_type == RTM_NEWADDR)
+    msg_type = INTERNAL_MSG_TYPE_IP_ADDR_ADD;
+  else if (h->nlmsg_type == RTM_DELADDR)
+    msg_type = INTERNAL_MSG_TYPE_IP_ADDR_DEL;
+  else
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "unexpected message type: %s(%u)",
+                         netlink_nlmsg_str (h->nlmsg_type), h->nlmsg_type);
+      return -1;
+    }
+
+  DEBUG_SDPLANE_LOG (NETLINK, "[%s] ifname=%s ip_addr=%s ifindex=%u",
+                     (h->nlmsg_type == RTM_NEWADDR ? "NEW" : "DEL"),
+                     ifname, ip_addr_str, ifa->ifa_index);
+
+  msgp = internal_msg_create (msg_type, &msg_ip_addr,
+                              sizeof (msg_ip_addr));
+  if (! msgp)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "internal_message create failed");
+      return -1;
+    }
+
+  if (! msg_queue_rib)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "error: msg_queue_rib is not started.");
+      internal_msg_delete (msgp);
+      return -1;
+    }
+
+  internal_msg_send_to (msg_queue_rib, msgp, NULL);
+
+  return 0;
+}
+
+int
 netlink_read (struct netlink_sock *nlsock)
 {
   char buf[8192];
@@ -524,6 +703,14 @@ netlink_read (struct netlink_sock *nlsock)
             case RTM_NEWROUTE:
             case RTM_DELROUTE:
               netlink_read_nlmsg_route (nlsock, h);
+              break;
+            case RTM_NEWLINK:
+            case RTM_DELLINK:
+              netlink_read_nlmsg_link (nlsock, h);
+              break;
+            case RTM_NEWADDR:
+            case RTM_DELADDR:
+              netlink_read_nlmsg_addr (nlsock, h);
               break;
             default:
               break;

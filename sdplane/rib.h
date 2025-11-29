@@ -38,6 +38,7 @@ struct router_if
   struct rte_ether_addr mac_addr;
   struct in_addr ipv4_addr;
   struct in6_addr ipv6_addr;
+  struct in6_addr ll_addr;
   char tap_name[16];
 };
 
