@@ -29,7 +29,7 @@ sdplane_SOURCES = \
         dpdk_devbind.c netlink_thread.c stream_buf.c vlan_switch.c \
         dhcp_server.c dhcp_cmd.c \
         enhanced_repeater.c l3_tap_handler.c neigh_manager.c l2_switch.c \
-        radix.c fib.c router.c
+        radix.c fib.c router.c rte_flow_support.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
 sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
 

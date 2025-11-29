@@ -1,4 +1,8 @@
 
+#include "include.h"
+
+#include <rte_flow.h>
+
 #define RTE_FLOW_MAX_PATTERNS 16
 #define RTE_FLOW_MAX_ITEMS 16
 #define RTE_FLOW_MAX_ACTIONS 4
