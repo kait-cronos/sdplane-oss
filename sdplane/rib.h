@@ -35,6 +35,7 @@ struct router_if
   struct rte_ring *ring_up;
   struct rte_ring *ring_dn;
 
+  uint16_t vlan_id;
   struct rte_ether_addr mac_addr;
   struct in_addr ipv4_addr;
   struct in6_addr ipv6_addr;

@@ -256,6 +256,7 @@ CLI_COMMAND2 (show_rib_router_if,
       fprintf (shell->terminal, "vswitch[%d]: router interface configured%s",
                rib->rib_info->vswitch[i].vswitch_id, shell->NL);
       fprintf (shell->terminal, "  tap_name: %s%s", rif->tap_name, shell->NL);
+      fprintf (shell->terminal, "  vlan-id: %hu%s", rif->vlan_id, shell->NL);
       fprintf (shell->terminal, "  MAC: %s, IPv4: %s, IPv6: %s%s", mac_str,
                ipv4_str, ipv6_str, shell->NL);
       fprintf (shell->terminal, "  link local: %s%s", ll_addr_str, shell->NL);
@@ -556,6 +557,19 @@ CLI_COMMAND2 (set_vswitch_port_tag_swap,
   return 0;
 }
 
+static inline __attribute__ ((always_inline)) struct vswitch_conf *
+vswitch_lookup (struct rib_info *new, uint16_t vswitch_id)
+{
+  int i;
+  for (i = 0; i < new->vswitch_size; i++)
+    {
+      if (new->vswitch[i].vswitch_id == vswitch_id &&
+          ! new->vswitch[i].is_deleted)
+        return &new->vswitch[i];
+    }
+  return NULL;
+}
+
 CLI_COMMAND2 (set_router_if,
               "set vswitch <1-4094> router-if <WORD>",
               SET_HELP,
@@ -569,7 +583,9 @@ CLI_COMMAND2 (set_router_if,
   struct internal_msg_header *msgp;
   int vswitch_id;
   char *tap_name;
+  struct rib *rib = rib_tlocal;
 
+  memset (&router_if_set, 0, sizeof (router_if_set));
   vswitch_id = atoi (argv[2]);
   tap_name = argv[4];
 
@@ -577,12 +593,44 @@ CLI_COMMAND2 (set_router_if,
   snprintf (router_if_set.tap_name, sizeof (router_if_set.tap_name), "%s",
             tap_name);
 
+  if (argc > 5)
+    {
+      if (! strcmp (argv[5], "vlan-id"))
+        {
+          uint16_t vlan_id = strtol (argv[6], NULL, 0);
+          router_if_set.vlan_id = vlan_id;
+        }
+    }
+  else
+    {
+#if 0
+      if (rib && rib->rib_info)
+        {
+          struct vswitch_conf *vswitch;
+          vswitch = vswitch_lookup (rib->rib_info, vswitch_id);
+          if (vswitch)
+            router_if_set.vlan_id = vswitch->vlan_id;
+        }
+#endif
+#define NO_VLAN_SPECIFIED 65535
+      router_if_set.vlan_id = NO_VLAN_SPECIFIED;
+    }
+
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_SET, &router_if_set,
                               sizeof (router_if_set));
   shell_rib_send_message (msgp, shell);
 
   return 0;
 }
+
+ALIAS_COMMAND (set_router_if_vlan,
+              set_router_if,
+              "set vswitch <1-4094> router-if <WORD> vlan-id <1-4094>",
+              SET_HELP
+              "vswitch\n"
+              "vswitch id\n"
+              "router interface\n"
+              "tap name\n");
 
 CLI_COMMAND2 (set_router_if_hwaddr,
               "set vswitch <1-4094> router-if <WORD> hwaddr <WORD>",
@@ -763,6 +811,7 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_vswitch_port);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port_tag_swap);
   INSTALL_COMMAND2 (cmdset, set_router_if);
+  INSTALL_COMMAND2 (cmdset, set_router_if_vlan);
   INSTALL_COMMAND2 (cmdset, set_router_if_hwaddr);
   INSTALL_COMMAND2 (cmdset, set_capture_if);
   INSTALL_COMMAND2 (cmdset, no_set_vswitch);

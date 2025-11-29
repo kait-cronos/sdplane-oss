@@ -81,6 +81,7 @@ struct internal_msg_tap_dev
 {
   uint16_t vswitch_id;
   char tap_name[16];
+  uint16_t vlan_id;
 };
 
 struct internal_msg_neigh_entry
