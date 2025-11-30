@@ -105,25 +105,23 @@ thread_update (int thread_id, int lcore_id, lthread_t *lthread,
 int
 thread_register_loop_counter (int thread_id, uint64_t *ptr)
 {
-  struct thread_info *tinfo;
   struct thread_counter *tcounter;
   if (thread_id < 0 || THREAD_INFO_LIMIT <= thread_id)
     return -1;
-  tinfo = &threads[thread_id];
   tcounter = &thread_counters[thread_id];
   tcounter->loop_counter_ptr = ptr;
+  return 0;
 }
 
 int
 thread_unregister_loop_counter (int thread_id)
 {
-  struct thread_info *tinfo;
   struct thread_counter *tcounter;
   if (thread_id < 0 || THREAD_INFO_LIMIT <= thread_id)
     return -1;
-  tinfo = &threads[thread_id];
   tcounter = &thread_counters[thread_id];
   tcounter->loop_counter_ptr = NULL;
+  return 0;
 }
 
 int
@@ -216,7 +214,7 @@ CLI_COMMAND2 (show_thread_counter, "show thread counter", SHOW_HELP,
   return 0;
 }
 
-int
+void
 thread_info_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, show_thread_cmd);
@@ -228,6 +226,7 @@ thread_info_init ()
 {
   memset (threads, 0, sizeof (threads));
   rte_rwlock_init (&thread_info_lock);
+  return 0;
 }
 
 void

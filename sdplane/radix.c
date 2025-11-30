@@ -294,7 +294,7 @@ _add_to_fib (struct rib_node *n, void *arg)
 {
   struct fib_tree *fib_tree = (struct fib_tree *) arg;
 
-  uint8_t key_str[INET6_ADDRSTRLEN];
+  char key_str[INET6_ADDRSTRLEN];
   inet_ntop (fib_tree->family, &n->key, key_str, sizeof (key_str));
   DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding route to fib: keylen=%d key=%s",
                      n->keylen, key_str);
@@ -320,9 +320,9 @@ rib_show_route (struct rib_node *n, void *arg)
   struct shell *shell = show_arg->shell;
   struct rib_info *rib_info = show_arg->rib_info;
   int family = show_arg->family;
-  uint8_t prefix_str[INET6_ADDRSTRLEN];
-  uint8_t nexthop_str[INET6_ADDRSTRLEN];
-  uint8_t dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 string size
+  char prefix_str[INET6_ADDRSTRLEN];
+  char nexthop_str[INET6_ADDRSTRLEN];
+  char dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 string size
   int i;
 
   /* format prefix */

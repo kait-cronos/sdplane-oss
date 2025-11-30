@@ -43,7 +43,7 @@ netlink_socket (struct netlink_sock *nlsock, unsigned long groups)
   int sockfd;
   int ret;
   struct sockaddr_nl snl;
-  int namelen;
+  socklen_t namelen;
 
   sockfd = socket (AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
   if (sockfd < 0)
@@ -405,8 +405,8 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
-  uint8_t dst_str[INET6_ADDRSTRLEN];
-  uint8_t nexthop_str[INET6_ADDRSTRLEN];
+  char dst_str[INET6_ADDRSTRLEN];
+  char nexthop_str[INET6_ADDRSTRLEN];
   inet_ntop (msg_route_entry.family, &msg_route_entry.dst_ip, dst_str,
              sizeof (dst_str));
   inet_ntop (msg_route_entry.family, &msg_route_entry.nexthop, nexthop_str,
@@ -762,6 +762,8 @@ netlink_read_block (struct netlink_sock *nlsock)
 
   return retval;
 }
+
+void neigh_manager_init ();
 
 void
 netlink_thread (void *arg)

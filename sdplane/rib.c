@@ -379,7 +379,7 @@ CLI_COMMAND2 (show_fib_ip_route,
   struct show_route_arg show_arg;
   int i;
 
-  if (! rib || ! rib->rib_info || ! rib->rib_info->fib_tree)
+  if (! rib || ! rib->rib_info)
     {
       fprintf (shell->terminal, "no routing information%s", shell->NL);
       return 0;
@@ -424,7 +424,7 @@ CLI_COMMAND2 (show_rib_ip_route,
   struct show_route_arg show_arg;
   int i;
 
-  if (! rib || ! rib->rib_info || ! rib_tree_master)
+  if (! rib || ! rib->rib_info)
     {
       fprintf (shell->terminal, "no routing information%s", shell->NL);
       return 0;

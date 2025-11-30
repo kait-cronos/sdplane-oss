@@ -529,7 +529,7 @@ route_table_add_entry (struct rib_info *rib_info,
   memcpy (rib_info->route_table[offset].nexthop, entry->nexthop,
           sizeof (entry->nexthop));
 
-  uint8_t nexthop_str[INET6_ADDRSTRLEN];
+  char nexthop_str[INET6_ADDRSTRLEN];
   inet_ntop (entry->family, &entry->nexthop, nexthop_str,
              sizeof (nexthop_str));
   DEBUG_SDPLANE_LOG (RIB, "added route_table[%u]: nexthop=%s oif=%u",
@@ -765,7 +765,7 @@ rib_check (struct rib *new)
     {
       int nrxq;
       nrxq = port_nrxq[i];
-      ret = rte_eth_dev_info_get (i, &dev_info);
+      rte_eth_dev_info_get (i, &dev_info);
       if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE)
         port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
       else
@@ -776,8 +776,8 @@ rib_check (struct rib *new)
         }
       DEBUG_SDPLANE_LOG (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d", i,
                          nrxq, ntxq);
-      ret = rte_eth_dev_stop (i);
-      ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
+      rte_eth_dev_stop (i);
+      rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
 
       nb_rxd = RX_DESC_DEFAULT;
       if (new->rib_info->port[i].nb_rxd)
@@ -791,9 +791,8 @@ rib_check (struct rib *new)
 
       for (j = 0; j < nrxq; j++)
         {
-          ret =
-              rte_eth_rx_queue_setup (i, j, nb_rxd, rte_eth_dev_socket_id (i),
-                                      &rxq_conf, l2fwd_pktmbuf_pool);
+          rte_eth_rx_queue_setup (i, j, nb_rxd, rte_eth_dev_socket_id (i),
+                                  &rxq_conf, l2fwd_pktmbuf_pool);
           DEBUG_SDPLANE_LOG (RIB, "port[%d]: rx_queue_setup: rxq: %d rxd: %d",
                              i, j, nb_rxd);
         }
@@ -803,8 +802,8 @@ rib_check (struct rib *new)
 
       for (j = 0; j < ntxq; j++)
         {
-          ret = rte_eth_tx_queue_setup (i, j, nb_txd,
-                                        rte_eth_dev_socket_id (i), &txq_conf);
+          rte_eth_tx_queue_setup (i, j, nb_txd,
+                                  rte_eth_dev_socket_id (i), &txq_conf);
           DEBUG_SDPLANE_LOG (RIB, "port[%d]: tx_queue_setup: txq: %d txd: %d",
                              i, j, nb_txd);
 
@@ -819,7 +818,7 @@ rib_check (struct rib *new)
             }
         }
 
-      ret = rte_eth_dev_start (i);
+      rte_eth_dev_start (i);
     }
 
     /* prepare rte_ring "ring_up/dn[][]" */
@@ -1069,6 +1068,8 @@ rib_manager_process_message (void *msgp)
   int ret;
   int i, j;
   //DEBUG_SDPLANE_LOG (RIB, "msg: %p.", msgp);
+
+  int route_idx_add = -1, tree_idx_add = -1;
 
   struct rib *new, *old;
 
@@ -1467,11 +1468,9 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_add: %p.", msgp);
       msg_route_entry = (struct internal_msg_route_entry *) (msg_header + 1);
-      int route_idx_add, tree_idx_add;
-      uint8_t dst_str_add[INET6_ADDRSTRLEN];
-      uint8_t nexthop_str_add[INET6_ADDRSTRLEN];
+      char dst_str_add[INET6_ADDRSTRLEN];
+      char nexthop_str_add[INET6_ADDRSTRLEN];
 
-      tree_idx_add = -1;
       route_idx_add = route_table_add_entry (new->rib_info, msg_route_entry);
       if (route_idx_add < 0)
         break;
@@ -1547,8 +1546,8 @@ rib_manager_process_message (void *msgp)
       DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_del: %p.", msgp);
       msg_route_entry = (struct internal_msg_route_entry *) (msg_header + 1);
       int route_idx_del, tree_idx_del;
-      uint8_t dst_str_del[INET6_ADDRSTRLEN];
-      uint8_t nexthop_str_del[INET6_ADDRSTRLEN];
+      char dst_str_del[INET6_ADDRSTRLEN];
+      char nexthop_str_del[INET6_ADDRSTRLEN];
 
       tree_idx_del = -1;
       route_idx_del =
