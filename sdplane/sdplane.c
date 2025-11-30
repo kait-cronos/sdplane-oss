@@ -41,6 +41,7 @@ CLI_COMMAND2 (show_version, "show version", SHOW_HELP, "version\n")
   fprintf (t, "libsdplane version: %s%s", libsdplane_version, shell->NL);
 #endif
   fprintf (t, "sdplane version: %s%s", sdplane_version, shell->NL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_locale, "set locale (C|C.utf8|en_US.utf8|POSIX)", SET_HELP,
@@ -54,6 +55,7 @@ CLI_COMMAND2 (set_locale, "set locale (C|C.utf8|en_US.utf8|POSIX)", SET_HELP,
     fprintf (shell->terminal, "setlocale(): failed.\n");
   else
     fprintf (shell->terminal, "setlocale(): %s.\n", ret);
+  return 0;
 }
 
 #if 0
@@ -860,9 +862,9 @@ void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
 void lthread_cmd_init (struct command_set *cmdset);
 void queue_config_cmd_init (struct command_set *cmdset);
-void nettlp_cmd_init (struct command_set *cmdset);
 void dpdk_devbind_cmd_init (struct command_set *cmdset);
 void pktgen_cmd_init (struct command_set *cmdset);
+void dhcp_cmd_init (struct command_set *cmdset);
 
 void
 sdplane_cmd_init (struct command_set *cmdset)
@@ -915,7 +917,6 @@ sdplane_cmd_init (struct command_set *cmdset)
   pktgen_cmd_init (cmdset);
 #endif
 
-  nettlp_cmd_init (cmdset);
   dhcp_cmd_init (cmdset);
 
   rte_flow_cmd_init (cmdset);

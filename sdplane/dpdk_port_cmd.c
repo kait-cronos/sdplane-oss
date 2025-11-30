@@ -107,7 +107,7 @@ CLI_COMMAND2 (start_stop_port, "(start|stop|reset) port (|<0-16>|all)",
   int port_id;
   int port_spec = -1;
   uint16_t nb_ports;
-  int ret;
+  int ret = 0;
   bool all = false;
 
   if (argc == 2)
@@ -601,6 +601,7 @@ lsi_event_callback(uint16_t port_id, enum rte_eth_event_type type, void *param,
   void *msgp;
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_PORT_STATUS, NULL, 0);
   internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  return 0;
 }
 
 CLI_COMMAND2 (set_port_dev_configure,

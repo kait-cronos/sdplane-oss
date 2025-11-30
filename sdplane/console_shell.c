@@ -83,6 +83,7 @@ CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
   int lcore_id;
   for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
     stop_lcore (shell, lcore_id);
+  return 0;
 }
 
 bool reboot = false;

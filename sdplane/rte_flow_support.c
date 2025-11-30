@@ -415,7 +415,7 @@ CLI_COMMAND2 (set_rte_flow_action_queue,
   action = &flow_action[action_list_id][action_index];
   memset (action, 0, sizeof (struct rte_flow_action));
   action->type = RTE_FLOW_ACTION_TYPE_QUEUE;
-  action->conf = &queue;
+  action->conf = queue;
   return 0;
 }
 

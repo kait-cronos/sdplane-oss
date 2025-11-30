@@ -320,7 +320,7 @@ l2_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
       return;
     }
 
-  struct vswitch_conf *vswitch;
+  struct vswitch_conf *vswitch = NULL;
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       if (vswitch_link->vswitch_id == rib->rib_info->vswitch[i].vswitch_id)
@@ -607,4 +607,6 @@ l2_switch (__rte_unused void *dummy)
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_unregister_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
+
+  return 0;
 }

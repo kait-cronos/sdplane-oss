@@ -338,9 +338,9 @@ fib_show_route (struct fib_node *n, void *arg)
   struct shell *shell = show_arg->shell;
   struct rib_info *rib_info = show_arg->rib_info;
   int family = show_arg->family;
-  uint8_t prefix_str[INET6_ADDRSTRLEN];
-  uint8_t nexthop_str[INET6_ADDRSTRLEN];
-  uint8_t dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 string size
+  char prefix_str[INET6_ADDRSTRLEN];
+  char nexthop_str[INET6_ADDRSTRLEN];
+  char dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 string size
 
   int i;
 

@@ -114,13 +114,13 @@ debug_sdplane_func (void *context, int argc, char **argv)
           if (negate)
             {
               FLAG_CLEAR (DEBUG_CONFIG (SDPLANE), debug_types[i].flag);
-              fprintf (shell->terminal, "debug: sdplane %s (%#x): disabled.%s",
+              fprintf (shell->terminal, "debug: sdplane %s (%#lx): disabled.%s",
                        debug_types[i].name, debug_types[i].flag, shell->NL);
             }
           else
             {
               FLAG_SET (DEBUG_CONFIG (SDPLANE), debug_types[i].flag);
-              fprintf (shell->terminal, "debug: sdplane %s (%#x): enabled.%s",
+              fprintf (shell->terminal, "debug: sdplane %s (%#lx): enabled.%s",
                        debug_types[i].name, debug_types[i].flag, shell->NL);
             }
         }

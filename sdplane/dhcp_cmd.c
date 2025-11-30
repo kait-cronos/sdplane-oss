@@ -44,6 +44,7 @@ CLI_COMMAND2 (init_dhcp_server,
       return -1;
     }
   dhcp_server_init ();
+  return 0;
 }
 
 void

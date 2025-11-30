@@ -30,6 +30,9 @@
 #include "rib_manager.h"
 #include "thread_info.h"
 
+#include "packet_hdr.h"
+#include "rte_override.h"
+
 #include "dhcp_server.h"
 
 static __thread unsigned lcore_id;
@@ -38,10 +41,10 @@ static __thread struct rib *rib = NULL;
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
-/* enhanced_repeater_tx_flush() flushes the queue'ed packets
+/* _thread_tx_flush() flushes the queue'ed packets
    in tx_buffer_per_q[] onto the NIC. */
 static inline __attribute__ ((always_inline)) void
-enhanced_repeater_tx_flush ()
+_thread_tx_flush ()
 {
   uint16_t nb_ports;
   int tx_portid;
@@ -75,9 +78,9 @@ enhanced_repeater_tx_flush ()
 }
 
 static inline __attribute__ ((always_inline)) int
-enhanced_repeater_send_ring (struct rte_mbuf *m,
-                             unsigned rx_portid, unsigned rx_queueid,
-                             struct rte_ring *ring)
+_send_ring (struct rte_mbuf *m,
+            unsigned rx_portid, unsigned rx_queueid,
+            struct rte_ring *ring)
 {
   struct rte_mbuf *c;
   uint32_t pkt_len;
@@ -111,10 +114,9 @@ enhanced_repeater_send_ring (struct rte_mbuf *m,
 }
 
 static inline __attribute__ ((always_inline)) void
-enhanced_repeater_send_link (struct rte_mbuf *m, unsigned rx_portid,
-                             unsigned rx_queueid, unsigned tx_portid,
-                             unsigned tx_queueid,
-                             struct vswitch_link *vswitch_link)
+_send_link (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
+            unsigned tx_portid, unsigned tx_queueid,
+            struct vswitch_link *vswitch_link)
 {
   struct rte_eth_dev_tx_buffer *buffer;
   uint16_t nb_ports;
@@ -147,30 +149,31 @@ enhanced_repeater_send_link (struct rte_mbuf *m, unsigned rx_portid,
       return;
     }
 
-  struct rte_ether_hdr *eth_hdr;
+  struct rte_ether_hdr *eth;
   uint16_t eth_type;
+  struct rte_vlan_hdr *vlan = NULL;
   uint16_t vlan_id;
-  struct rte_vlan_hdr *vlan_hdr;
   uint16_t old_vlan_tci, new_vlan_tci;
 
-  eth_hdr = rte_pktmbuf_mtod (c, struct rte_ether_hdr *);
-  eth_type = rte_be_to_cpu_16 (eth_hdr->ether_type);
+  eth = rte_pktmbuf_mtod (c, struct rte_ether_hdr *);
+  eth_type = rte_be_to_cpu_16 (eth->ether_type);
+
+  /* operate on the VLAN header */
   if (eth_type == RTE_ETHER_TYPE_VLAN)
     {
-      vlan_hdr = (struct rte_vlan_hdr *) (eth_hdr + 1);
-      vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_hdr->vlan_tci));
+      vlan = (struct rte_vlan_hdr *) (eth + 1);
+      vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan->vlan_tci));
 
       if (vswitch_link->tag_id != 0 && vswitch_link->tag_id != vlan_id)
         {
           /* vlan_id translation: modify vlan_id on tx */
-          old_vlan_tci = rte_be_to_cpu_16 (vlan_hdr->vlan_tci);
+          old_vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
           new_vlan_tci =
               ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
           DEBUG_NEW (ENHANCED_REPEATER,
                      "m: %p port[%d]: vlan_id modification: %u -> %u",
-                     m, vswitch_link->port_id, vlan_id,
-                     vswitch_link->tag_id);
-          vlan_hdr->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
+                     m, vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
+          vlan->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
       else if (vswitch_link->tag_id == 0)
         {
@@ -187,17 +190,17 @@ enhanced_repeater_send_link (struct rte_mbuf *m, unsigned rx_portid,
         {
           /* insert vlan_hdr */
           rte_vlan_insert (&c);
-          eth_hdr = rte_pktmbuf_mtod (c, struct rte_ether_hdr *);
-          eth_type = rte_be_to_cpu_16 (eth_hdr->ether_type);
+          eth = rte_pktmbuf_mtod (c, struct rte_ether_hdr *);
+          eth_type = rte_be_to_cpu_16 (eth->ether_type);
           assert (eth_type == RTE_ETHER_TYPE_VLAN);
-          vlan_hdr = (struct rte_vlan_hdr *) (eth_hdr + 1);
-          old_vlan_tci = rte_be_to_cpu_16 (vlan_hdr->vlan_tci);
+          vlan = (struct rte_vlan_hdr *) (eth + 1);
+          old_vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
           new_vlan_tci =
               ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
           DEBUG_NEW (ENHANCED_REPEATER,
                      "m: %p port[%d]: add vlan_id: %u",
                      m, vswitch_link->port_id, vswitch_link->tag_id);
-          vlan_hdr->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
+          vlan->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
     }
 
@@ -206,76 +209,56 @@ enhanced_repeater_send_link (struct rte_mbuf *m, unsigned rx_portid,
     port_statistics[tx_portid].tx += sent;
 }
 
-static inline __attribute__ ((always_inline)) bool
-is_rte_vlan_hdr (struct rte_mbuf *m)
-{
-  struct rte_ether_hdr *eth_hdr;
-  uint16_t eth_type;
-  eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  eth_type = rte_be_to_cpu_16 (eth_hdr->ether_type);
-  if (eth_type == RTE_ETHER_TYPE_VLAN)
-    return true;
-  return false;
-}
+/* imaginary port_id/queue_id to avoid
+   split-horizon check in transmission. */
+#define ROUTER_IF_TX_SELF_PORT_ID  UINT16_MAX
+#define ROUTER_IF_TX_SELF_QUEUE_ID 0
 
-static inline __attribute__ ((always_inline)) struct rte_vlan_hdr *
-rte_vlan_hdr (struct rte_mbuf *m)
+static inline __attribute__ ((always_inline)) void
+_switching (struct rte_mbuf *m, struct vswitch_conf *vswitch,
+            struct rte_ether_hdr *eth, struct rte_vlan_hdr *vlan,
+            uint16_t eth_type)
 {
-  assert (is_rte_vlan_hdr (m));
-  struct rte_ether_hdr *eth_hdr;
-  eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  return (struct rte_vlan_hdr *) (eth_hdr + 1);
 }
 
 static inline __attribute__ ((always_inline)) void
-rte_vlan_hdr_set (struct rte_mbuf *m, uint16_t vlan_id)
+_process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
+                    unsigned rx_queueid)
 {
-  struct rte_vlan_hdr *vlan_hdr;
-  uint16_t old_vlan_tci, new_vlan_tci;
-  assert (is_rte_vlan_hdr (m));
-  vlan_hdr = rte_vlan_hdr (m);
-  old_vlan_tci = rte_be_to_cpu_16 (vlan_hdr->vlan_tci);
-  new_vlan_tci =
-      ((old_vlan_tci & 0xf000) | (vlan_id & 0x0fff));
-  vlan_hdr->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
-}
-
-static inline __attribute__ ((always_inline)) void
-enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
-                          unsigned rx_queueid)
-{
-  struct rte_ether_hdr *eth_hdr;
-  struct port_conf *port_config;
-  uint16_t eth_type;
+  struct port_conf *port_conf;
   uint16_t vswitch_link_id;
+  struct vswitch_conf *vswitch = NULL;
   struct vswitch_link *vswitch_link = NULL;
-  struct router_if *rif;
-  struct capture_if *cif;
   int i;
   int ret;
+
+  struct rte_ether_hdr *eth;
+  uint16_t eth_type;
+  struct rte_vlan_hdr *vlan = NULL;
+
+  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  eth_type = rte_be_to_cpu_16 (eth->ether_type);
 
   DEBUG_NEW (ENHANCED_REPEATER, "m: %p received on port: %d queue: %d",
              m, rx_portid, rx_queueid);
 
-  port_config = &rib->rib_info->port[rx_portid];
-  eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  eth_type = rte_be_to_cpu_16 (eth_hdr->ether_type);
+  /* 1. search and select rx_vswitch */
+  port_conf = &rib->rib_info->port[rx_portid];
   if (eth_type == RTE_ETHER_TYPE_VLAN)
     {
       uint16_t vlan_id;
-      struct rte_vlan_hdr *vlan_hdr;
-      vlan_hdr = (struct rte_vlan_hdr *) (eth_hdr + 1);
-      vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_hdr->vlan_tci));
+      vlan = (struct rte_vlan_hdr *) (eth + 1);
+      vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan->vlan_tci));
       DEBUG_NEW (ENHANCED_REPEATER, "m: %p tagged: vlan: %u", m, vlan_id);
 
-      for (i = 0; i < port_config->vlan_size; i++)
+      for (i = 0; i < port_conf->vlan_size; i++)
         {
-          struct vswitch_link *link;
-          vswitch_link_id = port_config->vswitch_link_id_of_vlan[i];
-          link = &rib->rib_info->vswitch_link[vswitch_link_id];
-          if (link->tag_id == vlan_id)
+          struct vswitch_link *vs_link;
+          vswitch_link_id = port_conf->vswitch_link_id_of_vlan[i];
+          vs_link = &rib->rib_info->vswitch_link[vswitch_link_id];
+          if (vs_link->tag_id == vlan_id)
             {
-              vswitch_link = link;
+              vswitch_link = vs_link;
               DEBUG_NEW (ENHANCED_REPEATER,
                          "m: %p tagged: vswitch: %u, vlan: %u",
                          m, vswitch_link->vswitch_id, vlan_id);
@@ -287,7 +270,7 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
     {
       /* in case of untagged port, direct the packet to the default vlan
          for the port. */
-      vswitch_link_id = port_config->vswitch_link_id_of_native_vlan;
+      vswitch_link_id = port_conf->vswitch_link_id_of_native_vlan;
       if (0 <= vswitch_link_id &&
           vswitch_link_id < rib->rib_info->vswitch_link_size)
         {
@@ -313,7 +296,6 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
       return;
     }
 
-  struct vswitch_conf *vswitch = NULL;
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       if (vswitch_link->vswitch_id == rib->rib_info->vswitch[i].vswitch_id)
@@ -330,7 +312,6 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   unsigned tx_queueid = lcore_id;
-
   for (i = 0; i < vswitch->vswitch_port_size; i++)
     {
       uint16_t vswitch_link_id = vswitch->vswitch_link_id[i];
@@ -357,9 +338,11 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
         continue;
 
       /* forward to dpdk ports, accoding to the vswitch_link. */
-      enhanced_repeater_send_link (m, rx_portid, rx_queueid,
+      _send_link (m, rx_portid, rx_queueid,
                                    tx_portid, tx_queueid, link);
     }
+
+  struct router_if *rif;
 
   /* router-if */
   rif = &vswitch->router_if;
@@ -387,18 +370,14 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
                 rte_vlan_strip (c);
             }
 
-          enhanced_repeater_send_ring (c, rx_portid, rx_queueid,
-                                       rif->ring_up);
+          _send_ring (c, rx_portid, rx_queueid, rif->ring_up);
         }
     }
 
-  /* capture-if */
-  cif = &vswitch->capture_if;
+  /* 2. send to capture_if */
+  struct capture_if *cif = &vswitch->capture_if;
   if (cif->sockfd >= 0 && cif->ring_up)
-    {
-      enhanced_repeater_send_ring (m, rx_portid, rx_queueid,
-                                   cif->ring_up);
-    }
+    _send_ring (m, rx_portid, rx_queueid, cif->ring_up);
 
   /* application */
   for (i = 0; i < rib->rib_info->application_slot_size; i++)
@@ -408,15 +387,13 @@ enhanced_repeater_select (struct rte_mbuf *m, unsigned rx_portid,
       if (app->ring && (*app->is_packet_match) (m))
         {
           DEBUG_NEW (ENHANCED_REPEATER, "call appli_slot[%d]", i);
-          enhanced_repeater_send_ring (m, rx_portid, rx_queueid, app->ring);
+          _send_ring (m, rx_portid, rx_queueid, app->ring);
         }
     }
 }
 
-//__thread uint32_t nb_rx_burst = 0;
-
 static inline __attribute__ ((always_inline)) void
-enhanced_repeater_rx_burst ()
+_thread_rx_burst ()
 {
   struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
   struct rte_mbuf *m;
@@ -450,36 +427,26 @@ enhanced_repeater_rx_burst ()
           m = pkts_burst[j];
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
-          enhanced_repeater_select (m, portid, queueid);
+          _process_rx_packet (m, portid, queueid);
 
           rte_pktmbuf_free (m);
         }
     }
 }
 
-/* imaginary port_id/queue_id to avoid
-   split-horizon check in transmission. */
-#define ROUTER_IF_TX_SELF_PORT_ID  UINT16_MAX
-#define ROUTER_IF_TX_SELF_QUEUE_ID 0
-
 /* tx function of packets from router_if to physical port. */
 static inline __attribute__ ((always_inline)) void
-enhanced_repeater_tx_burst ()
+_thread_tx_burst ()
 {
   struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
   struct rte_mbuf *m;
-  unsigned i, j, nb_rx;
-  uint16_t tx_queueid;
-
-  tx_queueid = lcore_id;
+  unsigned i, nb_rx;
 
   if (unlikely (! rib || ! rib->rib_info))
     return;
 
   struct vswitch_conf *vswitch;
   int vswitch_id;
-  struct vswitch_link *vswitch_link;
-  uint16_t vswitch_link_id;
 
   for (vswitch_id = 0; vswitch_id < rib->rib_info->vswitch_size; vswitch_id++)
     {
@@ -503,6 +470,11 @@ enhanced_repeater_tx_burst ()
 
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
+          unsigned j;
+          struct vswitch_link *vswitch_link;
+          uint16_t vswitch_link_id;
+          uint16_t tx_queueid;
+          tx_queueid = lcore_id;
           for (j = 0; j < vswitch->vswitch_port_size; j++)
             {
               vswitch_link_id = vswitch->vswitch_link_id[j];
@@ -514,7 +486,7 @@ enhanced_repeater_tx_burst ()
               if (vswitch_link->vswitch_id != vswitch->vswitch_id)
                 continue;
 
-              enhanced_repeater_send_link (m,
+              _send_link (m,
                   ROUTER_IF_TX_SELF_PORT_ID, ROUTER_IF_TX_SELF_QUEUE_ID,
                   vswitch_link->port_id, tx_queueid, vswitch_link);
             }
@@ -530,17 +502,13 @@ int
 enhanced_repeater (__rte_unused void *dummy)
 {
   uint64_t prev_tsc, diff_tsc, cur_tsc;
-  struct lcore_queue_conf *qconf;
   const uint64_t drain_tsc =
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
-
-  uint16_t nb_ports;
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
 
   prev_tsc = 0;
   lcore_id = rte_lcore_id ();
-  qconf = &lcore_queue_conf[lcore_id];
 
   int thread_id;
   thread_id = thread_lookup_by_lcore (enhanced_repeater, lcore_id);
@@ -567,12 +535,12 @@ enhanced_repeater (__rte_unused void *dummy)
       diff_tsc = cur_tsc - prev_tsc;
       if (unlikely (diff_tsc > drain_tsc))
         {
-          enhanced_repeater_tx_flush ();
+          _thread_tx_flush ();
           prev_tsc = cur_tsc;
         }
 
-      enhanced_repeater_rx_burst ();
-      enhanced_repeater_tx_burst ();
+      _thread_rx_burst ();
+      _thread_tx_burst ();
 
 #if HAVE_LIBURCU_QSBR
       urcu_qsbr_read_unlock ();
@@ -585,4 +553,6 @@ enhanced_repeater (__rte_unused void *dummy)
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_unregister_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
+
+  return 0;
 }

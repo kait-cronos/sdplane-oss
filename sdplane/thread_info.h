@@ -41,7 +41,7 @@ int thread_lookup_by_lcore (void *func, int lcore);
 
 EXTERN_COMMAND (show_thread_cmd);
 
-int thread_info_cmd_init (struct command_set *cmdset);
+void thread_info_cmd_init (struct command_set *cmdset);
 int thread_info_init ();
 
 void lthread_cancel_all ();
