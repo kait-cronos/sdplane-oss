@@ -331,15 +331,21 @@ show_flow_pattern_item_ipv4 (struct shell *shell,
 }
 
 CLI_COMMAND2 (show_rte_flow_pattern,
-              "show rte-flow pattern",
+              "show rte-flow pattern (|<0-15>)",
               SHOW_HELP)
 {
   struct shell *shell = (struct shell *) context;
   int i, j;
+  int pattern = -1;
+
+  if (argc > 3)
+    pattern = strtol (argv[3], NULL, 0);
 
   for (i = 0; i < RTE_FLOW_MAX_PATTERNS; i++)
     {
       if (! configured_pattern[i])
+        continue;
+      if (pattern >= 0 && pattern != i)
         continue;
       fprintf (shell->terminal, "flow_pattern[%d]:%s", i, shell->NL);
       for (j = 0; j < RTE_FLOW_MAX_ITEMS; j++)
