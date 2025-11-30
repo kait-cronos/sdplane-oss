@@ -16,19 +16,11 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 
-#ifndef RTE_VLAN_TCI_ID
-#define RTE_VLAN_TCI_ID(vlan_tci) ((vlan_tci) & 0x0fff)
-#endif
-
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
 
-#include <sdplane/command.h>
-
 #include <sdplane/debug_log.h>
-#include <sdplane/debug_category.h>
-#include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
 #include "l2fwd_export.h"
@@ -38,11 +30,12 @@
 #include "rib_manager.h"
 #include "thread_info.h"
 
+#include "packet_hdr.h"
+#include "rte_override.h"
+
 #include "fib.h"
 #include "log_packet.h"
 #include "tap_handler.h"
-
-#include "rte_override.h"
 
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
@@ -50,10 +43,10 @@ static __thread struct rib *rib = NULL;
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
-/* router_tx_flush() flushes the queue'ed packets
+/* _thread_tx_flush() flushes the queue'ed packets
    in tx_buffer_per_q[] onto the NIC. */
 static inline __attribute__ ((always_inline)) void
-_router_tx_flush ()
+_thread_tx_flush ()
 {
   uint16_t nb_ports;
   int tx_portid;
@@ -73,11 +66,11 @@ _router_tx_flush ()
           sent = rte_eth_tx_buffer_flush (tx_portid, tx_queueid, buffer);
 
           if (sent || buffer->length)
-            DEBUG_SDPLANE_LOG (ROUTER,
-                               "lcore[%d]: port %d queue %d flush: "
-                               "sent: %d buffer->length: %d",
-                               lcore_id, tx_portid, tx_queueid, sent,
-                               buffer->length);
+            DEBUG_NEW (ROUTER,
+                       "lcore[%d]: port %d queue %d flush: "
+                       "sent: %d buffer->length: %d",
+                       lcore_id, tx_portid, tx_queueid, sent,
+                       buffer->length);
         }
       if (sent)
         {
@@ -98,7 +91,7 @@ _send_ring (struct rte_mbuf *m,
   pkt_len = rte_pktmbuf_pkt_len (m);
   data_len = rte_pktmbuf_data_len (m);
 
-  DEBUG_NEW (ENHANCED_REPEATER,
+  DEBUG_NEW (ROUTER,
              "m: %p port %d queue %d to ring: %s (%p)",
              m, rx_portid, rx_queueid, ring->name, ring);
 
@@ -110,7 +103,7 @@ _send_ring (struct rte_mbuf *m,
   if (ret)
     {
       /* enqueue failed */
-      DEBUG_NEW (ENHANCED_REPEATER,
+      DEBUG_NEW (ROUTER,
           "lcore[%d]: m: %p port %d queue %d to ring %s: %s: %d",
           lcore_id, m, rx_portid, rx_queueid,
           ring->name, (ret == -ENOBUFS ? "ENOBUFS" : "failed"), ret);
@@ -151,10 +144,10 @@ _send_link (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
   if (! c)
     {
-      DEBUG_SDPLANE_LOG (ROUTER,
-                         "lcore[%d]: m: %p L2 forward -> port %d "
-                         "rte_pktmbuf_copy() failed.",
-                         lcore_id, m, tx_portid);
+      DEBUG_NEW (ROUTER,
+                 "lcore[%d]: m: %p L2 forward -> port %d "
+                 "rte_pktmbuf_copy() failed.",
+                 lcore_id, m, tx_portid);
       return;
     }
 
@@ -167,12 +160,10 @@ _send_link (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   eth = rte_pktmbuf_mtod (c, struct rte_ether_hdr *);
   eth_type = rte_be_to_cpu_16 (eth->ether_type);
 
-  if (eth_type == RTE_ETHER_TYPE_VLAN)
-    vlan = (struct rte_vlan_hdr *) (eth + 1);
-
-  /* operate VLAN header */
+  /* operate on the VLAN header */
   if (eth_type == RTE_ETHER_TYPE_VLAN)
     {
+      vlan = (struct rte_vlan_hdr *) (eth + 1);
       vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan->vlan_tci));
 
       if (vswitch_link->tag_id != 0 && vswitch_link->tag_id != vlan_id)
@@ -181,18 +172,18 @@ _send_link (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
           old_vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
           new_vlan_tci =
               ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
-          DEBUG_SDPLANE_LOG (
-              ROUTER, "m: %p port[%d]: vlan_id modification: %u -> %u", m,
-              vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
+          DEBUG_NEW (ROUTER,
+                     "m: %p port[%d]: vlan_id modification: %u -> %u",
+                     m, vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
           vlan->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
       else if (vswitch_link->tag_id == 0)
         {
           /* remove vlan_hdr */
           rte_vlan_strip (c);
-          DEBUG_SDPLANE_LOG (ROUTER, "m: %p port[%d]: vlan_id strip: %u -> %u",
-                             m, vswitch_link->port_id, vlan_id,
-                             vswitch_link->tag_id);
+          DEBUG_NEW (ROUTER,
+                     "m: %p port[%d]: vlan_id strip: %u -> %u",
+                     m, vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
         }
     }
   else
@@ -208,8 +199,9 @@ _send_link (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
           old_vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
           new_vlan_tci =
               ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
-          DEBUG_SDPLANE_LOG (ROUTER, "m: %p port[%d]: add vlan_id: %u", m,
-                             vswitch_link->port_id, vswitch_link->tag_id);
+          DEBUG_NEW (ROUTER,
+                     "m: %p port[%d]: add vlan_id: %u",
+                     m, vswitch_link->port_id, vswitch_link->tag_id);
           vlan->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
     }
@@ -228,39 +220,36 @@ _verify_packet (struct rte_mbuf *m, struct rte_ipv4_hdr *ipv4,
       /* check IPv4 header. see RFC1814 section 5.2.2. */
       if (rte_pktmbuf_data_len (m) < sizeof (struct rte_ipv4_hdr))
         {
-          DEBUG_SDPLANE_LOG (ROUTER,
-                             "error: m:%p %d bytes is smaller than 20 bytes",
-                             m, rte_pktmbuf_data_len (m));
+          DEBUG_NEW (ROUTER, "error: m:%p %d bytes is smaller than 20 bytes",
+                     m, rte_pktmbuf_data_len (m));
           return -1;
         }
       if (rte_ipv4_cksum (ipv4))
         {
-          DEBUG_SDPLANE_LOG (ROUTER, "error: IPv4 checksum");
+          DEBUG_NEW (ROUTER, "error: IPv4 checksum");
           return -1;
         }
       if (ipv4->version != IPVERSION)
         {
-          DEBUG_SDPLANE_LOG (ROUTER, "error: version is %d", ipv4->version);
+          DEBUG_NEW (ROUTER, "error: version is %d", ipv4->version);
           return -1;
         }
       if (rte_ipv4_hdr_len (ipv4) < sizeof (struct rte_ipv4_hdr))
         {
-          DEBUG_SDPLANE_LOG (ROUTER,
-                             "error: %d bytes is smaller than 20 bytes",
-                             rte_ipv4_hdr_len (ipv4));
+          DEBUG_NEW (ROUTER, "error: %d bytes is smaller than 20 bytes",
+                     rte_ipv4_hdr_len (ipv4));
           return -1;
         }
       if (rte_be_to_cpu_16 (ipv4->total_length) < sizeof (struct rte_ipv4_hdr))
         {
-          DEBUG_SDPLANE_LOG (ROUTER,
-                             "error: %d bytes is smaller than 20 bytes",
-                             rte_be_to_cpu_16 (ipv4->total_length));
+          DEBUG_NEW (ROUTER, "error: %d bytes is smaller than 20 bytes",
+                     rte_be_to_cpu_16 (ipv4->total_length));
           return -1;
         }
 
       if (ipv4->time_to_live <= 1)
         {
-          DEBUG_SDPLANE_LOG (ROUTER, "error: TTL is %d", ipv4->time_to_live);
+          DEBUG_NEW (ROUTER, "error: TTL is %d", ipv4->time_to_live);
           /* TODO: send ICMP TIME EXCEEDED */
           return -1;
         }
@@ -269,22 +258,20 @@ _verify_packet (struct rte_mbuf *m, struct rte_ipv4_hdr *ipv4,
     {
       if (rte_pktmbuf_data_len (m) < sizeof (struct rte_ipv6_hdr))
         {
-          DEBUG_SDPLANE_LOG (ROUTER,
-                             "error: m:%p %d bytes is smaller than 40 bytes",
-                             m, rte_pktmbuf_data_len (m));
+          DEBUG_NEW (ROUTER, "error: m:%p %d bytes is smaller than 40 bytes",
+                     m, rte_pktmbuf_data_len (m));
           return -1;
         }
       uint8_t version = ((const uint8_t *) ipv6)[0];
       if ((version & 0xf0) != 0x60)
         {
-          DEBUG_SDPLANE_LOG (ROUTER, "error: version is %d", version);
+          DEBUG_NEW (ROUTER, "error: version is %d", version);
           return -1;
         }
 
       if (ipv6->hop_limits <= 1)
         {
-          DEBUG_SDPLANE_LOG (ROUTER, "error: Hop Limit is %d",
-                             ipv6->hop_limits);
+          DEBUG_NEW (ROUTER, "error: Hop Limit is %d", ipv6->hop_limits);
           /* TODO: send ICMPv6 TIME EXCEEDED */
           return -1;
         }
@@ -303,7 +290,7 @@ _switching (struct rte_mbuf *m, struct vswitch_conf *vswitch,
             uint16_t eth_type)
 {
   /* for ARP replies from tap, we need L2 switching based on dst MAC */
-  DEBUG_SDPLANE_LOG (ROUTER,
+  DEBUG_NEW (ROUTER,
                      "m: %p non-IP packet from router_if (eth_type: 0x%04x), "
                      "L2 switching",
                      m, eth_type);
@@ -313,7 +300,7 @@ _switching (struct rte_mbuf *m, struct vswitch_conf *vswitch,
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
       unsigned tx_queueid = lcore_id;
-      DEBUG_SDPLANE_LOG (
+      DEBUG_NEW (
           ROUTER,
           "m: %p multicast/broadcast from router_if, flooding to VLAN %u", m,
           vswitch->vswitch_id);
@@ -356,7 +343,7 @@ _switching (struct rte_mbuf *m, struct vswitch_conf *vswitch,
           if (dst_port >= 0 && link->port_id == dst_port)
             {
               unsigned tx_queueid = lcore_id;
-              DEBUG_SDPLANE_LOG (ROUTER,
+              DEBUG_NEW (ROUTER,
                                  "m: %p L2 switching to port %d via link %d",
                                  m, dst_port, link_id);
               _send_link (m, ROUTER_IF_TX_SELF_PORT_ID,
@@ -367,7 +354,7 @@ _switching (struct rte_mbuf *m, struct vswitch_conf *vswitch,
         }
     }
 
-  DEBUG_SDPLANE_LOG (ROUTER,
+  DEBUG_NEW (ROUTER,
                      "m: %p L2 switching: dst MAC not found in FDB, drop", m);
   return;
 }
@@ -397,7 +384,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   fib_node = fib_route_lookup (rib->rib_info->fib_tree[tree_idx], dst_ip);
   if (! fib_node || fib_node->num_routes == 0)
     {
-      DEBUG_SDPLANE_LOG (ROUTER, "m: %p FIB lookup failed, send to router_if",
+      DEBUG_NEW (ROUTER, "m: %p FIB lookup failed, send to router_if",
                          m);
       return;
     }
@@ -408,7 +395,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   char nexthop_str[INET6_ADDRSTRLEN];
   inet_ntop (route_entry->family, route_entry->nexthop, nexthop_str,
              sizeof (nexthop_str));
-  DEBUG_SDPLANE_LOG (ROUTER, "m: %p route found: nexthop=%s family=%d", m,
+  DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s family=%d", m,
                      nexthop_str, route_entry->family);
 
   /* determine the actual nexthop IP to lookup in neighbor table */
@@ -432,7 +419,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
       char lookup_str[INET6_ADDRSTRLEN];
       inet_ntop (route_entry->family, lookup_ip, lookup_str,
                  sizeof (lookup_str));
-      DEBUG_SDPLANE_LOG (
+      DEBUG_NEW (
           ROUTER,
           "m: %p directly connected route, using dst IP for ARP lookup:%s", m,
           lookup_str);
@@ -445,7 +432,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                             NEIGH_ARP_TABLE, lookup_ip, &neigh_entry);
       if (! neigh_entry)
         {
-          DEBUG_SDPLANE_LOG (ROUTER,
+          DEBUG_NEW (ROUTER,
                              "m: %p ARP lookup failed, send to router_if", m);
           /* send to router_if for ARP resolution */
           struct router_if *rif = &vswitch->router_if;
@@ -460,7 +447,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                             NEIGH_ND_TABLE, lookup_ip, &neigh_entry);
       if (! neigh_entry)
         {
-          DEBUG_SDPLANE_LOG (ROUTER,
+          DEBUG_NEW (ROUTER,
                              "m: %p ND lookup failed, send to router_if", m);
           /* send to router_if for ND resolution */
           struct router_if *rif = &vswitch->router_if;
@@ -473,7 +460,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
 
   char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
   rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str), dst_mac);
-  DEBUG_SDPLANE_LOG (ROUTER, "m: %p neighbor lookup succeeded: MAC=%s",
+  DEBUG_NEW (ROUTER, "m: %p neighbor lookup succeeded: MAC=%s",
                      m, neigh_mac_str);
 
   /* search tx vswitch_link */
@@ -508,7 +495,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
 
   if (! tx_link)
     {
-      DEBUG_SDPLANE_LOG (ROUTER, "m: %p FDB lookup failed, send to router_if",
+      DEBUG_NEW (ROUTER, "m: %p FDB lookup failed, send to router_if",
                          m);
       return;
     }
@@ -516,7 +503,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   /* check if tx_port is stopped */
   if (unlikely (rib->rib_info->port[dst_port].is_stopped))
     {
-      DEBUG_SDPLANE_LOG (ROUTER, "m: %p tx_port %d is stopped", m, dst_port);
+      DEBUG_NEW (ROUTER, "m: %p tx_port %d is stopped", m, dst_port);
       return;
     }
 
@@ -538,7 +525,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
       rte_ether_addr_copy (dst_mac, &eth->dst_addr);
     }
 
-  DEBUG_SDPLANE_LOG (ROUTER, "m: %p forwarding to port %d via link %d",
+  DEBUG_NEW (ROUTER, "m: %p forwarding to port %d via link %d",
                      m, dst_port, tx_link->vswitch_link_id);
 
   unsigned tx_queueid = lcore_id;
@@ -549,9 +536,12 @@ static inline __attribute__ ((always_inline)) void
 _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
                     unsigned rx_queueid)
 {
+  struct port_conf *port_conf;
+  uint16_t vswitch_link_id;
   struct vswitch_conf *vswitch = NULL;
   struct vswitch_link *vswitch_link = NULL;
   int i;
+  int ret;
 
   struct rte_ether_hdr *eth;
   uint16_t eth_type;
@@ -562,6 +552,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
 
   eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
   eth_type = rte_be_to_cpu_16 (eth->ether_type);
+
   if (eth_type == RTE_ETHER_TYPE_VLAN)
     {
       uint16_t eth_proto;
@@ -594,17 +585,16 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
         icmp = (struct rte_icmp_hdr *) (ipv6 + 1);
     }
 
-  DEBUG_SDPLANE_LOG (ROUTER, "m: %p received on port: %d queue: %d", m,
-                     rx_portid, rx_queueid);
+  DEBUG_NEW (ROUTER, "m: %p received on port: %d queue: %d",
+             m, rx_portid, rx_queueid);
 
   /* 1. search and select rx_vswitch */
-  struct port_conf *port_conf = &rib->rib_info->port[rx_portid];
-  uint16_t vswitch_link_id;
+  port_conf = &rib->rib_info->port[rx_portid];
   if (eth_type == RTE_ETHER_TYPE_VLAN)
     {
       uint16_t vlan_id;
       vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan->vlan_tci));
-      DEBUG_SDPLANE_LOG (ROUTER, "m: %p tagged: vlan: %u", m, vlan_id);
+      DEBUG_NEW (ROUTER, "m: %p tagged: vlan: %u", m, vlan_id);
 
       for (i = 0; i < port_conf->vlan_size; i++)
         {
@@ -614,8 +604,9 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
           if (vs_link->tag_id == vlan_id)
             {
               vswitch_link = vs_link;
-              DEBUG_SDPLANE_LOG (ROUTER, "m: %p tagged: vswitch: %u, vlan: %u",
-                                 m, vswitch_link->vswitch_id, vlan_id);
+              DEBUG_NEW (ROUTER,
+                         "m: %p tagged: vswitch: %u, vlan: %u",
+                         m, vswitch_link->vswitch_id, vlan_id);
               break;
             }
         }
@@ -629,25 +620,24 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
           vswitch_link_id < rib->rib_info->vswitch_link_size)
         {
           vswitch_link = &rib->rib_info->vswitch_link[vswitch_link_id];
-          DEBUG_SDPLANE_LOG (ROUTER, "m: %p untag: vswitch: %u", m,
-                             vswitch_link->vswitch_id);
+          DEBUG_NEW (ROUTER,
+                     "m: %p untag: vswitch: %u",
+                     m, vswitch_link->vswitch_id);
         }
     }
 
   if (! vswitch_link)
     {
-      DEBUG_SDPLANE_LOG (ROUTER, "m: %p cannot find the vswitch link", m);
+      DEBUG_NEW (ROUTER, "m: %p cannot find the vswitch link", m);
       return;
     }
 
   if (vswitch_link->vswitch_id < 0 ||
       rib->rib_info->vswitch_size > MAX_VSWITCH)
     {
-      DEBUG_SDPLANE_LOG (ROUTER,
-                         "m: %p a broken vswitch link: "
-                         "vswitch: %d vswitch_size: %d",
-                         m, vswitch_link->vswitch_id,
-                         rib->rib_info->vswitch_size);
+      DEBUG_NEW (ROUTER,
+                 "m: %p a broken vswitch link: vswitch: %d vswitch_size: %d",
+                 m, vswitch_link->vswitch_id, rib->rib_info->vswitch_size);
       return;
     }
 
@@ -659,9 +649,10 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
           break;
         }
     }
+
   if (! vswitch)
     {
-      DEBUG_SDPLANE_LOG (ROUTER, "m: %p cannot find the vswitch", m);
+      DEBUG_NEW (ROUTER, "m: %p cannot find the vswitch", m);
       return;
     }
 
@@ -720,8 +711,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
 
       if (is_control)
         {
-          DEBUG_SDPLANE_LOG (
-              ROUTER,
+          DEBUG_NEW (ROUTER,
               "m: %p control packet (eth_type:0x%04x), send to router_if", m,
               eth_type);
           _send_ring (m, rx_portid, rx_queueid, rif->ring_up);
@@ -732,7 +722,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   /* 4. check if l3_forwarding */
   if (! rte_is_same_ether_addr (&eth->dst_addr, &vswitch->router_if.mac_addr))
     {
-      DEBUG_SDPLANE_LOG (ROUTER, "L2 switching");
+      DEBUG_NEW (ROUTER, "L2 switching");
       _switching (m, vswitch, eth, vlan, eth_type);
       return;
     }
@@ -740,7 +730,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   /* 5. verify IP packet */
   if (_verify_packet (m, ipv4, ipv6) != 0)
     {
-      DEBUG_SDPLANE_LOG (ROUTER, "m: %p failed verify", m);
+      DEBUG_NEW (ROUTER, "m: %p failed verify", m);
       return;
     }
 
@@ -780,7 +770,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
         ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
     }
 
-  DEBUG_SDPLANE_LOG (ROUTER, "m: %p received on port: %d queue: %d", m,
+  DEBUG_NEW (ROUTER, "m: %p received on port: %d queue: %d", m,
                      ROUTER_IF_TX_SELF_PORT_ID, ROUTER_IF_TX_SELF_QUEUE_ID);
 
   /* check if this is a non-IP packet or multicast or broadcast */
@@ -797,7 +787,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
 }
 
 static inline __attribute__ ((always_inline)) void
-_router_rx_burst ()
+_thread_rx_burst ()
 {
   struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
   struct rte_mbuf *m;
@@ -839,7 +829,7 @@ _router_rx_burst ()
 
 /* tx function of packets from router_if to physical port. */
 static inline __attribute__ ((always_inline)) void
-_router_tx_burst ()
+_thread_tx_burst ()
 {
   struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
   struct rte_mbuf *m;
@@ -898,7 +888,7 @@ router (__rte_unused void *dummy)
   thread_id = thread_lookup_by_lcore (router, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter);
 
-  DEBUG_SDPLANE_LOG (ROUTER, "entering main loop on lcore %u", lcore_id);
+  DEBUG_NEW (ROUTER, "entering main loop on lcore %u", lcore_id);
 
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_register_thread ();
@@ -919,12 +909,12 @@ router (__rte_unused void *dummy)
       diff_tsc = cur_tsc - prev_tsc;
       if (unlikely (diff_tsc > drain_tsc))
         {
-          _router_tx_flush ();
+          _thread_tx_flush ();
           prev_tsc = cur_tsc;
         }
 
-      _router_rx_burst ();
-      _router_tx_burst ();
+      _thread_rx_burst ();
+      _thread_tx_burst ();
 
 #if HAVE_LIBURCU_QSBR
       urcu_qsbr_read_unlock ();
