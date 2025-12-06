@@ -303,7 +303,8 @@ tap_handler_handle_packet_up ()
           if (DEBUG_CHECK (SDPLANE, PACKET))
             log_packet (m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
 
-          send_fdb_entry_add_msg (m);
+          uint16_t vlan_id = 0;
+          send_fdb_entry_add_msg (m, vlan_id);
           tap_handler_write_peek (m);
           tap_handler_write_port_all (m);
 
