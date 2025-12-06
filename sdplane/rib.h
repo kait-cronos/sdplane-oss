@@ -3,10 +3,10 @@
 
 #define MAX_TAP_IF              8
 #define MAX_ROUTER_IF           8
-#define MAX_VSWITCH_PORTS       4
+#define MAX_VSWITCH_PORTS       16
 #define MAX_VSWITCH             4
 #define MAX_VSWITCH_LINK        32
-#define MAX_VLAN_PER_PORT       4
+#define MAX_VLAN_PER_PORT       8
 #define MAX_ETH_PORTS           8
 #define MAX_NEIGHBOR_ENTRY_SIZE 1024
 #define FDB_SIZE                1024

@@ -20,6 +20,10 @@
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
 
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
+
 #include <sdplane/debug_log.h>
 #include "debug_sdplane.h"
 
@@ -231,6 +235,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   struct vswitch_link *vswitch_link = NULL;
   int i;
   int ret;
+  uint16_t vlan_id = 0;
 
   struct rte_ether_hdr *eth;
   uint16_t eth_type;
@@ -246,7 +251,6 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   port_conf = &rib->rib_info->port[rx_portid];
   if (eth_type == RTE_ETHER_TYPE_VLAN)
     {
-      uint16_t vlan_id;
       vlan = (struct rte_vlan_hdr *) (eth + 1);
       vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan->vlan_tci));
       DEBUG_NEW (ENHANCED_REPEATER, "m: %p tagged: vlan: %u", m, vlan_id);
@@ -256,6 +260,9 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
           struct vswitch_link *vs_link;
           vswitch_link_id = port_conf->vswitch_link_id_of_vlan[i];
           vs_link = &rib->rib_info->vswitch_link[vswitch_link_id];
+          DEBUG_NEW (ENHANCED_REPEATER,
+                     "m: %p check: vswitch: %u, vlan: %u",
+                     m, vs_link->vswitch_id, vs_link->tag_id);
           if (vs_link->tag_id == vlan_id)
             {
               vswitch_link = vs_link;
@@ -311,6 +318,13 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
       return;
     }
 
+  DEBUG_NEW (ENHANCED_INFO,
+      "m: %p received: port: %d queue: %d tag: %d "
+      "vswitch[%d]: (vlan: %d) rx-vlink[%d]: (tag: %d port: %d)",
+      m, rx_portid, rx_queueid, vlan_id,
+      vswitch->vswitch_id, vswitch->vlan_id,
+      vswitch_link_id, vswitch_link->tag_id, vswitch_link->port_id);
+
   unsigned tx_queueid = lcore_id;
   for (i = 0; i < vswitch->vswitch_port_size; i++)
     {
@@ -320,16 +334,23 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
       unsigned tx_portid = link->port_id;
 
       DEBUG_NEW (ENHANCED_REPEATER,
-          "m: %p vswitch[%d]vswport[%d/%d]: vswitch_link_id: %u "
+          "m: %p vswitch[%d] vswport[%d/%d]: vswitch_link_id: %u "
           "port: %d vlan: %d tag: %d (vswitch%u[%d])",
-          m, vswitch_link->vswitch_id, i, vswitch->vswitch_port_size,
+          m, link->vswitch_id, i, vswitch->vswitch_port_size,
           vswitch_link_id, link->port_id, link->vlan_id, link->tag_id,
           link->vswitch_id, link->vswitch_port);
 
+      DEBUG_NEW (ENHANCED_INFO,
+          "m: %p vswitch[%d] tx-vlink[%d/%d]: vswitch_link_id: %u "
+          "port: %d vlan: %d tag: %d (vswitch%u[%d])",
+          m, vswitch->vswitch_id, i, vswitch->vswitch_port_size,
+          link->vswitch_link_id,
+	  link->port_id, link->vlan_id, link->tag_id);
+
       /* skip received link port. split-horizon */
-      if (link == vswitch_link || tx_portid == rx_portid)
+      if (link == vswitch_link)
         {
-          DEBUG_NEW (ENHANCED_REPEATER, "m: %p split horizon.", m);
+          DEBUG_NEW (ENHANCED_INFO, "m: %p split horizon.", m);
           continue;
         }
 
@@ -338,8 +359,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
         continue;
 
       /* forward to dpdk ports, accoding to the vswitch_link. */
-      _send_link (m, rx_portid, rx_queueid,
-                                   tx_portid, tx_queueid, link);
+      _send_link (m, rx_portid, rx_queueid, tx_portid, tx_queueid, link);
     }
 
   struct router_if *rif;
@@ -356,10 +376,16 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
             {
               if (is_rte_vlan_hdr (c))
                 {
+                  DEBUG_NEW (ENHANCED_INFO,
+                             "m: %p router-if: vlan modify: %d.",
+                             m, rif->vlan_id);
                   rte_vlan_hdr_set (c, rif->vlan_id);
                 }
               else
                 {
+                  DEBUG_NEW (ENHANCED_INFO,
+                             "m: %p router-if: vlan insert: %d.",
+                             m, rif->vlan_id);
                   rte_vlan_insert (&c);
                   rte_vlan_hdr_set (c, rif->vlan_id);
                 }
@@ -367,17 +393,26 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
           else
             {
               if (is_rte_vlan_hdr (c))
-                rte_vlan_strip (c);
+                {
+                  DEBUG_NEW (ENHANCED_INFO,
+                             "m: %p router-if: vlan strip", m);
+                  rte_vlan_strip (c);
+                }
             }
 
           _send_ring (c, rx_portid, rx_queueid, rif->ring_up);
+          rte_pktmbuf_free (c);
         }
     }
 
   /* 2. send to capture_if */
   struct capture_if *cif = &vswitch->capture_if;
   if (cif->sockfd >= 0 && cif->ring_up)
-    _send_ring (m, rx_portid, rx_queueid, cif->ring_up);
+    {
+      DEBUG_NEW (ENHANCED_INFO,
+                 "m: %p capture-if.", m);
+      _send_ring (m, rx_portid, rx_queueid, cif->ring_up);
+    }
 
   /* application */
   for (i = 0; i < rib->rib_info->application_slot_size; i++)

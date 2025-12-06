@@ -625,7 +625,7 @@ CLI_COMMAND2 (set_router_if,
 
 ALIAS_COMMAND (set_router_if_vlan,
               set_router_if,
-              "set vswitch <1-4094> router-if <WORD> vlan-id <1-4094>",
+              "set vswitch <1-4094> router-if <WORD> vlan-id <0-4094>",
               SET_HELP
               "vswitch\n"
               "vswitch id\n"

@@ -202,6 +202,8 @@ l3_tap_handler_handle_packet_down ()
           struct rte_mempool *mp = l2fwd_pktmbuf_pool;
           struct rte_mbuf *m = rte_pktmbuf_alloc (mp);
 
+	  if (m)
+            {
           size = ret;
           if (size >= m->buf_len)
             {
@@ -218,6 +220,10 @@ l3_tap_handler_handle_packet_down ()
           DEBUG_NEW (TAPHANDLER, "packet: sockfd %d -> ring_dn %d",
                      vswitch->router_if.sockfd,
                      vswitch->router_if.tap_ring_id);
+            }
+	  else
+              WARNING ("rte_pktmbuf_alloc() failed: ring_dn: drop %d bytes",
+                       ret);
         }
     }
 }
