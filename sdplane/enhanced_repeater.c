@@ -235,6 +235,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   struct vswitch_link *vswitch_link = NULL;
   int i;
   int ret;
+  uint16_t vlan_id = 0;
 
   struct rte_ether_hdr *eth;
   uint16_t eth_type;
@@ -250,7 +251,6 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   port_conf = &rib->rib_info->port[rx_portid];
   if (eth_type == RTE_ETHER_TYPE_VLAN)
     {
-      uint16_t vlan_id;
       vlan = (struct rte_vlan_hdr *) (eth + 1);
       vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan->vlan_tci));
       DEBUG_NEW (ENHANCED_REPEATER, "m: %p tagged: vlan: %u", m, vlan_id);
