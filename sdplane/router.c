@@ -483,6 +483,10 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                      m, neigh_mac_str);
 
   /* search tx vswitch_link */
+  /* XXX we should not iterate all vswitches to find the output port.
+     we should be able to use route_entry->oif (which must specify the
+     router-if) and its corresponding vswitch, for the search.
+     The iteration on all vswitches should be avoided for performance. */
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
