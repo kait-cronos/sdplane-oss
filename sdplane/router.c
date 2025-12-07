@@ -496,7 +496,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
           struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
 
           /* FDB lookup */
-          dst_port = fdb_lookup_entry (rib->rib_info, dst_mac, link->tag_id);
+          dst_port = fdb_lookup_entry (rib->rib_info, dst_mac, vs->vlan_id);
           if (dst_port >= 0 && link->port_id == dst_port)
             {
               /* split-horizon check: don't send back to the same link */
