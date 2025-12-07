@@ -125,7 +125,7 @@ l3_tap_handler_handle_packet_up ()
           if (IS_DEBUG (PACKET))
             log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
 
-          send_fdb_entry_add_msg (m);
+          send_fdb_entry_add_msg (m, vswitch->vlan_id);
           if (capture_fd >= 0)
             l3_tap_handler_write_capture_if (capture_fd, m);
           if (router_fd >= 0)

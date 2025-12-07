@@ -116,7 +116,8 @@ _send_ring (struct rte_mbuf *m,
 }
 
 static inline __attribute__ ((always_inline)) void
-_send_link (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
+_send_link (struct rte_mbuf *m,
+            unsigned rx_portid, unsigned rx_queueid,
             unsigned tx_portid, unsigned tx_queueid,
             struct vswitch_link *vswitch_link)
 {
@@ -281,29 +282,20 @@ _verify_packet (struct rte_mbuf *m, struct rte_ipv4_hdr *ipv4,
 
 /* imaginary port_id/queue_id to avoid
    split-horizon check in transmission. */
-#define ROUTER_IF_TX_SELF_PORT_ID  UINT16_MAX
-#define ROUTER_IF_TX_SELF_QUEUE_ID 0
+#define ROUTER_IF_RX_SELF_PORT_ID  UINT16_MAX
+#define ROUTER_IF_RX_SELF_QUEUE_ID 0
 
 static inline __attribute__ ((always_inline)) void
-_switching (struct rte_mbuf *m, struct vswitch_conf *vswitch,
-            struct rte_ether_hdr *eth, struct rte_vlan_hdr *vlan,
-            uint16_t eth_type)
+_flooding (struct rte_mbuf *m,
+           uint16_t rx_portid, uint16_t rx_queueid,
+           struct vswitch_conf *vswitch,
+           struct rte_ether_hdr *eth, struct rte_vlan_hdr *vlan,
+           uint16_t eth_type)
 {
-  /* for ARP replies from tap, we need L2 switching based on dst MAC */
-  DEBUG_NEW (ROUTER,
-                     "m: %p non-IP packet from router_if (eth_type: 0x%04x), "
-                     "L2 switching",
-                     m, eth_type);
-
-  /* check if destination MAC is multicast or broadcast */
-  if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
-      rte_is_broadcast_ether_addr (&eth->dst_addr))
-    {
       unsigned tx_queueid = lcore_id;
-      DEBUG_NEW (
-          ROUTER,
-          "m: %p multicast/broadcast from router_if, flooding to VLAN %u", m,
-          vswitch->vswitch_id);
+      DEBUG_NEW (ROUTER,
+                 "m: %p flooding to VLAN %u",
+                 m, vswitch->vswitch_id);
 
       /* flood to all ports in the same vswitch */
       for (int i = 0; i < vswitch->vswitch_port_size; i++)
@@ -317,45 +309,72 @@ _switching (struct rte_mbuf *m, struct vswitch_conf *vswitch,
             continue;
 
           /* send to DPDK ports according to the vswitch_link */
-          _send_link (m, ROUTER_IF_TX_SELF_PORT_ID, ROUTER_IF_TX_SELF_QUEUE_ID,
+          _send_link (m, ROUTER_IF_RX_SELF_PORT_ID,
+                      ROUTER_IF_RX_SELF_QUEUE_ID,
                       tx_portid, tx_queueid, link);
         }
+}
+
+static inline __attribute__ ((always_inline)) void
+_switching (struct rte_mbuf *m,
+            uint16_t rx_portid, uint16_t rx_queueid,
+            struct vswitch_conf *vswitch,
+            struct rte_ether_hdr *eth, struct rte_vlan_hdr *vlan,
+            uint16_t eth_type)
+{
+  /* for ARP replies from tap, we need L2 switching based on dst MAC */
+
+  assert (vswitch);
+  DEBUG_NEW (ROUTER,
+             "m: %p packet from rx_port: %d rx_queue: %d "
+             "L2 switching: vswitch[%d]",
+             m, rx_portid, rx_queueid, vswitch->vswitch_id);
+
+  if (vswitch->is_deleted)
+    {
+      DEBUG_NEW (ROUTER, "vswitch[%d]: is deleted.", vswitch->vswitch_id);
+      return;
+    }
+
+  /* check if destination MAC is multicast or broadcast */
+  if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
+      rte_is_broadcast_ether_addr (&eth->dst_addr))
+    {
+      _flooding (m, rx_portid, rx_queueid, vswitch, eth, vlan, eth_type);
       return;
     }
 
   /* L2 switching: lookup dst MAC in FDB */
   int dst_port = -1;
+  dst_port =
+      fdb_lookup_entry (rib->rib_info, &eth->dst_addr, vswitch->vlan_id);
 
   /* search for the destination MAC in FDB */
-  for (int i = 0; i < rib->rib_info->vswitch_size; i++)
+  if (dst_port >= 0)
     {
-      struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
-      if (vs->is_deleted || vs != vswitch)
-        continue;
-
-      for (int j = 0; j < vs->vswitch_port_size; j++)
+      for (int j = 0; j < vswitch->vswitch_port_size; j++)
         {
-          uint16_t link_id = vs->vswitch_link_id[j];
+          uint16_t link_id = vswitch->vswitch_link_id[j];
           struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
 
-          dst_port =
-              fdb_lookup_entry (rib->rib_info, &eth->dst_addr, link->tag_id);
-          if (dst_port >= 0 && link->port_id == dst_port)
+          if (link->port_id == dst_port)
             {
               unsigned tx_queueid = lcore_id;
               DEBUG_NEW (ROUTER,
-                                 "m: %p L2 switching to port %d via link %d",
-                                 m, dst_port, link_id);
-              _send_link (m, ROUTER_IF_TX_SELF_PORT_ID,
-                          ROUTER_IF_TX_SELF_QUEUE_ID, dst_port, tx_queueid,
-                          link);
+                         "m: %p L2 switching to port %d via link %d",
+                         m, dst_port, link_id);
+              _send_link (m, ROUTER_IF_RX_SELF_PORT_ID,
+                          ROUTER_IF_RX_SELF_QUEUE_ID,
+                          dst_port, tx_queueid, link);
               return;
             }
         }
     }
 
   DEBUG_NEW (ROUTER,
-                     "m: %p L2 switching: dst MAC not found in FDB, drop", m);
+             "m: %p L2 switching: dst MAC unknown, flooding", m);
+  _flooding (m, rx_portid, rx_queueid, vswitch, eth, vlan, eth_type);
+
   return;
 }
 
@@ -464,6 +483,10 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                      m, neigh_mac_str);
 
   /* search tx vswitch_link */
+  /* XXX we should not iterate all vswitches to find the output port.
+     we should be able to use route_entry->oif (which must specify the
+     router-if) and its corresponding vswitch, for the search.
+     The iteration on all vswitches should be avoided for performance. */
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
@@ -477,7 +500,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
           struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
 
           /* FDB lookup */
-          dst_port = fdb_lookup_entry (rib->rib_info, dst_mac, link->tag_id);
+          dst_port = fdb_lookup_entry (rib->rib_info, dst_mac, vs->vlan_id);
           if (dst_port >= 0 && link->port_id == dst_port)
             {
               /* split-horizon check: don't send back to the same link */
@@ -508,7 +531,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
     }
 
   /* rewrite L2/L3 header */
-  if (rx_portid != ROUTER_IF_TX_SELF_PORT_ID)
+  if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID)
     {
       if (ipv4)
         {
@@ -723,7 +746,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (! rte_is_same_ether_addr (&eth->dst_addr, &vswitch->router_if.mac_addr))
     {
       DEBUG_NEW (ROUTER, "L2 switching");
-      _switching (m, vswitch, eth, vlan, eth_type);
+      _switching (m, rx_portid, rx_queueid, vswitch, eth, vlan, eth_type);
       return;
     }
 
@@ -771,18 +794,19 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
     }
 
   DEBUG_NEW (ROUTER, "m: %p received on port: %d queue: %d", m,
-                     ROUTER_IF_TX_SELF_PORT_ID, ROUTER_IF_TX_SELF_QUEUE_ID);
+                     ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
 
   /* check if this is a non-IP packet or multicast or broadcast */
   if ((! ipv4 && ! ipv6) || 
       rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
-      _switching (m, vswitch, eth, vlan, eth_type);
+      _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
+                  vswitch, eth, vlan, eth_type);
       return;
     }
 
-  _forwarding (m, ROUTER_IF_TX_SELF_PORT_ID, ROUTER_IF_TX_SELF_QUEUE_ID, eth,
+  _forwarding (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID, eth,
                ipv4, ipv6, vswitch, NULL);
 }
 

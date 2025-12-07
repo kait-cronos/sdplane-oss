@@ -43,7 +43,7 @@ l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
 }
 
 static inline __attribute__ ((always_inline)) void
-send_fdb_entry_add_msg (struct rte_mbuf *m)
+send_fdb_entry_add_msg (struct rte_mbuf *m, uint16_t vlan_id)
 {
   struct internal_msg_fdb_entry fdb_entry_add;
   struct internal_msg_header *msgp;
@@ -52,14 +52,7 @@ send_fdb_entry_add_msg (struct rte_mbuf *m)
   eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
   fdb_entry_add.mac_addr = eth_hdr->src_addr;
   fdb_entry_add.port = m->port;
-  fdb_entry_add.vlan_id = 0;
-
-  if (rte_be_to_cpu_16 (eth_hdr->ether_type) == RTE_ETHER_TYPE_VLAN)
-    {
-      struct rte_vlan_hdr *vlan_hdr = (struct rte_vlan_hdr *) (eth_hdr + 1);
-      fdb_entry_add.vlan_id =
-          RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_hdr->vlan_tci));
-    }
+  fdb_entry_add.vlan_id = vlan_id;
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_FDB_ENTRY_ADD, &fdb_entry_add,
                               sizeof (fdb_entry_add));
