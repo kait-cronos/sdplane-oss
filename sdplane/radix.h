@@ -3,19 +3,44 @@
 
 #include "rib.h"
 
+struct route_dst_info
+{
+  int family; // destination address family
+  union
+  {
+    struct in_addr ipv4_addr;
+    struct in6_addr ipv6_addr;
+  } dst_ip_addr;
+  int plen;
+};
+
+struct route_entry
+{
+  struct route_dst_info dst;
+  struct nh_common nh;
+};
+
 struct rib_node
 {
   int valid;
-  uint8_t key[16];
-  int keylen;
-  int num_routes;
-  int route_idx[MAX_ECMP_ENTRY];
+  struct route_entry entry;
+  /*
+   * entry.dst_ip_addr is key
+   * entry.plen is key length
+   * entry.nh is nexthop info
+   */
   struct rib_node *left;
   struct rib_node *right;
 };
+
+/*
+ * rib_tree->family: table family
+ *   └─ rib_node->entry.family: destination address family
+ *         └─ nh_common->...->nh_info.family: nexthop address family
+ */
 struct rib_tree
 {
-  int family;
+  int family; // table family
   int table_id;
   struct rib_node *root;
 };
@@ -26,9 +51,8 @@ void rib_free (struct rib_tree *t);
 
 /* RIB operations */
 int rib_route_add (struct rib_tree *t, const uint8_t *key, int keylen,
-                   int idx);
-int rib_route_delete (struct rib_tree *t, const uint8_t *key, int keylen,
-                      int idx);
+                   struct route_entry *data);
+int rib_route_delete (struct rib_tree *t, const uint8_t *key, int keylen);
 struct rib_node *rib_route_lookup (struct rib_tree *t, const uint8_t *key);
 
 /* RIB traversal */

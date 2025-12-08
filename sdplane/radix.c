@@ -63,7 +63,6 @@ static struct rib_node *
 _create_rib_node (void)
 {
   struct rib_node *new;
-  int i;
 
   new = malloc (sizeof (struct rib_node));
   if (! new)
@@ -71,16 +70,12 @@ _create_rib_node (void)
 
   memset (new, 0, sizeof (struct rib_node));
 
-  /* initialize route_idx to -1 to distinguish from valid index 0 */
-  for (i = 0; i < MAX_ECMP_ENTRY; i++)
-    new->route_idx[i] = -1;
-
   return new;
 }
 
 static struct rib_node *
-_add (struct rib_node *n, const uint8_t *key, int keylen, int idx, int depth,
-      int *success)
+_add (struct rib_node *n, const uint8_t *key, int keylen, struct route_entry *data,
+      int depth, int *success)
 {
   if (! n)
     {
@@ -96,52 +91,40 @@ _add (struct rib_node *n, const uint8_t *key, int keylen, int idx, int depth,
     {
       if (n->valid)
         {
-          if (n->num_routes >= MAX_ECMP_ENTRY)
-            {
-              *success = -1; // failed, full ECMP entry
-              return n;
-            }
-          else
-            {
-              /* add to available slots */
-              for (int i = 0; i < MAX_ECMP_ENTRY; i++)
-                {
-                  if (n->route_idx[i] == -1)
-                    {
-                      n->route_idx[i] = idx;
-                      n->num_routes++;
-                      *success = 0; // successed
-                      return n;
-                    }
-                }
-            }
-          *success = -1; // failed, should not be reached
+          /**
+           * TODO1: Replace nexthop info when nlmsg_flags indicates a replace operation
+           * e.g., ip route replace ...
+           */
+          /**
+           * Currently only the destination prefix is used as the key.
+           * Routes that share the same prefix but differ in outgoing interface
+           * (e.g., link-local routes such as fe80::/64) are treated as identical.
+           * TODO2: support composite keys (e.g., prefix + oif).
+           */
+          *success = -1; // failed, already exists
           return n;
         }
-      memset (n->key, 0, 16);
-      memcpy (n->key, key, KEY_SIZE (keylen));
-      n->keylen = keylen;
+      /* add route entry */
+      memcpy (&n->entry, data, sizeof (struct route_entry));
       n->valid = 1;
-      n->route_idx[0] = idx;
-      n->num_routes++;
       *success = 0;
       return n;
     }
   else
     {
       if (BIT_CHECK (key, depth))
-        n->right = _add (n->right, key, keylen, idx, depth + 1, success);
+        n->right = _add (n->right, key, keylen, data, depth + 1, success);
       else
-        n->left = _add (n->left, key, keylen, idx, depth + 1, success);
+        n->left = _add (n->left, key, keylen, data, depth + 1, success);
       return n;
     }
 }
 
 int
-rib_route_add (struct rib_tree *t, const uint8_t *key, int keylen, int idx)
+rib_route_add (struct rib_tree *t, const uint8_t *key, int keylen, struct route_entry *data)
 {
   int success = 0;
-  t->root = _add (t->root, key, keylen, idx, 0, &success);
+  t->root = _add (t->root, key, keylen, data, 0, &success);
   return success;
 }
 
@@ -166,7 +149,7 @@ _shrink (struct rib_node *n)
 
 static struct rib_node *
 _delete (struct rib_node *n, const uint8_t *key, int keylen, int depth,
-         int idx, int *success)
+         int *success)
 {
   if (! n)
     return NULL;
@@ -176,39 +159,10 @@ _delete (struct rib_node *n, const uint8_t *key, int keylen, int depth,
       if (n->valid)
         {
           /* delete route entry */
-          int found = 0;
-          for (int i = 0; i < n->num_routes; i++)
-            {
-              if (n->route_idx[i] == idx)
-                {
-                  /* shift remaining entries to fill the gap */
-                  for (int j = i; j < n->num_routes - 1; j++)
-                    {
-                      n->route_idx[j] = n->route_idx[j + 1];
-                    }
-                  /* clear the last slot */
-                  n->route_idx[n->num_routes - 1] = -1;
-                  n->num_routes--;
-                  *success = 0;
-                  found = 1;
-                  break;
-                }
-            }
-
-          if (! found)
-            {
-              *success = -1;
-              return n;
-            }
-
-          if (n->num_routes == 0)
-            {
-              memset (n->key, 0, sizeof (n->key));
-              n->keylen = 0;
-              n->valid = 0;
-              return _shrink (n);
-            }
-          return n;
+          memset (&n->entry, 0, sizeof (struct route_entry));
+          n->valid = 0;
+          *success = 0;
+          return _shrink (n);
         }
       else
         {
@@ -219,18 +173,18 @@ _delete (struct rib_node *n, const uint8_t *key, int keylen, int depth,
   else
     {
       if (BIT_CHECK (key, depth))
-        n->right = _delete (n->right, key, keylen, depth + 1, idx, success);
+        n->right = _delete (n->right, key, keylen, depth + 1, success);
       else
-        n->left = _delete (n->left, key, keylen, depth + 1, idx, success);
+        n->left = _delete (n->left, key, keylen, depth + 1, success);
       return n;
     }
 }
 
 int
-rib_route_delete (struct rib_tree *t, const uint8_t *key, int keylen, int idx)
+rib_route_delete (struct rib_tree *t, const uint8_t *key, int keylen)
 {
   int success = 0;
-  t->root = _delete (t->root, key, keylen, 0, idx, &success);
+  t->root = _delete (t->root, key, keylen, 0, &success);
   return success;
 }
 
@@ -265,7 +219,7 @@ _traverse (struct rib_node *n, rib_traverse_callback callback, void *arg)
     return 0;
 
   /* process current node if valid */
-  if (n->valid && n->num_routes != 0 && callback)
+  if (n->valid && callback)
     {
       if (callback (n, arg) != 0)
         return -1;
@@ -294,12 +248,12 @@ _add_to_fib (struct rib_node *n, void *arg)
 {
   struct fib_tree *fib_tree = (struct fib_tree *) arg;
 
-  char key_str[INET6_ADDRSTRLEN];
-  inet_ntop (fib_tree->family, &n->key, key_str, sizeof (key_str));
-  DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding route to fib: keylen=%d key=%s",
-                     n->keylen, key_str);
+  uint8_t key_str[INET6_ADDRSTRLEN];
+  inet_ntop (fib_tree->family, &n->entry.dst.dst_ip_addr, key_str, sizeof (key_str));
+  DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding route to fib: keylen=%d key=%s nh_id=%d",
+                     n->entry.dst.plen, key_str, n->entry.nh.nh_id);
 
-  return fib_route_add (fib_tree, n->key, n->keylen, n->route_idx);
+  return fib_route_add (fib_tree, (uint8_t *)&n->entry.dst.dst_ip_addr, n->entry.dst.plen, &n->entry.nh);
 }
 
 /* rebuild FIB from RIB */
@@ -317,32 +271,87 @@ int
 rib_show_route (struct rib_node *n, void *arg)
 {
   struct show_route_arg *show_arg = (struct show_route_arg *) arg;
-  struct shell *shell = show_arg->shell;
   struct rib_info *rib_info = show_arg->rib_info;
-  int family = show_arg->family;
+  struct shell *shell = show_arg->shell;
+  int i, family = show_arg->family;
+  struct nh_common *nh = &n->entry.nh;
+
   char prefix_str[INET6_ADDRSTRLEN];
+  char dst_str[INET6_ADDRSTRLEN + 5];
   char nexthop_str[INET6_ADDRSTRLEN];
-  char dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 string size
-  int i;
 
-  /* format prefix */
-  inet_ntop (family, &n->key, prefix_str, sizeof (prefix_str));
+  inet_ntop(family, &n->entry.dst.dst_ip_addr, prefix_str, sizeof(prefix_str));
+  snprintf(dst_str, sizeof(dst_str), "%s/%d", prefix_str, n->entry.dst.plen);
 
-  /* show each route */
-  for (i = 0; i < n->num_routes; i++)
+  switch (nh->nh_type)
     {
-      int idx = n->route_idx[i];
-      if (idx >= 0 && idx < ROUTE_TABLE_SIZE)
+      case NH_TYPE_LEGACY:
         {
-          struct route_entry *entry = &rib_info->route_table[idx];
+          struct nh_legacy *nh_legacy = &rib_info->nexthop.legacy.object[nh->nh_id];
+          switch (nh_legacy->type)
+            {
+              case NH_OBJ_TYPE_OBJECT:
+                struct nh_info *nh_info = &nh_legacy->nh_info;
 
-          inet_ntop (family, &entry->nexthop, nexthop_str,
-                     sizeof (nexthop_str));
-          snprintf (dst_str, sizeof (dst_str), "%s/%d", prefix_str, n->keylen);
+                inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
+                           nexthop_str, sizeof (nexthop_str));
 
-          fprintf (shell->terminal, "%-30s  via %-26s  dev %u%s", dst_str,
-                   nexthop_str, entry->oif, shell->NL);
+                fprintf(shell->terminal,
+                        "%-30s  nhid %-3d > %-19s  dev %u%s",
+                        dst_str,
+                        nh->nh_id,
+                        nexthop_str,
+                        nh_info->oif,
+                        shell->NL);
+                break;
+
+              case NH_OBJ_TYPE_GROUP:
+                  struct nh_info_group *nh_grp =
+                    &rib_info->nexthop.legacy.object[nh->nh_id].nh_grp;
+
+                  if (rib_info->nexthop.legacy.object[nh->nh_id].ref_count == 0)
+                    break;
+
+                  for (i = 0; i < nh_grp->num; i++)
+                    {
+                      inet_ntop (nh_grp->nh_info_list[i].family,
+                                 &nh_grp->nh_info_list[i].nh_ip_addr,
+                                 nexthop_str, sizeof (nexthop_str));
+                      if (i == 0)
+                        fprintf(shell->terminal,
+                                "%-30s  nhid %-3d > %-19s  dev %u%s",
+                                dst_str,
+                                nh->nh_id,
+                                nexthop_str,
+                                nh_grp->nh_info_list[i].oif,
+                                shell->NL);
+                      else
+                        fprintf(shell->terminal,
+                                "%-30s             %-19s  dev %u%s",
+                                "",
+                                nexthop_str,
+                                nh_grp->nh_info_list[i].oif,
+                                shell->NL);
+                    }
+                  break;
+
+              default:
+                snprintf (nexthop_str, sizeof (nexthop_str),
+                          "unknown legacy nexthop type");
+                break;
+            }
         }
+        break;
+
+      case NH_TYPE_OBJECT_CAP:
+        snprintf (nexthop_str, sizeof (nexthop_str),
+                  "NH_TYPE_OBJECT_CAP not implemented yet");
+        break;
+
+      default:
+        snprintf (nexthop_str, sizeof (nexthop_str),
+                  "unknown nexthop type");
+        break;
     }
 
   return 0;

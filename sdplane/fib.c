@@ -99,15 +99,11 @@ _create_fib_node (void)
 
   memset (new, 0, sizeof (struct fib_node));
 
-  /* initialize route_idx to -1 to distinguish from valid index 0 */
-  for (i = 0; i < MAX_ECMP_ENTRY; i++)
-    new->route_idx[i] = -1;
-
   return new;
 }
 
 static struct fib_node *
-_add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
+_add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data,
       int cur_plen, int *success)
 {
   uint32_t index, i;
@@ -128,14 +124,16 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
   /* case1: 階層がプレフィックスに到達した場合 */
   if (keylen <= cur_plen)
     {
-      /* 葉ノードではない（=子ノードが存在する）かつ、
+      /*
+       * 葉ノードではない（=子ノードが存在する）かつ、
        * 既にノードが存在する（=内部ノード）場合に
-       * 全ての子に新しいプレフィックスを伝播 */
+       * 全ての子に新しいプレフィックスを伝播
+       */
       if (! n->leaf && exists)
         {
           for (i = 0; i < BRANCH_SZ; i++)
             n->child[i] =
-                _add (n->child[i], key, keylen, route_idx, cur_plen + K, success);
+                _add (n->child[i], key, keylen, data, cur_plen + K, success);
           return n;
         }
       /* 葉ノードの場合 */
@@ -144,13 +142,12 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
           /* より長いプレフィックスの場合に更新 */
           if (keylen > n->keylen)
             {
-              memset (n->key, 0, 16);
-              memcpy (n->key, key, KEY_SIZE (keylen));
+              memcpy (&n->key_ip_addr, key, sizeof(n->key_ip_addr));
               n->keylen = keylen;
-              memcpy (n->route_idx, route_idx, sizeof (n->route_idx));
-              n->num_routes = _count_nonzero (route_idx, MAX_ECMP_ENTRY);
-              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "update leaf keylen=%d cur_plen=%d",
-                                 keylen, cur_plen);
+              n->nh.nh_type = data->nh_type;
+              n->nh.nh_id = data->nh_id;
+              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "update leaf keylen=%d cur_plen=%d nh_id=%d",
+                                 keylen, cur_plen, n->nh.nh_id);
             }
           *success = 0;
           return n;
@@ -158,20 +155,21 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
       /* 新規葉ノードとして登録 */
       else
         {
-          memset (n->key, 0, 16);
-          memcpy (n->key, key, KEY_SIZE (keylen));
+          memcpy (&n->key_ip_addr, key, sizeof(n->key_ip_addr));
           n->leaf = 1;
           n->keylen = keylen;
-          memcpy (n->route_idx, route_idx, sizeof (n->route_idx));
-          n->num_routes = _count_nonzero (route_idx, MAX_ECMP_ENTRY);
-          DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "set leaf keylen=%d cur_plen=%d",
-                             keylen, cur_plen);
+          n->nh.nh_type = data->nh_type;
+          n->nh.nh_id = data->nh_id;
+          DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "set leaf keylen=%d cur_plen=%d nh_id=%d",
+                             keylen, cur_plen, n->nh.nh_id);
           *success = 0;
           return n;
         }
     }
 
-  /* case2: プレフィックスが次の階層の途中で終わる場合, もしくは葉ノードの場合
+  /*
+   * case2: プレフィックスが次の階層の途中で終わる場合,
+   *        もしくは葉ノードの場合
    */
   if (keylen < cur_plen + K || n->leaf)
     {
@@ -220,23 +218,21 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
                   ROUTE_ENTRY,
                   "copying parent to child[%d] (out of range, parent keylen=%d)",
                   i, n->keylen);
-              n->child[i] = _add (n->child[i], n->key, n->keylen,
-                                  n->route_idx, cur_plen + K, success);
+              n->child[i] = _add (n->child[i], &n->key_ip_addr, n->keylen,
+                                  &n->nh, cur_plen + K, success);
             }
           if (i >= first && i < first + count)
             {
               /* この範囲には新しいノードを登録 */
               DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
                                   "adding to child[%d] (in range)", i);
-              n->child[i] = _add (n->child[i], key, keylen, route_idx,
+              n->child[i] = _add (n->child[i], key, keylen, data,
                                   cur_plen + K, success);
             }
         }
       /* 現在のノードはもはや葉ノードではない */
       n->leaf = 0;
       n->keylen = 0;
-      for (i = 0; i < MAX_ECMP_ENTRY; i++)
-        n->route_idx[i] = -1;
       *success = 0;
       return n;
     }
@@ -244,16 +240,16 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int *route_idx,
   /* case3: さらに深い階層へ再帰 */
   index = BIT_INDEX (key, cur_plen, K);
   n->child[index] =
-      _add (n->child[index], key, keylen, route_idx, cur_plen + K, success);
+      _add (n->child[index], key, keylen, data, cur_plen + K, success);
   return n;
 }
 
 int
 fib_route_add (struct fib_tree *t, const uint8_t *key, int keylen,
-               int *route_idx)
+               struct nh_common *data)
 {
   int success = 0;
-  t->root = _add (t->root, key, keylen, route_idx, 0, &success);
+  t->root = _add (t->root, key, keylen, data, 0, &success);
   return success; /* error(-1) if root is NULL */
 }
 
@@ -304,7 +300,7 @@ _traverse (struct fib_node *n, fib_traverse_callback callback, void *arg,
     return 0;
 
   /* process current node if it's a leaf */
-  if (n->leaf && n->num_routes != 0 && callback)
+  if (n->leaf && callback)
     {
       DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "show route: cur_plen=%d keylen=%d", cur_plen,
                          n->keylen);
@@ -336,32 +332,34 @@ fib_show_route (struct fib_node *n, void *arg)
 {
   struct show_route_arg *show_arg = (struct show_route_arg *) arg;
   struct shell *shell = show_arg->shell;
-  struct rib_info *rib_info = show_arg->rib_info;
-  int family = show_arg->family;
+  int i, family = show_arg->family;
+
   char prefix_str[INET6_ADDRSTRLEN];
+  char dst_str[INET6_ADDRSTRLEN + 5];
   char nexthop_str[INET6_ADDRSTRLEN];
-  char dst_str[INET6_ADDRSTRLEN + 5]; // support IPv6 string size
 
-  int i;
+  inet_ntop(family, &n->key_ip_addr, prefix_str, sizeof(prefix_str));
+  snprintf(dst_str, sizeof(dst_str), "%s/%d", prefix_str, n->keylen);
 
-  /* format prefix */
-  inet_ntop (family, n->key, prefix_str, sizeof (prefix_str));
-
-  /* show each route */
-  for (i = 0; i < n->num_routes; i++)
+  switch (n->nh.nh_type)
     {
-      int idx = n->route_idx[i];
-      if (idx >= 0 && idx < ROUTE_TABLE_SIZE)
-        {
-          struct route_entry *entry = &rib_info->route_table[idx];
+      case NH_TYPE_LEGACY:
+        fprintf(shell->terminal,
+                "%-30s  nh_id %-20d %s",
+                dst_str,
+                n->nh.nh_id,
+                shell->NL);
+        break;
 
-          inet_ntop (family, &entry->nexthop, nexthop_str,
-                     sizeof (nexthop_str));
-          snprintf (dst_str, sizeof (dst_str), "%s/%d", prefix_str, n->keylen);
+      case NH_TYPE_OBJECT_CAP:
+        snprintf (nexthop_str, sizeof (nexthop_str),
+                  "NH_TYPE_OBJECT_CAP not implemented yet");
+        break;
 
-          fprintf (shell->terminal, "%-30s  via %-26s  dev %u%s", dst_str,
-                   nexthop_str, entry->oif, shell->NL);
-        }
+      default:
+        snprintf (nexthop_str, sizeof (nexthop_str),
+                  "unknown nexthop type");
+        break;
     }
 
   return 0;

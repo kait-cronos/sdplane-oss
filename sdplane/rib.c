@@ -392,7 +392,7 @@ CLI_COMMAND2 (show_fib_ip_route,
   else if (! strcmp (argv[2], "ipv6"))
     show_arg.family = AF_INET6;
 
-  fprintf (shell->terminal, "%-30s  %-30s  Interface%s",
+  fprintf (shell->terminal, "%-30s  %-20s%s",
            "Destination", "Nexthop", shell->NL);
 
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
@@ -453,6 +453,93 @@ CLI_COMMAND2 (show_rib_ip_route,
           break;
         }
     }
+
+  return 0;
+}
+
+CLI_COMMAND2 (show_rib_nexthop,
+              "show rib nexthop",
+              SHOW_HELP,
+              "rib_tree\n",
+              "nexthop\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  struct show_route_arg show_arg;
+  char nexthop_str[INET6_ADDRSTRLEN];
+  int i, j;
+
+  if (! rib || ! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no routing information%s", shell->NL);
+      return 0;
+    }
+
+  fprintf (shell->terminal, "nexthop type: NH_TYPE_LEGACY%s", shell->NL);
+
+  fprintf (shell->terminal, "%-5s  %-7s  %-30s  Interface%s",
+           "ID", "RefCnt", "Nexthop", shell->NL);
+
+  for (i = 0; i < MAX_NEXTHOP_OBJ_SIZE; i++)
+    {
+      switch (rib->rib_info->nexthop.legacy.object[i].type)
+        {
+          case NH_OBJ_TYPE_OBJECT:
+            struct nh_info *nh_info =
+              &rib->rib_info->nexthop.legacy.object[i].nh_info;
+
+            if (rib->rib_info->nexthop.legacy.object[i].ref_count == 0)
+              continue;
+
+            inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
+                       nexthop_str, sizeof (nexthop_str));
+            fprintf(shell->terminal,
+                    "%-5d  %-7d  %-30s  dev %u%s",
+                    i,
+                    rib->rib_info->nexthop.legacy.object[i].ref_count,
+                    nexthop_str,
+                    rib->rib_info->nexthop.legacy.object[i].nh_info.oif,
+                    shell->NL);
+            break;
+
+          case NH_OBJ_TYPE_GROUP:
+            struct nh_info_group *nh_grp =
+              &rib->rib_info->nexthop.legacy.object[i].nh_grp;
+
+            if (rib->rib_info->nexthop.legacy.object[i].ref_count == 0)
+              continue;
+
+            for (j = 0; j < nh_grp->num; j++)
+              {
+                inet_ntop (nh_grp->nh_info_list[j].family,
+                           &nh_grp->nh_info_list[j].nh_ip_addr,
+                           nexthop_str, sizeof (nexthop_str));
+                if (j == 0)
+                  fprintf(shell->terminal,
+                          "%-5d  %-7d  %-30s  dev %u%s",
+                          i,
+                          rib->rib_info->nexthop.legacy.object[i].ref_count,
+                          nexthop_str,
+                          nh_grp->nh_info_list[j].oif,
+                          shell->NL);
+                else
+                  fprintf(shell->terminal,
+                          "%-5s  %-7s  %-30s  dev %u%s",
+                          "",
+                          "",
+                          nexthop_str,
+                          nh_grp->nh_info_list[j].oif,
+                          shell->NL);
+              }
+            break;
+
+          default:
+            snprintf (nexthop_str, sizeof (nexthop_str), "unknown");
+            break;
+        }
+      }
+
+  // TODO: show NH_TYPE_OBJECT nexthop
 
   return 0;
 }
@@ -807,6 +894,7 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, show_fib_ip_route);
   INSTALL_COMMAND2 (cmdset, show_rib_ip_route);
+  INSTALL_COMMAND2 (cmdset, show_rib_nexthop);
   INSTALL_COMMAND2 (cmdset, set_vswitch);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port_tag_swap);

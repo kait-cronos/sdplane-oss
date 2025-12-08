@@ -384,14 +384,14 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
              struct rte_ipv6_hdr *ipv6, struct vswitch_conf *vswitch,
              struct vswitch_link *vswitch_link)
 {
-  struct route_entry *route_entry;
+  struct nh_legacy *nh_legacy;
   struct neigh_entry *neigh_entry;
   struct rte_ether_addr *dst_mac;
   struct fib_node *fib_node;
   uint8_t dst_ip[16] = { 0 };
   int i, j;
   struct vswitch_link *tx_link = NULL;
-  int dst_port = -1;
+  int dst_port = -1, neigh_table_type;
 
   if (ipv4)
     memcpy (dst_ip, &ipv4->dst_addr, sizeof (ipv4->dst_addr));
@@ -401,79 +401,105 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   /* FIB lookup */
   int tree_idx = (ipv4) ? 0 : 1; // IPv4=0, IPv6=1
   fib_node = fib_route_lookup (rib->rib_info->fib_tree[tree_idx], dst_ip);
-  if (! fib_node || fib_node->num_routes == 0)
+  if (! fib_node)
     {
       DEBUG_NEW (ROUTER, "m: %p FIB lookup failed, send to router_if",
                          m);
       return;
     }
-  route_entry =
-      &rib->rib_info
-           ->route_table[fib_node->route_idx[0]]; // TODO: ECMP support
 
+  /**
+   * Currently only the legacy nexthop type is supported,
+   * where each FIB entry directly stores nexthops.
+   * TODO: add support for ECMP via multipath nexthops and nexthop groups.
+   */
   char nexthop_str[INET6_ADDRSTRLEN];
-  inet_ntop (route_entry->family, route_entry->nexthop, nexthop_str,
-             sizeof (nexthop_str));
-  DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s family=%d", m,
-                     nexthop_str, route_entry->family);
-
   /* determine the actual nexthop IP to lookup in neighbor table */
   uint8_t lookup_ip[16];
-  memcpy (lookup_ip, route_entry->nexthop, sizeof (lookup_ip));
+  char lookup_ip_str[INET6_ADDRSTRLEN];
+  int family;
 
-  /* for directly connected routes (nexthop = 0.0.0.0), use destination IP */
-  bool is_zero_nexthop = true;
-  for (i = 0; i < 16; i++)
+   switch (fib_node->nh.nh_type)
     {
-      if (route_entry->nexthop[i] != 0)
-        {
-          is_zero_nexthop = false;
-          break;
-        }
-    }
+      case NH_TYPE_LEGACY:
+        nh_legacy =
+            &rib->rib_info->nexthop.legacy.object[fib_node->nh.nh_id];
+        switch (nh_legacy->type)
+          {
+            case NH_OBJ_TYPE_OBJECT:
+              family = nh_legacy->nh_info.family;
+              inet_ntop (family,
+                         &nh_legacy->nh_info.nh_ip_addr, nexthop_str,
+                         sizeof (nexthop_str));
+              memcpy (lookup_ip,
+                      &nh_legacy->nh_info.nh_ip_addr,
+                      sizeof (lookup_ip));
+              /* for directly connected routes (nexthop = 0.0.0.0), use destination IP */
+              if (nh_legacy->nh_info.type == ROUTE_TYPE_CONNECTED)
+                {
+                  memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
+                  inet_ntop (family,
+                             lookup_ip, lookup_ip_str,
+                             sizeof (lookup_ip_str));
+                  DEBUG_NEW (
+                      ROUTER,
+                      "m: %p directly connected route, using dst IP for ARP lookup:%s", m,
+                      lookup_ip_str);
+                }
+              break;
 
-  if (is_zero_nexthop)
-    {
-      memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
-      char lookup_str[INET6_ADDRSTRLEN];
-      inet_ntop (route_entry->family, lookup_ip, lookup_str,
-                 sizeof (lookup_str));
-      DEBUG_NEW (
-          ROUTER,
-          "m: %p directly connected route, using dst IP for ARP lookup:%s", m,
-          lookup_str);
-    }
+            case NH_OBJ_TYPE_GROUP:
+              family = nh_legacy->nh_grp.nh_info_list[0].family;
+              /* use the first nexthop in the group for now */
+              inet_ntop (family,
+                         &nh_legacy->nh_grp.nh_info_list[0].nh_ip_addr, nexthop_str,
+                         sizeof (nexthop_str));
+              memcpy (lookup_ip,
+                      &nh_legacy->nh_grp.nh_info_list[0].nh_ip_addr,
+                      sizeof (lookup_ip));
+              /* for directly connected routes (nexthop = 0.0.0.0), use destination IP */
+              if (nh_legacy->nh_grp.nh_info_list[0].type == ROUTE_TYPE_CONNECTED)
+                {
+                  memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
+                  inet_ntop (family,
+                             lookup_ip, lookup_ip_str,
+                             sizeof (lookup_ip_str));
+                  DEBUG_NEW (
+                      ROUTER,
+                      "m: %p directly connected route, using dst IP for ARP lookup:%s", m,
+                      lookup_ip_str);
+                }
+              break;
+
+            default:
+              return;
+          }
+        break;
+
+      case NH_TYPE_OBJECT_CAP:
+        DEBUG_NEW (ROUTER, "m: %p unsupported nexthop type: %d",
+                  m, fib_node->nh.nh_type);
+        break;
+
+      default:
+        return;
+      }
+
+  DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s", m, nexthop_str);
 
   /* neighbor table lookup */
-  if (route_entry->family == AF_INET)
+  neigh_table_type = AF_TO_NEIGH_TABLE(family);
+  neigh_manager_lookup (&rib->rib_info->neigh_tables[NEIGH_ARP_TABLE],
+                        NEIGH_ARP_TABLE, lookup_ip, &neigh_entry);
+  if (! neigh_entry)
     {
-      neigh_manager_lookup (&rib->rib_info->neigh_tables[NEIGH_ARP_TABLE],
-                            NEIGH_ARP_TABLE, lookup_ip, &neigh_entry);
-      if (! neigh_entry)
-        {
-          DEBUG_NEW (ROUTER,
-                             "m: %p ARP lookup failed, send to router_if", m);
-          /* send to router_if for ARP resolution */
-          struct router_if *rif = &vswitch->router_if;
-          if (rif->sockfd >= 0 && rif->ring_up)
-            _send_ring (m, rx_portid, rx_queueid, rif->ring_up);
-          return;
-        }
-    }
-  else
-    {
-      neigh_manager_lookup (&rib->rib_info->neigh_tables[NEIGH_ND_TABLE],
-                            NEIGH_ND_TABLE, lookup_ip, &neigh_entry);
-      if (! neigh_entry)
-        {
-          DEBUG_NEW (ROUTER,
-                             "m: %p ND lookup failed, send to router_if", m);
-          /* send to router_if for ND resolution */
-          struct router_if *rif = &vswitch->router_if;
-          if (rif->sockfd >= 0 && rif->ring_up)
-            _send_ring (m, rx_portid, rx_queueid, rif->ring_up);
-          return;
-        }
+      DEBUG_NEW (ROUTER,
+                          "m: %p ARP lookup failed, send to router_if", m);
+      /* send to router_if for ARP/ND resolution */
+      struct router_if *rif = &vswitch->router_if;
+      if (rif->sockfd >= 0 && rif->ring_up)
+        _send_ring (m, rx_portid, rx_queueid, rif->ring_up);
+      return;
     }
   dst_mac = &neigh_entry->mac_addr;
 

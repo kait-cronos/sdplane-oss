@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include "queue_config.h"
 #include "neigh_manager.h"
+#include "radix.h"
 
 struct internal_msg_header
 {
@@ -35,16 +36,18 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET     17
 #define INTERNAL_MSG_TYPE_FDB_ENTRY_ADD         18
 #define INTERNAL_MSG_TYPE_APPLICATION_SLOT      19
-#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       20 
-#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21 
-#define INTERNAL_MSG_TYPE_PORT_GET_REQUEST      22
-#define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     23
-#define INTERNAL_MSG_TYPE_CMD_SUCCESS           24
-#define INTERNAL_MSG_TYPE_CMD_ERROR             25
-#define INTERNAL_MSG_TYPE_MAC_ADDR_ADD          26
-#define INTERNAL_MSG_TYPE_MAC_ADDR_DEL          27
-#define INTERNAL_MSG_TYPE_IP_ADDR_ADD           28
-#define INTERNAL_MSG_TYPE_IP_ADDR_DEL           29
+#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       20
+#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21
+#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_ADD     22
+#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_DEL     23
+#define INTERNAL_MSG_TYPE_PORT_GET_REQUEST      24
+#define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     25
+#define INTERNAL_MSG_TYPE_CMD_SUCCESS           26
+#define INTERNAL_MSG_TYPE_CMD_ERROR             27
+#define INTERNAL_MSG_TYPE_MAC_ADDR_ADD          28
+#define INTERNAL_MSG_TYPE_MAC_ADDR_DEL          29
+#define INTERNAL_MSG_TYPE_IP_ADDR_ADD           30
+#define INTERNAL_MSG_TYPE_IP_ADDR_DEL           31
 
 struct internal_msg_eth_link
 {
@@ -106,10 +109,19 @@ struct internal_msg_route_entry
 {
   int family;
   int table_id;
-  uint8_t dst_ip[16];
-  uint8_t nexthop[16];
-  uint32_t oif; // output interface index
-  uint32_t plen;
+  struct route_dst_info dst;
+  enum nexthop_type nh_type;
+  union
+  {
+    int nh_id; // NH_TYPE_OBJECT_CAP (using RTA_NH_ID)
+    struct nh_legacy nh_legacy; // NH_TYPE_LEGACY
+  } nh;
+};
+
+struct internal_msg_nexthop_entry
+{
+  int nh_id; // kernel's nhid
+  struct nh_object nh_object;
 };
 
 struct internal_msg_port_info
