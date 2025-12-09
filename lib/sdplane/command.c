@@ -276,6 +276,9 @@ file_match (char *spec, char *word)
   struct stat statbuf;
   int ret;
 
+  if (word && word[0] == '-')
+    return 0;
+
   strncpy (pathname, word, sizeof (pathname) - 1);
   path_disassemble (pathname, &dirname, &filename);
 
@@ -388,6 +391,20 @@ file_replace (char *word)
 }
 
 int
+flag_spec (char *spec)
+{
+  return (! strcmp (spec, "<FLAGS>") || ! strcmp (spec, "<FLAG>"));
+}
+
+int
+flag_match (char *spec, char *word)
+{
+  if (word && word[0] == '-')
+    return 1;
+  return 0;
+}
+
+int
 line_spec (char *spec)
 {
   return (! strcmp (spec, "<LINE>"));
@@ -451,6 +468,11 @@ is_command_match_variable (char *spec, char *word)
   if (file_spec (spec))
     {
       if (file_match (spec, word))
+        return 1;
+    }
+  if (flag_spec (spec))
+    {
+      if (flag_match (spec, word))
         return 1;
     }
   if (line_spec (spec))
