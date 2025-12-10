@@ -12,6 +12,31 @@
   #include <rte_ip6.h>
 #endif
 
+struct llc_snap_hdr
+{
+  uint8_t dsap;
+  uint8_t ssap;
+  uint8_t control;
+  uint8_t oui[3];
+  uint16_t snap_ether_type;
+} __attribute__ ((__packed__));
+
+struct stp_bpdu
+{
+  uint16_t protocol_id;
+  uint8_t version;
+  uint8_t bpdu_type;
+  uint8_t flags;
+  uint8_t root_id[8];
+  uint32_t root_path_cost;
+  uint8_t bridge_id[8];
+  uint16_t port_id;
+  uint16_t message_age;
+  uint16_t max_age;
+  uint16_t hello_time;
+  uint16_t forward_delay;
+} __attribute__ ((__packed__));
+
 static inline __attribute__ ((always_inline)) char *
 __icmp_type_str (uint8_t type)
 {
@@ -62,15 +87,16 @@ __icmp6_type_str (uint8_t type)
 }
 
 inline __attribute__ ((always_inline)) void
-__parse_packet (struct rte_mbuf *m,
-                struct rte_ether_hdr **eth, struct rte_vlan_hdr **vlan,
+__parse_packet (struct rte_mbuf *m, struct rte_ether_hdr **eth,
+                struct rte_vlan_hdr **vlan, struct llc_snap_hdr **snap,
                 struct rte_ipv4_hdr **ipv4, struct rte_ipv6_hdr **ipv6,
-                struct rte_ipv6_routing_ext **srh,
-                struct rte_icmp_hdr **icmp,
+                struct rte_ipv6_routing_ext **srh, struct rte_icmp_hdr **icmp,
                 struct rte_udp_hdr **udp, struct rte_tcp_hdr **tcp)
 {
-  *eth = NULL; *vlan = NULL; *ipv4 = NULL; *ipv6 = NULL;
-  *srh = NULL; *icmp = NULL; *udp = NULL; *tcp = NULL;
+  *eth = NULL; *vlan = NULL; *snap = NULL; *ipv4 = NULL;
+  *ipv6 = NULL; *srh = NULL; *icmp = NULL; *udp = NULL;
+  *tcp = NULL;
+  
   unsigned short eth_type;
 
   *eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
@@ -81,10 +107,17 @@ __parse_packet (struct rte_mbuf *m,
       uint16_t eth_proto;
       *vlan = (struct rte_vlan_hdr *) ((*eth) + 1);
       eth_proto = rte_be_to_cpu_16 ((*vlan)->eth_proto);
-      if (eth_proto == RTE_ETHER_TYPE_IPV4)
+      if (eth_proto < 0x600)
+        *snap = (struct llc_snap_hdr *) ((*vlan) + 1);
+      else if (eth_proto == RTE_ETHER_TYPE_IPV4)
         *ipv4 = (struct rte_ipv4_hdr *) ((*vlan) + 1);
       else if (eth_proto == RTE_ETHER_TYPE_IPV6)
         *ipv6 = (struct rte_ipv6_hdr *) ((*vlan) + 1);
+    }
+  else if (eth_type < 0x0600)
+    {
+      // 802.3 / LLC フレーム（IPではない）
+      *snap = (struct llc_snap_hdr *) ((*eth) + 1);
     }
   else
     {
@@ -134,6 +167,8 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
 {
   char ether_str[512];
   char vlan_str[128];
+  char snap_str[512];
+  char pvst_str[512];
   char ip_str[512];
   char srh_str[512];
   char transport_str[512];
@@ -141,6 +176,7 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
 
   struct rte_ether_hdr *eth;
   struct rte_vlan_hdr *vlan = NULL;
+  struct llc_snap_hdr *snap = NULL;
   struct rte_ipv4_hdr *ipv4 = NULL;
   struct rte_ipv6_hdr *ipv6 = NULL;
   struct rte_ipv6_routing_ext *srh = NULL;
@@ -150,12 +186,14 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
 
   memset (ether_str, 0, sizeof (ether_str));
   memset (vlan_str, 0, sizeof (vlan_str));
+  memset (snap_str, 0, sizeof (snap_str));
+  memset (pvst_str, 0, sizeof (pvst_str));
   memset (ip_str, 0, sizeof (ip_str));
   memset (srh_str, 0, sizeof (srh_str));
   memset (transport_str, 0, sizeof (transport_str));
   memset (payload_str, 0, sizeof (payload_str));
 
-  __parse_packet (m, &eth, &vlan, &ipv4, &ipv6, &srh, &icmp, &udp, &tcp);
+  __parse_packet (m, &eth, &vlan, &snap, &ipv4, &ipv6, &srh, &icmp, &udp, &tcp);
 
   /* ether part */
   unsigned short eth_type;
@@ -167,7 +205,7 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
   snprintf (ether_str, sizeof (ether_str), "ether: type: 0x%04hx %s -> %s",
             eth_type, eth_src, eth_dst);
 
-  if (vlan)
+  if (vlan && !snap)
     {
       uint16_t vlan_tci, eth_proto;
       vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
@@ -182,7 +220,29 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
   char ip_src[64];
   char ip_dst[64];
 
-  if (ipv4)
+  if (snap)
+    // LLC単独フレーム(STP/CDPなど)
+    {
+      uint16_t proto = rte_be_to_cpu_16 (snap->snap_ether_type);
+      snprintf (snap_str, sizeof (snap_str),
+                "LLC frame: (non-IP, DSAP: 0x%02x SSAP: 0x%02x) "
+                "SNAP frame: (snap_ether_type: 0x%04X OUI=%02X:%02X:%02X)",
+                snap->dsap, snap->ssap, proto, snap->oui[0], snap->oui[1], snap->oui[2]);
+
+      if (proto == 0x10B)
+        {
+          const struct stp_bpdu *bpdu = (const struct stp_bpdu *) snap;
+
+          uint16_t proto_id = rte_be_to_cpu_16 (bpdu->protocol_id);
+          uint16_t port_id = rte_be_to_cpu_16 (bpdu->port_id);
+
+          snprintf (pvst_str, sizeof (pvst_str),
+                    " PVST+ BPDU: "
+                    "(Protocol ID: 0x%04x Version: %u BPDU Type: 0x%02x)",
+                    proto_id, bpdu->version, bpdu->bpdu_type);
+        }
+    }
+  else if (ipv4)
     {
       inet_ntop (AF_INET, &ipv4->src_addr, ip_src, sizeof (ip_src));
       inet_ntop (AF_INET, &ipv4->dst_addr, ip_dst, sizeof (ip_dst));
@@ -265,10 +325,10 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
 
   //if (FLAG_CHECK (DEBUG_CONFIG (SDPLANE), DEBUG_TYPE (SDPLANE, PACKET)))
     debug_log ("%s[%d] %s(): m: %p rx_port: %d rx_queue: %d "
-               "%s%s %s%s %s %s",
+               "%s%s %s%s%s%s %s %s",
                file, line, func, m, rx_portid, rx_queueid,
-               ether_str, vlan_str, ip_str, srh_str,
-               transport_str, payload_str);
+               ether_str, vlan_str, snap_str, pvst_str,
+               ip_str, srh_str, transport_str, payload_str);
 }
 
 #define log_packet(m, port, queue)                                            \
