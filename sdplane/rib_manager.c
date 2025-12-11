@@ -327,6 +327,7 @@ router_if_delete (struct rib_info *rib_info, uint16_t vswitch_id)
   memset (rif, 0, sizeof (struct router_if));
   rif->sockfd = -1;
   rif->tap_ring_id = -1;
+  rif->ifindex = -1;
   DEBUG_SDPLANE_LOG (RIB, "delete: router_if: vswitch %u", vswitch_id);
   return 0;
 }
@@ -1772,6 +1773,7 @@ rib_manager_process_message (void *msgp)
         rif->vlan_id = msg_router_if_set->vlan_id;
       else
         rif->vlan_id = vswitch->vlan_id;
+      rif->ifindex = tap_get_ifindex (msg_router_if_set->tap_name);
       tap_admin_up (msg_router_if_set->tap_name);
 
       DEBUG_SDPLANE_LOG (RIB, "create succeeded: router_if: %s vswitch: %u: vlan %u",

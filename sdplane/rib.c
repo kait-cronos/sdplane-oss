@@ -257,6 +257,7 @@ CLI_COMMAND2 (show_rib_router_if,
                rib->rib_info->vswitch[i].vswitch_id, shell->NL);
       fprintf (shell->terminal, "  tap_name: %s%s", rif->tap_name, shell->NL);
       fprintf (shell->terminal, "  vlan-id: %hu%s", rif->vlan_id, shell->NL);
+      fprintf (shell->terminal, "  ifindex: %d%s", rif->ifindex, shell->NL);
       fprintf (shell->terminal, "  MAC: %s, IPv4: %s, IPv6: %s%s", mac_str,
                ipv4_str, ipv6_str, shell->NL);
       fprintf (shell->terminal, "  link local: %s%s", ll_addr_str, shell->NL);
