@@ -409,8 +409,7 @@ CLI_COMMAND2 (set_rte_flow_action_queue,
   queue_id = (uint16_t) strtol (argv[7], NULL, 0);
   queue = &action_union[action_list_id][action_index].u.queue;
   memset (queue, 0, sizeof (struct rte_flow_action_queue));
-  //queue->index = queue_id;
-  queue->index = rte_cpu_to_be_16 (queue_id);
+  queue->index = queue_id;
 
   action = &flow_action[action_list_id][action_index];
   memset (action, 0, sizeof (struct rte_flow_action));
