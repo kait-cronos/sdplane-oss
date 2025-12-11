@@ -774,10 +774,32 @@ rib_check (struct rib *new)
         {
           port_conf.intr_conf.lsc = 1;
         }
-      DEBUG_SDPLANE_LOG (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d", i,
-                         nrxq, ntxq);
+
+      if (new->rib_info->port[i].nrxq)
+        {
+          if (nrxq < new->rib_info->port[i].nrxq)
+            nrxq = new->rib_info->port[i].nrxq;
+        }
+      if (new->rib_info->port[i].ntxq)
+        {
+          if (ntxq < new->rib_info->port[i].ntxq)
+            ntxq = new->rib_info->port[i].ntxq;
+        }
+
+      DEBUG_NEW (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d",
+                 i, nrxq, ntxq);
+
       rte_eth_dev_stop (i);
-      rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
+      ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
+ 
+      if (new->rib_info->port[i].mtu)
+        {
+          uint16_t mtu = new->rib_info->port[i].mtu;
+          DEBUG_NEW (RIB, "port[%d]: dev_set_mtu: %d", i, mtu);
+          ret = rte_eth_dev_set_mtu (i, mtu);
+          if (ret < 0)
+            WARNING ("port[%d]: dev_set_mtu: %d failed: %d", i, mtu, ret);
+        }
 
       nb_rxd = RX_DESC_DEFAULT;
       if (new->rib_info->port[i].nb_rxd)
@@ -789,12 +811,15 @@ rib_check (struct rib *new)
       rxq_conf = dev_info.default_rxconf;
       rxq_conf.offloads = port_conf.rxmode.offloads;
 
+      int socket;
+      socket = rte_eth_dev_socket_id (i);
+
       for (j = 0; j < nrxq; j++)
         {
-          rte_eth_rx_queue_setup (i, j, nb_rxd, rte_eth_dev_socket_id (i),
-                                  &rxq_conf, l2fwd_pktmbuf_pool);
-          DEBUG_SDPLANE_LOG (RIB, "port[%d]: rx_queue_setup: rxq: %d rxd: %d",
-                             i, j, nb_rxd);
+          ret = rte_eth_rx_queue_setup (i, j, nb_rxd, socket,
+                                        &rxq_conf, l2fwd_pktmbuf_pool);
+          DEBUG_NEW (RIB, "port[%d]: rx_queue_setup: rxq: %d rxd: %d",
+                     i, j, nb_rxd);
         }
 
       txq_conf = dev_info.default_txconf;
@@ -802,10 +827,9 @@ rib_check (struct rib *new)
 
       for (j = 0; j < ntxq; j++)
         {
-          rte_eth_tx_queue_setup (i, j, nb_txd,
-                                  rte_eth_dev_socket_id (i), &txq_conf);
-          DEBUG_SDPLANE_LOG (RIB, "port[%d]: tx_queue_setup: txq: %d txd: %d",
-                             i, j, nb_txd);
+          ret = rte_eth_tx_queue_setup (i, j, nb_txd, socket, &txq_conf);
+          DEBUG_NEW (RIB, "port[%d]: tx_queue_setup: txq: %d txd: %d",
+                     i, j, nb_txd);
 
           if (! tx_buffer_per_q[i][j])
             {
@@ -1168,11 +1192,48 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_TXRX_DESC:
       struct internal_msg_txrx_desc *msg_txrx_desc;
       int portid;
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_txrx_desc: %p.", msgp);
+      DEBUG_NEW (RIB, "recv msg_txrx_desc: %p.", msgp);
       msg_txrx_desc = (struct internal_msg_txrx_desc *) (msg_header + 1);
       portid = msg_txrx_desc->portid;
-      new->rib_info->port[portid].nb_rxd = msg_txrx_desc->nb_rxd;
-      new->rib_info->port[portid].nb_txd = msg_txrx_desc->nb_txd;
+      if (msg_txrx_desc->mtu)
+        {
+          new->rib_info->port[portid].mtu = msg_txrx_desc->mtu;
+          DEBUG_NEW (RIB, "set port: %d mtu: %d",
+                     portid, msg_txrx_desc->mtu);
+        }
+      if (msg_txrx_desc->nrxq)
+        {
+          new->rib_info->port[portid].nrxq = msg_txrx_desc->nrxq;
+          DEBUG_NEW (RIB, "set port: %d nrxq: %d",
+                     portid, msg_txrx_desc->nrxq);
+        }
+      if (msg_txrx_desc->ntxq)
+        {
+          new->rib_info->port[portid].ntxq = msg_txrx_desc->ntxq;
+          DEBUG_NEW (RIB, "set port: %d ntxq: %d",
+                     portid, msg_txrx_desc->ntxq);
+        }
+      if (msg_txrx_desc->nb_rxd)
+        {
+          new->rib_info->port[portid].nb_rxd = msg_txrx_desc->nb_rxd;
+          DEBUG_NEW (RIB, "set port: %d nb_rxd: %d",
+                     portid, msg_txrx_desc->nb_rxd);
+        }
+      if (msg_txrx_desc->nb_txd)
+        {
+          new->rib_info->port[portid].nb_txd = msg_txrx_desc->nb_txd;
+          DEBUG_NEW (RIB, "set port: %d nb_txd: %d",
+                     portid, msg_txrx_desc->nb_txd);
+        }
+
+      //if (msg_txrx_desc->nrxq || msg_txrx_desc->ntxq)
+        {
+          if (old)
+            set_stop_flag (old);
+          ret = rib_check (new);
+          if (old)
+            delete_stop_flag (old);
+        }
       break;
 
     case INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD:

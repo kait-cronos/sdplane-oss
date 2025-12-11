@@ -78,6 +78,9 @@ struct vswitch_conf
 struct port_conf
 {
   uint16_t dpdk_port_id;
+  uint16_t mtu;
+  uint16_t nrxq;
+  uint16_t ntxq;
   uint16_t nb_rxd;
   uint16_t nb_txd;
   struct rte_eth_link link;
