@@ -59,6 +59,9 @@ struct internal_msg_qconf
 struct internal_msg_txrx_desc
 {
   uint16_t portid;
+  uint16_t mtu;
+  uint16_t nrxq;
+  uint16_t ntxq;
   uint16_t nb_rxd;
   uint16_t nb_txd;
 };

@@ -153,6 +153,7 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
   char drivername[32];
   char *drivername2;
   char *status;
+  uint16_t mtu;
 
   if (argc == 2)
     brief = true;
@@ -185,6 +186,8 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
         }
       status = (link.link_status ? "up" : "down");
 
+      ret = rte_eth_dev_get_mtu (port_id, &mtu);
+
       snprintf (devname, sizeof (devname), "%s", rte_dev_name (dev->device));
       devname2 = NULL;
       if (! strncmp (devname, "0000:", 5))
@@ -215,6 +218,7 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
           fprintf (t, "  link duplex: %d%s", link.link_duplex, shell->NL);
           fprintf (t, "  link autoneg: %d%s", link.link_autoneg, shell->NL);
           fprintf (t, "  link status: %d%s", link.link_status, shell->NL);
+          fprintf (t, "  mtu: %d%s", mtu, shell->NL);
           fprintf (t, "  device name: %s%s", devname, shell->NL);
           fprintf (t, "  bus info: %s%s", businfo, shell->NL);
           fprintf (t, "  driver_name: %s%s", dev->driver_name, shell->NL);
@@ -764,16 +768,17 @@ CLI_COMMAND2 (set_port_txrx_desc,
       if (tx_spec)
         nb_tx_desc = desc_val;
 
-      fprintf (shell->terminal, "port: %d nb_rxd: %hu nb_txd: %hu%s", port_id,
-               nb_rx_desc, nb_tx_desc, shell->NL);
+      fprintf (shell->terminal,
+               "port: %d nb_rxd: %hu nb_txd: %hu%s",
+               port_id, nb_rx_desc, nb_tx_desc, shell->NL);
 
-      ret =
-          rte_eth_dev_adjust_nb_rx_tx_desc (port_id, &nb_rx_desc, &nb_tx_desc);
+      ret = rte_eth_dev_adjust_nb_rx_tx_desc (port_id,
+                                              &nb_rx_desc, &nb_tx_desc);
       if (ret < 0)
         {
           fprintf (shell->terminal,
-                   "rte_eth_dev_adjust_nb_rx_tx_desc(): error: ret: %d%s", ret,
-                   shell->NL);
+                   "rte_eth_dev_adjust_nb_rx_tx_desc(): error: ret: %d%s",
+                   ret, shell->NL);
           continue;
         }
       else
@@ -785,9 +790,100 @@ CLI_COMMAND2 (set_port_txrx_desc,
 
       void *msgp;
       struct internal_msg_txrx_desc txrx_desc;
+      memset (&txrx_desc, 0, sizeof (txrx_desc));
       txrx_desc.portid = port_id;
       txrx_desc.nb_rxd = nb_rx_desc;
       txrx_desc.nb_txd = nb_tx_desc;
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC, &txrx_desc,
+                                  sizeof (txrx_desc));
+      ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
+      if (ret < 0)
+        {
+          return CMD_FAILURE;
+        }
+
+      fprintf (shell->terminal, "send internal msg: %p%s", msgp, shell->NL);
+    }
+
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (set_port_mtu,
+              "set port (<0-16>|all) mtu <0-16384>",
+              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set MTU for the port\n",
+              "Specify the mtu number.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+  uint16_t mtu_val;
+  struct rib *rib = rib_tlocal;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  mtu_val = strtol (argv[4], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      void *msgp;
+      struct internal_msg_txrx_desc txrx_desc;
+      memset (&txrx_desc, 0, sizeof (txrx_desc));
+      txrx_desc.portid = port_id;
+      txrx_desc.mtu = mtu_val;
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC, &txrx_desc,
+                                  sizeof (txrx_desc));
+      ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
+      if (ret < 0)
+        {
+          return CMD_FAILURE;
+        }
+
+      fprintf (shell->terminal, "send internal msg: %p%s", msgp, shell->NL);
+    }
+
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (set_port_nb_txrx_queue,
+              "set port (<0-16>|all) (nrxq|ntxq) <0-256>",
+              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set #rxqueue for the port\n",
+              "set #txqueue for the port\n",
+              "Specify the number of queues.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i, port_spec = -1;
+  uint16_t port_id, nb_ports;
+  int ret;
+  uint16_t nb_queues;
+  struct rib *rib = rib_tlocal;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  nb_queues = strtol (argv[4], NULL, 0);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      void *msgp;
+      struct internal_msg_txrx_desc txrx_desc;
+      memset (&txrx_desc, 0, sizeof (txrx_desc));
+      txrx_desc.portid = port_id;
+      if (! strcmp (argv[3], "nrxq"))
+        txrx_desc.nrxq = nb_queues;
+      else if (! strcmp (argv[3], "ntxq"))
+        txrx_desc.ntxq = nb_queues;
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC, &txrx_desc,
                                   sizeof (txrx_desc));
       ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
@@ -882,5 +978,7 @@ dpdk_port_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_port_flowcontrol);
   INSTALL_COMMAND2 (cmdset, set_port_dev_configure);
   INSTALL_COMMAND2 (cmdset, set_port_txrx_desc);
+  INSTALL_COMMAND2 (cmdset, set_port_mtu);
+  INSTALL_COMMAND2 (cmdset, set_port_nb_txrx_queue);
   INSTALL_COMMAND2 (cmdset, set_port_link_updown);
 }
