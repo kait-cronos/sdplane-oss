@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "*.java": "java",
-        "rib_manager.h": "c",
-        "rib.h": "c"
-    }
-}
