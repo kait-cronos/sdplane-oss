@@ -1,0 +1,4 @@
+
+seq 0 1023 | awk -f ip-route-add.awk > ip-route-add.sh
+seq 0 1023 | awk -f ip-route-del.awk > ip-route-del.sh
+
