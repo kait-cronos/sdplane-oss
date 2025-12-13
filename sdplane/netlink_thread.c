@@ -22,6 +22,9 @@
 #include <net/if.h>
 #include <netinet/ether.h>
 
+/* for SRv6 */
+#include "netlink_seg6.h"
+
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 static __thread uint64_t loop_counter = 0;
@@ -389,6 +392,211 @@ netlink_format_nexthop_object (enum nexthop_type nh_type, void *nh,
   return buf;
 }
 
+static inline const char *
+seg6_mode_str (int mode)
+{
+  switch (mode)
+    {
+    case SEG6_IPTUN_MODE_INLINE:
+      return "H.Insert";
+    case SEG6_IPTUN_MODE_ENCAP:
+      return "H.Encaps";
+    case SEG6_IPTUN_MODE_L2ENCAP:
+      return "H.Encaps.L2";
+    case SEG6_IPTUN_MODE_ENCAP_RED:
+      return "H.Encaps.Red";
+    case SEG6_IPTUN_MODE_L2ENCAP_RED:
+      return "H.Encaps.L2.Red";
+    default:
+      return "Unknown";
+    }
+  /* not reached */
+  return "Not-reached";
+}
+
+static inline const char *
+seg6local_action_str (uint32_t action)
+{
+  switch (action)
+    {
+    case SEG6_LOCAL_ACTION_UNSPEC:
+      return "Unspec";
+    case SEG6_LOCAL_ACTION_END:
+      return "End";
+    case SEG6_LOCAL_ACTION_END_X:
+      return "End.X";
+    case SEG6_LOCAL_ACTION_END_T:
+      return "End.T";
+    case SEG6_LOCAL_ACTION_END_DX2:
+      return "End.DX2";
+    case SEG6_LOCAL_ACTION_END_DX6:
+      return "End.DX6";
+    case SEG6_LOCAL_ACTION_END_DX4:
+      return "End.DX4";
+    case SEG6_LOCAL_ACTION_END_DT6:
+      return "End.DT6";
+    case SEG6_LOCAL_ACTION_END_DT4:
+      return "End.DT4";
+    case SEG6_LOCAL_ACTION_END_B6:
+      return "End.B6";
+    case SEG6_LOCAL_ACTION_END_B6_ENCAP:
+      return "End.B6.Encaps";
+    case SEG6_LOCAL_ACTION_END_BM:
+      return "End.BM";
+    case SEG6_LOCAL_ACTION_END_S:
+      return "End.S";
+    case SEG6_LOCAL_ACTION_END_AS:
+      return "End.AS";
+    case SEG6_LOCAL_ACTION_END_AM:
+      return "End.AM";
+    case SEG6_LOCAL_ACTION_END_BPF:
+      return "End.BPF";
+    case SEG6_LOCAL_ACTION_END_DT46:
+      return "End.DT46";
+    default:
+      return "Unknown";
+    }
+  /* not reached */
+  return "Not-reached";
+}
+
+static inline __attribute__ ((always_inline)) void
+netlink_log_seg6 (struct seg6_param *param)
+{
+  char str[1024] = { 0 };
+  int pos = 0, i;
+  struct ipv6_sr_hdr *srh = param->seg6_tuninfo->srh;
+
+  pos += snprintf (str + pos, sizeof (str) - pos, "seg6");
+  if (param->seg6_tuninfo->mode >= 0)
+    pos += snprintf (str + pos, sizeof (str) - pos, " mode %s",
+                     seg6_mode_str (param->seg6_tuninfo->mode));
+
+  if (srh->first_segment >= 0)
+    {
+      pos += snprintf (str + pos, sizeof (str) - pos, " segs ");
+      for (i = srh->first_segment; i >= 0; i--)
+        {
+          char segment_str[INET6_ADDRSTRLEN];
+          inet_ntop (AF_INET6, &srh->segments[i], segment_str,
+                     sizeof (segment_str));
+          pos += snprintf (str + pos, sizeof (str) - pos, "%s",
+                           segment_str);
+          if (i != 0)
+            pos += snprintf (str + pos, sizeof (str) - pos, ",");
+        }
+    }
+
+  DEBUG_NEW (NETLINK, "%s", str);
+}
+
+static inline __attribute__ ((always_inline)) void
+netlink_log_seg6local (struct seg6local_param *param)
+{
+  char str[1024] = { 0 };
+  int pos = 0, i;
+
+  pos += snprintf (str + pos, sizeof (str) - pos, "seg6local");
+  if (param->action)
+    pos += snprintf (str + pos, sizeof (str) - pos, " action %s",
+                     seg6local_action_str (param->action));
+  if (param->table_id)
+    pos += snprintf (str + pos, sizeof (str) - pos, " table %d",
+                     param->table_id);
+  if (param->vrf_id)
+    pos += snprintf (str + pos, sizeof (str) - pos, " vrftable %d",
+                     param->vrf_id);
+  if (param->nh4.s_addr != 0)
+    {
+      char nh4_str[INET_ADDRSTRLEN];
+      inet_ntop (AF_INET, &param->nh4, nh4_str,
+                 sizeof (nh4_str));
+      pos += snprintf (str + pos, sizeof (str) - pos, " nh4 %s",
+                       nh4_str);
+    }
+  if (! IN6_IS_ADDR_UNSPECIFIED (&param->nh6))
+    {
+      char nh6_str[INET6_ADDRSTRLEN];
+      inet_ntop (AF_INET6, &param->nh6, nh6_str,
+                 sizeof (nh6_str));
+      pos += snprintf (str + pos, sizeof (str) - pos, " nh6 %s",
+                       nh6_str);
+    }
+  if (param->iif)
+    {
+      char iif_str[16];
+      if_indextoname (param->iif, iif_str);
+      pos += snprintf (str + pos, sizeof (str) - pos, " iif %s",
+                       iif_str);
+    }
+  if (param->oif)
+    {
+      char oif_str[16];
+      if_indextoname (param->oif, oif_str);
+      pos += snprintf (str + pos, sizeof (str) - pos, " oif %s",
+                       oif_str);
+    }
+  if (param->srh)
+    {
+      pos += snprintf (str + pos, sizeof (str) - pos, " srh segs ");
+      for (i = param->srh->first_segment; i >= 0; i--)
+        {
+          char segment_str[INET6_ADDRSTRLEN];
+          inet_ntop (AF_INET6, &param->srh->segments[i], segment_str,
+                     sizeof (segment_str));
+          pos += snprintf (str + pos, sizeof (str) - pos, "%s",
+                           segment_str);
+          if (i != 0)
+            pos += snprintf (str + pos, sizeof (str) - pos, ",");
+        }
+    }
+
+  DEBUG_NEW (NETLINK, "%s", str);
+}
+
+static inline __attribute__ ((always_inline)) void
+netlink_parse_seg6 (struct rtattr *rta, struct seg6_param *param)
+{
+  struct rtattr *rtas[SEG6_IPTUNNEL_MAX + 1] = { 0 };
+  netlink_get_rtattr (rtas, SEG6_IPTUNNEL_MAX, RTA_DATA (rta), RTA_PAYLOAD (rta));
+
+  if (rtas[SEG6_IPTUNNEL_SRH])
+    param->seg6_tuninfo = RTA_DATA (rtas[SEG6_IPTUNNEL_SRH]);
+}
+
+static inline __attribute__ ((always_inline)) void
+netlink_parse_seg6local (struct rtattr *rta, struct seg6local_param *param)
+{
+  int i;
+  struct rtattr *rtas[SEG6_LOCAL_MAX + 1] = { 0 };
+  netlink_get_rtattr (rtas, SEG6_LOCAL_MAX, RTA_DATA (rta), RTA_PAYLOAD (rta));
+
+  if (rtas[SEG6_LOCAL_ACTION])
+    param->action = *(uint32_t *) RTA_DATA (rtas[SEG6_LOCAL_ACTION]);
+  if (rtas[SEG6_LOCAL_SRH])
+    param->srh = RTA_DATA (rtas[SEG6_LOCAL_SRH]);
+  if (rtas[SEG6_LOCAL_TABLE])
+    param->table_id = *(uint32_t *) RTA_DATA (rtas[SEG6_LOCAL_TABLE]);
+  if (rtas[SEG6_LOCAL_NH4])
+    memcpy (&param->nh4, RTA_DATA (rtas[SEG6_LOCAL_NH4]), RTA_PAYLOAD (rtas[SEG6_LOCAL_NH4]));
+  if (rtas[SEG6_LOCAL_NH6])
+    memcpy (&param->nh6, RTA_DATA (rtas[SEG6_LOCAL_NH6]), RTA_PAYLOAD (rtas[SEG6_LOCAL_NH6]));
+  if (rtas[SEG6_LOCAL_IIF])
+    param->iif = *(int *) RTA_DATA (rtas[SEG6_LOCAL_IIF]);
+  if (rtas[SEG6_LOCAL_OIF])
+    param->oif = *(int *) RTA_DATA (rtas[SEG6_LOCAL_OIF]);
+  if (rtas[SEG6_LOCAL_VRFTABLE])
+    param->vrf_id = *(uint32_t *) RTA_DATA (rtas[SEG6_LOCAL_VRFTABLE]);
+#if 0
+  if (rtas[SEG6_LOCAL_FLAVORS])
+    // not supported yet
+  if (rtas[SEG6_LOCAL_COUNTERS])
+    // not supported yet
+  if (rtas[SEG6_LOCAL_BPF])
+    // not supported yet
+#endif
+}
+
 int
 netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
 {
@@ -546,6 +754,25 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
         }
       else
         nh_info->oif = 0; /* or appropriate default */
+    }
+
+  if (rtns[RTA_ENCAP])
+    {
+      uint16_t encap_type = *(uint16_t *) RTA_DATA (rtns[RTA_ENCAP_TYPE]);
+      if (encap_type == LWTUNNEL_ENCAP_SEG6)
+        {
+          struct seg6_param seg6_param;
+          memset (&seg6_param, 0, sizeof (seg6_param));
+          netlink_parse_seg6 (rtns[RTA_ENCAP], &seg6_param);
+          netlink_log_seg6 (&seg6_param);
+        }
+      else if (encap_type == LWTUNNEL_ENCAP_SEG6_LOCAL)
+        {
+          struct seg6local_param seg6local_param;
+          memset (&seg6local_param, 0, sizeof (seg6local_param));
+          netlink_parse_seg6local (rtns[RTA_ENCAP], &seg6local_param);
+          netlink_log_seg6local (&seg6local_param);
+        }
     }
 
   /* create and send internal message */
