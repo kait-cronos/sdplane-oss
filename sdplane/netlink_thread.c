@@ -178,6 +178,10 @@ netlink_nlmsg_str (uint16_t nlmsg_type)
       return "RTM_DELADDR";
     case RTM_GETADDR:
       return "RTM_GETADDR";
+    case RTM_NEWNEXTHOP:
+      return "RTM_NEWNEXTHOP";
+    case RTM_DELNEXTHOP:
+      return "RTM_DELNEXTHOP";
     default:
       return "Unknown";
     }
@@ -327,10 +331,68 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
   return 0;
 }
 
+static inline __attribute__ ((always_inline)) char *
+netlink_format_nexthop_object (enum nexthop_type nh_type, void *nh,
+                              char *buf, size_t buf_size)
+{
+  int i, len = 0;
+  char nh_ip_str[INET6_ADDRSTRLEN] = { 0 };
+
+  switch (nh_type)
+    {
+      case NH_TYPE_LEGACY:
+        struct nh_legacy *nh_legacy = (struct nh_legacy *) nh;
+        switch (nh_legacy->type)
+          {
+            case NH_OBJ_TYPE_OBJECT:
+              struct nh_info *nh_info = &nh_legacy->nh_info;
+
+              inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
+                         nh_ip_str, sizeof (nh_ip_str));
+              len += snprintf (buf + len, buf_size - len,
+                               "%s(oif=%d)",
+                               nh_ip_str, nh_info->oif);
+              break;
+
+            case NH_OBJ_TYPE_GROUP:
+              struct nh_info_group *nhg = &nh_legacy->nh_grp;
+
+              len += snprintf (buf + len, buf_size - len, "[");
+              for (i = 0; i < nhg->num; i++)
+                {
+                  inet_ntop (nhg->nh_info_list[i].family,
+                             &nhg->nh_info_list[i].nh_ip_addr,
+                             nh_ip_str, sizeof (nh_ip_str));
+                  len += snprintf (buf + len, buf_size - len,
+                                   "%s(oif=%d)%s",
+                                   nh_ip_str,
+                                   nhg->nh_info_list[i].oif,
+                                   (i == nhg->num - 1) ? "" : ", ");
+                }
+              snprintf (buf + len, buf_size - len, "]");
+              break;
+
+            default:
+              return buf;
+          }
+        break;
+
+      case NH_TYPE_OBJECT_CAP:
+        int *nh_id = (int *) nh;
+        len += snprintf (buf + len, buf_size - len, "nhid=%d", *nh_id);
+        break;
+
+      default:
+        return buf;
+    }
+
+  return buf;
+}
+
 int
 netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
 {
-  struct ndmsg *ndm = (struct ndmsg *) NLMSG_DATA (h);
+  struct rtmsg *rtm = (struct rtmsg *) NLMSG_DATA (h);
 
   if (h->nlmsg_len < NLMSG_LENGTH (sizeof (struct nlmsgerr)))
     {
@@ -342,52 +404,151 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
-  struct rtmsg *rtm = (struct rtmsg *) NLMSG_DATA (h);
-  struct rtattr *rta;
-  int len = RTM_PAYLOAD (h);
+  /* New/Delete Route Entry */
+  struct rtattr *rtns[RTA_MAX + 1] = { 0 };
+  struct rtattr *rta = (struct rtattr *) RTM_RTA (rtm);
+  netlink_get_rtattr (rtns, RTA_MAX, rta, RTM_PAYLOAD (h));
+  int ifindex, *count;
+  struct nh_info *nh_info;
+  struct nh_legacy *nh_legacy;
+  struct nh_info_group *nh_grp;
 
+  char dst_addr[64] = { 0 };
+  char gw_addr[512] = { 0 }; // large buffer for multipath nexthops display
+  char oif_name[16] = { 0 };
+
+  /* internal message */
   void *msgp = NULL;
   struct internal_msg_route_entry msg_route_entry;
   memset (&msg_route_entry, 0, sizeof (msg_route_entry));
-
-  /* check if AF_INET or AF_INET6 */
-  if (rtm->rtm_family != AF_INET && rtm->rtm_family != AF_INET6)
-    {
-      DEBUG_SDPLANE_LOG (NETLINK, "unsupported address family: %d",
-                         rtm->rtm_family);
-      return -1;
-    }
-  if (rtm->rtm_table != 254) // main table only for test
-    return -1;
-
-  msg_route_entry.family = rtm->rtm_family;
-  msg_route_entry.table_id = rtm->rtm_table;
-  msg_route_entry.plen = rtm->rtm_dst_len;
-
-  for (rta = RTM_RTA (rtm); RTA_OK (rta, len); rta = RTA_NEXT (rta, len))
-    {
-      switch (rta->rta_type)
-        {
-        case RTA_DST:
-          memset (msg_route_entry.dst_ip, 0, sizeof (msg_route_entry.dst_ip));
-          memcpy (msg_route_entry.dst_ip, RTA_DATA (rta), RTA_PAYLOAD (rta));
-          break;
-
-        case RTA_GATEWAY:
-          memset (msg_route_entry.nexthop, 0,
-                  sizeof (msg_route_entry.nexthop));
-          memcpy (msg_route_entry.nexthop, RTA_DATA (rta), RTA_PAYLOAD (rta));
-          break;
-
-        case RTA_OIF:
-          msg_route_entry.oif = *(int *) RTA_DATA (rta);
-          break;
-        }
-    }
-
   uint16_t msg_type;
   const char *action_type;
 
+  /* table id and address family */
+  if (rtm->rtm_table != RT_TABLE_MAIN) // only main table is supported
+    return -1;
+  msg_route_entry.table_id = rtm->rtm_table;
+  msg_route_entry.family = rtm->rtm_family; // table family
+
+  /* destination */
+  if (! rtns[RTA_DST] && rtm->rtm_dst_len != 0)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "%s: no destination address in message.",
+                         nlsock->name);
+      return -1;
+    }
+  else if (rtns[RTA_DST])
+    {
+      msg_route_entry.dst.family = rtm->rtm_family; // destination address family
+      msg_route_entry.dst.plen = rtm->rtm_dst_len;
+      memcpy (&msg_route_entry.dst.dst_ip_addr,
+              RTA_DATA (rtns[RTA_DST]), RTA_PAYLOAD (rtns[RTA_DST]));
+      inet_ntop (rtm->rtm_family, RTA_DATA (rtns[RTA_DST]), dst_addr,
+                 sizeof (dst_addr));
+    }
+  else
+    {
+      /* default route */
+      msg_route_entry.dst.family = rtm->rtm_family; // destination address family
+      msg_route_entry.dst.plen = 0;
+      memset (&msg_route_entry.dst.dst_ip_addr, 0,
+              sizeof (msg_route_entry.dst.dst_ip_addr));
+      inet_ntop (rtm->rtm_family, &msg_route_entry.dst.dst_ip_addr,
+                 dst_addr, sizeof (dst_addr));
+    }
+
+  /* multipath */
+  if (rtns[RTA_MULTIPATH])
+    {
+      struct rtattr *rtnh_rtns[RTA_MAX + 1] = { 0 };
+      struct rtnexthop *rtnh = RTA_DATA (rtns[RTA_MULTIPATH]);
+      int rtnh_len = RTA_PAYLOAD (rtns[RTA_MULTIPATH]);
+
+      nh_legacy = &msg_route_entry.nh.nh_legacy;
+      nh_grp = &msg_route_entry.nh.nh_legacy.nh_grp;
+
+      msg_route_entry.nh_type = NH_TYPE_LEGACY;
+      nh_legacy->type = NH_OBJ_TYPE_GROUP;
+      count = &nh_grp->num;
+
+      for (; RTNH_OK (rtnh, rtnh_len) && *count < MAX_ECMP_ENTRY;
+           rtnh = RTNH_NEXT (rtnh), (*count)++)
+        {
+          nh_info = &nh_grp->nh_info_list[*count];
+          nh_info->family = rtm->rtm_family; // nexthop address family
+          if (rtnh->rtnh_len > sizeof (*rtnh))
+            {
+              netlink_get_rtattr (rtnh_rtns, RTA_MAX, RTNH_DATA (rtnh),
+                                  rtnh->rtnh_len - sizeof (*rtnh));
+              /* gateway (nexthop) */
+              if (rtnh_rtns[RTA_GATEWAY])
+                {
+                  memcpy (&nh_info->nh_ip_addr,
+                          RTA_DATA (rtnh_rtns[RTA_GATEWAY]),
+                          RTA_PAYLOAD (rtnh_rtns[RTA_GATEWAY]));
+                  nh_info->type = ROUTE_TYPE_NEXTHOP;
+                }
+              else
+                {
+                  /* no gateway - direct route or link-local */
+                  memset (&nh_info->nh_ip_addr, 0, sizeof (nh_info->nh_ip_addr));
+                  nh_info->type = ROUTE_TYPE_CONNECTED;
+                }
+            }
+          /* oif */
+          nh_info->oif = rtnh->rtnh_ifindex;
+        }
+    }
+
+  /* nexthop id */
+  // TODO: support nexthop object capable routes (RTA_NH_ID)
+  if (rtns[RTA_NH_ID])
+    {
+     msg_route_entry.nh_type = NH_TYPE_OBJECT_CAP;
+      DEBUG_SDPLANE_LOG (NETLINK,
+                         "%s: nexthop object capable route is not supported yet.",
+                         nlsock->name);
+      return -1;
+    }
+
+  /* gateway (nexthop) */
+  if (rtns[RTA_GATEWAY] || rtns[RTA_OIF])
+    {
+      nh_legacy = &msg_route_entry.nh.nh_legacy;
+      nh_info = &msg_route_entry.nh.nh_legacy.nh_info;
+
+      msg_route_entry.nh_type = NH_TYPE_LEGACY;
+      nh_legacy->type = NH_OBJ_TYPE_OBJECT;
+
+      nh_info->family = rtm->rtm_family; // nexthop address family
+
+      /* gateway address (if present) */
+      if (rtns[RTA_GATEWAY])
+        {
+          memcpy (&nh_info->nh_ip_addr,
+                  RTA_DATA (rtns[RTA_GATEWAY]),
+                  RTA_PAYLOAD (rtns[RTA_GATEWAY]));
+          nh_info->type = ROUTE_TYPE_NEXTHOP;
+        }
+      else
+        {
+          /* no gateway - direct route or link-local */
+          memset (&nh_info->nh_ip_addr, 0, sizeof (nh_info->nh_ip_addr));
+          nh_info->type = ROUTE_TYPE_CONNECTED;
+        }
+
+      /* output interface (if present) */
+      if (rtns[RTA_OIF])
+        {
+          ifindex = *(int *) RTA_DATA (rtns[RTA_OIF]);
+          nh_info->oif = ifindex;
+          if_indextoname (ifindex, oif_name);
+        }
+      else
+        nh_info->oif = 0; /* or appropriate default */
+    }
+
+  /* create and send internal message */
   if (h->nlmsg_type == RTM_NEWROUTE)
     {
       msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD;
@@ -405,16 +566,14 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
-  char dst_str[INET6_ADDRSTRLEN];
-  char nexthop_str[INET6_ADDRSTRLEN];
-  inet_ntop (msg_route_entry.family, &msg_route_entry.dst_ip, dst_str,
-             sizeof (dst_str));
-  inet_ntop (msg_route_entry.family, &msg_route_entry.nexthop, nexthop_str,
-             sizeof (nexthop_str));
-  DEBUG_SDPLANE_LOG (NETLINK, "[%s] dst=%s/%u nexthop=%s oif=%u", action_type,
-                     dst_str, msg_route_entry.plen, nexthop_str,
-                     msg_route_entry.oif);
-
+  DEBUG_SDPLANE_LOG (NETLINK, "[%s] dst=%s/%u, nexthop=%s",
+                     action_type,
+                     dst_addr, msg_route_entry.dst.plen,
+                     netlink_format_nexthop_object (
+                          msg_route_entry.nh_type,
+                          &msg_route_entry.nh,
+                          gw_addr, sizeof (gw_addr))
+                     );
   msgp = internal_msg_create (msg_type, &msg_route_entry,
                               sizeof (msg_route_entry));
   if (! msgp)
@@ -432,6 +591,27 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
 
   internal_msg_send_to (msg_queue_rib, msgp, NULL);
 
+  return 0;
+}
+
+int
+netlink_read_nlmsg_nexthop (struct netlink_sock *nlsock, struct nlmsghdr *h)
+{
+  if (h->nlmsg_len < NLMSG_LENGTH (sizeof (struct ifinfomsg)))
+    {
+      DEBUG_SDPLANE_LOG (NETLINK,
+                         "%s: invalid len: %d < "
+                         "NLMSG_LEN(ifinfomsg): %d",
+                         nlsock->name, h->nlmsg_len,
+                         NLMSG_LENGTH (sizeof (struct ifinfomsg)));
+      return -1;
+    }
+
+    // TODO: implement nexthop handling
+
+  DEBUG_SDPLANE_LOG (NETLINK, "%s: nexthop message received: type=%s(%u)",
+                     nlsock->name, netlink_nlmsg_str (h->nlmsg_type),
+                     h->nlmsg_type);
   return 0;
 }
 
@@ -711,6 +891,10 @@ netlink_read (struct netlink_sock *nlsock)
             case RTM_NEWADDR:
             case RTM_DELADDR:
               netlink_read_nlmsg_addr (nlsock, h);
+              break;
+            case RTM_NEWNEXTHOP:
+            case RTM_DELNEXTHOP:
+              netlink_read_nlmsg_nexthop (nlsock, h);
               break;
             default:
               break;
