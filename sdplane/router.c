@@ -495,7 +495,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
     {
       DEBUG_NEW (ROUTER,
                  "m: %p %s lookup failed, send to router_if",
-                 neigh_manager_table_str (neigh_table_type), m);
+                 m, neigh_manager_table_str (neigh_table_type));
       /* send to router_if for ARP/ND resolution */
       struct router_if *rif = &vswitch->router_if;
       if (rif->sockfd >= 0 && rif->ring_up)
