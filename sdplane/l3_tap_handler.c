@@ -97,6 +97,9 @@ l3_tap_handler_handle_packet_up ()
   int i;
   int vswitch_id;
 
+  if (! rib || ! rib->rib_info)
+    return;
+
   for (vswitch_id = 0; vswitch_id < rib->rib_info->vswitch_size; vswitch_id++)
     {
       struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
@@ -149,6 +152,9 @@ l3_tap_handler_handle_packet_down ()
 
   struct vswitch_conf *vswitch;
   int vswitch_id;
+
+  if (! rib || ! rib->rib_info)
+    return;
 
   nfds = 0;
   for (vswitch_id = 0; vswitch_id < rib->rib_info->vswitch_size; vswitch_id++)
