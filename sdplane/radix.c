@@ -248,7 +248,7 @@ _add_to_fib (struct rib_node *n, void *arg)
 {
   struct fib_tree *fib_tree = (struct fib_tree *) arg;
 
-  uint8_t key_str[INET6_ADDRSTRLEN];
+  char key_str[INET6_ADDRSTRLEN];
   inet_ntop (fib_tree->family, &n->entry.dst.dst_ip_addr, key_str, sizeof (key_str));
   DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding route to fib: keylen=%d key=%s nh_id=%d",
                      n->entry.dst.plen, key_str, n->entry.nh.nh_id);

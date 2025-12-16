@@ -17,8 +17,6 @@
 #define MAX_NEXTHOP_OBJ_SIZE    1024
 #define NEXTHOP_HASH_TAB_SIZE   1024
 #define NEXTHOP_HASH_MASK       0x3FF
-#define ROUTE_TABLE_SIZE        65536
-#define ROUTE_TABLE_HASH_MASK   0xFFFF
 #define MAX_ECMP_ENTRY          4
 #define ROUTE_TREE_SIZE         2
 #define K                       2

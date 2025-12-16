@@ -482,9 +482,18 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
                                   rtnh->rtnh_len - sizeof (*rtnh));
               /* gateway (nexthop) */
               if (rtnh_rtns[RTA_GATEWAY])
-                memcpy (&nh_info->nh_ip_addr,
-                        RTA_DATA (rtnh_rtns[RTA_GATEWAY]),
-                        RTA_PAYLOAD (rtnh_rtns[RTA_GATEWAY]));
+                {
+                  memcpy (&nh_info->nh_ip_addr,
+                          RTA_DATA (rtnh_rtns[RTA_GATEWAY]),
+                          RTA_PAYLOAD (rtnh_rtns[RTA_GATEWAY]));
+                  nh_info->type = ROUTE_TYPE_NEXTHOP;
+                }
+              else
+                {
+                  /* no gateway - direct route or link-local */
+                  memset (&nh_info->nh_ip_addr, 0, sizeof (nh_info->nh_ip_addr));
+                  nh_info->type = ROUTE_TYPE_CONNECTED;
+                }
             }
           /* oif */
           nh_info->oif = rtnh->rtnh_ifindex;

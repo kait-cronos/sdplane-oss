@@ -488,13 +488,14 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s", m, nexthop_str);
 
   /* neighbor table lookup */
-  neigh_table_type = AF_TO_NEIGH_TABLE(family);
-  neigh_manager_lookup (&rib->rib_info->neigh_tables[NEIGH_ARP_TABLE],
-                        NEIGH_ARP_TABLE, lookup_ip, &neigh_entry);
+  neigh_table_type = AF_TO_NEIGH_TABLE (family);
+  neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                        neigh_table_type, lookup_ip, &neigh_entry);
   if (! neigh_entry)
     {
       DEBUG_NEW (ROUTER,
-                          "m: %p ARP lookup failed, send to router_if", m);
+                 "m: %p %s lookup failed, send to router_if",
+                 neigh_manager_table_str (neigh_table_type), m);
       /* send to router_if for ARP/ND resolution */
       struct router_if *rif = &vswitch->router_if;
       if (rif->sockfd >= 0 && rif->ring_up)

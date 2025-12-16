@@ -530,7 +530,7 @@ route_table_lookup_id (int table_id, int family)
 {
   int i;
 
-  for (i = 0; i < ROUTE_TABLE_SIZE; i++)
+  for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
       if (rib_tree_master[i] == NULL)
         continue;
@@ -546,7 +546,7 @@ route_table_alloc_slot (int table_id, int family)
 {
   int i;
 
-  for (i = 0; i < ROUTE_TABLE_SIZE; i++)
+  for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
       if (rib_tree_master[i] == NULL)
         {
