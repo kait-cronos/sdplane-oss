@@ -126,6 +126,7 @@ struct neigh_entry
   } ip_addr;
   struct rte_ether_addr mac_addr;
   uint8_t state;
+  int ifindex;
 };
 
 struct neigh_table
