@@ -288,9 +288,7 @@ _verify_packet (struct rte_mbuf *m, struct rte_ipv4_hdr *ipv4,
 static inline __attribute__ ((always_inline)) void
 _flooding (struct rte_mbuf *m,
            uint16_t rx_portid, uint16_t rx_queueid,
-           struct vswitch_conf *vswitch,
-           struct rte_ether_hdr *eth, struct rte_vlan_hdr *vlan,
-           uint16_t eth_type)
+           struct vswitch_conf *vswitch)
 {
       unsigned tx_queueid = lcore_id;
       DEBUG_NEW (ROUTER,
@@ -319,8 +317,7 @@ static inline __attribute__ ((always_inline)) void
 _switching (struct rte_mbuf *m,
             uint16_t rx_portid, uint16_t rx_queueid,
             struct vswitch_conf *vswitch,
-            struct rte_ether_hdr *eth, struct rte_vlan_hdr *vlan,
-            uint16_t eth_type)
+            struct rte_ether_hdr *eth)
 {
   /* for ARP replies from tap, we need L2 switching based on dst MAC */
 
@@ -340,7 +337,7 @@ _switching (struct rte_mbuf *m,
   if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
-      _flooding (m, rx_portid, rx_queueid, vswitch, eth, vlan, eth_type);
+      _flooding (m, rx_portid, rx_queueid, vswitch);
       return;
     }
 
@@ -373,7 +370,7 @@ _switching (struct rte_mbuf *m,
 
   DEBUG_NEW (ROUTER,
              "m: %p L2 switching: dst MAC unknown, flooding", m);
-  _flooding (m, rx_portid, rx_queueid, vswitch, eth, vlan, eth_type);
+  _flooding (m, rx_portid, rx_queueid, vswitch);
 
   return;
 }
@@ -773,7 +770,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (! rte_is_same_ether_addr (&eth->dst_addr, &vswitch->router_if.mac_addr))
     {
       DEBUG_NEW (ROUTER, "L2 switching");
-      _switching (m, rx_portid, rx_queueid, vswitch, eth, vlan, eth_type);
+      _switching (m, rx_portid, rx_queueid, vswitch, eth);
       return;
     }
 
@@ -829,7 +826,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
       _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-                  vswitch, eth, vlan, eth_type);
+                  vswitch, eth);
       return;
     }
 
