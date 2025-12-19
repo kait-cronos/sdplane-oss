@@ -43,6 +43,54 @@ static __thread struct rib *rib = NULL;
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
+static inline __attribute__ ((always_inline)) struct rte_mbuf *
+_generate_arp_req_pkt (struct rte_ether_addr *src_mac,
+                       struct in_addr *src_ip,
+                       struct in_addr *dst_ip)
+{
+  struct rte_mempool *mp = l2fwd_pktmbuf_pool;
+  struct rte_mbuf *m;
+  struct rte_ether_hdr *eth;
+  struct rte_arp_hdr *arp;
+  size_t pkt_size;
+
+  m = rte_pktmbuf_alloc (mp);
+  if (! m)
+    {
+      DEBUG_NEW(ROUTER, "failed to allocate mbuf for ARP request");
+      return NULL;
+    }
+
+  pkt_size = sizeof (struct rte_ether_hdr) + sizeof (struct rte_arp_hdr);
+  if (rte_pktmbuf_append (m, pkt_size) == NULL)
+    {
+      DEBUG_NEW (ROUTER, "failed to append data to mbuf");
+      rte_pktmbuf_free (m);
+      return NULL;
+    }
+
+  /* setup eth_hdr */
+  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  memset(&eth->dst_addr, 0xff, RTE_ETHER_ADDR_LEN);  // broadcast
+  rte_ether_addr_copy(src_mac, &eth->src_addr);
+  eth->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP);
+
+  /* setup arp_hdr */
+  arp = (struct rte_arp_hdr *)(eth + 1);
+  arp->arp_hardware = rte_cpu_to_be_16 (RTE_ARP_HRD_ETHER);
+  arp->arp_protocol = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
+  arp->arp_hlen = RTE_ETHER_ADDR_LEN;
+  arp->arp_plen = sizeof (struct in_addr);
+  arp->arp_opcode = rte_cpu_to_be_16 (RTE_ARP_OP_REQUEST);
+
+  rte_ether_addr_copy (src_mac, &arp->arp_data.arp_sha);
+  memcpy (&arp->arp_data.arp_sip, src_ip, sizeof(struct in_addr));
+  memset (&arp->arp_data.arp_tha, 0, RTE_ETHER_ADDR_LEN);
+  memcpy (&arp->arp_data.arp_tip, dst_ip, sizeof(struct in_addr));
+
+  return m;
+}
+
 /* _thread_tx_flush() flushes the queue'ed packets
    in tx_buffer_per_q[] onto the NIC. */
 static inline __attribute__ ((always_inline)) void
@@ -288,9 +336,7 @@ _verify_packet (struct rte_mbuf *m, struct rte_ipv4_hdr *ipv4,
 static inline __attribute__ ((always_inline)) void
 _flooding (struct rte_mbuf *m,
            uint16_t rx_portid, uint16_t rx_queueid,
-           struct vswitch_conf *vswitch,
-           struct rte_ether_hdr *eth, struct rte_vlan_hdr *vlan,
-           uint16_t eth_type)
+           struct vswitch_conf *vswitch)
 {
       unsigned tx_queueid = lcore_id;
       DEBUG_NEW (ROUTER,
@@ -319,8 +365,7 @@ static inline __attribute__ ((always_inline)) void
 _switching (struct rte_mbuf *m,
             uint16_t rx_portid, uint16_t rx_queueid,
             struct vswitch_conf *vswitch,
-            struct rte_ether_hdr *eth, struct rte_vlan_hdr *vlan,
-            uint16_t eth_type)
+            struct rte_ether_hdr *eth)
 {
   /* for ARP replies from tap, we need L2 switching based on dst MAC */
 
@@ -340,7 +385,7 @@ _switching (struct rte_mbuf *m,
   if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
-      _flooding (m, rx_portid, rx_queueid, vswitch, eth, vlan, eth_type);
+      _flooding (m, rx_portid, rx_queueid, vswitch);
       return;
     }
 
@@ -373,7 +418,7 @@ _switching (struct rte_mbuf *m,
 
   DEBUG_NEW (ROUTER,
              "m: %p L2 switching: dst MAC unknown, flooding", m);
-  _flooding (m, rx_portid, rx_queueid, vswitch, eth, vlan, eth_type);
+  _flooding (m, rx_portid, rx_queueid, vswitch);
 
   return;
 }
@@ -417,7 +462,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   /* determine the actual nexthop IP to lookup in neighbor table */
   uint8_t lookup_ip[16];
   char lookup_ip_str[INET6_ADDRSTRLEN];
-  int family;
+  int family, oif;
 
    switch (fib_node->nh.nh_type)
     {
@@ -428,6 +473,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
           {
             case NH_OBJ_TYPE_OBJECT:
               family = nh_legacy->nh_info.family;
+              oif = nh_legacy->nh_info.oif;
               inet_ntop (family,
                          &nh_legacy->nh_info.nh_ip_addr, nexthop_str,
                          sizeof (nexthop_str));
@@ -450,6 +496,7 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
 
             case NH_OBJ_TYPE_GROUP:
               family = nh_legacy->nh_grp.nh_info_list[0].family;
+              oif = nh_legacy->nh_grp.nh_info_list[0].oif;
               /* use the first nexthop in the group for now */
               inet_ntop (family,
                          &nh_legacy->nh_grp.nh_info_list[0].nh_ip_addr, nexthop_str,
@@ -496,10 +543,41 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
       DEBUG_NEW (ROUTER,
                  "m: %p %s lookup failed, send to router_if",
                  m, neigh_manager_table_str (neigh_table_type));
-      /* send to router_if for ARP/ND resolution */
-      struct router_if *rif = &vswitch->router_if;
-      if (rif->sockfd >= 0 && rif->ring_up)
-        _send_ring (m, rx_portid, rx_queueid, rif->ring_up);
+      /* ARP/ND resolution */
+      for (i = 0; i < rib->rib_info->vswitch_size; i++)
+        {
+          struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
+          struct router_if *rif = &vs->router_if;
+          if (rif->ifindex != oif)
+            continue;
+
+          if (family == AF_INET)
+            {
+              struct rte_mbuf *arp_pkt;
+              arp_pkt = _generate_arp_req_pkt (&rif->mac_addr,
+                                               &rif->ipv4_addr,
+                                               (struct in_addr *)lookup_ip);
+              if (arp_pkt)
+                {
+                  char dst_ip_str[INET_ADDRSTRLEN];
+                  inet_ntop (AF_INET, lookup_ip, dst_ip_str, sizeof (dst_ip_str));
+                  DEBUG_NEW (ROUTER, "m: %p send ARP request for %s via vswitch[%d]",
+                             arp_pkt, dst_ip_str, vs->vswitch_id);
+
+                  _flooding (arp_pkt, ROUTER_IF_RX_SELF_PORT_ID,
+                             ROUTER_IF_RX_SELF_QUEUE_ID, vs);
+
+                  rte_pktmbuf_free (arp_pkt);
+                }
+              else
+                DEBUG_NEW(ROUTER, "m: %p failed to generate ARP request", m);
+            }
+          else
+            {
+              // TODO: send NS flooding
+            }
+          return;
+        }
       return;
     }
   dst_mac = &neigh_entry->mac_addr;
@@ -773,7 +851,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (! rte_is_same_ether_addr (&eth->dst_addr, &vswitch->router_if.mac_addr))
     {
       DEBUG_NEW (ROUTER, "L2 switching");
-      _switching (m, rx_portid, rx_queueid, vswitch, eth, vlan, eth_type);
+      _switching (m, rx_portid, rx_queueid, vswitch, eth);
       return;
     }
 
@@ -829,7 +907,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
       _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-                  vswitch, eth, vlan, eth_type);
+                  vswitch, eth);
       return;
     }
 

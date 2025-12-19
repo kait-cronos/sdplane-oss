@@ -116,3 +116,33 @@ tap_set_hwaddr (char *ifname, struct rte_ether_addr *hwaddr)
     }
 }
 
+int tap_get_ifindex (char *ifname)
+{
+  int ret;
+  int sockfd;
+  struct ifreq ifr;
+  int ifindex;
+
+  sockfd = socket (AF_INET, SOCK_DGRAM, 0);
+  if (sockfd < 0)
+    {
+      DEBUG_SDPLANE_LOG (TAPHANDLER, "socket() failed: %s", strerror (errno));
+      return -1;
+    }
+
+  memset (&ifr, 0, sizeof (ifr));
+  snprintf (ifr.ifr_name, IFNAMSIZ, "%s", ifname);
+
+  ret = ioctl (sockfd, SIOCGIFINDEX, &ifr);
+  if (ret < 0)
+    {
+      DEBUG_SDPLANE_LOG (TAPHANDLER, "ioctl (SOICGIFINDEX) failed: %s",
+                          strerror (errno));
+      close (sockfd);
+      return -1;
+    }
+
+  ifindex = ifr.ifr_ifindex;
+  close (sockfd);
+  return ifindex;
+}

@@ -288,6 +288,7 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
   inet_ntop (ndm->ndm_family, RTA_DATA (rtns[NDA_DST]), addr, sizeof (addr));
   msg_neigh_entry.data.family = ndm->ndm_family;
   msg_neigh_entry.data.state = ndm->ndm_state;
+  msg_neigh_entry.data.ifindex = ndm->ndm_ifindex;
   switch (ndm->ndm_family)
     {
     case AF_INET:

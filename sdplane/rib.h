@@ -37,6 +37,7 @@ struct router_if
   struct rte_ring *ring_dn;
 
   uint16_t vlan_id;
+  int ifindex;
   struct rte_ether_addr mac_addr;
   struct in_addr ipv4_addr;
   struct in6_addr ipv6_addr;
@@ -125,6 +126,7 @@ struct neigh_entry
   } ip_addr;
   struct rte_ether_addr mac_addr;
   uint8_t state;
+  int ifindex;
 };
 
 struct neigh_table
