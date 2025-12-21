@@ -16,6 +16,8 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 
+#include <linux/rtnetlink.h>
+
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
@@ -778,6 +780,118 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   _send_link (m, rx_portid, rx_queueid, dst_port, tx_queueid, tx_link);
 }
 
+#define IPPROTO_OSPF 89
+
+static inline __attribute__ ((always_inline)) bool
+_check_control_packet (struct rte_mbuf *m,
+                       struct vswitch_conf *vswitch,
+                       uint16_t eth_type,
+                       struct rte_ether_hdr *eth,
+                       struct rte_vlan_hdr *vlan,
+                       struct rte_ipv4_hdr *ipv4,
+                       struct rte_ipv6_hdr *ipv6,
+                       struct rte_icmp_hdr *icmp)
+{
+  bool is_control = false;
+  struct router_if *rif = &vswitch->router_if;
+
+  /* ARP target_ip is me */
+  uint16_t inner_eth_type = eth_type;
+  if (eth_type == RTE_ETHER_TYPE_VLAN && vlan)
+    inner_eth_type = rte_be_to_cpu_16 (vlan->eth_proto);
+
+  if (inner_eth_type == RTE_ETHER_TYPE_ARP)
+    {
+      struct rte_arp_hdr *arp;
+      if (vlan)
+        arp = (struct rte_arp_hdr *) (vlan + 1);
+      else
+        arp = (struct rte_arp_hdr *) (eth + 1);
+
+      if (memcmp (&arp->arp_data.arp_tip, &rif->ipv4_addr,
+                  sizeof (struct in_addr)) == 0)
+        {
+          is_control = true;
+
+          /* send internal_msg for neighbor resolution */
+          if (rte_be_to_cpu_16 (arp->arp_opcode) == RTE_ARP_OP_REPLY)
+            {
+              void *msgp;
+              struct internal_msg_neigh_entry msg_neigh_entry;
+              msg_neigh_entry.data.family = AF_INET;
+              msg_neigh_entry.data.state = NUD_REACHABLE;
+              msg_neigh_entry.data.ifindex = rif->ifindex;
+              msg_neigh_entry.type = NEIGH_ARP_TABLE;
+              memcpy (&msg_neigh_entry.data.ip_addr.ipv4_addr,
+                      &arp->arp_data.arp_sip, sizeof (struct in_addr));
+              memcpy (&msg_neigh_entry.data.mac_addr,
+                      &arp->arp_data.arp_sha, sizeof (struct rte_ether_addr));
+              msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
+                                          &msg_neigh_entry, sizeof (msg_neigh_entry));
+              if (! msg_queue_neigh)
+                DEBUG_SDPLANE_LOG (ROUTER, "error: neigh_manager is not started.");
+              internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+            }
+        }
+    }
+  else if (ipv4)
+    {
+      if (memcmp (&ipv4->dst_addr, &rif->ipv4_addr,
+                  sizeof (struct in_addr)) == 0)
+        is_control = true;
+      else if (ipv4->next_proto_id == IPPROTO_OSPF)
+        is_control = true;
+    }
+  else if (ipv6)
+    {
+      if (memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
+          &rif->ipv6_addr, sizeof (struct in6_addr)) == 0)
+        is_control = true;
+      else if (ipv6->proto == IPPROTO_OSPF)
+        is_control = true;
+      else if (icmp)
+        {
+          if (icmp->icmp_type == ICMPV6_NS)
+            {
+              /* NS: ICMPv6 header (8 bytes) + Target Address (16 bytes) */
+              struct in6_addr *target_addr =
+                  (struct in6_addr *) ((uint8_t *) icmp + 8);
+              if (memcmp (target_addr, &rif->ipv6_addr,
+                          sizeof (struct in6_addr)) == 0)
+                is_control = true;
+            }
+          else if (icmp->icmp_type == ICMPV6_NA)
+            {
+              if (memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
+                  &rif->ll_addr, sizeof (struct in6_addr)) == 0)
+                {
+                  is_control = true;
+
+                  void *msgp;
+                  struct internal_msg_neigh_entry msg_neigh_entry;
+                  msg_neigh_entry.data.family = AF_INET6;
+                  msg_neigh_entry.data.state = NUD_REACHABLE;
+                  msg_neigh_entry.data.ifindex = rif->ifindex;
+                  msg_neigh_entry.type = NEIGH_ND_TABLE;
+                  struct in6_addr *target_ip =
+                          (struct in6_addr *) ((uint8_t *) icmp + 8);
+                  memcpy (&msg_neigh_entry.data.ip_addr.ipv6_addr,
+                          target_ip, sizeof (struct in6_addr));
+                  memcpy (&msg_neigh_entry.data.mac_addr,
+                          &eth->src_addr, sizeof (struct rte_ether_addr));
+                  msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
+                                              &msg_neigh_entry, sizeof (msg_neigh_entry));
+                  if (! msg_queue_neigh)
+                    DEBUG_SDPLANE_LOG (ROUTER, "error: neigh_manager is not started.");
+                  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+                }
+            }
+        }
+    }
+
+  return is_control;
+}
+
 static inline __attribute__ ((always_inline)) void
 _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
                     unsigned rx_queueid)
@@ -911,50 +1025,8 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   struct router_if *rif = &vswitch->router_if;
   if (rif->sockfd >= 0 && rif->ring_up)
     {
-      /* simple filter */
-      bool is_control = false;
-      /* ARP target_ip is me */
-      uint16_t inner_eth_type = eth_type;
-      if (eth_type == RTE_ETHER_TYPE_VLAN && vlan)
-        inner_eth_type = rte_be_to_cpu_16 (vlan->eth_proto);
-
-      if (inner_eth_type == RTE_ETHER_TYPE_ARP)
-        {
-          struct rte_arp_hdr *arp;
-          if (vlan)
-            arp = (struct rte_arp_hdr *) (vlan + 1);
-          else
-            arp = (struct rte_arp_hdr *) (eth + 1);
-          if (memcmp (&arp->arp_data.arp_tip, &vswitch->router_if.ipv4_addr,
-                      sizeof (struct in_addr)) == 0)
-            is_control = true;
-        }
-        /* ND target_ip is me */
-#define ICMPV6_NS 135
-#define ICMPV6_NA 136
-      else if (ipv6 && icmp &&
-               (icmp->icmp_type == ICMPV6_NS || icmp->icmp_type == ICMPV6_NA))
-        {
-          /* NS/NA: ICMPv6 header (8 bytes) + Target Address (16 bytes) */
-          struct in6_addr *target_addr =
-              (struct in6_addr *) ((uint8_t *) icmp + 8);
-          if (memcmp (target_addr, &vswitch->router_if.ipv6_addr,
-                      sizeof (struct in6_addr)) == 0)
-            is_control = true;
-        }
-      /* dst_ip is me */
-      else if (ipv4 && memcmp (&ipv4->dst_addr, &vswitch->router_if.ipv4_addr,
-                               sizeof (struct in_addr)) == 0)
-        is_control = true;
-      else if (ipv6 && memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
-               &vswitch->router_if.ipv6_addr, sizeof (struct in6_addr)) == 0)
-        is_control = true;
-#define IPPROTO_OSPF 89
-      else if (ipv4 && ipv4->next_proto_id == IPPROTO_OSPF)
-        is_control = true;
-      else if (ipv6 && ipv6->proto == IPPROTO_OSPF)
-        is_control = true;
-
+      bool is_control = _check_control_packet (m, vswitch, eth_type, eth,
+                                               vlan, ipv4, ipv6, icmp);
       if (is_control)
         {
           DEBUG_NEW (ROUTER,
@@ -966,7 +1038,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* 4. check if l3_forwarding */
-  if (! rte_is_same_ether_addr (&eth->dst_addr, &vswitch->router_if.mac_addr))
+  if (! rte_is_same_ether_addr (&eth->dst_addr, &rif->mac_addr))
     {
       DEBUG_NEW (ROUTER, "L2 switching");
       _switching (m, rx_portid, rx_queueid, vswitch, eth);
