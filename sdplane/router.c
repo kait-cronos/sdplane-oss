@@ -16,6 +16,8 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 
+#include <linux/rtnetlink.h>
+
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
@@ -31,6 +33,7 @@
 #include "thread_info.h"
 
 #include "packet_hdr.h"
+#include "packet_gen.h"
 #include "rte_override.h"
 
 #include "fib.h"
@@ -42,54 +45,6 @@ static __thread struct rib *rib = NULL;
 
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
-
-static inline __attribute__ ((always_inline)) struct rte_mbuf *
-_generate_arp_req_pkt (struct rte_ether_addr *src_mac,
-                       struct in_addr *src_ip,
-                       struct in_addr *dst_ip)
-{
-  struct rte_mempool *mp = l2fwd_pktmbuf_pool;
-  struct rte_mbuf *m;
-  struct rte_ether_hdr *eth;
-  struct rte_arp_hdr *arp;
-  size_t pkt_size;
-
-  m = rte_pktmbuf_alloc (mp);
-  if (! m)
-    {
-      DEBUG_NEW(ROUTER, "failed to allocate mbuf for ARP request");
-      return NULL;
-    }
-
-  pkt_size = sizeof (struct rte_ether_hdr) + sizeof (struct rte_arp_hdr);
-  if (rte_pktmbuf_append (m, pkt_size) == NULL)
-    {
-      DEBUG_NEW (ROUTER, "failed to append data to mbuf");
-      rte_pktmbuf_free (m);
-      return NULL;
-    }
-
-  /* setup eth_hdr */
-  eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
-  memset(&eth->dst_addr, 0xff, RTE_ETHER_ADDR_LEN);  // broadcast
-  rte_ether_addr_copy(src_mac, &eth->src_addr);
-  eth->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP);
-
-  /* setup arp_hdr */
-  arp = (struct rte_arp_hdr *)(eth + 1);
-  arp->arp_hardware = rte_cpu_to_be_16 (RTE_ARP_HRD_ETHER);
-  arp->arp_protocol = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
-  arp->arp_hlen = RTE_ETHER_ADDR_LEN;
-  arp->arp_plen = sizeof (struct in_addr);
-  arp->arp_opcode = rte_cpu_to_be_16 (RTE_ARP_OP_REQUEST);
-
-  rte_ether_addr_copy (src_mac, &arp->arp_data.arp_sha);
-  memcpy (&arp->arp_data.arp_sip, src_ip, sizeof(struct in_addr));
-  memset (&arp->arp_data.arp_tha, 0, RTE_ETHER_ADDR_LEN);
-  memcpy (&arp->arp_data.arp_tip, dst_ip, sizeof(struct in_addr));
-
-  return m;
-}
 
 /* _thread_tx_flush() flushes the queue'ed packets
    in tx_buffer_per_q[] onto the NIC. */
@@ -338,27 +293,27 @@ _flooding (struct rte_mbuf *m,
            uint16_t rx_portid, uint16_t rx_queueid,
            struct vswitch_conf *vswitch)
 {
-      unsigned tx_queueid = lcore_id;
-      DEBUG_NEW (ROUTER,
-                 "m: %p flooding to VLAN %u",
-                 m, vswitch->vswitch_id);
+  unsigned tx_queueid = lcore_id;
+  DEBUG_NEW (ROUTER,
+             "m: %p flooding to VLAN %u",
+             m, vswitch->vswitch_id);
 
-      /* flood to all ports in the same vswitch */
-      for (int i = 0; i < vswitch->vswitch_port_size; i++)
-        {
-          uint16_t link_id = vswitch->vswitch_link_id[i];
-          struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
-          unsigned tx_portid = link->port_id;
+  /* flood to all ports in the same vswitch */
+  for (int i = 0; i < vswitch->vswitch_port_size; i++)
+    {
+      uint16_t link_id = vswitch->vswitch_link_id[i];
+      struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
+      unsigned tx_portid = link->port_id;
 
-          /* skip if the tx_port is stopped */
-          if (unlikely (rib->rib_info->port[tx_portid].is_stopped))
-            continue;
+      /* skip if the tx_port is stopped */
+      if (unlikely (rib->rib_info->port[tx_portid].is_stopped))
+        continue;
 
-          /* send to DPDK ports according to the vswitch_link */
-          _send_link (m, ROUTER_IF_RX_SELF_PORT_ID,
-                      ROUTER_IF_RX_SELF_QUEUE_ID,
-                      tx_portid, tx_queueid, link);
-        }
+      /* send to DPDK ports according to the vswitch_link */
+      _send_link (m, ROUTER_IF_RX_SELF_PORT_ID,
+                  ROUTER_IF_RX_SELF_QUEUE_ID,
+                  tx_portid, tx_queueid, link);
+    }
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -377,7 +332,9 @@ _switching (struct rte_mbuf *m,
 
   if (vswitch->is_deleted)
     {
-      DEBUG_NEW (ROUTER, "vswitch[%d]: is deleted.", vswitch->vswitch_id);
+      DEBUG_NEW (ROUTER,
+                 "vswitch[%d]: is deleted.",
+                 vswitch->vswitch_id);
       return;
     }
 
@@ -417,14 +374,16 @@ _switching (struct rte_mbuf *m,
     }
 
   DEBUG_NEW (ROUTER,
-             "m: %p L2 switching: dst MAC unknown, flooding", m);
+             "m: %p L2 switching: dst MAC unknown, flooding",
+             m);
   _flooding (m, rx_portid, rx_queueid, vswitch);
 
   return;
 }
 
 static inline __attribute__ ((always_inline)) void
-_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
+_forwarding (struct rte_mbuf *m,
+             unsigned rx_portid, unsigned rx_queueid,
              struct rte_ether_hdr *eth, struct rte_ipv4_hdr *ipv4,
              struct rte_ipv6_hdr *ipv6, struct vswitch_conf *vswitch,
              struct vswitch_link *vswitch_link)
@@ -448,8 +407,9 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   fib_node = fib_route_lookup (rib->rib_info->fib_tree[tree_idx], dst_ip);
   if (! fib_node)
     {
-      DEBUG_NEW (ROUTER, "m: %p FIB lookup failed, send to router_if",
-                         m);
+      DEBUG_NEW (ROUTER,
+                 "m: %p FIB lookup failed, send to router_if",
+                 m);
       return;
     }
 
@@ -464,75 +424,76 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   char lookup_ip_str[INET6_ADDRSTRLEN];
   int family, oif;
 
-   switch (fib_node->nh.nh_type)
+  switch (fib_node->nh.nh_type)
     {
-      case NH_TYPE_LEGACY:
-        nh_legacy =
-            &rib->rib_info->nexthop.legacy.object[fib_node->nh.nh_id];
-        switch (nh_legacy->type)
-          {
-            case NH_OBJ_TYPE_OBJECT:
-              family = nh_legacy->nh_info.family;
-              oif = nh_legacy->nh_info.oif;
+    case NH_TYPE_LEGACY:
+      nh_legacy =
+          &rib->rib_info->nexthop.legacy.object[fib_node->nh.nh_id];
+      switch (nh_legacy->type)
+        {
+        case NH_OBJ_TYPE_OBJECT:
+          family = nh_legacy->nh_info.family;
+          oif = nh_legacy->nh_info.oif;
+          inet_ntop (family,
+                     &nh_legacy->nh_info.nh_ip_addr,
+                     nexthop_str, sizeof (nexthop_str));
+          memcpy (lookup_ip,
+                  &nh_legacy->nh_info.nh_ip_addr,
+                  sizeof (lookup_ip));
+          /* for directly connected routes (nexthop = 0.0.0.0), use destination IP */
+          if (nh_legacy->nh_info.type == ROUTE_TYPE_CONNECTED)
+            {
+              memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
               inet_ntop (family,
-                         &nh_legacy->nh_info.nh_ip_addr, nexthop_str,
-                         sizeof (nexthop_str));
-              memcpy (lookup_ip,
-                      &nh_legacy->nh_info.nh_ip_addr,
-                      sizeof (lookup_ip));
-              /* for directly connected routes (nexthop = 0.0.0.0), use destination IP */
-              if (nh_legacy->nh_info.type == ROUTE_TYPE_CONNECTED)
-                {
-                  memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
-                  inet_ntop (family,
-                             lookup_ip, lookup_ip_str,
-                             sizeof (lookup_ip_str));
-                  DEBUG_NEW (
-                      ROUTER,
-                      "m: %p directly connected route, using dst IP for ARP lookup:%s", m,
-                      lookup_ip_str);
-                }
-              break;
+                         lookup_ip, lookup_ip_str,
+                         sizeof (lookup_ip_str));
+              DEBUG_NEW (
+                  ROUTER,
+                  "m: %p directly connected route, using dst IP for ARP lookup:%s",
+                  m, lookup_ip_str);
+            }
+          break;
 
-            case NH_OBJ_TYPE_GROUP:
-              family = nh_legacy->nh_grp.nh_info_list[0].family;
-              oif = nh_legacy->nh_grp.nh_info_list[0].oif;
-              /* use the first nexthop in the group for now */
+        case NH_OBJ_TYPE_GROUP:
+          family = nh_legacy->nh_grp.nh_info_list[0].family;
+          oif = nh_legacy->nh_grp.nh_info_list[0].oif;
+          /* use the first nexthop in the group for now */
+          inet_ntop (family,
+                     &nh_legacy->nh_grp.nh_info_list[0].nh_ip_addr,
+                     nexthop_str, sizeof (nexthop_str));
+          memcpy (lookup_ip,
+                  &nh_legacy->nh_grp.nh_info_list[0].nh_ip_addr,
+                  sizeof (lookup_ip));
+          /* for directly connected routes (nexthop = 0.0.0.0), use destination IP */
+          if (nh_legacy->nh_grp.nh_info_list[0].type == ROUTE_TYPE_CONNECTED)
+            {
+              memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
               inet_ntop (family,
-                         &nh_legacy->nh_grp.nh_info_list[0].nh_ip_addr, nexthop_str,
-                         sizeof (nexthop_str));
-              memcpy (lookup_ip,
-                      &nh_legacy->nh_grp.nh_info_list[0].nh_ip_addr,
-                      sizeof (lookup_ip));
-              /* for directly connected routes (nexthop = 0.0.0.0), use destination IP */
-              if (nh_legacy->nh_grp.nh_info_list[0].type == ROUTE_TYPE_CONNECTED)
-                {
-                  memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
-                  inet_ntop (family,
-                             lookup_ip, lookup_ip_str,
-                             sizeof (lookup_ip_str));
-                  DEBUG_NEW (
-                      ROUTER,
-                      "m: %p directly connected route, using dst IP for ARP lookup:%s", m,
-                      lookup_ip_str);
-                }
-              break;
+                         lookup_ip, lookup_ip_str,
+                         sizeof (lookup_ip_str));
+              DEBUG_NEW (
+                  ROUTER,
+                  "m: %p directly connected route, using dst IP for ARP lookup:%s",
+                  m, lookup_ip_str);
+            }
+          break;
 
-            default:
-              return;
-          }
-        break;
+        default:
+          return;
+        }
+      break;
 
-      case NH_TYPE_OBJECT_CAP:
-        DEBUG_NEW (ROUTER, "m: %p unsupported nexthop type: %d",
-                  m, fib_node->nh.nh_type);
-        break;
+    case NH_TYPE_OBJECT_CAP:
+      DEBUG_NEW (ROUTER, "m: %p unsupported nexthop type: %d",
+                 m, fib_node->nh.nh_type);
+      break;
 
-      default:
-        return;
-      }
+    default:
+      return;
+    }
 
-  DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s", m, nexthop_str);
+  DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s",
+             m, nexthop_str);
 
   /* neighbor table lookup */
   neigh_table_type = AF_TO_NEIGH_TABLE (family);
@@ -540,9 +501,6 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                         neigh_table_type, lookup_ip, &neigh_entry);
   if (! neigh_entry)
     {
-      DEBUG_NEW (ROUTER,
-                 "m: %p %s lookup failed, send to router_if",
-                 m, neigh_manager_table_str (neigh_table_type));
       /* ARP/ND resolution */
       for (i = 0; i < rib->rib_info->vswitch_size; i++)
         {
@@ -554,14 +512,14 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
           if (family == AF_INET)
             {
               struct rte_mbuf *arp_pkt;
-              arp_pkt = _generate_arp_req_pkt (&rif->mac_addr,
-                                               &rif->ipv4_addr,
-                                               (struct in_addr *)lookup_ip);
+              arp_pkt = arp_req_pkt_gen (&rif->mac_addr, &rif->ipv4_addr,
+                                         (struct in_addr *) lookup_ip);
               if (arp_pkt)
                 {
                   char dst_ip_str[INET_ADDRSTRLEN];
                   inet_ntop (AF_INET, lookup_ip, dst_ip_str, sizeof (dst_ip_str));
-                  DEBUG_NEW (ROUTER, "m: %p send ARP request for %s via vswitch[%d]",
+                  DEBUG_NEW (ROUTER,
+                             "m: %p send ARP request: target_ip: %s, flooding to vswitch[%d]",
                              arp_pkt, dst_ip_str, vs->vswitch_id);
 
                   _flooding (arp_pkt, ROUTER_IF_RX_SELF_PORT_ID,
@@ -570,11 +528,27 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                   rte_pktmbuf_free (arp_pkt);
                 }
               else
-                DEBUG_NEW(ROUTER, "m: %p failed to generate ARP request", m);
+                DEBUG_NEW (ROUTER, "m: %p failed to generate ARP request", m);
             }
           else
             {
-              // TODO: send NS flooding
+              struct rte_mbuf *ns_pkt;
+              ns_pkt = ns_pkt_gen (&rif->mac_addr, &rif->ll_addr,
+                                   (struct in6_addr *) lookup_ip);
+              if (ns_pkt)
+                {
+                  char dst_ip_str[INET6_ADDRSTRLEN];
+                  inet_ntop (AF_INET6, lookup_ip, dst_ip_str, sizeof (dst_ip_str));
+                  DEBUG_NEW (ROUTER,
+                             "m: %p send NS: target_ip: %s, flooding to vswitch[%d]",
+                             m, ns_pkt, dst_ip_str, vs->vswitch_id);
+                  _flooding (ns_pkt, ROUTER_IF_RX_SELF_PORT_ID,
+                             ROUTER_IF_RX_SELF_QUEUE_ID, vs);
+
+                  rte_pktmbuf_free (ns_pkt);
+                }
+              else
+                DEBUG_NEW (ROUTER, "m: %p failed to generate NS", m);
             }
           return;
         }
@@ -658,6 +632,120 @@ _forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
 
   unsigned tx_queueid = lcore_id;
   _send_link (m, rx_portid, rx_queueid, dst_port, tx_queueid, tx_link);
+}
+
+#define IPPROTO_OSPF 89
+
+static inline __attribute__ ((always_inline)) bool
+_check_control_packet (struct rte_mbuf *m,
+                       struct vswitch_conf *vswitch,
+                       uint16_t eth_type,
+                       struct rte_ether_hdr *eth,
+                       struct rte_vlan_hdr *vlan,
+                       struct rte_ipv4_hdr *ipv4,
+                       struct rte_ipv6_hdr *ipv6,
+                       struct rte_icmp_hdr *icmp)
+{
+  bool is_control = false;
+  struct router_if *rif = &vswitch->router_if;
+
+  /* ARP target_ip is me */
+  uint16_t inner_eth_type = eth_type;
+  if (eth_type == RTE_ETHER_TYPE_VLAN && vlan)
+    inner_eth_type = rte_be_to_cpu_16 (vlan->eth_proto);
+
+  if (inner_eth_type == RTE_ETHER_TYPE_ARP)
+    {
+      struct rte_arp_hdr *arp;
+      if (vlan)
+        arp = (struct rte_arp_hdr *) (vlan + 1);
+      else
+        arp = (struct rte_arp_hdr *) (eth + 1);
+
+      if (memcmp (&arp->arp_data.arp_tip, &rif->ipv4_addr,
+                  sizeof (struct in_addr)) == 0)
+        {
+          is_control = true;
+
+          /* send internal_msg for neighbor resolution */
+          if (rte_be_to_cpu_16 (arp->arp_opcode) == RTE_ARP_OP_REPLY)
+            {
+              void *msgp;
+              struct internal_msg_neigh_entry msg_neigh_entry;
+              msg_neigh_entry.data.family = AF_INET;
+              msg_neigh_entry.data.state = NUD_REACHABLE;
+              msg_neigh_entry.data.ifindex = rif->ifindex;
+              msg_neigh_entry.type = NEIGH_ARP_TABLE;
+              memcpy (&msg_neigh_entry.data.ip_addr.ipv4_addr,
+                      &arp->arp_data.arp_sip, sizeof (struct in_addr));
+              memcpy (&msg_neigh_entry.data.mac_addr,
+                      &arp->arp_data.arp_sha, sizeof (struct rte_ether_addr));
+              msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
+                                          &msg_neigh_entry, sizeof (msg_neigh_entry));
+              if (! msg_queue_neigh)
+                DEBUG_NEW (ROUTER,
+                           "error: neigh_manager is not started.");
+              internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+            }
+        }
+    }
+  else if (ipv4)
+    {
+      if (memcmp (&ipv4->dst_addr, &rif->ipv4_addr,
+                  sizeof (struct in_addr)) == 0)
+        is_control = true;
+      else if (ipv4->next_proto_id == IPPROTO_OSPF)
+        is_control = true;
+    }
+  else if (ipv6)
+    {
+      if (memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
+          &rif->ipv6_addr, sizeof (struct in6_addr)) == 0)
+        is_control = true;
+      else if (ipv6->proto == IPPROTO_OSPF)
+        is_control = true;
+      else if (icmp)
+        {
+          if (icmp->icmp_type == ICMPV6_NS)
+            {
+              /* NS: ICMPv6 header (8 bytes) + Target Address (16 bytes) */
+              struct in6_addr *target_addr =
+                  (struct in6_addr *) ((uint8_t *) icmp + 8);
+              if (memcmp (target_addr, &rif->ipv6_addr,
+                          sizeof (struct in6_addr)) == 0)
+                is_control = true;
+            }
+          else if (icmp->icmp_type == ICMPV6_NA)
+            {
+              if (memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
+                  &rif->ll_addr, sizeof (struct in6_addr)) == 0)
+                {
+                  is_control = true;
+
+                  void *msgp;
+                  struct internal_msg_neigh_entry msg_neigh_entry;
+                  msg_neigh_entry.data.family = AF_INET6;
+                  msg_neigh_entry.data.state = NUD_REACHABLE;
+                  msg_neigh_entry.data.ifindex = rif->ifindex;
+                  msg_neigh_entry.type = NEIGH_ND_TABLE;
+                  struct in6_addr *target_ip =
+                      (struct in6_addr *) ((uint8_t *) icmp + 8);
+                  memcpy (&msg_neigh_entry.data.ip_addr.ipv6_addr,
+                          target_ip, sizeof (struct in6_addr));
+                  memcpy (&msg_neigh_entry.data.mac_addr,
+                          &eth->src_addr, sizeof (struct rte_ether_addr));
+                  msgp = internal_msg_create (INTERNAL_MSG_TYPE_NEIGH_ENTRY_ADD,
+                                              &msg_neigh_entry, sizeof (msg_neigh_entry));
+                  if (! msg_queue_neigh)
+                    DEBUG_NEW (ROUTER,
+                               "error: neigh_manager is not started.");
+                  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+                }
+            }
+        }
+    }
+
+  return is_control;
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -793,50 +881,8 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   struct router_if *rif = &vswitch->router_if;
   if (rif->sockfd >= 0 && rif->ring_up)
     {
-      /* simple filter */
-      bool is_control = false;
-      /* ARP target_ip is me */
-      uint16_t inner_eth_type = eth_type;
-      if (eth_type == RTE_ETHER_TYPE_VLAN && vlan)
-        inner_eth_type = rte_be_to_cpu_16 (vlan->eth_proto);
-
-      if (inner_eth_type == RTE_ETHER_TYPE_ARP)
-        {
-          struct rte_arp_hdr *arp;
-          if (vlan)
-            arp = (struct rte_arp_hdr *) (vlan + 1);
-          else
-            arp = (struct rte_arp_hdr *) (eth + 1);
-          if (memcmp (&arp->arp_data.arp_tip, &vswitch->router_if.ipv4_addr,
-                      sizeof (struct in_addr)) == 0)
-            is_control = true;
-        }
-        /* ND target_ip is me */
-#define ICMPV6_NS 135
-#define ICMPV6_NA 136
-      else if (ipv6 && icmp &&
-               (icmp->icmp_type == ICMPV6_NS || icmp->icmp_type == ICMPV6_NA))
-        {
-          /* NS/NA: ICMPv6 header (8 bytes) + Target Address (16 bytes) */
-          struct in6_addr *target_addr =
-              (struct in6_addr *) ((uint8_t *) icmp + 8);
-          if (memcmp (target_addr, &vswitch->router_if.ipv6_addr,
-                      sizeof (struct in6_addr)) == 0)
-            is_control = true;
-        }
-      /* dst_ip is me */
-      else if (ipv4 && memcmp (&ipv4->dst_addr, &vswitch->router_if.ipv4_addr,
-                               sizeof (struct in_addr)) == 0)
-        is_control = true;
-      else if (ipv6 && memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
-               &vswitch->router_if.ipv6_addr, sizeof (struct in6_addr)) == 0)
-        is_control = true;
-#define IPPROTO_OSPF 89
-      else if (ipv4 && ipv4->next_proto_id == IPPROTO_OSPF)
-        is_control = true;
-      else if (ipv6 && ipv6->proto == IPPROTO_OSPF)
-        is_control = true;
-
+      bool is_control = _check_control_packet (m, vswitch, eth_type, eth,
+                                               vlan, ipv4, ipv6, icmp);
       if (is_control)
         {
           DEBUG_NEW (ROUTER,
@@ -848,7 +894,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* 4. check if l3_forwarding */
-  if (! rte_is_same_ether_addr (&eth->dst_addr, &vswitch->router_if.mac_addr))
+  if (! rte_is_same_ether_addr (&eth->dst_addr, &rif->mac_addr))
     {
       DEBUG_NEW (ROUTER, "L2 switching");
       _switching (m, rx_portid, rx_queueid, vswitch, eth);
@@ -863,8 +909,9 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* 6. forwarding */
-  _forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, vswitch,
-               vswitch_link);
+  _forwarding (m, rx_portid, rx_queueid,
+               eth, ipv4, ipv6,
+               vswitch, vswitch_link);
 
   return;
 }
@@ -898,8 +945,9 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
         ipv6 = (struct rte_ipv6_hdr *) (eth + 1);
     }
 
-  DEBUG_NEW (ROUTER, "m: %p received on port: %d queue: %d", m,
-                     ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
+  DEBUG_NEW (ROUTER,
+             "m: %p received on port: %d queue: %d",
+             m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
 
   /* check if this is a non-IP packet or multicast or broadcast */
   if ((! ipv4 && ! ipv6) || 
@@ -911,8 +959,10 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       return;
     }
 
-  _forwarding (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID, eth,
-               ipv4, ipv6, vswitch, NULL);
+  _forwarding (m,
+               ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
+               eth, ipv4, ipv6,
+               vswitch, NULL);
 }
 
 static inline __attribute__ ((always_inline)) void
