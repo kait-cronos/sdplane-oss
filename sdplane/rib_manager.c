@@ -1786,11 +1786,6 @@ rib_manager_process_message (void *msgp)
       ret = rib_check (new);
       delete_stop_flag (old);
 
-      app_slot.name = L3_TAP_HANDLER_APP_NAME;
-      app_slot.ring = rif->ring_up;
-      app_slot.is_packet_match = should_send_to_tap;
-      application_slot_add (new->rib_info, &app_slot);
-
       /* if rib_check() is not a pass */
       if (ret < 0)
         {
@@ -1798,6 +1793,20 @@ rib_manager_process_message (void *msgp)
           free (msgp);
           return;
         }
+
+#if 0
+      /*
+       * TODO(#229):
+       * Temporarily disabled due to duplicate TX on the same link
+       * with enhanced repeater.
+       * Expected to be resolved by future changes to the application_slot implementation.
+       */
+
+       app_slot.name = L3_TAP_HANDLER_APP_NAME;
+       app_slot.ring = rif->ring_up;
+       app_slot.is_packet_match = should_send_to_tap;
+       application_slot_add (new->rib_info, &app_slot);
+#endif
 
       break;
 
