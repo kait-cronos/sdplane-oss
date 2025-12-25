@@ -281,7 +281,6 @@ is_control_packet (struct rte_mbuf *m)
                                           sizeof (struct rte_vlan_hdr));
     }
 
-  // --- Protocol filter function array ---
   typedef bool (*filter_func_t) (void *, uint16_t);
   filter_func_t filter_funcs[] = { is_isis, is_arp, is_icmp, is_ospf,  is_pim,
                                    is_bgp,  is_ldp, is_rip,  is_babel, is_nd };

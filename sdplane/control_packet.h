@@ -8,7 +8,6 @@
 #define IPPROTO_OSPFIGP 89
 #define IPPROTO_PIM 103
 
-/* Common IP protocol numbers (guarded to avoid redefinition) */
 #ifndef IPPROTO_TCP
 #define IPPROTO_TCP 6
 #endif
@@ -25,7 +24,6 @@
 #define IPPROTO_OSPF 89
 #endif
 
-/* Well-known ports used by control protocols (guarded) */
 #ifndef BGP_PORT
 #define BGP_PORT 179
 #endif
