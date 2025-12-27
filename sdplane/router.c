@@ -394,7 +394,7 @@ _forwarding (struct rte_mbuf *m,
   struct rte_ether_addr *dst_mac;
   struct fib_node *fib_node;
   uint8_t dst_ip[16] = { 0 };
-  int i, j;
+  int i;
   struct vswitch_link *tx_link = NULL;
   int dst_port = -1, neigh_table_type;
 
@@ -563,10 +563,7 @@ _forwarding (struct rte_mbuf *m,
                      m, neigh_mac_str);
 
   /* search tx vswitch_link */
-  /* XXX we should not iterate all vswitches to find the output port.
-     we should be able to use route_entry->oif (which must specify the
-     router-if) and its corresponding vswitch, for the search.
-     The iteration on all vswitches should be avoided for performance. */
+  struct vswitch_conf *target_vswitch = NULL;
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
@@ -574,26 +571,36 @@ _forwarding (struct rte_mbuf *m,
       if (vs->is_deleted)
         continue;
 
-      for (j = 0; j < vs->vswitch_port_size; j++)
+      if (vs->router_if.ifindex == oif)
         {
-          uint16_t link_id = vs->vswitch_link_id[j];
-          struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
-
-          /* FDB lookup */
-          dst_port = fdb_lookup_entry (rib->rib_info, dst_mac, vs->vlan_id);
-          if (dst_port >= 0 && link->port_id == dst_port)
-            {
-              /* split-horizon check: don't send back to the same link */
-              if (vswitch_link && link == vswitch_link)
-                continue;
-
-              tx_link = link;
-              break;
-            }
+          target_vswitch = vs;
+          break;
         }
+    }
 
-      if (tx_link)
-        break;
+  if (! target_vswitch)
+    {
+      DEBUG_NEW (ROUTER, "m: %p vswitch not found for oif %d", m, oif);
+      return;
+    }
+
+  dst_port = fdb_lookup_entry (rib->rib_info, dst_mac, target_vswitch->vlan_id);
+  if (dst_port < 0)
+    {
+      DEBUG_NEW (ROUTER, "m: %p FDB lookup failed, drop", m);
+      return;
+    }
+
+  for (i = 0; i < target_vswitch->vswitch_port_size; i++)
+    {
+      uint16_t link_id = target_vswitch->vswitch_link_id[i];
+      struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
+
+      if (link->port_id == dst_port)
+        {
+          tx_link = link;
+          break;
+        }
     }
 
   if (! tx_link)
