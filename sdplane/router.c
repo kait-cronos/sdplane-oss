@@ -121,8 +121,9 @@ _send_ring (struct rte_mbuf *m,
 static inline __attribute__ ((always_inline)) void
 _send_link (struct rte_mbuf *m,
             unsigned rx_portid, unsigned rx_queueid,
+            struct vswitch_link *rx_link,
             unsigned tx_portid, unsigned tx_queueid,
-            struct vswitch_link *vswitch_link)
+            struct vswitch_link *tx_link)
 {
   struct rte_eth_dev_tx_buffer *buffer;
   uint16_t nb_ports;
@@ -134,7 +135,7 @@ _send_link (struct rte_mbuf *m,
   if (tx_portid >= nb_ports)
     return;
 
-  if (rx_portid == tx_portid)
+  if (rx_portid == tx_portid && rx_link && rx_link == tx_link)
     return;
 
   if (! rib->rib_info->port[tx_portid].link.link_status)
@@ -170,29 +171,29 @@ _send_link (struct rte_mbuf *m,
       vlan = (struct rte_vlan_hdr *) (eth + 1);
       vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan->vlan_tci));
 
-      if (vswitch_link->tag_id != 0 && vswitch_link->tag_id != vlan_id)
+      if (tx_link->tag_id != 0 && tx_link->tag_id != vlan_id)
         {
           /* vlan_id translation: modify vlan_id on tx */
           old_vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
           new_vlan_tci =
-              ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
+              ((old_vlan_tci & 0xf000) | (tx_link->tag_id & 0x0fff));
           DEBUG_NEW (ROUTER,
                      "m: %p port[%d]: vlan_id modification: %u -> %u",
-                     m, vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
+                     m, tx_link->port_id, vlan_id, tx_link->tag_id);
           vlan->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
-      else if (vswitch_link->tag_id == 0)
+      else if (tx_link->tag_id == 0)
         {
           /* remove vlan_hdr */
           rte_vlan_strip (c);
           DEBUG_NEW (ROUTER,
                      "m: %p port[%d]: vlan_id strip: %u -> %u",
-                     m, vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
+                     m, tx_link->port_id, vlan_id, tx_link->tag_id);
         }
     }
   else
     {
-      if (vswitch_link->tag_id != 0)
+      if (tx_link->tag_id != 0)
         {
           /* insert vlan_hdr */
           rte_vlan_insert (&c);
@@ -202,10 +203,10 @@ _send_link (struct rte_mbuf *m,
           vlan = (struct rte_vlan_hdr *) (eth + 1);
           old_vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
           new_vlan_tci =
-              ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
+              ((old_vlan_tci & 0xf000) | (tx_link->tag_id & 0x0fff));
           DEBUG_NEW (ROUTER,
                      "m: %p port[%d]: add vlan_id: %u",
-                     m, vswitch_link->port_id, vswitch_link->tag_id);
+                     m, tx_link->port_id, tx_link->tag_id);
           vlan->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
     }
@@ -291,6 +292,7 @@ _verify_packet (struct rte_mbuf *m, struct rte_ipv4_hdr *ipv4,
 static inline __attribute__ ((always_inline)) void
 _flooding (struct rte_mbuf *m,
            uint16_t rx_portid, uint16_t rx_queueid,
+           struct vswitch_link *rx_link,
            struct vswitch_conf *vswitch)
 {
   unsigned tx_queueid = lcore_id;
@@ -310,8 +312,7 @@ _flooding (struct rte_mbuf *m,
         continue;
 
       /* send to DPDK ports according to the vswitch_link */
-      _send_link (m, ROUTER_IF_RX_SELF_PORT_ID,
-                  ROUTER_IF_RX_SELF_QUEUE_ID,
+      _send_link (m, rx_portid, rx_queueid, rx_link,
                   tx_portid, tx_queueid, link);
     }
 }
@@ -319,6 +320,7 @@ _flooding (struct rte_mbuf *m,
 static inline __attribute__ ((always_inline)) void
 _switching (struct rte_mbuf *m,
             uint16_t rx_portid, uint16_t rx_queueid,
+            struct vswitch_link *rx_link,
             struct vswitch_conf *vswitch,
             struct rte_ether_hdr *eth)
 {
@@ -342,7 +344,7 @@ _switching (struct rte_mbuf *m,
   if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
-      _flooding (m, rx_portid, rx_queueid, vswitch);
+      _flooding (m, rx_portid, rx_queueid, rx_link, vswitch);
       return;
     }
 
@@ -365,8 +367,7 @@ _switching (struct rte_mbuf *m,
               DEBUG_NEW (ROUTER,
                          "m: %p L2 switching to port %d via link %d",
                          m, dst_port, link_id);
-              _send_link (m, ROUTER_IF_RX_SELF_PORT_ID,
-                          ROUTER_IF_RX_SELF_QUEUE_ID,
+              _send_link (m, rx_portid, rx_queueid, rx_link,
                           dst_port, tx_queueid, link);
               return;
             }
@@ -376,7 +377,7 @@ _switching (struct rte_mbuf *m,
   DEBUG_NEW (ROUTER,
              "m: %p L2 switching: dst MAC unknown, flooding",
              m);
-  _flooding (m, rx_portid, rx_queueid, vswitch);
+  _flooding (m, rx_portid, rx_queueid, rx_link, vswitch);
 
   return;
 }
@@ -523,7 +524,7 @@ _forwarding (struct rte_mbuf *m,
                              arp_pkt, dst_ip_str, vs->vswitch_id);
 
                   _flooding (arp_pkt, ROUTER_IF_RX_SELF_PORT_ID,
-                             ROUTER_IF_RX_SELF_QUEUE_ID, vs);
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs);
 
                   rte_pktmbuf_free (arp_pkt);
                 }
@@ -543,7 +544,7 @@ _forwarding (struct rte_mbuf *m,
                              "m: %p send NS: target_ip: %s, flooding to vswitch[%d]",
                              m, ns_pkt, dst_ip_str, vs->vswitch_id);
                   _flooding (ns_pkt, ROUTER_IF_RX_SELF_PORT_ID,
-                             ROUTER_IF_RX_SELF_QUEUE_ID, vs);
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs);
 
                   rte_pktmbuf_free (ns_pkt);
                 }
@@ -631,7 +632,8 @@ _forwarding (struct rte_mbuf *m,
                      m, dst_port, tx_link->vswitch_link_id);
 
   unsigned tx_queueid = lcore_id;
-  _send_link (m, rx_portid, rx_queueid, dst_port, tx_queueid, tx_link);
+  _send_link (m, rx_portid, rx_queueid, vswitch_link,
+              dst_port, tx_queueid, tx_link);
 }
 
 #define IPPROTO_OSPF 89
@@ -932,7 +934,8 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (! rte_is_same_ether_addr (&eth->dst_addr, &rif->mac_addr))
     {
       DEBUG_NEW (ROUTER, "L2 switching");
-      _switching (m, rx_portid, rx_queueid, vswitch, eth);
+      _switching (m, rx_portid, rx_queueid,
+                  vswitch_link, vswitch, eth);
       return;
     }
 
@@ -990,7 +993,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
       _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-                  vswitch, eth);
+                  NULL, vswitch, eth);
       return;
     }
 
