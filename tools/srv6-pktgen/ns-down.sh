@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-NS="seg6gen"
+NS="seg6gen-1 seg6gen-2"
 
-ip netns pids "$NS" | xargs -r kill
-for dev in $(ip -n "$NS" -o link show | awk -F': ' '{print $2}' | grep -v "lo"); do
-    ip -n "$NS" link set "$dev" netns 1
+for ns in $NS; do
+	ip netns pids "$ns" | xargs -r kill
+	DEVS=$(ip -n "$ns" -j link show 2>/dev/null | jq -r '.[] | select(.ifname != "lo") | .ifname')
+	for dev in $DEVS; do
+		ip -n "$ns" link del "$dev" 2>/dev/null || true
+	done
+	ip netns del "$ns" || true
 done
-ip netns del "$NS" || true
