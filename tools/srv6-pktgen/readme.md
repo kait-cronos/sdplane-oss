@@ -1,5 +1,12 @@
-usage:
+### Topoloy Overview
+![Topology](./topology.dio.png)
+
+### Configuration
 ```sh
-sudo ./ns-up.sh eno2
-sudo ./ns-down.sh
+$ make sdplane-up
+# ++++++ open other tty and... ++++++ 
+$ make conf
+$ make ns-up NIC=eno2
+# and enjoy!!
 ```
+
