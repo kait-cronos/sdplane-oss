@@ -1,5 +1,5 @@
 
-AM_CFLAGS = -Wno-format-truncation -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result
+AM_CFLAGS = -Wno-format-truncation -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-function
 
 COMMON_DIR = $(top_srcdir)/module/common
 SDPLANE_DIR = $(top_srcdir)/sdplane
