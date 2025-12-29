@@ -593,6 +593,7 @@ nexthop_legacy_group_jenkins_hash (struct nh_info_group *nhg)
 {
   uint32_t hash, combined_hash;
   int i;
+  hash = combined_hash = 0;
 
   for (i = 0; i < nhg->num; i++)
     {
