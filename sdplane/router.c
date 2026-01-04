@@ -541,7 +541,7 @@ _forwarding (struct rte_mbuf *m,
                   char dst_ip_str[INET6_ADDRSTRLEN];
                   inet_ntop (AF_INET6, lookup_ip, dst_ip_str, sizeof (dst_ip_str));
                   DEBUG_NEW (ROUTER,
-                             "m: %p send NS: target_ip: %s, flooding to vswitch[%d]",
+                             "m: %p send NS: %p, target_ip: %s, flooding to vswitch[%d]",
                              m, ns_pkt, dst_ip_str, vs->vswitch_id);
                   _flooding (ns_pkt, ROUTER_IF_RX_SELF_PORT_ID,
                              ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs);
