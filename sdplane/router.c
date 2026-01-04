@@ -682,10 +682,6 @@ _check_control_packet (struct rte_mbuf *m,
   bool is_control = false;
   struct router_if *rif = &vswitch->router_if;
 
-  /* Broadcast addr is also me */
-  if (rte_is_broadcast_ether_addr (&eth->dst_addr))
-    is_control = true;
-
   /* ARP target_ip is me */
   uint16_t inner_eth_type = eth_type;
   if (eth_type == RTE_ETHER_TYPE_VLAN && vlan)
