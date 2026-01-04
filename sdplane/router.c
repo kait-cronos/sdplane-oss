@@ -315,6 +315,30 @@ _flooding (struct rte_mbuf *m,
       _send_link (m, rx_portid, rx_queueid, rx_link,
                   tx_portid, tx_queueid, link);
     }
+  
+    /* Flooding is also required for router_if */
+    struct router_if *rif = &vswitch->router_if;
+    if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID 
+        && rif->sockfd >= 0 && rif->ring_up)
+      {
+        struct rte_mbuf *c;
+        c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+        if (!c) 
+          return;
+        if (is_rte_vlan_hdr (c))
+          if (rif->vlan_id)
+            rte_vlan_hdr_set (c, rif->vlan_id);
+          else
+            rte_vlan_strip (c);
+        else if (rif->vlan_id)
+          {
+            rte_vlan_insert (&c);
+            rte_vlan_hdr_set (c, rif->vlan_id);
+          } 
+      
+        _send_ring(c, rx_portid, rx_queueid, rif -> ring_up);
+        rte_pktmbuf_free(c);
+      }
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -500,7 +524,7 @@ _forwarding (struct rte_mbuf *m,
   neigh_table_type = AF_TO_NEIGH_TABLE (family);
   neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
                         neigh_table_type, lookup_ip, &neigh_entry);
-  if (! neigh_entry)
+  if (! neigh_entry || rte_is_zero_ether_addr(&neigh_entry->mac_addr))
     {
       /* ARP/ND resolution */
       for (i = 0; i < rib->rib_info->vswitch_size; i++)
@@ -541,7 +565,7 @@ _forwarding (struct rte_mbuf *m,
                   char dst_ip_str[INET6_ADDRSTRLEN];
                   inet_ntop (AF_INET6, lookup_ip, dst_ip_str, sizeof (dst_ip_str));
                   DEBUG_NEW (ROUTER,
-                             "m: %p send NS: target_ip: %s, flooding to vswitch[%d]",
+                             "m: %p send NS: %p, target_ip: %s, flooding to vswitch[%d]",
                              m, ns_pkt, dst_ip_str, vs->vswitch_id);
                   _flooding (ns_pkt, ROUTER_IF_RX_SELF_PORT_ID,
                              ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs);
