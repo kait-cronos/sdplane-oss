@@ -315,6 +315,29 @@ _flooding (struct rte_mbuf *m,
       _send_link (m, rx_portid, rx_queueid, rx_link,
                   tx_portid, tx_queueid, link);
     }
+  
+    /* Flooding is also required for router_if */
+    struct router_if *rif = &vswitch->router_if;
+    if (rif->sockfd >= 0 && rif->ring_up)
+      {
+        struct rte_mbuf *c;
+        c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+        if (!c) 
+          return;
+        if (is_rte_vlan_hdr (c))
+          if (rif->vlan_id)
+            rte_vlan_hdr_set (c, rif->vlan_id);
+          else
+            rte_vlan_strip (c);
+        else if (rif->vlan_id)
+          {
+            rte_vlan_insert (&c);
+            rte_vlan_hdr_set (c, rif->vlan_id);
+          } 
+      
+        _send_ring(c, rx_portid, rx_queueid, rif -> ring_up);
+        rte_pktmbuf_free(c);
+      }
 }
 
 static inline __attribute__ ((always_inline)) void
