@@ -500,7 +500,7 @@ _forwarding (struct rte_mbuf *m,
   neigh_table_type = AF_TO_NEIGH_TABLE (family);
   neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
                         neigh_table_type, lookup_ip, &neigh_entry);
-  if (! neigh_entry)
+  if (! neigh_entry || rte_is_zero_ether_addr(&neigh_entry->mac_addr))
     {
       /* ARP/ND resolution */
       for (i = 0; i < rib->rib_info->vswitch_size; i++)
