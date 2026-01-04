@@ -318,7 +318,8 @@ _flooding (struct rte_mbuf *m,
   
     /* Flooding is also required for router_if */
     struct router_if *rif = &vswitch->router_if;
-    if (rif->sockfd >= 0 && rif->ring_up)
+    if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID 
+        && rif->sockfd >= 0 && rif->ring_up)
       {
         struct rte_mbuf *c;
         c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
