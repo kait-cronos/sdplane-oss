@@ -119,6 +119,49 @@ _send_ring (struct rte_mbuf *m,
 }
 
 static inline __attribute__ ((always_inline)) void
+_send_router_if_ring (struct rte_mbuf *m,
+                      unsigned rx_portid, unsigned rx_queueid,
+                      struct router_if *rif)
+{
+  struct rte_mbuf *c;
+  c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+  if (c)
+    {
+      if (rif->vlan_id)
+        {
+          if (is_rte_vlan_hdr (c))
+            {
+              DEBUG_NEW (ROUTER,
+                          "m: %p router-if: vlan modify: %d.",
+                          m, rif->vlan_id);
+              rte_vlan_hdr_set (c, rif->vlan_id);
+            }
+          else
+            {
+              DEBUG_NEW (ROUTER,
+                          "m: %p router-if: vlan insert: %d.",
+                          m, rif->vlan_id);
+              rte_vlan_insert (&c);
+              rte_vlan_hdr_set (c, rif->vlan_id);
+            }
+        }
+      else
+        {
+          if (is_rte_vlan_hdr (c))
+            {
+              DEBUG_NEW (ROUTER,
+                          "m: %p router-if: vlan strip", m);
+              rte_vlan_strip (c);
+            }
+        }
+
+      _send_ring (c, rx_portid, rx_queueid, rif->ring_up); 
+      rte_pktmbuf_free (c);
+    }
+}
+
+
+static inline __attribute__ ((always_inline)) void
 _send_link (struct rte_mbuf *m,
             unsigned rx_portid, unsigned rx_queueid,
             struct vswitch_link *rx_link,
@@ -320,25 +363,7 @@ _flooding (struct rte_mbuf *m,
     struct router_if *rif = &vswitch->router_if;
     if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID 
         && rif->sockfd >= 0 && rif->ring_up)
-      {
-        struct rte_mbuf *c;
-        c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
-        if (!c) 
-          return;
-        if (is_rte_vlan_hdr (c))
-          if (rif->vlan_id)
-            rte_vlan_hdr_set (c, rif->vlan_id);
-          else
-            rte_vlan_strip (c);
-        else if (rif->vlan_id)
-          {
-            rte_vlan_insert (&c);
-            rte_vlan_hdr_set (c, rif->vlan_id);
-          } 
-      
-        _send_ring(c, rx_portid, rx_queueid, rif -> ring_up);
-        rte_pktmbuf_free(c);
-      }
+      _send_router_if_ring (m, rx_portid, rx_queueid, rif);
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -921,42 +946,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
           DEBUG_NEW (ROUTER,
               "m: %p control packet (eth_type:0x%04x), send to router_if", m,
               eth_type);
-
-          struct rte_mbuf *c;
-          c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
-          if (c)
-            {
-              if (rif->vlan_id)
-                {
-                  if (is_rte_vlan_hdr (c))
-                    {
-                      DEBUG_NEW (ROUTER,
-                                 "m: %p router-if: vlan modify: %d.",
-                                 m, rif->vlan_id);
-                      rte_vlan_hdr_set (c, rif->vlan_id);
-                    }
-                  else
-                    {
-                      DEBUG_NEW (ROUTER,
-                                 "m: %p router-if: vlan insert: %d.",
-                                 m, rif->vlan_id);
-                      rte_vlan_insert (&c);
-                      rte_vlan_hdr_set (c, rif->vlan_id);
-                    }
-                }
-              else
-                {
-                  if (is_rte_vlan_hdr (c))
-                    {
-                      DEBUG_NEW (ROUTER,
-                                 "m: %p router-if: vlan strip", m);
-                      rte_vlan_strip (c);
-                    }
-                }
-
-              _send_ring (c, rx_portid, rx_queueid, rif->ring_up);
-              rte_pktmbuf_free (c);
-            }
+          _send_router_if_ring (m, rx_portid, rx_queueid, rif);
           return;
         }
     }
