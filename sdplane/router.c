@@ -119,10 +119,54 @@ _send_ring (struct rte_mbuf *m,
 }
 
 static inline __attribute__ ((always_inline)) void
+_send_router_if_ring (struct rte_mbuf *m,
+                      unsigned rx_portid, unsigned rx_queueid,
+                      struct router_if *rif)
+{
+  struct rte_mbuf *c;
+  c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+  if (c)
+    {
+      if (rif->vlan_id)
+        {
+          if (is_rte_vlan_hdr (c))
+            {
+              DEBUG_NEW (ROUTER,
+                          "m: %p router-if: vlan modify: %d.",
+                          m, rif->vlan_id);
+              rte_vlan_hdr_set (c, rif->vlan_id);
+            }
+          else
+            {
+              DEBUG_NEW (ROUTER,
+                          "m: %p router-if: vlan insert: %d.",
+                          m, rif->vlan_id);
+              rte_vlan_insert (&c);
+              rte_vlan_hdr_set (c, rif->vlan_id);
+            }
+        }
+      else
+        {
+          if (is_rte_vlan_hdr (c))
+            {
+              DEBUG_NEW (ROUTER,
+                          "m: %p router-if: vlan strip", m);
+              rte_vlan_strip (c);
+            }
+        }
+
+      _send_ring (c, rx_portid, rx_queueid, rif->ring_up); 
+      rte_pktmbuf_free (c);
+    }
+}
+
+
+static inline __attribute__ ((always_inline)) void
 _send_link (struct rte_mbuf *m,
             unsigned rx_portid, unsigned rx_queueid,
+            struct vswitch_link *rx_link,
             unsigned tx_portid, unsigned tx_queueid,
-            struct vswitch_link *vswitch_link)
+            struct vswitch_link *tx_link)
 {
   struct rte_eth_dev_tx_buffer *buffer;
   uint16_t nb_ports;
@@ -134,7 +178,7 @@ _send_link (struct rte_mbuf *m,
   if (tx_portid >= nb_ports)
     return;
 
-  if (rx_portid == tx_portid)
+  if (rx_portid == tx_portid && rx_link && rx_link == tx_link)
     return;
 
   if (! rib->rib_info->port[tx_portid].link.link_status)
@@ -170,29 +214,29 @@ _send_link (struct rte_mbuf *m,
       vlan = (struct rte_vlan_hdr *) (eth + 1);
       vlan_id = RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan->vlan_tci));
 
-      if (vswitch_link->tag_id != 0 && vswitch_link->tag_id != vlan_id)
+      if (tx_link->tag_id != 0 && tx_link->tag_id != vlan_id)
         {
           /* vlan_id translation: modify vlan_id on tx */
           old_vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
           new_vlan_tci =
-              ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
+              ((old_vlan_tci & 0xf000) | (tx_link->tag_id & 0x0fff));
           DEBUG_NEW (ROUTER,
                      "m: %p port[%d]: vlan_id modification: %u -> %u",
-                     m, vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
+                     m, tx_link->port_id, vlan_id, tx_link->tag_id);
           vlan->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
-      else if (vswitch_link->tag_id == 0)
+      else if (tx_link->tag_id == 0)
         {
           /* remove vlan_hdr */
           rte_vlan_strip (c);
           DEBUG_NEW (ROUTER,
                      "m: %p port[%d]: vlan_id strip: %u -> %u",
-                     m, vswitch_link->port_id, vlan_id, vswitch_link->tag_id);
+                     m, tx_link->port_id, vlan_id, tx_link->tag_id);
         }
     }
   else
     {
-      if (vswitch_link->tag_id != 0)
+      if (tx_link->tag_id != 0)
         {
           /* insert vlan_hdr */
           rte_vlan_insert (&c);
@@ -202,10 +246,10 @@ _send_link (struct rte_mbuf *m,
           vlan = (struct rte_vlan_hdr *) (eth + 1);
           old_vlan_tci = rte_be_to_cpu_16 (vlan->vlan_tci);
           new_vlan_tci =
-              ((old_vlan_tci & 0xf000) | (vswitch_link->tag_id & 0x0fff));
+              ((old_vlan_tci & 0xf000) | (tx_link->tag_id & 0x0fff));
           DEBUG_NEW (ROUTER,
                      "m: %p port[%d]: add vlan_id: %u",
-                     m, vswitch_link->port_id, vswitch_link->tag_id);
+                     m, tx_link->port_id, tx_link->tag_id);
           vlan->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
     }
@@ -291,6 +335,7 @@ _verify_packet (struct rte_mbuf *m, struct rte_ipv4_hdr *ipv4,
 static inline __attribute__ ((always_inline)) void
 _flooding (struct rte_mbuf *m,
            uint16_t rx_portid, uint16_t rx_queueid,
+           struct vswitch_link *rx_link,
            struct vswitch_conf *vswitch)
 {
   unsigned tx_queueid = lcore_id;
@@ -310,15 +355,21 @@ _flooding (struct rte_mbuf *m,
         continue;
 
       /* send to DPDK ports according to the vswitch_link */
-      _send_link (m, ROUTER_IF_RX_SELF_PORT_ID,
-                  ROUTER_IF_RX_SELF_QUEUE_ID,
+      _send_link (m, rx_portid, rx_queueid, rx_link,
                   tx_portid, tx_queueid, link);
     }
+  
+    /* Flooding is also required for router_if */
+    struct router_if *rif = &vswitch->router_if;
+    if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID 
+        && rif->sockfd >= 0 && rif->ring_up)
+      _send_router_if_ring (m, rx_portid, rx_queueid, rif);
 }
 
 static inline __attribute__ ((always_inline)) void
 _switching (struct rte_mbuf *m,
             uint16_t rx_portid, uint16_t rx_queueid,
+            struct vswitch_link *rx_link,
             struct vswitch_conf *vswitch,
             struct rte_ether_hdr *eth)
 {
@@ -342,7 +393,7 @@ _switching (struct rte_mbuf *m,
   if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
-      _flooding (m, rx_portid, rx_queueid, vswitch);
+      _flooding (m, rx_portid, rx_queueid, rx_link, vswitch);
       return;
     }
 
@@ -365,8 +416,7 @@ _switching (struct rte_mbuf *m,
               DEBUG_NEW (ROUTER,
                          "m: %p L2 switching to port %d via link %d",
                          m, dst_port, link_id);
-              _send_link (m, ROUTER_IF_RX_SELF_PORT_ID,
-                          ROUTER_IF_RX_SELF_QUEUE_ID,
+              _send_link (m, rx_portid, rx_queueid, rx_link,
                           dst_port, tx_queueid, link);
               return;
             }
@@ -376,7 +426,7 @@ _switching (struct rte_mbuf *m,
   DEBUG_NEW (ROUTER,
              "m: %p L2 switching: dst MAC unknown, flooding",
              m);
-  _flooding (m, rx_portid, rx_queueid, vswitch);
+  _flooding (m, rx_portid, rx_queueid, rx_link, vswitch);
 
   return;
 }
@@ -393,7 +443,7 @@ _forwarding (struct rte_mbuf *m,
   struct rte_ether_addr *dst_mac;
   struct fib_node *fib_node;
   uint8_t dst_ip[16] = { 0 };
-  int i, j;
+  int i;
   struct vswitch_link *tx_link = NULL;
   int dst_port = -1, neigh_table_type;
 
@@ -499,7 +549,7 @@ _forwarding (struct rte_mbuf *m,
   neigh_table_type = AF_TO_NEIGH_TABLE (family);
   neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
                         neigh_table_type, lookup_ip, &neigh_entry);
-  if (! neigh_entry)
+  if (! neigh_entry || rte_is_zero_ether_addr(&neigh_entry->mac_addr))
     {
       /* ARP/ND resolution */
       for (i = 0; i < rib->rib_info->vswitch_size; i++)
@@ -523,7 +573,7 @@ _forwarding (struct rte_mbuf *m,
                              arp_pkt, dst_ip_str, vs->vswitch_id);
 
                   _flooding (arp_pkt, ROUTER_IF_RX_SELF_PORT_ID,
-                             ROUTER_IF_RX_SELF_QUEUE_ID, vs);
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs);
 
                   rte_pktmbuf_free (arp_pkt);
                 }
@@ -540,10 +590,10 @@ _forwarding (struct rte_mbuf *m,
                   char dst_ip_str[INET6_ADDRSTRLEN];
                   inet_ntop (AF_INET6, lookup_ip, dst_ip_str, sizeof (dst_ip_str));
                   DEBUG_NEW (ROUTER,
-                             "m: %p send NS: target_ip: %s, flooding to vswitch[%d]",
+                             "m: %p send NS: %p, target_ip: %s, flooding to vswitch[%d]",
                              m, ns_pkt, dst_ip_str, vs->vswitch_id);
                   _flooding (ns_pkt, ROUTER_IF_RX_SELF_PORT_ID,
-                             ROUTER_IF_RX_SELF_QUEUE_ID, vs);
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs);
 
                   rte_pktmbuf_free (ns_pkt);
                 }
@@ -562,10 +612,7 @@ _forwarding (struct rte_mbuf *m,
                      m, neigh_mac_str);
 
   /* search tx vswitch_link */
-  /* XXX we should not iterate all vswitches to find the output port.
-     we should be able to use route_entry->oif (which must specify the
-     router-if) and its corresponding vswitch, for the search.
-     The iteration on all vswitches should be avoided for performance. */
+  struct vswitch_conf *target_vswitch = NULL;
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
@@ -573,26 +620,36 @@ _forwarding (struct rte_mbuf *m,
       if (vs->is_deleted)
         continue;
 
-      for (j = 0; j < vs->vswitch_port_size; j++)
+      if (vs->router_if.ifindex == oif)
         {
-          uint16_t link_id = vs->vswitch_link_id[j];
-          struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
-
-          /* FDB lookup */
-          dst_port = fdb_lookup_entry (rib->rib_info, dst_mac, vs->vlan_id);
-          if (dst_port >= 0 && link->port_id == dst_port)
-            {
-              /* split-horizon check: don't send back to the same link */
-              if (vswitch_link && link == vswitch_link)
-                continue;
-
-              tx_link = link;
-              break;
-            }
+          target_vswitch = vs;
+          break;
         }
+    }
 
-      if (tx_link)
-        break;
+  if (! target_vswitch)
+    {
+      DEBUG_NEW (ROUTER, "m: %p vswitch not found for oif %d", m, oif);
+      return;
+    }
+
+  dst_port = fdb_lookup_entry (rib->rib_info, dst_mac, target_vswitch->vlan_id);
+  if (dst_port < 0)
+    {
+      DEBUG_NEW (ROUTER, "m: %p FDB lookup failed, drop", m);
+      return;
+    }
+
+  for (i = 0; i < target_vswitch->vswitch_port_size; i++)
+    {
+      uint16_t link_id = target_vswitch->vswitch_link_id[i];
+      struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
+
+      if (link->port_id == dst_port)
+        {
+          tx_link = link;
+          break;
+        }
     }
 
   if (! tx_link)
@@ -631,7 +688,8 @@ _forwarding (struct rte_mbuf *m,
                      m, dst_port, tx_link->vswitch_link_id);
 
   unsigned tx_queueid = lcore_id;
-  _send_link (m, rx_portid, rx_queueid, dst_port, tx_queueid, tx_link);
+  _send_link (m, rx_portid, rx_queueid, vswitch_link,
+              dst_port, tx_queueid, tx_link);
 }
 
 #define IPPROTO_OSPF 89
@@ -888,7 +946,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
           DEBUG_NEW (ROUTER,
               "m: %p control packet (eth_type:0x%04x), send to router_if", m,
               eth_type);
-          _send_ring (m, rx_portid, rx_queueid, rif->ring_up);
+          _send_router_if_ring (m, rx_portid, rx_queueid, rif);
           return;
         }
     }
@@ -897,7 +955,8 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (! rte_is_same_ether_addr (&eth->dst_addr, &rif->mac_addr))
     {
       DEBUG_NEW (ROUTER, "L2 switching");
-      _switching (m, rx_portid, rx_queueid, vswitch, eth);
+      _switching (m, rx_portid, rx_queueid,
+                  vswitch_link, vswitch, eth);
       return;
     }
 
@@ -955,7 +1014,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
       _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-                  vswitch, eth);
+                  NULL, vswitch, eth);
       return;
     }
 
