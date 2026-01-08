@@ -1,7 +1,6 @@
 #include "include.h"
 
 #include <rte_common.h>
-#include <rte_ip6.h>
 #include <rte_malloc.h>
 #include <rte_memory.h>
 #include <rte_memcpy.h>
@@ -46,16 +45,6 @@ static __thread struct rib *rib = NULL;
 
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
-
-#define SRV6_ACTION_TABLE_SIZE 10
-enum srv6_behaviors {
-  SDPLANE_SRV6_END
-};
-struct sid_entry {
-  struct in6_addr sid;
-  enum srv6_behaviors action;
-};
-struct sid_entry action_table[SRV6_ACTION_TABLE_SIZE] = { 0 };
 
 /* _thread_tx_flush() flushes the queue'ed packets
    in tx_buffer_per_q[] onto the NIC. */
@@ -399,23 +388,11 @@ _process_srv6_packet (struct rte_mbuf *m,
   
   if (srh->segments_left == 0)
     return;
+  
+  srh->segments_left --;
 
   struct in6_addr* sid_list = (struct in6_addr*)(srh+1);
-  for (int i = 0; i < SRV6_ACTION_TABLE_SIZE; i++)
-    {
-      if (memcmp(&ipv6->dst_addr, &action_table[i].sid, 16) != 0 )
-        continue;
-
-      switch (action_table[i].action)
-        {
-          case SDPLANE_SRV6_END:
-            srh->segments_left --;
-            rte_memcpy(&ipv6->dst_addr, &sid_list[srh->segments_left], 16);
-            break;
-          default:
-            break;
-        }
-    }
+  rte_memcpy(&ipv6->dst_addr, &sid_list[srh->segments_left], 16);
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -1181,11 +1158,6 @@ router (__rte_unused void *dummy)
   thread_register_loop_counter (thread_id, &loop_counter);
 
   DEBUG_NEW (ROUTER, "entering main loop on lcore %u", lcore_id);
-
-  char end_sid_str_0[] = "fc00:1::1";
-  action_table[0].action = SDPLANE_SRV6_END;
-  if (inet_pton (AF_INET6, end_sid_str_0, &action_table[0].sid) != 1)
-    DEBUG_NEW(ROUTER, "ERROR!");
 
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_register_thread ();
