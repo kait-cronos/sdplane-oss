@@ -6,8 +6,7 @@ ns-up:
 	sudo ./ns-up.sh $(NIC)
 
 sdplane-up:
-	sudo ../../build/sdplane/sdplane -f ./sdplane.conf 
-	sudo ./ns-down.sh
+	sudo ../../sdplane/sdplane -f ./sdplane.conf 
 
 conf:
 	sudo ./router-conf.sh
