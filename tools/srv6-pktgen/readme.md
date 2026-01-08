@@ -3,10 +3,11 @@
 
 ### Configuration
 ```sh
+# ++++++ in sdplane dev machine +++++
 $ make sdplane-up
-# ++++++ open other tty and... ++++++ 
 $ make conf
+# ++++++ in tester machine ++++++ 
 $ make ns-up NIC=eno2
-# and enjoy!!
+$ make ns-down
 ```
 
