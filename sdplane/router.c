@@ -1,6 +1,7 @@
 #include "include.h"
 
 #include <rte_common.h>
+#include <rte_ip6.h>
 #include <rte_malloc.h>
 #include <rte_memory.h>
 #include <rte_memcpy.h>
@@ -45,6 +46,16 @@ static __thread struct rib *rib = NULL;
 
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
+
+#define SRV6_ACTION_TABLE_SIZE 10
+enum srv6_behaviors {
+  SDPLANE_SRV6_END
+};
+struct sid_entry {
+  struct in6_addr sid;
+  enum srv6_behaviors action;
+};
+struct sid_entry action_table[SRV6_ACTION_TABLE_SIZE] = { 0 };
 
 /* _thread_tx_flush() flushes the queue'ed packets
    in tx_buffer_per_q[] onto the NIC. */
@@ -367,6 +378,47 @@ _flooding (struct rte_mbuf *m,
 }
 
 static inline __attribute__ ((always_inline)) void
+_process_srv6_packet (struct rte_mbuf *m, 
+                      struct rte_ipv6_hdr *ipv6)
+{ 
+  if (ipv6->proto != IPPROTO_ROUTING)
+    return;
+
+  uint32_t pkt_len = rte_pktmbuf_pkt_len(m);
+  if (unlikely(pkt_len < sizeof(struct rte_ipv6_hdr) + sizeof(struct rte_ipv6_routing_ext)))
+    return;
+
+  struct rte_ipv6_routing_ext *srh = (struct rte_ipv6_routing_ext *)(ipv6 +1);
+  if (srh->type != RTE_IPV6_SRCRT_TYPE_4)
+    return;
+
+  int max_last_entry = (srh->hdr_len / 2) - 1;
+  if ( srh->last_entry > max_last_entry
+    || (srh->segments_left > srh->last_entry + 1))
+    return;
+  
+  if (srh->segments_left == 0)
+    return;
+
+  struct in6_addr* sid_list = (struct in6_addr*)(srh+1);
+  for (int i = 0; i < SRV6_ACTION_TABLE_SIZE; i++)
+    {
+      if (memcmp(&ipv6->dst_addr, &action_table[i].sid, 16) != 0 )
+        continue;
+
+      switch (action_table[i].action)
+        {
+          case SDPLANE_SRV6_END:
+            srh->segments_left --;
+            rte_memcpy(&ipv6->dst_addr, &sid_list[srh->segments_left], 16);
+            break;
+          default:
+            break;
+        }
+    }
+}
+
+static inline __attribute__ ((always_inline)) void
 _switching (struct rte_mbuf *m,
             uint16_t rx_portid, uint16_t rx_queueid,
             struct vswitch_link *rx_link,
@@ -446,6 +498,8 @@ _forwarding (struct rte_mbuf *m,
   int i;
   struct vswitch_link *tx_link = NULL;
   int dst_port = -1, neigh_table_type;
+
+  _process_srv6_packet(m, ipv6);
 
   if (ipv4)
     memcpy (dst_ip, &ipv4->dst_addr, sizeof (ipv4->dst_addr));
@@ -1127,6 +1181,11 @@ router (__rte_unused void *dummy)
   thread_register_loop_counter (thread_id, &loop_counter);
 
   DEBUG_NEW (ROUTER, "entering main loop on lcore %u", lcore_id);
+
+  char end_sid_str_0[] = "fc00:1::1";
+  action_table[0].action = SDPLANE_SRV6_END;
+  if (inet_pton (AF_INET6, end_sid_str_0, &action_table[0].sid) != 1)
+    DEBUG_NEW(ROUTER, "ERROR!");
 
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_register_thread ();
