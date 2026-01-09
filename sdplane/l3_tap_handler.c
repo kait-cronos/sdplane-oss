@@ -201,7 +201,10 @@ l3_tap_handler_handle_packet_down ()
           continue;
         }
       if (ret == 0)
-        continue;
+        {
+          DEBUG_NEW (TAPHANDLER, "read() ret: 0: vswitch[%d]", vswitch_id);
+          continue;
+        }
 
       if (vswitch->router_if.ring_dn)
         {
@@ -210,22 +213,27 @@ l3_tap_handler_handle_packet_down ()
 
 	  if (m)
             {
-          size = ret;
-          if (size >= m->buf_len)
-            {
-              WARNING ("m: %p insufficient buf: %d bytes read, "
-                       "m->buf_len: %d", m, ret, m->buf_len);
-              size = m->buf_len;
-            }
+              size = ret;
+              if (size >= m->buf_len)
+                {
+                  WARNING ("m: %p insufficient buf: %d bytes read, "
+                           "m->buf_len: %d", m, ret, m->buf_len);
+                  size = m->buf_len;
+                }
 
-          rte_pktmbuf_append (m, size);
-          pkt = rte_pktmbuf_mtod (m, char *);
-          memcpy (pkt, data, size);
+              rte_pktmbuf_append (m, size);
+              pkt = rte_pktmbuf_mtod (m, char *);
+              memcpy (pkt, data, size);
 
-          rte_ring_enqueue (vswitch->router_if.ring_dn, m);
-          DEBUG_NEW (TAPHANDLER, "packet: sockfd %d -> ring_dn %d",
-                     vswitch->router_if.sockfd,
-                     vswitch->router_if.tap_ring_id);
+              rte_ring_enqueue (vswitch->router_if.ring_dn, m);
+              DEBUG_NEW (TAPHANDLER,
+                         "vswitch[%d]: packet: sockfd %d -> ring_dn %d",
+                         vswitch_id,
+                         vswitch->router_if.sockfd,
+                         vswitch->router_if.tap_ring_id);
+
+              if (IS_DEBUG (PACKET))
+                log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
             }
 	  else
               WARNING ("rte_pktmbuf_alloc() failed: ring_dn: drop %d bytes",

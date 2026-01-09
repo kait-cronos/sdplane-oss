@@ -169,13 +169,36 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
       return;
     }
 
+  if (IS_DEBUG (ROUTER) || IS_DEBUG (PACKET))
+    log_packet (m, rx_portid, rx_queueid);
+
   /* 2. send to capture_if */
   struct capture_if *cif = &vswitch->capture_if;
   if (cif->sockfd >= 0 && cif->ring_up)
     _send_ring (m, rx_portid, rx_queueid, cif->ring_up);
 
-  /* 3. check if control packet (ARP, ICMP, etc.) */
   struct router_if *rif = &vswitch->router_if;
+
+  /* check if destination MAC is ours */
+  if (rte_is_same_ether_addr (&eth->dst_addr, &rif->mac_addr))
+    {
+      DEBUG_NEW (ROUTER, "m: %p mac_addr match: send to router_if",
+                 m, eth_type);
+      _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+      return;
+    }
+
+  /* check if destination MAC is multicast or broadcast */
+  if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
+      rte_is_broadcast_ether_addr (&eth->dst_addr))
+    {
+      DEBUG_NEW (ROUTER, "m: %p mac_addr bcast/mcast: send to router_if",
+                 m, eth_type);
+      _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+      /* fall through */
+    }
+
+  /* 3. check if control packet (ARP, ICMP, etc.) */
   if (rif->sockfd >= 0 && rif->ring_up)
     {
       bool is_control = _check_control_packet (m, vswitch, eth_type, eth,
@@ -322,6 +345,8 @@ _thread_tx_burst ()
     {
       vswitch = &rib->rib_info->vswitch[vswitch_id];
 
+      //DEBUG_NEW (ROUTER, "process vswitch[%d]", vswitch_id);
+
       if (vswitch->router_if.sockfd < 0 || ! vswitch->router_if.ring_dn)
         continue;
 
@@ -332,6 +357,8 @@ _thread_tx_burst ()
       if (unlikely (nb_rx == 0))
         continue;
 
+      DEBUG_NEW (ROUTER, "process vswitch[%d]: nb_rx: %d", vswitch_id, nb_rx);
+
       for (i = 0; i < nb_rx; i++)
         {
           m = pkts_burst[i];
@@ -340,6 +367,7 @@ _thread_tx_burst ()
 
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
+          DEBUG_NEW (ROUTER, "vswitch[%d]: packet[%d]", vswitch_id, i);
           _process_tx_packet (m, vswitch);
 
           rte_pktmbuf_free (m);
