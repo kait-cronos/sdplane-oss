@@ -1765,7 +1765,7 @@ rib_manager_process_message (void *msgp)
       rif = &vswitch->router_if;
 
       rif->sockfd = tap_open (msg_router_if_set->tap_name);
-      ioctl (rif->sockfd, TUNSETPERSIST, 0);
+      ioctl (rif->sockfd, TUNSETPERSIST, 1);
       rif->tap_ring_id = msg_router_if_set->vswitch_id;
       snprintf (rif->tap_name, sizeof (rif->tap_name), "%s",
                 msg_router_if_set->tap_name);
