@@ -44,6 +44,9 @@ static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
 #include "net_subr.h"
+#include "srv6.h"
+
+struct in6_addr local_end_sid;
 
 static inline __attribute__ ((always_inline)) void
 _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
@@ -207,6 +210,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* 6. forwarding */
+  _process_srv6_packet (m, ipv6, &local_end_sid);
   _forwarding (m, rx_portid, rx_queueid,
                eth, ipv4, ipv6,
                vswitch, vswitch_link);
@@ -257,6 +261,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       return;
     }
 
+  _process_srv6_packet (m, ipv6, &local_end_sid);
   _forwarding (m,
                ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
                eth, ipv4, ipv6,
@@ -350,7 +355,7 @@ _thread_tx_burst ()
 static __thread uint64_t loop_counter = 0;
 
 int
-router (__rte_unused void *dummy)
+srv6_router (__rte_unused void *dummy)
 {
   uint64_t prev_tsc, diff_tsc, cur_tsc;
   const uint64_t drain_tsc =
@@ -358,11 +363,15 @@ router (__rte_unused void *dummy)
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
 
+  /* hard-code the local End SID. */
+  inet_pton (AF_INET6, "fec0:1::1",
+             (struct in6_addr *) &local_end_sid);
+
   prev_tsc = 0;
   lcore_id = rte_lcore_id ();
 
   int thread_id;
-  thread_id = thread_lookup_by_lcore (router, lcore_id);
+  thread_id = thread_lookup_by_lcore (srv6_router, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter);
 
   DEBUG_NEW (ROUTER, "entering main loop on lcore %u", lcore_id);

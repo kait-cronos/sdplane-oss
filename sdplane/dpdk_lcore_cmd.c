@@ -24,7 +24,9 @@
 #include "l2_repeater.h"
 #include "enhanced_repeater.h"
 #include "l2_switch.h"
-#include "router.h"
+
+int router (__rte_unused void *dummy);
+int srv6_router (__rte_unused void *dummy);
 
 #include "thread_info.h"
 
@@ -96,8 +98,11 @@ int dhcp_server (__rte_unused void *dummy);
 
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore <0-16> "
-    "(|none|l2fwd|l3fwd|l3fwd-lpm|"
-    "tap-handler|l2-repeater|nettlp-thread|vlan-switch|l3-tap-handler|enhanced-repeater|l2-switch|router"
+    "(|none|l2fwd|l3fwd|l3fwd-lpm"
+    "|tap-handler|l3-tap-handler"
+    "|l2-repeater|vlan-switch|enhanced-repeater|l2-switch"
+    "|router|srv6-router"
+    "|nettlp-thread"
 #ifdef ENABLE_PKTGEN
     "|pktgen"
 #endif
@@ -108,18 +113,19 @@ CLI_COMMAND2 (set_worker,
     "set lcore not to launch anything\n",
     "set lcore to launch l2fwd\n",
     "set lcore to launch l3fwd (default: lpm)\n",
-    "set lcore to launch l3fwd-lpm\n", "set lcore to launch tap-handler\n",
-    "set lcore to launch l2-repeater\n",
-    "set lcore to launch nettlp-thread\n"
-    "set lcore to launch vlan-switch\n"
+    "set lcore to launch l3fwd-lpm\n",
+    "set lcore to launch tap-handler\n",
     "set lcore to launch l3-tap-handler\n"
+    "set lcore to launch l2-repeater\n",
+    "set lcore to launch vlan-switch\n"
     "set lcore to launch enhanced-repeater\n"
     "set lcore to launch l2-switch\n"
-    "set lcore to launch router"
+    "set lcore to launch router\n"
+    "set lcore to launch srv6-router\n"
+    "set lcore to launch nettlp-thread\n"
 #ifdef ENABLE_PKTGEN
     "set lcore to launch pktgen\n"
 #endif
-    "set lcore to launch link-flap-generator\n"
     "set lcore to launch dhcp-server\n"
     )
 {
@@ -149,6 +155,8 @@ CLI_COMMAND2 (set_worker,
     func = l2_switch;
   else if (! strcmp (argv[4], "router"))
     func = router;
+  else if (! strcmp (argv[4], "srv6-router"))
+    func = srv6_router;
 #ifdef ENABLE_PKTGEN
   else if (! strcmp (argv[4], "pktgen"))
     func = pktgen_launch_one_lcore;
@@ -188,6 +196,8 @@ CLI_COMMAND2 (set_worker,
     func_name = "l2-switch";
   else if (func == router)
     func_name = "router";
+  else if (func == srv6_router)
+    func_name = "srv6-router";
 #ifdef ENABLE_PKTGEN
   else if (func == pktgen_launch_one_lcore)
     func_name = "pktgen";
