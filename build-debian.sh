@@ -10,7 +10,8 @@ origdebversion: $origdebversion
 EOHD
 
 # vi debian/changelog
-tar zcvf ../${packagename}_${origdebversion}.orig.tar.gz -X upstream-exclude.txt .
+#tar zcvf ../${packagename}_${origdebversion}.orig.tar.gz -X upstream-exclude.txt .
+tar zcvf ../${packagename}_${origdebversion}.orig.tar.gz .
 
 debuild
 

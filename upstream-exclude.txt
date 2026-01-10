@@ -16,4 +16,3 @@ autom4te.cache*
 .tmp
 .deps
 *.Po
-tests
