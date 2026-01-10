@@ -1,3 +1,11 @@
+sdplane (0.1.3-514) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * fix build-debian.sh
+  * build-debian-prep.sh
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 11 Jan 2026 04:04:29 +0900
+
 sdplane (0.1.3-511) UNRELEASED; urgency=low
 
   * release. update changelog.
