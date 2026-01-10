@@ -1,3 +1,75 @@
+sdplane (0.1.3-514) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * fix build-debian.sh
+  * build-debian-prep.sh
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 11 Jan 2026 04:04:29 +0900
+
+sdplane (0.1.3-511) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update install-memo
+  * Merge pull request #248 from kait-cronos/router-fix
+  * fix router. make router-if tap persist. receive mac-addr matched packets. receive multicast/broadcast packets (and then switch/forward).
+  * Merge pull request #247 from kait-cronos/net_subr_h
+  * add srv6_router.c.
+  * router.c's inline funcs are moved to net_subr.h and srv6.h.
+  * Merge pull request #244 from kait-cronos/r-trfk/srv6-forwading
+  * Merge pull request #243 from kait-cronos/r-trfk/fix-srv6-pktgen
+  * ping ok!
+  * srv6_router: optimistic srv6 end
+  * srv6_router: draft version
+  * [tools/srv6-pktgen] fix config typo and update reference topology
+  * Merge pull request #238 from kait-cronos/fix-vlan-forwarding
+  * functionalise vlan operation
+  * Merge pull request #242 from kait-cronos/r-trfk/fix-vlan-forwading
+  * restore control packet decision logic
+  * block rif to rif packet
+  * flooding to router-if
+  * broadcast addr is also me
+  * fix debug msg when flooding missing %p?
+  * fix lookup logic (if mac addr is all zero, treat as unresolved)
+  * Merge pull request #241 from kait-cronos/reduce-warnings
+  * reduce warnings.
+  * Merge pull request #240 from kait-cronos/r-trfk/srv6pketgen-utils
+  * [tools/srv6-pktgen] add configuration example/tools for debugging sdplane
+  * Merge pull request #239 from kait-cronos/r-trfk/seg6gen-vlan
+  * Merge pull request #234 from kait-cronos/control-packet
+  * [tools/srv6-pktgen] add vlan supprt for testing/implement srv6 end
+  * use oif for searching tx vswitch_link
+  * fix split-holizon
+  * add vlan_hdr operation
+  * remove unrequired comments
+  * restore l3_tap_handler.c
+  * wip: contorl packet filter
+  * Merge pull request #229 from kait-cronos/kinoshita/ping_deplicated
+  * #if 0 due to smart
+  * tx link is duplicated with enhanced repeater.
+  * Merge pull request #233 from kait-cronos/fix-neighbor-transmission
+  * fix format
+  * separate packet generate functions
+  * add internal message for neighbor transmission
+  * improve neighbor-transmission
+  * Merge pull request #232 from kait-cronos/debug-router
+  * add creation and transmission processing for ARP request
+  * remove unused arguments
+  * add neigh_entry's ifindex
+  * add router-if's ifindex
+  * Merge pull request #224 from kait-cronos/netlink-srv6-subscription
+  * add SRv6 to Netlink subscription
+  * Merge pull request #228 from kait-cronos/fix-l3-taph-crash
+  * fix l3-tap-handler crash.
+  * Merge pull request #227 from kait-cronos/fix/yykzm/fix-debug-format
+  * router: fix debug log format argument mismatch
+  * Merge pull request #217 from kait-cronos/develop/yykzm/revise-nexthop
+  * Merge pull request #225 from kait-cronos/r-trfk/add-srv6pktgen
+  * format: minor fix
+  * add: srv6-pktgen for implement srv6 end behavior
+  * rib: refactor nexthop model to abstract legacy and object-capable nexthops
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 11 Jan 2026 02:57:25 +0900
+
 sdplane (0.1.3-352) UNRELEASED; urgency=low
 
   * release. update changelog.
