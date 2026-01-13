@@ -270,6 +270,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
              "m: %p received on port: %d queue: %d",
              m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
 
+#if 0
   /* check if this is a non-IP packet or multicast or broadcast */
   if ((! ipv4 && ! ipv6) || 
       rte_is_multicast_ether_addr (&eth->dst_addr) ||
@@ -284,6 +285,14 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
                ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
                eth, ipv4, ipv6,
                vswitch, NULL);
+#else
+  /* This is a packet sent from the Linux tap thru
+     the packet_down(ring_dn).  I think it is safe to send it
+     without any condition, and I think indeed it should be sent,
+     for the proper L3-switch behavior. */
+  _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
+              NULL, vswitch, eth);
+#endif
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -367,7 +376,8 @@ _thread_tx_burst ()
 
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
-          DEBUG_NEW (ROUTER, "vswitch[%d]: packet[%d]", vswitch_id, i);
+          DEBUG_NEW (ROUTER, "m: %p vswitch[%d]: packet[%d]",
+                     m, vswitch_id, i);
           _process_tx_packet (m, vswitch);
 
           rte_pktmbuf_free (m);
