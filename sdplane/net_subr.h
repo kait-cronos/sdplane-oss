@@ -17,10 +17,18 @@ _thread_tx_flush ()
 
   tx_queueid = lcore_id;
 
+  if (! rib || ! rib->rib_info)
+    return;
+
   nb_ports = rte_eth_dev_count_avail ();
   for (tx_portid = 0; tx_portid < nb_ports; tx_portid++)
     {
       buffer = tx_buffer_per_q[tx_portid][tx_queueid];
+
+      /* skip if the tx_port is stopped */
+      if (unlikely (rib->rib_info->port[tx_portid].is_stopped))
+        continue;
+
       sent = 0;
       if (buffer)
         {

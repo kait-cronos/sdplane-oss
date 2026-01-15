@@ -101,6 +101,7 @@ sdplane_0.1.3-514_amd64.deb
   $ cd dpdk-stable-24.11.4
   $ meson setup build
   $ cd build
+  $ meson configure -Dbuildtype=debug (optional)
   $ ninja (コンパイル、結構時間かかる)
   # meson install
   # ldconfig
