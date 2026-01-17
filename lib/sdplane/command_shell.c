@@ -320,6 +320,17 @@ pager_start (struct shell *shell)
       shell->pager_saved_terminal = shell->terminal;
       shell->pager_saved_writefd = shell->writefd;
 
+      int flags;
+      flags = fcntl (shell->pipefd[1], F_GETFL, 0);
+      if (flags < 0)
+        WARNING ("F_GETFL: failed. can't set O_NONBLOCK.");
+      else
+        {
+          ret = fcntl (shell->pipefd[1], F_SETFL, flags | O_NONBLOCK);
+          if (ret < 0)
+            WARNING ("F_SETFL: failed. can't set O_NONBLOCK.");
+        }
+
       shell->terminal = fdopen (shell->pipefd[1], "a");
       shell->writefd = shell->pipefd[1];
 
