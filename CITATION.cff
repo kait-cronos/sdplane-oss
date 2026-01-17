@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "OHARA"
+  given-names: "Yasuhiro"
+  orcid: "https://orcid.org/0009-0007-9265-6435"
+title: "sdplane-oss (Soft Data Plane)"
+version: v0.1.4-164-gc79bb29
+date-released: 2025-09-08
+url: "https://github.com/kait-cronos/sdplane-oss/"
