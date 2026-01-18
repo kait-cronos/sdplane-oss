@@ -239,10 +239,16 @@ pager_start (struct shell *shell)
   pid_t process_id;
 
   int pty_master, pty_slave;
+  char slave_name[256];
+  char *slave_name_ptr;
 
-  openpty (&shell->pty_master, &shell->pty_slave, NULL, NULL, NULL);
+  openpty (&shell->pty_master, &shell->pty_slave, slave_name, NULL, NULL);
+  slave_name_ptr = ptsname (shell->pty_slave);
   DEBUG_ZCMDSH_LOG (PAGER, "pty(master): fd %d, %s.", shell->pty_master,
                     ttyname (shell->pty_master));
+  WARNING ("pty(slave): fd %d, ttyname: %s slave_name: %s ptsname: %s.",
+                    shell->pty_slave,
+                    ttyname (shell->pty_slave), slave_name, slave_name_ptr);
 
   if (shell->winsize.ws_col && shell->winsize.ws_row)
     {
@@ -278,10 +284,32 @@ pager_start (struct shell *shell)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "child ok: pid: %d.", getpid ());
 
+      ret = setsid ();
+      if (ret < 0)
+        WARNING ("setsid(): failed.");
+      else
+        WARNING ("setsid(): succeeded.");
+
       /* child */
       close (shell->pipefd[1]);
       close (shell->pty_master);
 
+      close (shell->pty_slave);
+      shell->pty_slave = -1;
+
+      if (slave_name_ptr)
+        {
+          WARNING ("opening slave_name_ptr: %s.", slave_name_ptr);
+          shell->pty_slave = open (slave_name_ptr, O_RDWR);
+        }
+      if (shell->pty_slave < 0)
+        {
+          WARNING ("opening slave_name: %s", slave_name);
+          shell->pty_slave = open (slave_name, O_RDWR);
+        }
+
+      WARNING ("pty(slave): fd %d, %s.", shell->pty_slave,
+                        ttyname (shell->pty_slave));
       DEBUG_ZCMDSH_LOG (PAGER, "pty(slave): fd %d, %s.", shell->pty_slave,
                         ttyname (shell->pty_slave));
 
@@ -293,6 +321,36 @@ pager_start (struct shell *shell)
 
       DEBUG_ZCMDSH_LOG (PAGER, "execvp: %s %s", lessargs[0], lessargs[1]);
 
+      ret = ioctl (shell->pty_slave, TIOCSCTTY, 0);
+      if (ret < 0)
+        {
+          WARNING ("ioctl (%d, TIOCSCTTY) failed.", shell->pty_slave);
+        }
+      else
+        {
+          WARNING ("ioctl (%d, TIOCSCTTY) succeeded.", shell->pty_slave);
+        }
+
+      ret = setenv ("TERM", "vt100", 1);
+      if (ret < 0)
+        WARNING ("setenv (TERM, vt100): failed: %s.",
+                 strerror (errno));
+      else
+        WARNING ("setenv (TERM, vt100): succeeded.");
+
+#if 1
+      int flags;
+      flags = fcntl (shell->pty_slave, F_GETFL, 0);
+      if (flags < 0)
+        WARNING ("pty_slave: F_GETFL: failed. can't set O_NONBLOCK.");
+      else
+        {
+          ret = fcntl (shell->pty_slave, F_SETFL, flags | O_NONBLOCK);
+          if (ret < 0)
+            WARNING ("pty_slave: F_SETFL: failed. can't set O_NONBLOCK.");
+        }
+#endif
+
       dup2 (shell->pipefd[0], 0);
       dup2 (shell->pty_slave, 1);
       dup2 (shell->pty_slave, 2);
@@ -300,6 +358,9 @@ pager_start (struct shell *shell)
       stdout = fdopen (1, "w");
       stderr = fdopen (2, "r+");
 
+#if 1
+      execlp("strace", "strace", "-o", "/tmp/less.trace", "less", NULL);
+#else
       ret = execvp (path, lessargs);
       if (ret < 0)
         {
@@ -307,6 +368,7 @@ pager_start (struct shell *shell)
                             strerror (errno));
           exit (-1);
         }
+#endif
     }
   else if (process_id > 0)
     {
@@ -320,6 +382,7 @@ pager_start (struct shell *shell)
       shell->pager_saved_terminal = shell->terminal;
       shell->pager_saved_writefd = shell->writefd;
 
+#if 1
       int flags;
       flags = fcntl (shell->pipefd[1], F_GETFL, 0);
       if (flags < 0)
@@ -330,9 +393,74 @@ pager_start (struct shell *shell)
           if (ret < 0)
             WARNING ("F_SETFL: failed. can't set O_NONBLOCK.");
         }
+#endif
 
       shell->terminal = fdopen (shell->pipefd[1], "a");
       shell->writefd = shell->pipefd[1];
+
+      WARNING ("sleep(1): before");
+      sleep (1);
+      WARNING ("sleep(1): after");
+
+      struct pollfd fds[2];
+      fds[0].fd = shell->pty_master;
+      fds[0].events = POLLIN;
+      WARNING ("poll(): fds[0]: pty_master: %d", shell->pty_master);
+      fds[1].fd = shell->readfd;
+      fds[1].events = POLLIN;
+      WARNING ("poll(): fds[1]: readfd: %d", shell->readfd);
+
+      while (1)
+        {
+      fds[0].revents = 0;
+      fds[1].revents = 0;
+
+          int nbytes;
+          char buf[256];
+
+          WARNING ("poll(): fd: %d fd: %d", fds[0].fd, fds[1].fd);
+      ret = poll (fds, 2, 0);
+      if (fds[0].revents & POLLIN)
+        {
+          WARNING ("poll(): pty_master: %d: POLLIN", shell->pty_master);
+          nbytes = read (shell->pty_master, buf, sizeof (buf));
+          WARNING ("read: pty_master: %d: %d bytes",
+                   shell->pty_master, nbytes);
+          if (nbytes > 0)
+            {
+              buf[nbytes] = '\0';
+              WARNING ("read: pty_master: %d: %d bytes: %s",
+                       shell->pty_master, nbytes, buf);
+              ret = write (shell->readfd, buf, nbytes);
+              WARNING ("write: readfd: %d: %d bytes",
+                       shell->readfd, ret);
+            }
+        }
+      if (fds[1].revents & POLLIN)
+        {
+          WARNING ("poll(): readfd: %d: POLLIN", shell->readfd);
+          nbytes = read (shell->readfd, buf, sizeof (buf));
+          WARNING ("read: readfd: %d: %d bytes",
+                   shell->readfd, nbytes);
+          if (nbytes > 0)
+            {
+              buf[nbytes] = '\0';
+              WARNING ("read: readfd: %d: %d bytes: %s",
+                       shell->readfd, nbytes, buf);
+              ret = write (shell->pty_master, buf, nbytes);
+              WARNING ("write: pty_master: %d: %d bytes",
+                       shell->pty_master, ret);
+            }
+        }
+      WARNING ("poll(): revents: %d revents: %d",
+               fds[0].revents, fds[1].revents);
+      if ((fds[0].revents & POLLIN) == 0 &&
+          (fds[1].revents & POLLIN) == 0)
+        {
+          WARNING ("poll(): break");
+          break;
+        }
+        }
 
       DEBUG_ZCMDSH_LOG (PAGER, "pager start: terminal: %p <- %p.",
                         shell->terminal, shell->pager_saved_terminal);
@@ -570,7 +698,8 @@ shell_read_nowait_paging (struct shell *shell)
                         nwrite = snprintf (curr, end - curr, "%#x", buf[i]);
                       curr += nwrite;
                     }
-                  DEBUG_ZCMDSH_LOG (PAGER_CONTENTS, "pager: buf: %s", str_buf);
+                  DEBUG_ZCMDSH_LOG (PAGER_CONTENTS,
+                                    "pager: buf: \"%s\"", str_buf);
                 }
 #endif /*NO_PAGER_CONTENTS*/
             }
