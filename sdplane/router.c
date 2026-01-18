@@ -182,10 +182,20 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   /* check if destination MAC is ours */
   if (rte_is_same_ether_addr (&eth->dst_addr, &rif->mac_addr))
     {
-      DEBUG_NEW (ROUTER, "m: %p mac_addr match: send to router_if",
-                 m, eth_type);
-      _send_router_if_ring (m, rx_portid, rx_queueid, rif);
-      return;
+      if (ipv4 && ipv4->dst_addr == rif->ipv4_addr.s_addr) {
+        DEBUG_NEW (ROUTER, "m: %p mac_addr+ipv4 match: send to router_if", m,
+                   eth_type);
+        _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+        return;
+      } else if (ipv6 &&
+               memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
+                       &rif->ipv6_addr, sizeof (struct in6_addr)) == 0)
+        {
+          DEBUG_NEW (ROUTER, "m: %p mac_addr+ipv6 match: send to router_if", m,
+                     eth_type);
+          _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+          return;
+        }
     }
 
   /* check if destination MAC is multicast or broadcast */
