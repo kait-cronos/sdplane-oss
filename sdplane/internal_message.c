@@ -56,8 +56,16 @@ internal_msg_send_to (struct rte_ring *ring, struct internal_msg_header *msgp,
 {
   if (ring)
     {
+      int ret;
       DEBUG_SDPLANE_LOG (IMESSAGE, "sending message %p.", msgp);
-      rte_ring_enqueue (ring, msgp);
+      ret = rte_ring_enqueue (ring, msgp);
+      if (ret == -ENOBUFS)
+        {
+          WARNING ("rte_ring_enqueue failed: ring %s is full. "
+                   "message %p (type: %d) is lost.",
+                   ring->name, msgp, msgp->type);
+          internal_msg_delete (msgp);
+        }
     }
   else
     {

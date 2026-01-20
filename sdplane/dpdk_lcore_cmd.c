@@ -35,6 +35,7 @@ int srv6_router (__rte_unused void *dummy);
 bool rte_eal_init_done = false;
 
 volatile bool force_stop[RTE_MAX_LCORE];
+volatile bool startup_config_completed = false;
 
 struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 

@@ -19,6 +19,7 @@ extern int argv_list_argc[ARGV_LIST_MAX];
 extern bool rte_eal_init_done;
 extern volatile bool force_quit;
 extern volatile bool force_stop[RTE_MAX_LCORE];
+extern volatile bool startup_config_completed;
 
 struct lcore_worker
 {
