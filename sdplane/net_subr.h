@@ -644,9 +644,8 @@ _forwarding (struct rte_mbuf *m,
       else if (ipv6)
         ipv6->hop_limits--;
 
-      struct rte_ether_addr src_mac;
-      rte_eth_macaddr_get (dst_port, &src_mac);
-      rte_ether_addr_copy (&src_mac, &eth->src_addr);
+      rte_ether_addr_copy (&target_vswitch->router_if.mac_addr,
+                           &eth->src_addr);
       rte_ether_addr_copy (dst_mac, &eth->dst_addr);
     }
 
