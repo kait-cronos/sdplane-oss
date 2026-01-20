@@ -1201,6 +1201,13 @@ netlink_thread (void *arg)
   netlink_socket (&netlink_kernel, listen_groups);
   netlink_socket (&netlink_cmd, 0);
 
+  /* wait for startup_config to complete before subscribing to routes */
+  while (! startup_config_completed && ! force_quit && ! force_stop[lthread_core])
+    lthread_sleep (100);
+
+  DEBUG_NEW (NETLINK, "%s: startup_config completed, starting subscription.",
+             __func__);
+
   int ret;
 #define NETLINK_REQUEST_CMD(family, type, nlsock)                             \
   do                                                                          \
