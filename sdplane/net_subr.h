@@ -145,20 +145,18 @@ _send_link (struct rte_mbuf *m,
     return;
 
   if (rx_link && rx_link == tx_link)
-  {
-    DEBUG_NEW (ROUTER,
-               "m: %p port[%d]: split-horizon, drop packet",
-               m, tx_portid);
-    return;
-  }
+    {
+      DEBUG_NEW (ROUTER, "m: %p port[%d]: split-horizon, drop packet", m,
+                 tx_portid);
+      return;
+    }
 
   if (! rib->rib_info->port[tx_portid].link.link_status)
-{
-    DEBUG_NEW (ROUTER,
-               "m: %p port[%d]: link down, drop packet",
-               m, tx_portid);
-    return;
-  }
+    {
+      DEBUG_NEW (ROUTER, "m: %p port[%d]: link down, drop packet", m,
+                 tx_portid);
+      return;
+    }
   buffer = tx_buffer_per_q[tx_portid][tx_queueid];
   if (! buffer)
     return;
