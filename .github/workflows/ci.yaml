@@ -81,10 +81,7 @@ jobs:
 
       - name: Build sdplane
         run: |
-          aclocal
-          autoheader
-          automake -a -c
-          autoconf
+          ./autogen.sh
           mkdir build
           cd build
           ../configure
