@@ -1,3 +1,31 @@
+sdplane (0.1.3-537) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge pull request #257 from kait-cronos/fix/forward-src-mac
+  * Merge pull request #255 from kait-cronos/fix/router-up
+  * Merge pull request #260 from kait-cronos/autogen
+  * chore: formating code style
+  * use autogen.sh on ci
+  * use autoreconf instead
+  * Merge pull request #259 from kait-cronos/fix-capture-if-enobufs
+  * Merge pull request #258 from kait-cronos/add-netlink-wait-handling
+  * add dequeue operation from capture_if ring
+  * add warning msg_queue ENOBUFS error
+  * add netlink wait handling
+  * fix: use router-if MAC address for source in Ethernet header in forwarding
+  * fix: packet handling by adding debug logs for split-horizon and link status checks
+  * fix: packet routing by adding IPv4 and IPv6 address checks
+  * Merge pull request #253 from kait-cronos/CITATION-cff
+  * CITATION.cff
+  * Merge pull request #252 from kait-cronos/fix-crash-amd-mlx
+  * guard against crash in AMD w/ MLX.
+  * Merge pull request #250 from kait-cronos/router-fix-tx-switching
+  * fix router's process_tx_packet(). Previously the router's process_tx_packet() was sending to the vswitch if the packet is mcast or bcast, and was forwarding() otherwise. The behavior was preventing the Linux bridge'ed packets to be sent through the sdplane's DPDK port. (for example, br-2-0-0 was bridging enp2s0 and port-3-0-0, and the DHCP packets should be bridged accordingly. The DHCP packets are getting dropped by the forwarding().) the process_tx_packet() was changed to do switching() no matter what the packet type is.
+  * update install-memo-new.txt libsdplane_0.3.37-73_amd64.deb sdplane_0.1.3-514_amd64.deb
+  * Merge pull request #249 from kait-cronos/install-memo-update
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 21 Jan 2026 21:11:06 +0900
+
 sdplane (0.1.3-514) UNRELEASED; urgency=low
 
   * release. update changelog.
