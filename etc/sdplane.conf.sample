@@ -30,6 +30,11 @@ set mempool
 
 #pktgen init argv-list 2
 
+set worker lthread stat-collector
+set worker lthread rib-manager
+set worker lthread netlink-thread
+set worker lthread neigh-manager
+
 set tap capture persistent
 set tap capture ifname capture0
 
@@ -38,10 +43,6 @@ stop port all
 set port all dev-configure 1 4
 set port all nrxdesc 1024
 set port all ntxdesc 1024
-
-set worker lthread stat-collector
-set worker lthread rib-manager
-set worker lthread netlink-thread
 
 # in VM, sleep is necessary to start lthread immediately.
 sleep 0
@@ -63,5 +64,5 @@ set thread 2 port 2 queue 0
 # waiting for the port to come up.
 sleep 5
 start worker lcore all
-update port status
+#update port status
 
