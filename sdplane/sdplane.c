@@ -865,6 +865,7 @@ void queue_config_cmd_init (struct command_set *cmdset);
 void dpdk_devbind_cmd_init (struct command_set *cmdset);
 void pktgen_cmd_init (struct command_set *cmdset);
 void dhcp_cmd_init (struct command_set *cmdset);
+void srv6_cmd_init (struct command_set *cmdset);
 
 void
 sdplane_cmd_init (struct command_set *cmdset)
@@ -920,6 +921,8 @@ sdplane_cmd_init (struct command_set *cmdset)
   dhcp_cmd_init (cmdset);
 
   rte_flow_cmd_init (cmdset);
+
+  srv6_cmd_init (cmdset);
 }
 
 void

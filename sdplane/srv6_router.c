@@ -46,8 +46,6 @@ static __thread struct rib *rib = NULL;
 #include "net_subr.h"
 #include "srv6.h"
 
-struct in6_addr local_end_sid;
-
 static inline __attribute__ ((always_inline)) void
 _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
                     unsigned rx_queueid)
@@ -244,7 +242,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* 6. forwarding */
-  _process_srv6_packet (m, ipv6, &local_end_sid);
+  _process_srv6_packet (m, ipv6, &rib->rib_info->srv6_local_sid_addr);
   _forwarding (m, rx_portid, rx_queueid,
                eth, ipv4, ipv6,
                vswitch, vswitch_link);
@@ -296,7 +294,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       return;
     }
 
-  _process_srv6_packet (m, ipv6, &local_end_sid);
+  _process_srv6_packet (m, ipv6, &rib->rib_info->srv6_local_sid_addr);
   _forwarding (m,
                ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
                eth, ipv4, ipv6,
@@ -411,10 +409,6 @@ srv6_router (__rte_unused void *dummy)
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
-
-  /* hard-code the local End SID. */
-  inet_pton (AF_INET6, "fec0:1::1",
-             (struct in6_addr *) &local_end_sid);
 
   prev_tsc = 0;
   lcore_id = rte_lcore_id ();

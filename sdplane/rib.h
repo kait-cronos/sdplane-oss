@@ -280,6 +280,7 @@ struct rib_info
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
   struct nexthop nexthop;
   struct fib_tree *fib_tree[ROUTE_TREE_SIZE];
+  struct in6_addr srv6_local_sid_addr;
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);
