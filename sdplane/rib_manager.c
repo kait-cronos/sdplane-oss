@@ -2157,6 +2157,20 @@ rib_manager_process_message (void *msgp)
 
       break;
 
+    case INTERNAL_MSG_TYPE_SRV6_LOCAL_SID:
+      struct internal_msg_srv6_local_sid *msg_srv6_local_sid;
+      char addr_str[64];
+      DEBUG_NEW (RIB, "recv msg_srv6_local_sid: %p.", msgp);
+      msg_srv6_local_sid =
+        (struct internal_msg_srv6_local_sid *) (msg_header + 1);
+      inet_ntop (AF_INET6, &msg_srv6_local_sid->srv6_local_sid_addr,
+                 addr_str, sizeof (addr_str));
+      DEBUG_NEW (RIB, "recv msg_srv6_local_sid: addr: %s.", addr_str);
+      memcpy (&new->rib_info->srv6_local_sid_addr,
+              &msg_srv6_local_sid->srv6_local_sid_addr,
+              sizeof (new->rib_info->srv6_local_sid_addr));
+      break;
+
     default:
       DEBUG_SDPLANE_LOG (RIB, "recv msg unknown: %p.", msgp);
       break;

@@ -46,8 +46,6 @@ static __thread struct rib *rib = NULL;
 #include "net_subr.h"
 #include "srv6.h"
 
-struct in6_addr local_end_sid;
-
 static inline __attribute__ ((always_inline)) void
 _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
                     unsigned rx_queueid)
@@ -172,13 +170,47 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
       return;
     }
 
+  if (IS_DEBUG (ROUTER) || IS_DEBUG (PACKET))
+    log_packet (m, rx_portid, rx_queueid);
+
   /* 2. send to capture_if */
   struct capture_if *cif = &vswitch->capture_if;
   if (cif->sockfd >= 0 && cif->ring_up)
     _send_ring (m, rx_portid, rx_queueid, cif->ring_up);
 
-  /* 3. check if control packet (ARP, ICMP, etc.) */
   struct router_if *rif = &vswitch->router_if;
+
+  /* check if destination MAC is ours */
+  if (rte_is_same_ether_addr (&eth->dst_addr, &rif->mac_addr))
+    {
+      if (ipv4 && ipv4->dst_addr == rif->ipv4_addr.s_addr)
+        {
+          DEBUG_NEW (ROUTER, "m: %p mac_addr+ipv4 match: send to router_if", m,
+                     eth_type);
+          _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+          return;
+        }
+      else if (ipv6 && memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
+                               &rif->ipv6_addr, sizeof (struct in6_addr)) == 0)
+        {
+          DEBUG_NEW (ROUTER, "m: %p mac_addr+ipv6 match: send to router_if", m,
+                     eth_type);
+          _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+          return;
+        }
+    }
+
+  /* check if destination MAC is multicast or broadcast */
+  if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
+      rte_is_broadcast_ether_addr (&eth->dst_addr))
+    {
+      DEBUG_NEW (ROUTER, "m: %p mac_addr bcast/mcast: send to router_if",
+                 m, eth_type);
+      _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+      /* fall through */
+    }
+
+  /* 3. check if control packet (ARP, ICMP, etc.) */
   if (rif->sockfd >= 0 && rif->ring_up)
     {
       bool is_control = _check_control_packet (m, vswitch, eth_type, eth,
@@ -210,7 +242,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* 6. forwarding */
-  _process_srv6_packet (m, ipv6, &local_end_sid);
+  _process_srv6_packet (m, ipv6, &rib->rib_info->srv6_local_sid_addr);
   _forwarding (m, rx_portid, rx_queueid,
                eth, ipv4, ipv6,
                vswitch, vswitch_link);
@@ -251,6 +283,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
              "m: %p received on port: %d queue: %d",
              m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
 
+#if 0
   /* check if this is a non-IP packet or multicast or broadcast */
   if ((! ipv4 && ! ipv6) || 
       rte_is_multicast_ether_addr (&eth->dst_addr) ||
@@ -261,11 +294,19 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       return;
     }
 
-  _process_srv6_packet (m, ipv6, &local_end_sid);
+  _process_srv6_packet (m, ipv6, &rib->rib_info->srv6_local_sid_addr);
   _forwarding (m,
                ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
                eth, ipv4, ipv6,
                vswitch, NULL);
+#else
+  /* This is a packet sent from the Linux tap thru
+     the packet_down(ring_dn).  I think it is safe to send it
+     without any condition, and I think indeed it should be sent,
+     for the proper L3-switch behavior. */
+  _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
+              NULL, vswitch, eth);
+#endif
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -327,6 +368,8 @@ _thread_tx_burst ()
     {
       vswitch = &rib->rib_info->vswitch[vswitch_id];
 
+      //DEBUG_NEW (ROUTER, "process vswitch[%d]", vswitch_id);
+
       if (vswitch->router_if.sockfd < 0 || ! vswitch->router_if.ring_dn)
         continue;
 
@@ -337,6 +380,8 @@ _thread_tx_burst ()
       if (unlikely (nb_rx == 0))
         continue;
 
+      DEBUG_NEW (ROUTER, "process vswitch[%d]: nb_rx: %d", vswitch_id, nb_rx);
+
       for (i = 0; i < nb_rx; i++)
         {
           m = pkts_burst[i];
@@ -345,6 +390,8 @@ _thread_tx_burst ()
 
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
+          DEBUG_NEW (ROUTER, "m: %p vswitch[%d]: packet[%d]",
+                     m, vswitch_id, i);
           _process_tx_packet (m, vswitch);
 
           rte_pktmbuf_free (m);
@@ -362,10 +409,6 @@ srv6_router (__rte_unused void *dummy)
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
-
-  /* hard-code the local End SID. */
-  inet_pton (AF_INET6, "fec0:1::1",
-             (struct in6_addr *) &local_end_sid);
 
   prev_tsc = 0;
   lcore_id = rte_lcore_id ();
