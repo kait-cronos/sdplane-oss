@@ -251,4 +251,3 @@ is_lthread ()
   int lcore_id = rte_lcore_id ();
   return (lthread_core == lcore_id);
 }
-

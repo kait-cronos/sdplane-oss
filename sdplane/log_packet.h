@@ -49,12 +49,12 @@ __icmp_type_str (uint8_t type)
     case ICMP_ECHO:          return "echo-request";  //8
     case ICMP_TIME_EXCEEDED: return "time-exceeded"; //11
     case ICMP_PARAMETERPROB: return "param-problem"; //12
-    case ICMP_TIMESTAMP:     return "timestamp";     //13 
-    case ICMP_TIMESTAMPREPLY: return "timestamp-reply"; //14 
-    case ICMP_INFO_REQUEST:  return "info-request";  //15 
-    case ICMP_INFO_REPLY:    return "info-reply";    //16 
-    case ICMP_ADDRESS:       return "address";       //17 
-    case ICMP_ADDRESSREPLY:  return "address-reply"; //18 
+    case ICMP_TIMESTAMP:     return "timestamp";     //13
+    case ICMP_TIMESTAMPREPLY: return "timestamp-reply"; //14
+    case ICMP_INFO_REQUEST:  return "info-request";  //15
+    case ICMP_INFO_REPLY:    return "info-reply";    //16
+    case ICMP_ADDRESS:       return "address";       //17
+    case ICMP_ADDRESSREPLY:  return "address-reply"; //18
     default: break;
     }
   return "unknown";
@@ -96,7 +96,7 @@ __parse_packet (struct rte_mbuf *m, struct rte_ether_hdr **eth,
   *eth = NULL; *vlan = NULL; *snap = NULL; *ipv4 = NULL;
   *ipv6 = NULL; *srh = NULL; *icmp = NULL; *udp = NULL;
   *tcp = NULL;
-  
+
   unsigned short eth_type;
 
   *eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);

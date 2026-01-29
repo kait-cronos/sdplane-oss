@@ -52,4 +52,3 @@ dhcp_cmd_init (struct command_set *cmdset)
 {
   //INSTALL_COMMAND2 (cmdset, init_dhcp_server);
 }
-
