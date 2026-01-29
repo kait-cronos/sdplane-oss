@@ -126,18 +126,32 @@ sdplane_0.1.3-514_amd64.deb
   # update-grub
 
 * libsdplane の install
-  (J3160/J6412の場合)
+  (J3160の場合)
   $ wget https://www.yasuhironet.net/download/JXXXX/libsdplane_0.3.37-73_amd64.deb
+  $ sudo apt install ./libsdplane_0.3.37-73_amd64.deb
+
   (N100/N305の場合)
   $ wget https://www.yasuhironet.net/download/n305/libsdplane_0.3.37-73_amd64.deb
   $ sudo apt install ./libsdplane_0.3.37-73_amd64.deb
 
+  (J6412の場合)
+  $ wget https://www.yasuhironet.net/download/j6412/libsdplane_0.3.37-77_amd64.deb
+  $ sudo apt install ./libsdplane_0.3.37-77_amd64.deb
+
 * sdplane の install
-  (J3160/J6412の場合)
+  (J3160の場合)
   $ wget https://www.yasuhironet.net/download/JXXXX/sdplane_0.1.3-514_amd64.deb
+  $ sudo apt install ./sdplane_0.1.3-514_amd64.deb
+
   (N100/N305の場合)
   $ wget https://www.yasuhironet.net/download/n305/sdplane_0.1.3-514_amd64.deb
   $ sudo apt install ./sdplane_0.1.3-514_amd64.deb
+
+  (J6412の場合)
+  $ wget https://www.yasuhironet.net/download/j6412/sdplane_0.1.3-537_amd64.deb
+  $ sudo apt install ./sdplane_0.1.3-537_amd64.deb
+  $ wget https://www.yasuhironet.net/download/j6412/sdplane.conf
+  $ sudo cp -f sdplane.conf /etc/sdplane/sdplane.conf
 
 * netplan config install:
   # rm -f /etc/netplan/*.yaml
