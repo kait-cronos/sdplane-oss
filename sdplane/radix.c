@@ -295,66 +295,70 @@ rib_show_route (struct rib_node *n, void *arg)
           switch (nh_legacy->type)
             {
               case NH_OBJ_TYPE_OBJECT:
-                struct nh_info *nh_info = &nh_legacy->nh_info;
+                {
+                  struct nh_info *nh_info = &nh_legacy->nh_info;
 
-                inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
-                           nexthop_str, sizeof (nexthop_str));
+                  inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
+                             nexthop_str, sizeof (nexthop_str));
 
-                ret = fprintf (shell->terminal,
-                        "[%d] %-30s  nhid %-3d > %-19s  dev %u%s",
-                        route_count, dst_str,
-                        nh->nh_id,
-                        nexthop_str,
-                        nh_info->oif,
-                        shell->NL);
-                if (ret < 0)
-                  WARNING ("route[%d]: %s fprintf() ret: %d %s",
-                           route_count, dst_str, ret, strerror (errno));
-                route_count++;
-                break;
+                  ret = fprintf (shell->terminal,
+                          "[%d] %-30s  nhid %-3d > %-19s  dev %u%s",
+                          route_count, dst_str,
+                          nh->nh_id,
+                          nexthop_str,
+                          nh_info->oif,
+                          shell->NL);
+                  if (ret < 0)
+                    WARNING ("route[%d]: %s fprintf() ret: %d %s",
+                             route_count, dst_str, ret, strerror (errno));
+                  route_count++;
+                  break;
+                }
 
               case NH_OBJ_TYPE_GROUP:
-                struct nh_info_group *nh_grp =
-                  &rib_info->nexthop.legacy.object[nh->nh_id].nh_grp;
+                {
+                  struct nh_info_group *nh_grp =
+                    &rib_info->nexthop.legacy.object[nh->nh_id].nh_grp;
 
-                if (rib_info->nexthop.legacy.object[nh->nh_id].ref_count == 0)
+                  if (rib_info->nexthop.legacy.object[nh->nh_id].ref_count == 0)
+                    break;
+
+                  for (i = 0; i < nh_grp->num; i++)
+                    {
+                      inet_ntop (nh_grp->nh_info_list[i].family,
+                                 &nh_grp->nh_info_list[i].nh_ip_addr,
+                                 nexthop_str, sizeof (nexthop_str));
+                      ret = 0;
+                      if (i == 0)
+                        ret = fprintf (shell->terminal,
+                                "[%d] %-30s  nhid %-3d > %-19s  dev %u%s",
+                                route_count, dst_str,
+                                nh->nh_id,
+                                nexthop_str,
+                                nh_grp->nh_info_list[i].oif,
+                                shell->NL);
+                      else
+                        ret = fprintf(shell->terminal,
+                                "[%d] %-30s             %-19s  dev %u%s",
+                                route_count, "",
+                                nexthop_str,
+                                nh_grp->nh_info_list[i].oif,
+                                shell->NL);
+                      if (ret < 0)
+                        WARNING ("route[%d]: %s fprintf() ret: %d %s",
+                           route_count, dst_str, ret, strerror (errno));
+                    }
+                  route_count++;
                   break;
-
-                for (i = 0; i < nh_grp->num; i++)
-                  {
-                    inet_ntop (nh_grp->nh_info_list[i].family,
-                               &nh_grp->nh_info_list[i].nh_ip_addr,
-                               nexthop_str, sizeof (nexthop_str));
-                    ret = 0;
-                    if (i == 0)
-                      ret = fprintf (shell->terminal,
-                              "[%d] %-30s  nhid %-3d > %-19s  dev %u%s",
-                              route_count, dst_str,
-                              nh->nh_id,
-                              nexthop_str,
-                              nh_grp->nh_info_list[i].oif,
-                              shell->NL);
-                    else
-                      ret = fprintf(shell->terminal,
-                              "[%d] %-30s             %-19s  dev %u%s",
-                              route_count, "",
-                              nexthop_str,
-                              nh_grp->nh_info_list[i].oif,
-                              shell->NL);
-                    if (ret < 0)
-                      WARNING ("route[%d]: %s fprintf() ret: %d %s",
-                         route_count, dst_str, ret, strerror (errno));
-                  }
-                route_count++;
-                break;
+                }
 
               default:
                 snprintf (nexthop_str, sizeof (nexthop_str),
                           "unknown legacy nexthop type");
                 break;
             }
+          break;
         }
-        break;
 
       case NH_TYPE_OBJECT_CAP:
         snprintf (nexthop_str, sizeof (nexthop_str),
