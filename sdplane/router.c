@@ -200,26 +200,31 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* check if destination MAC is multicast or broadcast */
+  bool is_mcast_bcast = false;
   if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
+      is_mcast_bcast = true;
       DEBUG_NEW (ROUTER, "m: %p mac_addr bcast/mcast: send to router_if",
                  m, eth_type);
       _send_router_if_ring (m, rx_portid, rx_queueid, rif);
-      /* fall through */
+      /* fall through
+         TODO: implement l2 switching */
     }
 
   /* 3. check if control packet (ARP, ICMP, etc.) */
+  bool is_control = false;
   if (rif->sockfd >= 0 && rif->ring_up)
     {
-      bool is_control = _check_control_packet (m, vswitch, eth_type, eth,
-                                               vlan, ipv4, ipv6, icmp);
+      is_control = _check_control_packet (m, vswitch, eth_type, eth,
+                                          vlan, ipv4, ipv6, icmp);
       if (is_control)
         {
           DEBUG_NEW (ROUTER,
               "m: %p control packet (eth_type:0x%04x), send to router_if", m,
               eth_type);
-          _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+          if (! is_mcast_bcast)
+            _send_router_if_ring (m, rx_portid, rx_queueid, rif);
           return;
         }
     }
