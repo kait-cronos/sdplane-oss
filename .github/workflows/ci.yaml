@@ -53,7 +53,7 @@ jobs:
         env:
           cache-name: cache-dpdk
         with:
-          path: ~/dpdk-${{ matrix.dpdk_version }}
+          path: ~/dpdk-${{ matrix.dpdk_version }}.pkg.tar.gz
           key: ${{ runner.os }}-dpdk-${{ matrix.dpdk_version }}
 
       - name: Build DPDK
@@ -67,11 +67,12 @@ jobs:
           meson setup build
           cd build
           ninja
+          DESTDIR=$PWD/pkg meson install
+          tar --owner=0 --group=0 -czf ~/dpdk-${{ matrix.dpdk_version }}.pkg.tar.gz -C pkg .
 
       - name: Install DPDK
         run: |
-          cd ${HOME}/dpdk-${{ matrix.dpdk_version }}/build
-          sudo meson install
+          sudo tar -xzf ~/dpdk-${{ matrix.dpdk_version }}.pkg.tar.gz -C /
           sudo ldconfig
 
       - name: Install libsdplane
@@ -85,4 +86,4 @@ jobs:
           mkdir build
           cd build
           ../configure
-          make
+          make -j$(nproc)
