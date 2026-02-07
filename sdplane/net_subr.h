@@ -729,10 +729,13 @@ _check_control_packet (struct rte_mbuf *m,
     }
   else if (ipv6)
     {
+#if 0
       if (memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
           &rif->ipv6_addr, sizeof (struct in6_addr)) == 0)
         is_control = true;
       else if (ipv6->proto == IPPROTO_OSPF)
+#endif
+      if (ipv6->proto == IPPROTO_OSPF)
         is_control = true;
       else if (icmp)
         {
