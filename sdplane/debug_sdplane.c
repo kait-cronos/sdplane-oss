@@ -56,6 +56,8 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_ROUTE_ENTRY, "route-entry" },
   { DEBUG_SDPLANE_ROUTER, "router" },
   { DEBUG_SDPLANE_ENHANCED_INFO, "enhanced-info" },
+  { DEBUG_SDPLANE_WARNING, "warning" },
+  { DEBUG_SDPLANE_ERROR, "error" },
 };
 
 struct command_header debug_sdplane_cmd;
