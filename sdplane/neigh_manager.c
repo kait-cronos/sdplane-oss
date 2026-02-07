@@ -281,7 +281,7 @@ neigh_manager_init ()
   /* initialize */
   if (! msg_queue_neigh)
     msg_queue_neigh =
-        rte_ring_create ("msg_queue_neigh", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+        rte_ring_create ("msg_queue_neigh", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
 }
 
 int

@@ -2253,7 +2253,8 @@ rib_manager (void *arg)
 
   /* initialize */
   msg_queue_rib =
-      rte_ring_create ("msg_queue_rib", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+      rte_ring_create ("msg_queue_rib", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
+  DEBUG_NEW (RIB, "msg_queue_rib: %p", msg_queue_rib);
 
   int thread_id;
   thread_id = thread_lookup_by_lcore (rib_manager, lcore_id);

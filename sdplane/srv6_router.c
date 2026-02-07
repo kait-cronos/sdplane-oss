@@ -38,7 +38,6 @@
 
 #include "fib.h"
 #include "log_packet.h"
-#include "tap_handler.h"
 
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
@@ -99,8 +98,10 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
         icmp = (struct rte_icmp_hdr *) (ipv6 + 1);
     }
 
-  DEBUG_NEW (ROUTER, "m: %p received on port: %d queue: %d",
-             m, rx_portid, rx_queueid);
+  DEBUG_NEW (ROUTER, "m: %p received on port: %d queue: %d "
+             "mbuf[%d/%d]: next: %p",
+             m, rx_portid, rx_queueid,
+             rte_pktmbuf_data_len (m), rte_pktmbuf_pkt_len (m), m->next);
 
   /* 1. search and select rx_vswitch */
   port_conf = &rib->rib_info->port[rx_portid];

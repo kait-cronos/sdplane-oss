@@ -397,9 +397,7 @@ _switching (struct rte_mbuf *m,
         }
     }
 
-  DEBUG_NEW (ROUTER,
-             "m: %p L2 switching: dst MAC unknown, flooding",
-             m);
+  DEBUG_NEW (ROUTER, "m: %p L2 switching: dst MAC unknown, flooding", m);
   _flooding (m, rx_portid, rx_queueid, rx_link, vswitch);
 
   return;
@@ -431,9 +429,9 @@ _forwarding (struct rte_mbuf *m,
   fib_node = fib_route_lookup (rib->rib_info->fib_tree[tree_idx], dst_ip);
   if (! fib_node)
     {
-      DEBUG_NEW (ROUTER,
-                 "m: %p FIB lookup failed, send to router_if",
-                 m);
+      DEBUG_NEW (ROUTER, "m: %p FIB lookup failed, drop", m);
+      if (IS_DEBUG (ROUTER))
+        log_packet (m, rx_portid, rx_queueid);
       return;
     }
 
