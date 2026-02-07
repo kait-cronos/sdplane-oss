@@ -1047,6 +1047,8 @@ netlink_read_nlmsg_addr (struct netlink_sock *nlsock, struct nlmsghdr *h)
   return 0;
 }
 
+unsigned int msg_count = 0;
+
 int
 netlink_read (struct netlink_sock *nlsock)
 {
@@ -1082,33 +1084,34 @@ netlink_read (struct netlink_sock *nlsock)
           if (errno == EWOULDBLOCK || errno == EAGAIN)
             {
 #if 0
-              DEBUG_SDPLANE_LOG (NETLINK, "%s: read end: recvmsg(): ret: %d %s",
-                             nlsock->name, ret, strerror (errno));
+              DEBUG_NEW (NETLINK, "%s: read end: recvmsg(): ret: %d %s",
+                         nlsock->name, ret, strerror (errno));
 #endif
               break;
             }
-          DEBUG_SDPLANE_LOG (NETLINK, "%s: recvmsg(): ret: %d error: %s",
-                             nlsock->name, ret, strerror (errno));
+          DEBUG_NEW (NETLINK, "%s: recvmsg(): ret: %d error: %s",
+                     nlsock->name, ret, strerror (errno));
           continue;
         }
+      msg_count++;
 
       if (snl.nl_pid != 0)
         {
-          DEBUG_SDPLANE_LOG (NETLINK, "%s: ignore message from pid %u",
-                             nlsock->name, snl.nl_pid);
+          DEBUG_NEW (NETLINK, "%s: ignore message from pid %u",
+                     nlsock->name, snl.nl_pid);
           continue;
         }
 
       if (ret == 0)
         {
-          DEBUG_SDPLANE_LOG (NETLINK, "%s: EOF", nlsock->name);
+          DEBUG_NEW (NETLINK, "%s: EOF", nlsock->name);
           return -1;
         }
 
       if (msg.msg_namelen != sizeof (snl))
         {
-          DEBUG_SDPLANE_LOG (NETLINK, "%s: sender addr len error: %d",
-                             nlsock->name, msg.msg_namelen);
+          DEBUG_NEW (NETLINK, "%s: sender addr len error: %d",
+                     nlsock->name, msg.msg_namelen);
           return -1;
         }
 
@@ -1118,9 +1121,9 @@ netlink_read (struct netlink_sock *nlsock)
       for (h = (struct nlmsghdr *) buf; NLMSG_OK (h, len);
            h = NLMSG_NEXT (h, len))
         {
-          DEBUG_SDPLANE_LOG (NETLINK, "%s: type: %s(%u) seq: %lu pid: %lu",
-                             nlsock->name, netlink_nlmsg_str (h->nlmsg_type),
-                             h->nlmsg_type, h->nlmsg_seq, h->nlmsg_pid);
+          DEBUG_NEW (NETLINK, "%s: type: %s(%u) seq: %lu pid: %lu msg: %d",
+                     nlsock->name, netlink_nlmsg_str (h->nlmsg_type),
+                     h->nlmsg_type, h->nlmsg_seq, h->nlmsg_pid, msg_count);
           switch (h->nlmsg_type)
             {
             case NLMSG_ERROR:
@@ -1155,7 +1158,20 @@ netlink_read (struct netlink_sock *nlsock)
         }
 
       if (netlink_read_done)
-        break;
+        {
+          DEBUG_NEW (NETLINK, "%s: read end: netlink_read_done",
+                     nlsock->name);
+          break;
+        }
+
+      if (1) //always
+        {
+          /* yield */
+          DEBUG_NEW (NETLINK, "%s: yield at msg[%d].",
+                     nlsock->name, msg_count);
+          urcu_qsbr_quiescent_state ();
+          lthread_sleep (0);
+        }
     }
 
   return retval;
@@ -1253,42 +1269,26 @@ netlink_thread (void *arg)
     }                                                                         \
   while (0)
 
-  urcu_qsbr_quiescent_state ();
-
   NETLINK_REQUEST_CMD (AF_PACKET, RTM_GETLINK, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
-
-  urcu_qsbr_quiescent_state ();
 
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETADDR, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
-  urcu_qsbr_quiescent_state ();
-
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETROUTE, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
-
-  urcu_qsbr_quiescent_state ();
 
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETNEIGH, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
-  urcu_qsbr_quiescent_state ();
-
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETADDR, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
-
-  urcu_qsbr_quiescent_state ();
 
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETROUTE, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
-  urcu_qsbr_quiescent_state ();
-
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETNEIGH, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
-
-  urcu_qsbr_quiescent_state ();
 
   while (! force_quit && ! force_stop[lthread_core])
     {

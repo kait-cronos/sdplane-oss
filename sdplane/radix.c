@@ -234,9 +234,12 @@ _traverse (struct rib_node *n, rib_traverse_callback callback, void *arg)
   return 0;
 }
 
+unsigned int route_count = 0;
+
 int
 rib_traverse (struct rib_tree *t, rib_traverse_callback callback, void *arg)
 {
+  route_count = 0;
   if (! t || ! t->root || ! callback)
     return 0;
   return _traverse (t->root, callback, arg);
@@ -275,6 +278,7 @@ rib_show_route (struct rib_node *n, void *arg)
   struct shell *shell = show_arg->shell;
   int i, family = show_arg->family;
   struct nh_common *nh = &n->entry.nh;
+  int ret;
 
   char prefix_str[INET6_ADDRSTRLEN];
   char dst_str[INET6_ADDRSTRLEN + 5];
@@ -296,13 +300,17 @@ rib_show_route (struct rib_node *n, void *arg)
                 inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
                            nexthop_str, sizeof (nexthop_str));
 
-                fprintf(shell->terminal,
-                        "%-30s  nhid %-3d > %-19s  dev %u%s",
-                        dst_str,
+                ret = fprintf(shell->terminal,
+                        "[%d] %-30s  nhid %-3d > %-19s  dev %u%s",
+                        route_count, dst_str,
                         nh->nh_id,
                         nexthop_str,
                         nh_info->oif,
                         shell->NL);
+                if (ret < 0)
+                  WARNING ("route[%d]: fprintf() ret: %d %s",
+                           route_count, ret, strerror (errno));
+                route_count++;
                 break;
 
               case NH_OBJ_TYPE_GROUP:
@@ -317,8 +325,9 @@ rib_show_route (struct rib_node *n, void *arg)
                       inet_ntop (nh_grp->nh_info_list[i].family,
                                  &nh_grp->nh_info_list[i].nh_ip_addr,
                                  nexthop_str, sizeof (nexthop_str));
+                      ret = 0;
                       if (i == 0)
-                        fprintf(shell->terminal,
+                        ret = fprintf(shell->terminal,
                                 "%-30s  nhid %-3d > %-19s  dev %u%s",
                                 dst_str,
                                 nh->nh_id,
@@ -326,12 +335,14 @@ rib_show_route (struct rib_node *n, void *arg)
                                 nh_grp->nh_info_list[i].oif,
                                 shell->NL);
                       else
-                        fprintf(shell->terminal,
+                        ret = fprintf(shell->terminal,
                                 "%-30s             %-19s  dev %u%s",
                                 "",
                                 nexthop_str,
                                 nh_grp->nh_info_list[i].oif,
                                 shell->NL);
+                      if (ret < 0)
+                        WARNING ("fprintf() failed: %s", strerror (errno));
                     }
                   break;
 
