@@ -96,6 +96,7 @@ stop_lcore (struct shell *shell, int lcore_id)
 }
 
 int dhcp_server (__rte_unused void *dummy);
+int rib_manager (__rte_unused void *dummy);
 
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore <0-16> "
@@ -108,6 +109,7 @@ CLI_COMMAND2 (set_worker,
     "|pktgen"
 #endif
     "|dhcp-server"
+    "|rib-manager"
     ")",
     SET_HELP, RESET_HELP, START_HELP, RESTART_HELP,
     WORKER_HELP, LCORE_HELP, LCORE_NUMBER_HELP,
@@ -128,6 +130,7 @@ CLI_COMMAND2 (set_worker,
     "set lcore to launch pktgen\n"
 #endif
     "set lcore to launch dhcp-server\n"
+    "set lcore to launch rib-manager\n"
     )
 {
   struct shell *shell = (struct shell *) context;
@@ -164,6 +167,8 @@ CLI_COMMAND2 (set_worker,
 #endif
   else if (! strcmp (argv[4], "dhcp-server"))
     func = dhcp_server;
+  else if (! strcmp (argv[4], "rib-manager"))
+    func = rib_manager;
   else if (! strcmp (argv[4], "l3fwd-lpm"))
     func = lpm_main_loop;
   else /* if (! strcmp (argv[4], "l3fwd")) */
@@ -205,6 +210,8 @@ CLI_COMMAND2 (set_worker,
 #endif
   else if (func == dhcp_server)
     func_name = "dhcp-server";
+  else if (func == rib_manager)
+    func_name = "rib-manager";
   else
     func_name = "none";
 

@@ -2214,7 +2214,7 @@ rib_manager_send_message (void *msgp, struct shell *shell)
 static __thread uint64_t loop_counter = 0;
 static __thread time_t last_fdb_aging_time = 0;
 
-void
+int
 rib_manager (void *arg)
 {
   int ret, i;
@@ -2232,16 +2232,33 @@ rib_manager (void *arg)
       rte_ring_create ("msg_queue_rib", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
 
   int thread_id;
-  thread_id = thread_lookup (rib_manager);
+  thread_id = thread_lookup_by_lcore (rib_manager, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter);
+
+  if (IS_LTHREAD ())
+    DEBUG_NEW (RIB, "started as a lthread.");
+  else
+    DEBUG_NEW (RIB, "started on lcore: %d.", lcore_id);
+
+#if 0
+  /* This is the rcu producer. do we need to register ? */
+#if HAVE_LIBURCU_QSBR
+  if (! IS_LTHREAD ())
+    urcu_qsbr_register_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+#endif
 
   /* initialize fdb aging timer */
   last_fdb_aging_time = time (NULL);
 
-  while (! force_quit && ! force_stop[lthread_core])
+  while (! force_quit && ! force_stop[lcore_id])
     {
-      lthread_sleep (0); // yield.
-      // DEBUG_SDPLANE_LOG (RIB, "%s: schedule.", __func__);
+      if (IS_LTHREAD ())
+        lthread_sleep (0); // yield.
+#if 0
+      DEBUG_NEW (RIB, "%s: schedule (loop: %lu).",
+                 __func__, loop_counter);
+#endif
 
       msgp = internal_msg_recv (msg_queue_rib);
       if (msgp)
@@ -2251,7 +2268,12 @@ rib_manager (void *arg)
       time_t current_time = time (NULL);
       struct rib *current_rib = NULL;
 #if HAVE_LIBURCU_QSBR
-      current_rib = rcu_dereference (rcu_global_ptr_rib);
+      /* This is the rcu producer.
+         I think we don't need to lock/unlock/quiescent. */
+        {
+          //urcu_qsbr_read_lock ();
+          current_rib = rcu_dereference (rcu_global_ptr_rib);
+        }
 #endif /*HAVE_LIBURCU_QSBR*/
 
       if (current_time - last_fdb_aging_time >= 60 && current_rib &&
@@ -2261,6 +2283,15 @@ rib_manager (void *arg)
           DEBUG_SDPLANE_LOG (FDB, "fdb aging process executed");
           last_fdb_aging_time = current_time;
         }
+
+#if HAVE_LIBURCU_QSBR
+      /* This is the rcu producer.
+         I think we don't need to lock/unlock/quiescent. */
+        {
+          //urcu_qsbr_read_unlock ();
+          //urcu_qsbr_quiescent_state ();
+        }
+#endif /*HAVE_LIBURCU_QSBR*/
 
       loop_counter++;
     }
@@ -2274,4 +2305,14 @@ rib_manager (void *arg)
 
   DEBUG_SDPLANE_LOG (RIB, "%s: terminating.", __func__);
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+
+#if 0
+  /* This is the rcu producer. do we need to register ? */
+#if HAVE_LIBURCU_QSBR
+  if (! IS_LTHREAD ())
+    urcu_qsbr_unregister_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+#endif
+
+  return 0;
 }
