@@ -1227,8 +1227,12 @@ netlink_thread (void *arg)
   netlink_socket (&netlink_cmd, 0);
 
   /* wait for startup_config to complete before subscribing to routes */
-  while (! startup_config_completed && ! force_quit && ! force_stop[lthread_core])
-    lthread_sleep (100);
+  while (! startup_config_completed &&
+         ! force_quit && ! force_stop[lthread_core])
+    {
+      lthread_sleep (100);
+      urcu_qsbr_quiescent_state ();
+    }
 
   DEBUG_NEW (NETLINK, "%s: startup_config completed, starting subscription.",
              __func__);
@@ -1249,27 +1253,42 @@ netlink_thread (void *arg)
     }                                                                         \
   while (0)
 
+  urcu_qsbr_quiescent_state ();
+
   NETLINK_REQUEST_CMD (AF_PACKET, RTM_GETLINK, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
+
+  urcu_qsbr_quiescent_state ();
 
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETADDR, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
+  urcu_qsbr_quiescent_state ();
+
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETROUTE, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
+
+  urcu_qsbr_quiescent_state ();
 
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETNEIGH, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
+  urcu_qsbr_quiescent_state ();
+
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETADDR, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
+
+  urcu_qsbr_quiescent_state ();
 
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETROUTE, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
+  urcu_qsbr_quiescent_state ();
+
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETNEIGH, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
+  urcu_qsbr_quiescent_state ();
 
   while (! force_quit && ! force_stop[lthread_core])
     {
@@ -1279,6 +1298,7 @@ netlink_thread (void *arg)
       netlink_read (&netlink_cmd);
       netlink_read (&netlink_kernel);
 
+      urcu_qsbr_quiescent_state ();
       loop_counter++;
     }
 
