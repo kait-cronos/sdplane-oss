@@ -121,6 +121,7 @@ _send_router_if_ring (struct rte_mbuf *m,
             }
         }
 
+      if (rif->ring_up)
       _send_ring (c, rx_portid, rx_queueid, rif->ring_up); 
       rte_pktmbuf_free (c);
     }

@@ -540,6 +540,8 @@ CLI_COMMAND2 (show_rib_ip_route,
 
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
+      if (! rib_tree_master[i])
+        continue;
       /* main table only for test */
       if (rib_tree_master[i]->table_id == 254 &&
           rib_tree_master[i]->family == show_arg.family)

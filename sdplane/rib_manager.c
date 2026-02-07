@@ -1595,6 +1595,7 @@ rib_manager_process_message (void *msgp)
         }
 
       //if (msg_txrx_desc->nrxq || msg_txrx_desc->ntxq)
+      if (startup_config_completed)
         {
           if (old)
             set_stop_flag (old);
