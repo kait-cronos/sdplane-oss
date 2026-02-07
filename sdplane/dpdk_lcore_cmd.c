@@ -326,7 +326,7 @@ CLI_COMMAND2 (set_mempool, "set mempool", SET_HELP, "mempool\n")
 
   l2fwd_pktmbuf_pool =
       rte_pktmbuf_pool_create ("mbuf_pool", nb_mbufs, MEMPOOL_CACHE_SIZE, 0,
-                               RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id ());
+                               9500U, rte_socket_id ());
   if (l2fwd_pktmbuf_pool == NULL)
     {
       fprintf (shell->terminal, "Cannot init mbuf pool.%s", shell->NL);
