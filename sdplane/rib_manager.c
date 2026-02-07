@@ -2260,9 +2260,23 @@ rib_manager (void *arg)
                  __func__, loop_counter);
 #endif
 
+      /* rte_ring_dequeue_burst() or not */
+#if 0
       msgp = internal_msg_recv (msg_queue_rib);
       if (msgp)
         rib_manager_process_message (msgp);
+#else
+#define RIB_RING_BURST_SIZE 512
+      int num = 0;
+      struct internal_msg_header *msg_table[RIB_RING_BURST_SIZE];
+      num = internal_msg_recv_burst (msg_queue_rib, msg_table,
+                                     RIB_RING_BURST_SIZE);
+      for (int i = 0; i < num; i++)
+        {
+          msgp = msg_table[i];
+          rib_manager_process_message (msgp);
+        }
+#endif
 
       /* fdb aging process - run every 60 seconds */
       time_t current_time = time (NULL);

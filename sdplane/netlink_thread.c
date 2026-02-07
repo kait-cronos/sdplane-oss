@@ -330,7 +330,14 @@ netlink_read_nlmsg_neigh (struct netlink_sock *nlsock, struct nlmsghdr *h)
 
   if (! msg_queue_neigh)
     DEBUG_SDPLANE_LOG (NETLINK, "error: neigh_manager is not started.");
-  internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+
+  int ret;
+  ret = internal_msg_send_to (msg_queue_neigh, msgp, NULL);
+  if (ret < 0)
+    {
+      WARNING ("send imsg to msg_queue_neigh (%p) failed.",
+               msg_queue_neigh);
+    }
 
   return 0;
 }
@@ -817,7 +824,13 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
-  internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  int ret;
+  ret = internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  if (ret < 0)
+    {
+      WARNING ("send imsg to msg_queue_rib (%p) failed.",
+               msg_queue_rib);
+    }
 
   return 0;
 }
@@ -912,7 +925,13 @@ netlink_read_nlmsg_link (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
-  internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  int ret;
+  ret = internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  if (ret < 0)
+    {
+      WARNING ("send imsg to msg_queue_rib (%p) failed.",
+               msg_queue_rib);
+    }
 
   return 0;
 }
@@ -1017,7 +1036,13 @@ netlink_read_nlmsg_addr (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
-  internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  int ret;
+  ret = internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  if (ret < 0)
+    {
+      WARNING ("send imsg to msg_queue_rib (%p) failed.",
+               msg_queue_rib);
+    }
 
   return 0;
 }

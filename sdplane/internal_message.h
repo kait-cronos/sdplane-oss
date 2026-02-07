@@ -176,5 +176,8 @@ int internal_msg_send_to (struct rte_ring *ring,
                           struct internal_msg_header *msgp,
                           struct shell *shell);
 struct internal_msg_header *internal_msg_recv (struct rte_ring *ring);
+int internal_msg_recv_burst (struct rte_ring *ring,
+                             struct internal_msg_header **msg_table,
+                             int size);
 
 #endif /*__INTERNAL_MESSAGE_H__*/
