@@ -478,8 +478,15 @@ fdb_lookup_entry (const struct rib_info *rib_info,
   hash = fdb_jenkins_hash (mac_addr, vlan_id);
   offset = hash;
 
-  while (rib_info->fdb[offset].state != FDB_STATE_NONE)
+  char mac_str[32];
+  rte_ether_format_addr (mac_str, sizeof (mac_str), mac_addr);
+  DEBUG_NEW (FDB, "fdb_lookup: %s vlan: %u offset: %u.",
+             mac_str, vlan_id, offset);
+
+  //while (rib_info->fdb[offset].state != FDB_STATE_NONE)
+  while (1)
     {
+      //DEBUG_NEW (FDB, "check fdb[%u].", offset);
       if (rte_is_same_ether_addr (&rib_info->fdb[offset].l2addr, mac_addr) &&
           rib_info->fdb[offset].vlan_id == vlan_id)
         {
@@ -1588,6 +1595,7 @@ rib_manager_process_message (void *msgp)
         }
 
       //if (msg_txrx_desc->nrxq || msg_txrx_desc->ntxq)
+      if (startup_config_completed)
         {
           if (old)
             set_stop_flag (old);
@@ -2165,10 +2173,26 @@ rib_manager_process_message (void *msgp)
         (struct internal_msg_srv6_local_sid *) (msg_header + 1);
       inet_ntop (AF_INET6, &msg_srv6_local_sid->srv6_local_sid_addr,
                  addr_str, sizeof (addr_str));
-      DEBUG_NEW (RIB, "recv msg_srv6_local_sid: addr: %s.", addr_str);
-      memcpy (&new->rib_info->srv6_local_sid_addr,
-              &msg_srv6_local_sid->srv6_local_sid_addr,
-              sizeof (new->rib_info->srv6_local_sid_addr));
+      DEBUG_NEW (RIB, "recv msg_srv6_local_sid: addr: %s index: %d.",
+                 addr_str, msg_srv6_local_sid->srv6_local_sid_addr_index);
+      int num_sids = new->rib_info->srv6_local_sid_addr_num;
+      int index = msg_srv6_local_sid->srv6_local_sid_addr_index;
+      if (0 <= num_sids && num_sids < MAX_SRV6_LOCAL_SID_ADDR_NUM &&
+          0 <= index && index <= num_sids)
+        {
+          DEBUG_NEW (RIB, "saving at local_sid_addr[%d/%d] success: addr: %s.",
+                     index, num_sids, addr_str);
+          memcpy (&new->rib_info->srv6_local_sid_addr[index],
+                &msg_srv6_local_sid->srv6_local_sid_addr,
+                sizeof (struct in6_addr));
+          if (index == num_sids)
+            new->rib_info->srv6_local_sid_addr_num++;
+          DEBUG_NEW (RIB, "local_sid_addr_num: %d.",
+                     new->rib_info->srv6_local_sid_addr_num);
+        }
+      else
+        DEBUG_NEW (RIB, "saving at local_sid_addr[%d/%d] failed: addr: %s.",
+                   index, num_sids, addr_str);
       break;
 
     default:
@@ -2214,7 +2238,7 @@ rib_manager_send_message (void *msgp, struct shell *shell)
 static __thread uint64_t loop_counter = 0;
 static __thread time_t last_fdb_aging_time = 0;
 
-void
+int
 rib_manager (void *arg)
 {
   int ret, i;
@@ -2229,29 +2253,66 @@ rib_manager (void *arg)
 
   /* initialize */
   msg_queue_rib =
-      rte_ring_create ("msg_queue_rib", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+      rte_ring_create ("msg_queue_rib", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
+  DEBUG_NEW (RIB, "msg_queue_rib: %p", msg_queue_rib);
 
   int thread_id;
-  thread_id = thread_lookup (rib_manager);
+  thread_id = thread_lookup_by_lcore (rib_manager, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter);
+
+  if (IS_LTHREAD ())
+    DEBUG_NEW (RIB, "started as a lthread.");
+  else
+    DEBUG_NEW (RIB, "started on lcore: %d.", lcore_id);
+
+#if 0
+  /* This is the rcu producer. do we need to register ? */
+#if HAVE_LIBURCU_QSBR
+  if (! IS_LTHREAD ())
+    urcu_qsbr_register_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+#endif
 
   /* initialize fdb aging timer */
   last_fdb_aging_time = time (NULL);
 
-  while (! force_quit && ! force_stop[lthread_core])
+  while (! force_quit && ! force_stop[lcore_id])
     {
-      lthread_sleep (0); // yield.
-      // DEBUG_SDPLANE_LOG (RIB, "%s: schedule.", __func__);
+      if (IS_LTHREAD ())
+        lthread_sleep (0); // yield.
+#if 0
+      DEBUG_NEW (RIB, "%s: schedule (loop: %lu).",
+                 __func__, loop_counter);
+#endif
 
+      /* rte_ring_dequeue_burst() or not */
+#if 0
       msgp = internal_msg_recv (msg_queue_rib);
       if (msgp)
         rib_manager_process_message (msgp);
+#else
+#define RIB_RING_BURST_SIZE 512
+      int num = 0;
+      struct internal_msg_header *msg_table[RIB_RING_BURST_SIZE];
+      num = internal_msg_recv_burst (msg_queue_rib, msg_table,
+                                     RIB_RING_BURST_SIZE);
+      for (int i = 0; i < num; i++)
+        {
+          msgp = msg_table[i];
+          rib_manager_process_message (msgp);
+        }
+#endif
 
       /* fdb aging process - run every 60 seconds */
       time_t current_time = time (NULL);
       struct rib *current_rib = NULL;
 #if HAVE_LIBURCU_QSBR
-      current_rib = rcu_dereference (rcu_global_ptr_rib);
+      /* This is the rcu producer.
+         I think we don't need to lock/unlock/quiescent. */
+        {
+          //urcu_qsbr_read_lock ();
+          current_rib = rcu_dereference (rcu_global_ptr_rib);
+        }
 #endif /*HAVE_LIBURCU_QSBR*/
 
       if (current_time - last_fdb_aging_time >= 60 && current_rib &&
@@ -2261,6 +2322,15 @@ rib_manager (void *arg)
           DEBUG_SDPLANE_LOG (FDB, "fdb aging process executed");
           last_fdb_aging_time = current_time;
         }
+
+#if HAVE_LIBURCU_QSBR
+      /* This is the rcu producer.
+         I think we don't need to lock/unlock/quiescent. */
+        {
+          //urcu_qsbr_read_unlock ();
+          //urcu_qsbr_quiescent_state ();
+        }
+#endif /*HAVE_LIBURCU_QSBR*/
 
       loop_counter++;
     }
@@ -2274,4 +2344,14 @@ rib_manager (void *arg)
 
   DEBUG_SDPLANE_LOG (RIB, "%s: terminating.", __func__);
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
+
+#if 0
+  /* This is the rcu producer. do we need to register ? */
+#if HAVE_LIBURCU_QSBR
+  if (! IS_LTHREAD ())
+    urcu_qsbr_unregister_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
+#endif
+
+  return 0;
 }

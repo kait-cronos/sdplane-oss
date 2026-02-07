@@ -50,36 +50,40 @@ internal_msg_delete (struct internal_msg_header *msgp)
   free (msgp);
 }
 
+#define MSG1 "can't send message %p to ring-queue: NULL."
+#define MSG2 "sending internal message faild. "          \
+             "please start \"rib_manager\" beforehand."
 int
-internal_msg_send_to (struct rte_ring *ring, struct internal_msg_header *msgp,
-                      struct shell *shell)
+internal_msg_send_to (struct rte_ring *ring,
+                      struct internal_msg_header *msgp, struct shell *shell)
 {
   if (ring)
     {
       int ret;
-      DEBUG_SDPLANE_LOG (IMESSAGE, "sending message %p.", msgp);
+      DEBUG_NEW (IMESSAGE, "sending message %p.", msgp);
       ret = rte_ring_enqueue (ring, msgp);
+      DEBUG_NEW (NETLINK, "imsg: ring: %p: %d/%d",
+                 ring, rte_ring_count (ring),
+                 rte_ring_get_size (ring));
       if (ret == -ENOBUFS)
         {
           WARNING ("rte_ring_enqueue failed: ring %s is full. "
                    "message %p (type: %d) is lost.",
                    ring->name, msgp, msgp->type);
           internal_msg_delete (msgp);
+          //abort();
+          return -1;
         }
     }
   else
     {
-#define MSG1 "can't send message %p to ring-queue: NULL."
-#define MSG2                                                                  \
-  "sending internal message faild. "                                          \
-  "please start \"rib_manager\" beforehand."
       if (shell)
         {
           fprintf (shell->terminal, MSG1 "%s", msgp, shell->NL);
           fprintf (shell->terminal, MSG2 "%s", shell->NL);
         }
-      DEBUG_SDPLANE_LOG (IMESSAGE, MSG1, msgp);
-      DEBUG_SDPLANE_LOG (STARTUP_CONFIG, MSG2);
+      WARNING (MSG1, msgp);
+      WARNING (MSG2);
       return -1;
     }
   return 0;
@@ -94,10 +98,41 @@ internal_msg_recv (struct rte_ring *ring)
   if (! ring)
     return NULL;
 
+#if 0
+  DEBUG_NEW (RIB, "receiving message on ring: %p", ring);
+  DEBUG_NEW (RIB, "imsg: ring: %p: %d/%d",
+             ring, rte_ring_count (ring),
+             rte_ring_get_size (ring));
+#endif
+
   ret = rte_ring_dequeue (ring, &msgp);
   if (ret == -ENOENT)
     return NULL;
 
   DEBUG_SDPLANE_LOG (IMESSAGE, "receiving message %p.", msgp);
   return msgp;
+}
+
+int
+internal_msg_recv_burst (struct rte_ring *ring,
+                         struct internal_msg_header **msg_table,
+                         int size)
+{
+  int ret;
+  void *msgp;
+
+  if (! ring)
+    return 0;
+
+#if 0
+  DEBUG_NEW (RIB, "receiving message on ring: %p", ring);
+  DEBUG_NEW (RIB, "imsg: ring: %p: %d/%d",
+             ring, rte_ring_count (ring),
+             rte_ring_get_size (ring));
+#endif
+
+  ret = rte_ring_dequeue_burst (ring, (void **) msg_table, size, NULL);
+  DEBUG_SDPLANE_LOG (IMESSAGE, "receiving message on ring %p: ret: %d.",
+                     ring, ret);
+  return ret;
 }

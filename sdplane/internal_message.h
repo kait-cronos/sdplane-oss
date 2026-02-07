@@ -163,6 +163,7 @@ struct internal_msg_ip_addr
 struct internal_msg_srv6_local_sid
 {
   struct in6_addr srv6_local_sid_addr;
+  uint8_t srv6_local_sid_addr_index;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);
@@ -176,5 +177,8 @@ int internal_msg_send_to (struct rte_ring *ring,
                           struct internal_msg_header *msgp,
                           struct shell *shell);
 struct internal_msg_header *internal_msg_recv (struct rte_ring *ring);
+int internal_msg_recv_burst (struct rte_ring *ring,
+                             struct internal_msg_header **msg_table,
+                             int size);
 
 #endif /*__INTERNAL_MESSAGE_H__*/
