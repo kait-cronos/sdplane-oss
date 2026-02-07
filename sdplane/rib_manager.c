@@ -478,8 +478,15 @@ fdb_lookup_entry (const struct rib_info *rib_info,
   hash = fdb_jenkins_hash (mac_addr, vlan_id);
   offset = hash;
 
-  while (rib_info->fdb[offset].state != FDB_STATE_NONE)
+  char mac_str[32];
+  rte_ether_format_addr (mac_str, sizeof (mac_str), mac_addr);
+  DEBUG_NEW (FDB, "fdb_lookup: %s vlan: %u offset: %u.",
+             mac_str, vlan_id, offset);
+
+  //while (rib_info->fdb[offset].state != FDB_STATE_NONE)
+  while (1)
     {
+      //DEBUG_NEW (FDB, "check fdb[%u].", offset);
       if (rte_is_same_ether_addr (&rib_info->fdb[offset].l2addr, mac_addr) &&
           rib_info->fdb[offset].vlan_id == vlan_id)
         {
