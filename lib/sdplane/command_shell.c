@@ -198,7 +198,9 @@ DEFINE_COMMAND (show_history, "show history",
 
 #define DEFAULT_PAGER_ARG0 "/usr/bin/less"
 #define DEFAULT_PAGER_ARG1 "-FX"
-#define DEFAULT_PAGER      (DEFAULT_PAGER_ARG0 " " DEFAULT_PAGER_ARG1)
+#define DEFAULT_PAGER_ARG2 "+Gg"
+#define DEFAULT_PAGER \
+  (DEFAULT_PAGER_ARG0 " " DEFAULT_PAGER_ARG1 " " DEFAULT_PAGER_ARG2)
 
 #define PAGER_USE_POPEN 0
 void
@@ -239,28 +241,34 @@ pager_start (struct shell *shell)
   pid_t process_id;
 
   int pty_master, pty_slave;
+  char slave_name[256];
+  char *slave_name_ptr;
 
-  openpty (&shell->pty_master, &shell->pty_slave, NULL, NULL, NULL);
-  DEBUG_ZCMDSH_LOG (PAGER, "pty(master): fd %d, %s.", shell->pty_master,
+  openpty (&shell->pty_master, &shell->pty_slave, slave_name, NULL, NULL);
+  slave_name_ptr = ptsname (shell->pty_slave);
+  DEBUG_NEW (PAGER, "pty(master): fd %d, %s.", shell->pty_master,
                     ttyname (shell->pty_master));
+  DEBUG_NEW (PAGER, "pty(slave): fd %d, ttyname: %s "
+                    "slave_name: %s ptsname: %s.", shell->pty_slave,
+                    ttyname (shell->pty_slave), slave_name, slave_name_ptr);
 
   if (shell->winsize.ws_col && shell->winsize.ws_row)
     {
       ioctl (shell->pty_master, TIOCSWINSZ, &shell->winsize);
-      DEBUG_ZCMDSH_LOG (PAGER, "pager: TIOCSWINSZ: row: %d col: %d.",
-                        shell->winsize.ws_row, shell->winsize.ws_col);
+      DEBUG_NEW (PAGER, "pager: TIOCSWINSZ: row: %d col: %d.",
+                 shell->winsize.ws_row, shell->winsize.ws_col);
     }
 
-  DEBUG_ZCMDSH_LOG (PAGER, "pager: use fork/execvp.");
+  DEBUG_NEW (PAGER, "pager: use fork/execvp.");
   ret = pipe (shell->pipefd);
   if (ret < 0)
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "pipe() failed: %s.", strerror (errno));
+      DEBUG_NEW (PAGER, "pipe() failed: %s.", strerror (errno));
       return;
     }
 #if 0
   else
-    DEBUG_ZCMDSH_LOG (PAGER, "pipe() success: pipefd[] = {%d, %d}",
+    DEBUG_NEW (PAGER, "pipe() success: pipefd[] = {%d, %d}",
                       shell->pipefd[0], shell->pipefd[1]);
 #endif
 
@@ -276,22 +284,80 @@ pager_start (struct shell *shell)
     }
   else if (process_id == 0)
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "child ok: pid: %d.", getpid ());
+      DEBUG_NEW (PAGER, "child ok: pid: %d.", getpid ());
+
+      ret = setsid ();
+      if (ret < 0)
+        DEBUG_NEW (PAGER, "setsid(): failed.");
+#if 0
+      else
+        DEBUG_NEW (PAGER, "setsid(): succeeded.");
+#endif
 
       /* child */
       close (shell->pipefd[1]);
       close (shell->pty_master);
 
-      DEBUG_ZCMDSH_LOG (PAGER, "pty(slave): fd %d, %s.", shell->pty_slave,
+      close (shell->pty_slave);
+      shell->pty_slave = -1;
+
+      if (slave_name_ptr)
+        {
+          DEBUG_NEW (PAGER, "opening slave_name_ptr: %s.", slave_name_ptr);
+          shell->pty_slave = open (slave_name_ptr, O_RDWR);
+        }
+      if (shell->pty_slave < 0)
+        {
+          DEBUG_NEW (PAGER, "opening slave_name: %s", slave_name);
+          shell->pty_slave = open (slave_name, O_RDWR);
+        }
+
+      DEBUG_NEW (PAGER, "pty(slave): fd %d, %s.", shell->pty_slave,
                         ttyname (shell->pty_slave));
 
-      char *lessargs[3];
+      char *lessargs[4];
       lessargs[0] = DEFAULT_PAGER_ARG0;
       lessargs[1] = DEFAULT_PAGER_ARG1;
-      lessargs[2] = NULL;
+      lessargs[2] = DEFAULT_PAGER_ARG2;
+      lessargs[3] = NULL;
       char *path = lessargs[0];
 
-      DEBUG_ZCMDSH_LOG (PAGER, "execvp: %s %s", lessargs[0], lessargs[1]);
+      DEBUG_NEW (PAGER, "execvp: %s %s %s",
+                 lessargs[0], lessargs[1], lessargs[2]);
+
+      ret = ioctl (shell->pty_slave, TIOCSCTTY, 0);
+      if (ret < 0)
+        {
+          DEBUG_NEW (PAGER, "ioctl (%d, TIOCSCTTY) failed.", shell->pty_slave);
+        }
+#if 0
+      else
+        {
+          DEBUG_NEW (PAGER, "ioctl (%d, TIOCSCTTY) succeeded.", shell->pty_slave);
+        }
+#endif
+
+      ret = setenv ("TERM", "vt100", 1);
+      if (ret < 0)
+        DEBUG_NEW (PAGER, "setenv (TERM, vt100): failed: %s.",
+                 strerror (errno));
+#if 0
+      else
+        DEBUG_NEW (PAGER, "setenv (TERM, vt100): succeeded.");
+#endif
+
+#if 1
+      int flags;
+      flags = fcntl (shell->pty_slave, F_GETFL, 0);
+      if (flags < 0)
+        DEBUG_NEW (PAGER, "pty_slave: F_GETFL: failed. can't set O_NONBLOCK.");
+      else
+        {
+          ret = fcntl (shell->pty_slave, F_SETFL, flags | O_NONBLOCK);
+          if (ret < 0)
+            DEBUG_NEW (PAGER, "pty_slave: F_SETFL: failed. can't set O_NONBLOCK.");
+        }
+#endif
 
       dup2 (shell->pipefd[0], 0);
       dup2 (shell->pty_slave, 1);
@@ -300,17 +366,24 @@ pager_start (struct shell *shell)
       stdout = fdopen (1, "w");
       stderr = fdopen (2, "r+");
 
+#define PAGER_STRACE 1
+#if PAGER_STRACE
+      execlp("strace", "strace", "-o", "/tmp/less.trace",
+             DEFAULT_PAGER_ARG0, DEFAULT_PAGER_ARG1, DEFAULT_PAGER_ARG2,
+             NULL);
+#else
       ret = execvp (path, lessargs);
       if (ret < 0)
         {
-          DEBUG_ZCMDSH_LOG (PAGER, "execvp() failed: ret: %d: %s.", ret,
+          DEBUG_NEW (PAGER, "execvp() failed: ret: %d: %s.", ret,
                             strerror (errno));
           exit (-1);
         }
+#endif
     }
   else if (process_id > 0)
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "parent ok: pid: %d.", getpid ());
+      DEBUG_NEW (PAGER, "parent ok: pid: %d.", getpid ());
       shell->pager_pid = process_id;
 
       /* parent */
@@ -320,22 +393,93 @@ pager_start (struct shell *shell)
       shell->pager_saved_terminal = shell->terminal;
       shell->pager_saved_writefd = shell->writefd;
 
+#if 1
       int flags;
       flags = fcntl (shell->pipefd[1], F_GETFL, 0);
       if (flags < 0)
-        WARNING ("F_GETFL: failed. can't set O_NONBLOCK.");
+        DEBUG_NEW (PAGER, "F_GETFL: failed. can't set O_NONBLOCK.");
       else
         {
           ret = fcntl (shell->pipefd[1], F_SETFL, flags | O_NONBLOCK);
           if (ret < 0)
-            WARNING ("F_SETFL: failed. can't set O_NONBLOCK.");
+            DEBUG_NEW (PAGER, "F_SETFL: failed. can't set O_NONBLOCK.");
+          else
+            DEBUG_NEW (PAGER, "pipe to shell->terminal: "
+                       "F_SETFL: O_NONBLOCK succeeded.");
         }
+#else
+      DEBUG_NEW (PAGER, "pipe to shell->terminal: "
+                 "didn't set O_NONBLOCK.");
+#endif
 
       shell->terminal = fdopen (shell->pipefd[1], "a");
       shell->writefd = shell->pipefd[1];
 
-      DEBUG_ZCMDSH_LOG (PAGER, "pager start: terminal: %p <- %p.",
-                        shell->terminal, shell->pager_saved_terminal);
+      fcntl (shell->writefd, F_SETPIPE_SZ, 1048576);
+
+      struct pollfd fds[2];
+      fds[0].fd = shell->pty_master;
+      fds[0].events = POLLIN;
+      DEBUG_NEW (PAGER, "poll(): fds[0]: pty_master: %d", shell->pty_master);
+      fds[1].fd = shell->readfd;
+      fds[1].events = POLLIN;
+      DEBUG_NEW (PAGER, "poll(): fds[1]: readfd: %d", shell->readfd);
+
+      while (1)
+        {
+          fds[0].revents = 0;
+          fds[1].revents = 0;
+
+          int nbytes;
+          char buf[256];
+
+          DEBUG_NEW (PAGER, "poll(): fd: %d fd: %d", fds[0].fd, fds[1].fd);
+          ret = poll (fds, 2, 0);
+          if (fds[0].revents & POLLIN)
+            {
+              DEBUG_NEW (PAGER, "poll(): pty_master: %d: POLLIN",
+                         shell->pty_master);
+              nbytes = read (shell->pty_master, buf, sizeof (buf));
+              DEBUG_NEW (PAGER, "read(): pty_master: %d: %d bytes",
+                       shell->pty_master, nbytes);
+              if (nbytes > 0)
+                {
+                  buf[nbytes] = '\0';
+                  DEBUG_NEW (PAGER, "read(): pty_master: %d: %d bytes: %s",
+                           shell->pty_master, nbytes, buf);
+                  ret = write (shell->readfd, buf, nbytes);
+                  DEBUG_NEW (PAGER, "write(): readfd: %d: %d bytes",
+                           shell->readfd, ret);
+                }
+            }
+          if (fds[1].revents & POLLIN)
+            {
+              DEBUG_NEW (PAGER, "poll(): readfd: %d: POLLIN", shell->readfd);
+              nbytes = read (shell->readfd, buf, sizeof (buf));
+              DEBUG_NEW (PAGER, "read(): readfd: %d: %d bytes",
+                       shell->readfd, nbytes);
+              if (nbytes > 0)
+                {
+                  buf[nbytes] = '\0';
+                  DEBUG_NEW (PAGER, "read(): readfd: %d: %d bytes: %s",
+                             shell->readfd, nbytes, buf);
+                  ret = write (shell->pty_master, buf, nbytes);
+                  DEBUG_NEW (PAGER, "write(): pty_master: %d: %d bytes",
+                             shell->pty_master, ret);
+                }
+            }
+          DEBUG_NEW (PAGER, "poll(): revents: %d revents: %d",
+                     fds[0].revents, fds[1].revents);
+          if ((fds[0].revents & POLLIN) == 0 &&
+              (fds[1].revents & POLLIN) == 0)
+            {
+              DEBUG_NEW (PAGER, "poll(): break");
+              break;
+            }
+        }
+
+      DEBUG_NEW (PAGER, "pager start: terminal: %p <- %p.",
+                 shell->terminal, shell->pager_saved_terminal);
     }
 #endif
   shell->is_paging = true;
@@ -463,25 +607,10 @@ pager_end (struct shell *shell)
   shell->is_paging = false;
 }
 
-void
-shell_read_nowait_paging (struct shell *shell)
+int
+shell_pager_bridge (struct shell *shell)
 {
-  int wstatus;
-
-  close (shell->pipefd[1]);
-
-  if (shell->pager_saved_terminal)
-    {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager end: terminal: %p -> %p.",
-                        shell->terminal, shell->pager_saved_terminal);
-      pclose (shell->terminal);
-      shell->terminal = shell->pager_saved_terminal;
-      shell->writefd = shell->pager_saved_writefd;
-      shell->pager_saved_terminal = NULL;
-      shell->pager_saved_writefd = -1;
-    }
-
-  //DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
+  //DEBUG_NEW (PAGER, "pager: bridging sockets and pty...");
 
   int ret, nwrite;
   struct pollfd fds[2];
@@ -492,18 +621,24 @@ shell_read_nowait_paging (struct shell *shell)
 
   //while (1)
     {
-      // DEBUG_ZCMDSH_LOG (PAGER, "pager: reset pollfds");
+      //DEBUG_NEW (PAGER, "pager: reset pollfds");
       memset (fds, 0, sizeof (fds));
       fds[0].fd = shell->readfd;
       fds[0].events |= POLLIN;
       fds[1].fd = shell->pty_master;
       fds[1].events |= POLLIN;
+
+#if 0
+      DEBUG_NEW (PAGER, "pager: bridge: poll: fds[%d]: %d fds[%d]: %d",
+                 0, fds[0].fd, 1, fds[1].fd);
+#endif
+
       ret = poll (fds, nfds, 0);
       if (ret < 0)
         {
-          DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d: %s", ret,
+          DEBUG_NEW (PAGER, "pager: ppoll() returned: %d: %s", ret,
                             strerror (errno));
-          return;
+          return 0;
         }
 
       for (i = 0; i < nfds; i++)
@@ -511,12 +646,18 @@ shell_read_nowait_paging (struct shell *shell)
           int readfd, writefd;
 
           if (! (fds[i].revents & (POLLIN | POLLHUP)))
+            {
+#if 0
+            DEBUG_NEW (PAGER, "pager: bridge: no events: fds[%d]: %d",
+                       i, fds[i].fd);
+#endif
             continue;
+            }
 
           if ((fds[i].revents & POLLHUP) && ! (fds[i].revents & POLLIN))
             closed++;
 
-          DEBUG_ZCMDSH_LOG (
+          DEBUG_NEW (
               PAGER, "pager: fds[%d]: fd: %d revents:%s%s%s %#x", i, fds[i].fd,
               (fds[i].revents & POLLIN ? " POLLIN" : ""),
               (fds[i].revents & POLLHUP ? " POLLHUP" : ""),
@@ -525,7 +666,8 @@ shell_read_nowait_paging (struct shell *shell)
           readfd = fds[i].fd;
           j = (i & 0x01) ^ 0x01;
           writefd = fds[j].fd;
-          // DEBUG_ZCMDSH_LOG (PAGER, "pager: i: %d j: %d", i, j);
+          DEBUG_NEW (PAGER, "pager: bridge: fds[%d]: %d -> fds[%d]: %d",
+                     i, fds[i].fd, j, fds[j].fd);
 
           ret = read (readfd, buf, sizeof (buf));
           if (ret < 0)
@@ -570,12 +712,37 @@ shell_read_nowait_paging (struct shell *shell)
                         nwrite = snprintf (curr, end - curr, "%#x", buf[i]);
                       curr += nwrite;
                     }
-                  DEBUG_ZCMDSH_LOG (PAGER_CONTENTS, "pager: buf: %s", str_buf);
+                  DEBUG_ZCMDSH_LOG (PAGER_CONTENTS,
+                                    "pager: buf: \"%s\"", str_buf);
                 }
 #endif /*NO_PAGER_CONTENTS*/
             }
         }
     }
+
+  return closed;
+}
+
+void
+shell_read_nowait_paging (struct shell *shell)
+{
+  int wstatus;
+  int closed = 0;
+
+  close (shell->pipefd[1]);
+
+  if (shell->pager_saved_terminal)
+    {
+      DEBUG_ZCMDSH_LOG (PAGER, "pager end: terminal: %p -> %p.",
+                        shell->terminal, shell->pager_saved_terminal);
+      pclose (shell->terminal);
+      shell->terminal = shell->pager_saved_terminal;
+      shell->writefd = shell->pager_saved_writefd;
+      shell->pager_saved_terminal = NULL;
+      shell->pager_saved_writefd = -1;
+    }
+
+  closed = shell_pager_bridge (shell);
 
   if (! closed)
     return;
