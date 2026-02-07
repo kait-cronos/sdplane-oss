@@ -42,6 +42,20 @@ l2fwd_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
     }
 }
 
+static inline __attribute__ ((always_inline)) bool
+is_fdb_send_add (struct rib_info *rib_info,
+                 struct rte_mbuf *m, uint16_t vlan_id)
+{
+  struct rte_ether_hdr *eth_hdr;
+  int ret;
+
+  eth_hdr = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  ret = fdb_lookup_entry (rib_info, &eth_hdr->src_addr, vlan_id);
+  if (ret < 0)
+    return true;
+  return false;
+}
+
 static inline __attribute__ ((always_inline)) void
 send_fdb_entry_add_msg (struct rte_mbuf *m, uint16_t vlan_id)
 {

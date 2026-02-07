@@ -89,7 +89,9 @@ l3_tap_handler_dequeue_burst (int tap_fd, struct rte_ring *tap_ring,
       if (IS_DEBUG (PACKET))
         log_packet (m, vswitch->vswitch_id, vswitch->router_if.tap_ring_id);
 
-      send_fdb_entry_add_msg (m, vswitch->vlan_id);
+      if (rib && rib->rib_info &&
+          is_fdb_send_add (rib->rib_info, m, vswitch->vlan_id))
+        send_fdb_entry_add_msg (m, vswitch->vlan_id);
       if (tap_fd >= 0)
         l3_tap_handler_write (tap_fd, m);
 
