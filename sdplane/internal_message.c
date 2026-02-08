@@ -60,9 +60,9 @@ internal_msg_send_to (struct rte_ring *ring,
   if (ring)
     {
       int ret;
-      DEBUG_NEW (IMESSAGE, "sending message %p.", msgp);
+      //DEBUG_NEW (IMESSAGE, "sending message %p.", msgp);
       ret = rte_ring_enqueue (ring, msgp);
-      DEBUG_NEW (NETLINK, "imsg: ring: %p: %d/%d",
+      DEBUG_NEW (IMESSAGE, "imsg: ring: %p: %d/%d",
                  ring, rte_ring_count (ring),
                  rte_ring_get_size (ring));
       if (ret == -ENOBUFS)
@@ -71,7 +71,6 @@ internal_msg_send_to (struct rte_ring *ring,
                    "message %p (type: %d) is lost.",
                    ring->name, msgp, msgp->type);
           internal_msg_delete (msgp);
-          //abort();
           return -1;
         }
     }
@@ -109,7 +108,9 @@ internal_msg_recv (struct rte_ring *ring)
   if (ret == -ENOENT)
     return NULL;
 
+#if 0
   DEBUG_SDPLANE_LOG (IMESSAGE, "receiving message %p.", msgp);
+#endif
   return msgp;
 }
 
@@ -132,7 +133,9 @@ internal_msg_recv_burst (struct rte_ring *ring,
 #endif
 
   ret = rte_ring_dequeue_burst (ring, (void **) msg_table, size, NULL);
+#if 0
   DEBUG_SDPLANE_LOG (IMESSAGE, "receiving message on ring %p: ret: %d.",
                      ring, ret);
+#endif
   return ret;
 }

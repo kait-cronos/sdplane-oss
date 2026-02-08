@@ -1906,7 +1906,7 @@ rib_manager_process_message (void *msgp)
       break;
 
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
-      DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_add: %p.", msgp);
+      //DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_add: %p.", msgp);
       msg_route_entry = (struct internal_msg_route_entry *) (msg_header + 1);
       char dst_str_add[INET6_ADDRSTRLEN];
       char nexthop_str_add_buf[512];
@@ -1920,9 +1920,11 @@ rib_manager_process_message (void *msgp)
                                   &msg_route_entry->nh);
       if (nh_id < 0)
         break;
+#if 0
       DEBUG_NEW (RIB, "nexthop object added: nh_id=%d type=%s refcnt=%d",
                  nh_id, msg_route_entry->nh_type ? "OBJECT_CAPABLE" : "LEGACY",
                  new->rib_info->nexthop.legacy.object[nh_id].ref_count);
+#endif
 
       /* search for existing RIB tree with matching family and table_id */
       i = route_table_lookup_id (msg_route_entry->table_id,
@@ -1956,20 +1958,15 @@ rib_manager_process_message (void *msgp)
           DEBUG_SDPLANE_LOG (RIB, "failed to add route to RIB");
           break;
         }
+
       inet_ntop (msg_route_entry->dst.family,
                  &msg_route_entry->dst.dst_ip_addr,
                  dst_str_add, sizeof (dst_str_add));
-      DEBUG_SDPLANE_LOG (
-          RIB, "route added: dst=%s/%d nexthop=%s",
-          dst_str_add, msg_route_entry->dst.plen,
-          nexthop_common_format_object (
-              msg_route_entry->nh_type,
-              &msg_route_entry->nh,
-              nexthop_str_add_buf,
-              sizeof (nexthop_str_add_buf)
-          )
-        );
-
+      DEBUG_NEW (RIB, "route added: dst=%s/%d nexthop=%s",
+                 dst_str_add, msg_route_entry->dst.plen,
+                 nexthop_common_format_object (msg_route_entry->nh_type,
+                 &msg_route_entry->nh, nexthop_str_add_buf,
+                 sizeof (nexthop_str_add_buf)));
       break;
 
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL:
