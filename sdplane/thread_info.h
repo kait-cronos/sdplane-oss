@@ -20,7 +20,7 @@ struct thread_counter
   uint64_t persec;
 };
 
-#define THREAD_INFO_LIMIT 16
+#define THREAD_INFO_LIMIT 128
 extern struct thread_info threads[];
 extern rte_rwlock_t thread_info_lock;
 extern uint8_t thread_info_size;
