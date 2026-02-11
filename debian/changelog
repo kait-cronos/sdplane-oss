@@ -1,3 +1,40 @@
+sdplane (0.1.3-569) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge pull request #280 from kait-cronos/netlink-rib-debug-log
+  * adjust log message to debug netlink and rib for routes.
+  * Merge pull request #279 from kait-cronos/netlink-thread-fix
+  * netlink-thread-fix: make netlink-thread yield so that rib_manager can process their message. now we're yielding in netlink_read(), where we yield once after a netlink message was processed.
+  * Merge pull request #278 from kait-cronos/merge_srv6_end_router
+  * the size of msg_queue_neigh and msg_queue_rib is now 1024, from previous 32.
+  * fix crash.
+  * make sure fdb_lookup checks all slots.
+  * the extended show-neighbor cmd.
+  * a self-destined packet is not a control-packet.
+  * netlink_thread now uses proper urcu_qsbr_quiescent_state(), and waits startup_config_completed.
+  * is_fdb_send_add() to check if the fdb entry actually needs to be added.
+  * srv6 multi-sids.
+  * internal_msg_recv_burst (). print queue length in internal_msg_send_to(). warning when internal_msg_send_to() failed. rib_manager does now 512 burst internal_msg_recv().
+  * jumbo-frame (of size 9500U) support in mempool.
+  * native rib-manager thread.
+  * disable feature of WARNING() and ERROR_MSG().
+  * Merge pull request #276 from kait-cronos/fix-ci-cache
+  * cache dpdk binary tarball instead
+  * Merge pull request #274 from kait-cronos/kinoshita/2times_sending
+  * clean
+  * 2 times to 1 time
+  * Merge pull request #270 from kait-cronos/install-memo-update
+  * install-memo update.
+  * Merge pull request #265 from kait-cronos/srv6-router
+  * add example-config/sdpalne-srv6.conf
+  * (set|show) srv6 local-sid commands. INTERNAL_MSG_TYPE_SRV6_LOCAL_SID, struct internal_msg_srv6_local_sid. It is expected to work as SRv6 End, if the router-if had the address configured as the same local-sid addr as specified by the "set srv6 local-sid" command.
+  * update router.c progress into srv6_router.c
+  * Merge pull request #264 from kait-cronos/update-release-sdplane-conf
+  * update release sdplane.conf (sample).
+  * Merge pull request #263 from kait-cronos/dpkg-j6412
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 8 Feb 2026 22:47:58 +0900
+
 sdplane (0.1.3-537) UNRELEASED; urgency=low
 
   * release. update changelog.
