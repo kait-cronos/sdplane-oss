@@ -150,17 +150,17 @@ dhcp_server_rx ()
 
   if (! ring_dhcp_rx)
     return;
- 
+
   dequeued = rte_ring_dequeue_burst (ring_dhcp_rx,
                                      (void **) pkts_burst,
                                      MAX_PKT_BURST, &avail);
- 
+
   for (i = 0; i < dequeued; i++)
     {
       m = pkts_burst[i];
       if (! m)
         continue;
- 
+
       dhcp_server_read (m);
       rte_pktmbuf_free (m);
     }

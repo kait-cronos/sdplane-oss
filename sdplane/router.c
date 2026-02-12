@@ -290,7 +290,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
 
 #if 0
   /* check if this is a non-IP packet or multicast or broadcast */
-  if ((! ipv4 && ! ipv6) || 
+  if ((! ipv4 && ! ipv6) ||
       rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {

@@ -122,7 +122,8 @@ _send_router_if_ring (struct rte_mbuf *m,
         }
 
       if (rif->ring_up)
-      _send_ring (c, rx_portid, rx_queueid, rif->ring_up); 
+        _send_ring (c, rx_portid, rx_queueid, rif->ring_up);
+
       rte_pktmbuf_free (c);
     }
 }
@@ -332,10 +333,10 @@ _flooding (struct rte_mbuf *m,
       _send_link (m, rx_portid, rx_queueid, rx_link,
                   tx_portid, tx_queueid, link);
     }
-  
+
     /* Flooding is also required for router_if */
     struct router_if *rif = &vswitch->router_if;
-    if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID 
+    if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID
         && rif->sockfd >= 0 && rif->ring_up)
       _send_router_if_ring (m, rx_portid, rx_queueid, rif);
 }

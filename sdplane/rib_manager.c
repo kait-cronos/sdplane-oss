@@ -1159,7 +1159,7 @@ rib_check (struct rib *new)
 
       rte_eth_dev_stop (i);
       ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
- 
+
       if (new->rib_info->port[i].mtu)
         {
           uint16_t mtu = new->rib_info->port[i].mtu;
@@ -1609,7 +1609,7 @@ rib_manager_process_message (void *msgp)
       DEBUG_SDPLANE_LOG (RIB, "recv msg_neigh_entry_add: %p.", msgp);
       msg_neigh_entry = (struct internal_msg_neigh_entry *) (msg_header + 1);
       neigh_table = &new->rib_info->neigh_tables[msg_neigh_entry->type];
-      /* If the master’s neighbor table has more entries than the RIB’s, 
+      /* If the master’s neighbor table has more entries than the RIB’s,
        * it indicates that a new entry has been inserted. */
       if (msg_neigh_entry->num_entries > neigh_table->num_entries)
         {
@@ -2045,7 +2045,7 @@ rib_manager_process_message (void *msgp)
       for (i = 0; i < new->rib_info->vswitch_size; i++)
         {
           if (memcmp (new->rib_info->vswitch[i].router_if.tap_name, msg_mac_addr->ifname,
-                      sizeof (msg_mac_addr->ifname)) == 0 && 
+                      sizeof (msg_mac_addr->ifname)) == 0 &&
               memcmp (&new->rib_info->vswitch[i].router_if.mac_addr, &msg_mac_addr->mac_addr,
                       sizeof (struct rte_ether_addr)))
             {

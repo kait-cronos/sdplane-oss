@@ -668,7 +668,7 @@ CLI_COMMAND2 (set_port_dev_configure,
                    "rte_eth_dev_configure(): port: %d failed: %d%s", port_id,
                    ret, shell->NL);
         }
-      
+
       ret = rte_eth_dev_callback_register (
           port_id, RTE_ETH_EVENT_INTR_LSC, lsi_event_callback, NULL);
       if (ret < 0)
