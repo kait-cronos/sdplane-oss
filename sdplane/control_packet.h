@@ -5,9 +5,12 @@
 #include <rte_udp.h>
 #include <rte_mbuf.h>
 
+#ifndef IPPROTO_OSPFIGP
 #define IPPROTO_OSPFIGP 89
+#endif
+#ifndef IPPROTO_PIM
 #define IPPROTO_PIM 103
-
+#endif
 #ifndef IPPROTO_TCP
 #define IPPROTO_TCP 6
 #endif
