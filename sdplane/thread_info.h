@@ -2,6 +2,8 @@
 #define __THREAD_INFO_H__
 
 #include <lthread.h>
+#include <rte_rwlock.h>
+#include <sdplane/command.h>
 
 struct thread_info
 {

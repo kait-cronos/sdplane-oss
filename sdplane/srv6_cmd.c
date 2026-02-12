@@ -3,13 +3,11 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug_log.h>
-#include "debug_sdplane.h"
 
 #include "sdplane.h"
-
 #include "rib.h"
+#include "rib_manager.h"
 #include "internal_message.h"
 
 // clang-format off

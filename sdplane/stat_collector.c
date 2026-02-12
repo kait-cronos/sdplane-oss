@@ -2,7 +2,6 @@
 
 #include <lthread.h>
 
-// #include <rte_common.h>
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 
@@ -11,8 +10,8 @@
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
+#include "debug_sdplane.h"
 #include "thread_info.h"
 
 extern volatile bool force_quit;

@@ -1,5 +1,7 @@
 #include "include.h"
 
+#include <lthread.h>
+
 #include <rte_ethdev.h>
 #include <rte_bus_pci.h>
 
@@ -14,24 +16,19 @@
 #include <sdplane/libsdplane_version.h>
 #endif
 
-#include "l3fwd.h"
 #include "l2fwd_export.h"
-
+#include "internal_message.h"
 #include "sdplane.h"
 #include "sdplane_version.h"
 #include "stat_collector.h"
-#include "tap_handler.h"
 #include "debug_sdplane.h"
-
-#include <lthread.h>
 #include "thread_info.h"
 #include "queue_config.h"
-
 #include "rib.h"
 #include "tap_cmd.h"
 #include "dpdk_port_cmd.h"
-
 #include "rte_flow_support.h"
+#include "netlink_hook.h"
 
 #include "argv_list.h"
 

@@ -25,16 +25,13 @@
 #endif /*HAVE_LIBURCU_QSBR*/
 
 #include <sdplane/command.h>
-
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
+#include "debug_sdplane.h"
 #include "l2fwd_export.h"
 #include "sdplane.h"
-#include "tap_handler.h"
-
 #include "rib_manager.h"
 #include "thread_info.h"
 

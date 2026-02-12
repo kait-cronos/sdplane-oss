@@ -8,20 +8,11 @@
 #include <rte_tcp.h>
 #include <rte_mbuf.h>
 
-#include "l2fwd_export.h"
 #include <sdplane/debug_log.h>
-#include "debug_sdplane.h"
-#include "tap_handler.h"
-
-#include "sdplane.h"
 
 #include "control_packet.h"
+#include "debug_sdplane.h"
 
-
-#include "rib_manager.h"
-#include "thread_info.h"
-
-#include "dhcp_server.h"
 
 static bool
 is_isis (void *payload, uint16_t eth_type)

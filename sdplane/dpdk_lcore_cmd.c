@@ -18,12 +18,11 @@
 
 #include "l3fwd.h"
 #include "l2fwd_export.h"
-
+#include "l2_repeater.h"
+#include "l2_switch.h"
 #include "sdplane.h"
 #include "tap_handler.h"
-#include "l2_repeater.h"
 #include "enhanced_repeater.h"
-#include "l2_switch.h"
 
 #include "argv_list.h"
 

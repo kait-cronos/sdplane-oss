@@ -1,16 +1,24 @@
 #ifndef __LOG_PACKET_H__
 #define __LOG_PACKET_H__
 
-#include "rte_override.h"
-
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
+
 #include <rte_version.h>
 #if RTE_VERSION < RTE_VERSION_NUM(24, 0, 0, 0)
   #include <rte_ip.h>
 #else
   #include <rte_ip6.h>
 #endif
+
+#include <rte_ether.h>
+#include <rte_icmp.h>
+#include <rte_udp.h>
+#include <rte_tcp.h>
+#include "rte_override.h"
+
+#include <sdplane/debug_log.h>
+
 
 struct llc_snap_hdr
 {

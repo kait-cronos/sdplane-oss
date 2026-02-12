@@ -9,22 +9,16 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
+
 #include "debug_sdplane.h"
-
 #include "sdplane.h"
-
-#include "l3fwd_cmd.h"
-#include "l2fwd_cmd.h"
-
 #include "vty_server.h"
 #include "vty_shell.h"
-
 #include "thread_info.h"
 
 extern int lthread_core;

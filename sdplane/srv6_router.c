@@ -16,27 +16,18 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 
+#include <sdplane/debug_log.h>
 #include <linux/rtnetlink.h>
 
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
 #endif /*HAVE_LIBURCU_QSBR*/
 
-#include <sdplane/debug_log.h>
-#include "debug_sdplane.h"
-
 #include "l2fwd_export.h"
 #include "sdplane.h"
-#include "tap_handler.h"
-
 #include "rib_manager.h"
 #include "thread_info.h"
-
-#include "packet_hdr.h"
-#include "packet_gen.h"
 #include "rte_override.h"
-
-#include "fib.h"
 #include "log_packet.h"
 
 static __thread unsigned lcore_id;

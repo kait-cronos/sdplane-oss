@@ -21,12 +21,10 @@
 #include "rib_manager.h"
 #include "sdplane.h"
 #include "thread_info.h"
-
 #include "l2fwd_export.h"
-
 #include "internal_message.h"
+#include "tlp.h"
 
-#include "log_packet.h"
 
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>

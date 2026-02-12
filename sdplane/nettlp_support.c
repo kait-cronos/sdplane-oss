@@ -1,6 +1,6 @@
 #include "include.h"
 
-#include "nettlp_support.h"
+#include "tlp.h"
 
 int
 tlp_calculate_lstdw (uintptr_t addr, size_t count)

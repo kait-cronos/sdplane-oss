@@ -5,16 +5,14 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+#include <sdplane/shell.h>
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
-
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
+
 #include "debug_sdplane.h"
-
-#include "sdplane.h"
-
 #include "fib.h"
 
 /* key: address, s: start bit, n: number of bits */

@@ -6,6 +6,7 @@
 #define _TLP_H_
 
 #include <stdint.h>
+#include <stddef.h>
 
 /*
  * Common Header

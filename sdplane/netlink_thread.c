@@ -13,6 +13,7 @@
 #include "sdplane.h"
 #include "thread_info.h"
 #include "internal_message.h"
+#include "neigh_manager.h"
 
 /* for netlink */
 #include <asm/types.h>

@@ -1,6 +1,7 @@
 #ifndef RADIX_H
 #define RADIX_H
 
+#include "fib.h"
 #include "rib.h"
 
 struct route_dst_info

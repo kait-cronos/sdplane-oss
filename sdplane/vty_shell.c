@@ -6,7 +6,6 @@
 #include <lthread.h>
 
 #include <rte_errno.h>
-
 #include <rte_common.h>
 #include <rte_launch.h>
 #include <rte_ether.h>
@@ -20,24 +19,19 @@
 #include <sdplane/debug_cmd.h>
 #include <sdplane/log.h>
 #include <sdplane/log_cmd.h>
-
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
+#include "debug_sdplane.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "l2fwd_cmd.h"
 #include "l3fwd_cmd.h"
-
 #include "vty_server.h"
 #include "vty_shell.h"
-
 #include "sdplane_version.h"
 #include "rib_manager.h"
-
-#include "internal_message.h"
 
 int
 shell_keyfunc_clear_terminal (struct shell *shell)

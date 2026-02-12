@@ -1,6 +1,12 @@
 #ifndef __PACKET_GEN_H__
 #define __PACKET_GEN_H__
 
+#include <rte_ethdev.h>
+
+#include "l2fwd_export.h"
+#include "debug_sdplane.h"
+#include "rte_override.h"
+
 static inline __attribute__ ((always_inline)) struct rte_mbuf *
 arp_req_pkt_gen (struct rte_ether_addr *src_mac, struct in_addr *src_ip,
                  struct in_addr *target_ip)

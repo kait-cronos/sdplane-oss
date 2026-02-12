@@ -4,19 +4,17 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
-
-#include "sdplane.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <dirent.h>
+
+#include "sdplane.h"
 
 const char *drivers_path = "/sys/bus/pci/drivers";
 const char *devices_path = "/sys/bus/pci/devices";
