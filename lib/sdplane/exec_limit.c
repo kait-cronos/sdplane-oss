@@ -2,15 +2,10 @@
  * Copyright (C) 2025 Yasuhiro Ohara. All rights reserved.
  */
 
-#include <includes.h>
+#include "includes.h"
+
 #include <poll.h>
 #include <stdbool.h>
-
-
-#include "debug.h"
-#include "debug_category.h"
-#include "debug_log.h"
-#include "debug_zcmdsh.h"
 
 #include "termio.h"
 
@@ -115,4 +110,3 @@ timer_check ()
         }
     }
 }
-

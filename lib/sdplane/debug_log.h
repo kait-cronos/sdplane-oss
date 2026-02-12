@@ -3,7 +3,9 @@
 
 #include <execinfo.h> //backtrace
 #include <stdint.h>   //uint64_t
-#include <stdlib.h>   //free in backtrace
+#include <stdio.h>
+
+#include "command.h"
 
 #ifndef FLAG_SET
 #define FLAG_CHECK(V, F) ((V) & (F))
@@ -170,8 +172,6 @@ void debug_log_init (char *progname);
 
 #define DEBUG_ZCMDSH_LOG(type, format, ...)                                   \
   DEBUG_LOG (ZCMDSH, type, format, ##__VA_ARGS__)
-
-#include <sdplane/command.h>
 
 EXTERN_COMMAND (debug_zcmdsh);
 EXTERN_COMMAND (show_debug_zcmdsh);

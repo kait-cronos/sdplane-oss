@@ -1,6 +1,8 @@
 #ifndef __VTY_SHELL_TELNET_H__
 #define __VTY_SHELL_TELNET_H__
 
+#include "shell.h"
+
 extern shell_keyfunc_t key_func_escape_1[256];
 extern shell_keyfunc_t key_func_escape_2[256];
 extern shell_keyfunc_t key_func_iac_1[256];

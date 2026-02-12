@@ -2,7 +2,6 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#include <includes.h>
 #include <poll.h>
 #include <stdbool.h>
 
@@ -10,19 +9,14 @@
 #include <util.h> // for openpty()
 #endif /*HAVE_UTIL_H*/
 
-#include "debug.h"
-
+#include "includes.h"
 #include "command.h"
 #include "command_shell.h"
 #include "file.h"
 #include "shell.h"
 #include "shell_keyfunc.h"
-#include "termio.h"
 #include "vector.h"
-
-#include "debug_category.h"
 #include "debug_log.h"
-#include "debug_zcmdsh.h"
 
 char *prompt_default = NULL;
 struct command_set *cmdset_default = NULL;
