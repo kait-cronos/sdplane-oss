@@ -352,46 +352,54 @@ netlink_format_nexthop_object (enum nexthop_type nh_type, void *nh,
   switch (nh_type)
     {
       case NH_TYPE_LEGACY:
-        struct nh_legacy *nh_legacy = (struct nh_legacy *) nh;
-        switch (nh_legacy->type)
-          {
-            case NH_OBJ_TYPE_OBJECT:
-              struct nh_info *nh_info = &nh_legacy->nh_info;
-
-              inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
-                         nh_ip_str, sizeof (nh_ip_str));
-              len += snprintf (buf + len, buf_size - len,
-                               "%s(oif=%d)",
-                               nh_ip_str, nh_info->oif);
-              break;
-
-            case NH_OBJ_TYPE_GROUP:
-              struct nh_info_group *nhg = &nh_legacy->nh_grp;
-
-              len += snprintf (buf + len, buf_size - len, "[");
-              for (i = 0; i < nhg->num; i++)
+        {
+          struct nh_legacy *nh_legacy = (struct nh_legacy *) nh;
+          switch (nh_legacy->type)
+            {
+              case NH_OBJ_TYPE_OBJECT:
                 {
-                  inet_ntop (nhg->nh_info_list[i].family,
-                             &nhg->nh_info_list[i].nh_ip_addr,
+                  struct nh_info *nh_info = &nh_legacy->nh_info;
+
+                  inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
                              nh_ip_str, sizeof (nh_ip_str));
                   len += snprintf (buf + len, buf_size - len,
-                                   "%s(oif=%d)%s",
-                                   nh_ip_str,
-                                   nhg->nh_info_list[i].oif,
-                                   (i == nhg->num - 1) ? "" : ", ");
+                                   "%s(oif=%d)",
+                                   nh_ip_str, nh_info->oif);
+                  break;
                 }
-              snprintf (buf + len, buf_size - len, "]");
-              break;
 
-            default:
-              return buf;
-          }
-        break;
+              case NH_OBJ_TYPE_GROUP:
+                {
+                  struct nh_info_group *nhg = &nh_legacy->nh_grp;
+
+                  len += snprintf (buf + len, buf_size - len, "[");
+                  for (i = 0; i < nhg->num; i++)
+                    {
+                      inet_ntop (nhg->nh_info_list[i].family,
+                                 &nhg->nh_info_list[i].nh_ip_addr,
+                                 nh_ip_str, sizeof (nh_ip_str));
+                      len += snprintf (buf + len, buf_size - len,
+                                       "%s(oif=%d)%s",
+                                       nh_ip_str,
+                                       nhg->nh_info_list[i].oif,
+                                       (i == nhg->num - 1) ? "" : ", ");
+                    }
+                  snprintf (buf + len, buf_size - len, "]");
+                  break;
+                }
+
+              default:
+                return buf;
+            }
+          break;
+        }
 
       case NH_TYPE_OBJECT_CAP:
-        int *nh_id = (int *) nh;
-        len += snprintf (buf + len, buf_size - len, "nhid=%d", *nh_id);
-        break;
+        {
+          int *nh_id = (int *) nh;
+          len += snprintf (buf + len, buf_size - len, "nhid=%d", *nh_id);
+          break;
+        }
 
       default:
         return buf;

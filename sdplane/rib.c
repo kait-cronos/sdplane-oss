@@ -585,53 +585,57 @@ CLI_COMMAND2 (show_rib_nexthop,
       switch (rib->rib_info->nexthop.legacy.object[i].type)
         {
           case NH_OBJ_TYPE_OBJECT:
-            struct nh_info *nh_info =
-              &rib->rib_info->nexthop.legacy.object[i].nh_info;
+            {
+              struct nh_info *nh_info =
+                &rib->rib_info->nexthop.legacy.object[i].nh_info;
 
-            if (rib->rib_info->nexthop.legacy.object[i].ref_count == 0)
-              continue;
+              if (rib->rib_info->nexthop.legacy.object[i].ref_count == 0)
+                continue;
 
-            inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
-                       nexthop_str, sizeof (nexthop_str));
-            fprintf(shell->terminal,
-                    "%-5d  %-7d  %-30s  dev %u%s",
-                    i,
-                    rib->rib_info->nexthop.legacy.object[i].ref_count,
-                    nexthop_str,
-                    rib->rib_info->nexthop.legacy.object[i].nh_info.oif,
-                    shell->NL);
-            break;
+              inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
+                         nexthop_str, sizeof (nexthop_str));
+              fprintf(shell->terminal,
+                      "%-5d  %-7d  %-30s  dev %u%s",
+                      i,
+                      rib->rib_info->nexthop.legacy.object[i].ref_count,
+                      nexthop_str,
+                      rib->rib_info->nexthop.legacy.object[i].nh_info.oif,
+                      shell->NL);
+              break;
+            }
 
           case NH_OBJ_TYPE_GROUP:
-            struct nh_info_group *nh_grp =
-              &rib->rib_info->nexthop.legacy.object[i].nh_grp;
+            {
+              struct nh_info_group *nh_grp =
+                &rib->rib_info->nexthop.legacy.object[i].nh_grp;
 
-            if (rib->rib_info->nexthop.legacy.object[i].ref_count == 0)
-              continue;
+              if (rib->rib_info->nexthop.legacy.object[i].ref_count == 0)
+                continue;
 
-            for (j = 0; j < nh_grp->num; j++)
-              {
-                inet_ntop (nh_grp->nh_info_list[j].family,
-                           &nh_grp->nh_info_list[j].nh_ip_addr,
-                           nexthop_str, sizeof (nexthop_str));
-                if (j == 0)
-                  fprintf(shell->terminal,
-                          "%-5d  %-7d  %-30s  dev %u%s",
-                          i,
-                          rib->rib_info->nexthop.legacy.object[i].ref_count,
-                          nexthop_str,
-                          nh_grp->nh_info_list[j].oif,
-                          shell->NL);
-                else
-                  fprintf(shell->terminal,
-                          "%-5s  %-7s  %-30s  dev %u%s",
-                          "",
-                          "",
-                          nexthop_str,
-                          nh_grp->nh_info_list[j].oif,
-                          shell->NL);
-              }
-            break;
+              for (j = 0; j < nh_grp->num; j++)
+                {
+                  inet_ntop (nh_grp->nh_info_list[j].family,
+                             &nh_grp->nh_info_list[j].nh_ip_addr,
+                             nexthop_str, sizeof (nexthop_str));
+                  if (j == 0)
+                    fprintf(shell->terminal,
+                            "%-5d  %-7d  %-30s  dev %u%s",
+                            i,
+                            rib->rib_info->nexthop.legacy.object[i].ref_count,
+                            nexthop_str,
+                            nh_grp->nh_info_list[j].oif,
+                            shell->NL);
+                  else
+                    fprintf(shell->terminal,
+                            "%-5s  %-7s  %-30s  dev %u%s",
+                            "",
+                            "",
+                            nexthop_str,
+                            nh_grp->nh_info_list[j].oif,
+                            shell->NL);
+                }
+              break;
+            }
 
           default:
             snprintf (nexthop_str, sizeof (nexthop_str), "unknown");
