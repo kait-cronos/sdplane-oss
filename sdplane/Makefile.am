@@ -28,7 +28,7 @@ sdplane_SOURCES = \
         sdplane_version.c thread_info.c queue_config.c rib_manager.c \
         internal_message.c rib.c tap_cmd.c \
         dpdk_devbind.c netlink_thread.c stream_buf.c vlan_switch.c \
-        dhcp_server.c dhcp_cmd.c \
+        dhcp_server.c dhcp_cmd.c netlink_hook.c \
         enhanced_repeater.c neigh_manager.c l2_switch.c \
         radix.c fib.c rte_flow_support.c control_packet.c \
         router.c srv6_router.c srv6_cmd.c

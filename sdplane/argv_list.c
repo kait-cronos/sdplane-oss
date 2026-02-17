@@ -565,8 +565,11 @@ ALIAS_COMMAND (set_argv_list_24,
                "set command-line arguments.\n"
                "set command-line arguments.\n");
 
-CLI_COMMAND2 (show_argv_list, "show argv-list (|<0-7>)", SHOW_HELP,
-              "show argv-list.\n", "specify argv-list index.\n")
+CLI_COMMAND2 (show_argv_list,
+              "show argv-list (|<0-7>)",
+              SHOW_HELP,
+              "show argv-list.\n",
+              "specify argv-list index.\n")
 {
   struct shell *shell = (struct shell *) context;
   int i, j;
@@ -583,9 +586,10 @@ CLI_COMMAND2 (show_argv_list, "show argv-list (|<0-7>)", SHOW_HELP,
 
       if (index >= 0 && i != index)
         continue;
+
       for (j = 0; j < *argcp; j++)
-        fprintf (shell->terminal, "argv_list[%d][%d]: %s\n", i, j,
-                 argv_list[i][j]);
+        fprintf (shell->terminal, "argv_list[%d][%d]: %s%s",
+                 i, j, argv_list[i][j], shell->NL);
     }
   pthread_mutex_unlock (&argv_list_mutex);
 
