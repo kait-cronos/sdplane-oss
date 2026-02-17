@@ -21,7 +21,7 @@ sdplane_SOURCES = \
         tap.c stat_collector.c \
         startup_config.c snprintf_flags.c dpdk_flag.h \
         dpdk_lcore_cmd.c dpdk_port_cmd.c \
-        vty_server.c vty_shell.c \
+        vty_server.c vty_shell.c argv_list.c \
         main.c lthread_main.c sdplane.h sdplane.c debug_sdplane.c \
         tap_handler.h tap_handler.c l3_tap_handler.c \
         console_shell.c l2_repeater.c \

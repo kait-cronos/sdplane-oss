@@ -25,6 +25,8 @@
 #include "enhanced_repeater.h"
 #include "l2_switch.h"
 
+#include "argv_list.h"
+
 int router (__rte_unused void *dummy);
 int srv6_router (__rte_unused void *dummy);
 
@@ -477,10 +479,12 @@ CLI_COMMAND2 (rte_eal_init_argv_list,
   int index;
   index = strtol (argv[2], NULL, 0);
 
+  pthread_mutex_lock (&argv_list_mutex);
   int *argcp = &argv_list_argc[index];
   char **argvp = argv_list[index];
 
   ret = rte_eal_init (*argcp, argvp);
+  pthread_mutex_unlock (&argv_list_mutex);
   if (ret < 0)
     {
       fprintf (shell->terminal, "Invalid EAL parameters.%s", shell->NL);
