@@ -77,8 +77,8 @@ jobs:
 
       - name: Install libsdplane
         run: |
-          wget https://www.yasuhironet.net/download/topton/libsdplane_0.3.37-11_amd64.deb
-          sudo apt-get install -y ./libsdplane_0.3.37-11_amd64.deb
+          wget https://www.yasuhironet.net/download/n305/libsdplane_0.3.37-73_amd64.deb
+          sudo apt-get install -y ./libsdplane_0.3.37-73_amd64.deb
 
       - name: Build sdplane
         run: |
