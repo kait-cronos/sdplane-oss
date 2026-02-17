@@ -67,12 +67,6 @@ CLI_COMMAND2 (nlhook_ifaddr_ifname,
   return 0;
 }
 
-void
-nlhook_cmd_init (struct command_set *cmdset)
-{
-  INSTALL_COMMAND2 (cmdset, nlhook_ifaddr_ifname);
-}
-
 CLI_COMMAND2 (show_netlink_hook,
               "show netlink-hook (|<0-3>)",
               SHOW_HELP,
@@ -111,6 +105,13 @@ CLI_COMMAND2 (show_netlink_hook,
   pthread_mutex_unlock (&nlhook_mutex);
 
   return 0;
+}
+
+void
+nlhook_cmd_init (struct command_set *cmdset)
+{
+  INSTALL_COMMAND2 (cmdset, nlhook_ifaddr_ifname);
+  INSTALL_COMMAND2 (cmdset, show_netlink_hook);
 }
 
 void

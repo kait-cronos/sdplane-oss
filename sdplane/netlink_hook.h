@@ -25,4 +25,7 @@ struct nlhook_entry
 extern pthread_mutex_t nlhook_mutex;
 extern struct nlhook_entry nlhook_entries[NLHOOK_SIZE];
 
+void nlhook_cmd_init (struct command_set *cmdset);
+void nlhook_init ();
+
 #endif /*__NETLINK_HOOK_H__*/

@@ -265,6 +265,7 @@ sdplane_cmd_init (struct command_set *cmdset)
   dpdk_lcore_cmd_init (cmdset);
   dpdk_port_cmd_init (cmdset);
   argv_list_cmd_init (cmdset);
+  nlhook_cmd_init (cmdset);
 
   INSTALL_COMMAND2 (cmdset, show_loop_count);
   INSTALL_COMMAND2 (cmdset, show_version);
@@ -294,6 +295,7 @@ sdplane_init ()
 {
   int lcore_id;
   argv_list_init ();
+  nlhook_init ();
   debug_sdplane_cmd_init ();
   thread_info_init ();
 }
