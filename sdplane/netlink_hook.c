@@ -26,6 +26,141 @@
 pthread_mutex_t nlhook_mutex;
 struct nlhook_entry nlhook_entries[NLHOOK_SIZE];
 
+int
+nlhook_check_ifaddr (uint16_t nlmsg_type, int ifindex, char *ifname,
+                     uint8_t family, uint8_t prefix_len, char *ifaddr)
+{
+  int i;
+  int match = 0;
+  int unmatch = 0;
+
+  pthread_mutex_lock (&nlhook_mutex);
+  for (i = 0; i < NLHOOK_SIZE; i++)
+    {
+      struct nlhook_entry *nlhook;
+      nlhook = &nlhook_entries[i];
+
+      match = 0;
+      unmatch = 0;
+
+      if (nlhook->nlmsg_type)
+        {
+          if (nlhook->nlmsg_type == nlmsg_type)
+            match++;
+          else
+            unmatch++;
+        }
+
+      if (nlhook->ifindex)
+        {
+          if (nlhook->ifindex == ifindex)
+            match++;
+          else
+            unmatch++;
+        }
+
+      if (nlhook->ifname)
+        {
+          if (! strcmp (nlhook->ifname, ifname))
+            match++;
+          else
+            unmatch++;
+        }
+
+      if (nlhook->family)
+        {
+          if (nlhook->family == family)
+            match++;
+          else
+            unmatch++;
+        }
+
+      if (nlhook->prefix_len)
+        {
+          if (nlhook->prefix_len == prefix_len)
+            match++;
+          else
+            unmatch++;
+        }
+
+      /* ifaddr-match not yet. */
+
+      if (! unmatch && match)
+        {
+          nlhook->sched++;
+          DEBUG_NEW (NETLINK_HOOK,
+                     "netlink_hook[%d]: match: %d unmatch: %d sched: %d",
+                     i, match, unmatch, nlhook->sched);
+        }
+#if 0
+      else
+        {
+          DEBUG_NEW (NETLINK_HOOK,
+                     "netlink_hook[%d]: match: %d unmatch: %d no-sched: %d",
+                     i, match, unmatch, nlhook->sched);
+        }
+#endif
+    }
+  pthread_mutex_unlock (&nlhook_mutex);
+  return 0;
+}
+
+int
+netlink_hook_exec ()
+{
+  int i;
+
+  pthread_mutex_lock (&nlhook_mutex);
+  for (i = 0; i < NLHOOK_SIZE; i++)
+    {
+      struct nlhook_entry *nlhook;
+      nlhook = &nlhook_entries[i];
+      if (nlhook->sched)
+        {
+          pid_t process_id;
+          int index = nlhook->argv_list_index;
+
+          pthread_mutex_lock (&argv_list_mutex);
+          process_id = fork ();
+          if (process_id < 0)
+            {
+              /* fork error. */
+              /* fall through. */
+            }
+          else if (process_id == 0)
+            {
+              /* child. */
+              char **argvp = argv_list[index];
+
+              DEBUG_NEW (NETLINK_HOOK, "calling: argv_list[%d]: "
+                         "%s %s %s %s ...", index,
+                         (argvp[0] ? argvp[0] : ""),
+                         (argvp[1] ? argvp[1] : ""),
+                         (argvp[2] ? argvp[2] : ""),
+                         (argvp[3] ? argvp[3] : ""));
+
+              int ret;
+              ret = execvp (argvp[0], argvp);
+              if (ret < 0)
+                {
+                  DEBUG_NEW (NETLINK_HOOK, "calling: fork() returned: %d: %s",
+                             ret, strerror (errno));
+                }
+            }
+          else if (process_id > 0)
+            {
+              /* parent. */
+              /* fall through. */
+              DEBUG_NEW (NETLINK_HOOK, "fork: child pid: %d", process_id);
+            }
+          pthread_mutex_unlock (&argv_list_mutex);
+          nlhook->sched = 0;
+        }
+    }
+  pthread_mutex_unlock (&nlhook_mutex);
+  return 0;
+}
+
 CLI_COMMAND2 (nlhook_ifaddr_ifname,
               "set netlink-hook <0-3> (ipv4|ipv6) ifaddr (new|del) "
               "ifname <WORD> argv-list <0-7>",

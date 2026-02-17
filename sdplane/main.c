@@ -70,6 +70,11 @@ signal_handler (int signum)
       printf ("Signal %d received, preparing to exit...\n", signum);
       force_quit = true;
     }
+  else if (signum == SIGCHLD)
+    {
+      printf ("Signal %d received, waitpid.\n", signum);
+      waitpid (-1, NULL, WNOHANG);
+    }
 }
 
 void
@@ -153,6 +158,7 @@ main (int argc, char **argv)
   signal (SIGINT, signal_handler);
   signal (SIGTERM, signal_handler);
   signal (SIGHUP, signal_handler);
+  signal (SIGCHLD, signal_handler);
 
   /* Preserve name of myself. */
   char *progname, *p;

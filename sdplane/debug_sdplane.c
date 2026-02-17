@@ -58,6 +58,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_ENHANCED_INFO, "enhanced-info" },
   { DEBUG_SDPLANE_WARNING, "warning" },
   { DEBUG_SDPLANE_ERROR, "error" },
+  { DEBUG_SDPLANE_NETLINK_HOOK, "netlink-hook" },
 };
 
 struct command_header debug_sdplane_cmd;

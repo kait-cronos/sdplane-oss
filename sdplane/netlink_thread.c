@@ -25,6 +25,8 @@
 /* for SRv6 */
 #include "netlink_seg6.h"
 
+#include "netlink_hook.h"
+
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 static __thread uint64_t loop_counter = 0;
@@ -1052,6 +1054,25 @@ netlink_read_nlmsg_addr (struct netlink_sock *nlsock, struct nlmsghdr *h)
                msg_queue_rib);
     }
 
+  if (ifa->ifa_family == AF_INET6 &&
+      ifa->ifa_scope == RT_SCOPE_LINK)
+    {
+#if 0
+      DEBUG_NEW (NETLINK_HOOK,
+                 "omit calling nlhook_check on IPv6 lladdr: %s%%%s",
+                 ip_addr_str, ifname);
+#endif
+    }
+  else
+    {
+      DEBUG_NEW (NETLINK_HOOK,
+                 "calling nlhook_check on ifaddr: %s%%%s",
+                 ip_addr_str, ifname);
+      nlhook_check_ifaddr (h->nlmsg_type, ifa->ifa_index, ifname,
+                           ifa->ifa_family, ifa->ifa_prefixlen,
+                           (char *)RTA_DATA (rtas[IFA_ADDRESS]));
+    }
+
   return 0;
 }
 
@@ -1283,13 +1304,13 @@ netlink_thread (void *arg)
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETADDR, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
+  NETLINK_REQUEST_CMD (AF_INET6, RTM_GETADDR, &netlink_cmd);
+  netlink_read_block (&netlink_cmd);
+
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETROUTE, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
   NETLINK_REQUEST_CMD (AF_INET, RTM_GETNEIGH, &netlink_cmd);
-  netlink_read_block (&netlink_cmd);
-
-  NETLINK_REQUEST_CMD (AF_INET6, RTM_GETADDR, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETROUTE, &netlink_cmd);
@@ -1305,6 +1326,8 @@ netlink_thread (void *arg)
 
       netlink_read (&netlink_cmd);
       netlink_read (&netlink_kernel);
+
+      netlink_hook_exec ();
 
       urcu_qsbr_quiescent_state ();
       loop_counter++;

@@ -42,6 +42,7 @@
 #define DEBUG_SDPLANE_ENHANCED_INFO      (1ULL << 37)
 #define DEBUG_SDPLANE_WARNING            (1ULL << 38)
 #define DEBUG_SDPLANE_ERROR              (1ULL << 39)
+#define DEBUG_SDPLANE_NETLINK_HOOK       (1ULL << 40)
 
 #define DEBUG_DOMAIN_OF_LTHREAD            SDPLANE
 #define DEBUG_DOMAIN_OF_CONSOLE            SDPLANE
@@ -82,6 +83,7 @@
 #define DEBUG_DOMAIN_OF_ENHANCED_INFO      SDPLANE
 #define DEBUG_DOMAIN_OF_WARNING            SDPLANE
 #define DEBUG_DOMAIN_OF_ERROR              SDPLANE
+#define DEBUG_DOMAIN_OF_NETLINK_HOOK       SDPLANE
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)

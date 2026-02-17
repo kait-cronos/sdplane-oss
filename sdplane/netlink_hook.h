@@ -25,6 +25,10 @@ struct nlhook_entry
 extern pthread_mutex_t nlhook_mutex;
 extern struct nlhook_entry nlhook_entries[NLHOOK_SIZE];
 
+int nlhook_check_ifaddr (uint16_t nlmsg_type, int ifindex, char *ifname,
+                     uint8_t family, uint8_t prefix_len, char *ifaddr);
+int netlink_hook_exec ();
+
 void nlhook_cmd_init (struct command_set *cmdset);
 void nlhook_init ();
 
