@@ -1199,7 +1199,8 @@ netlink_read (struct netlink_sock *nlsock)
           DEBUG_NEW (NETLINK, "%s: yield at msg[%d].",
                      nlsock->name, msg_count);
           urcu_qsbr_quiescent_state ();
-          lthread_sleep (0);
+          if (IS_LTHREAD ())
+            lthread_sleep (0);
         }
     }
 
@@ -1260,8 +1261,18 @@ netlink_thread (void *arg)
   neigh_manager_init ();
 
   int thread_id;
-  thread_id = thread_lookup (netlink_thread);
+  thread_id = thread_lookup_by_lcore (netlink_thread, lcore_id);
   thread_register_loop_counter (thread_id, &loop_counter);
+
+  if (IS_LTHREAD ())
+    DEBUG_NEW (NETLINK, "started as a lthread.");
+  else
+    DEBUG_NEW (NETLINK, "started on lcore: %d.", lcore_id);
+
+#if HAVE_LIBURCU_QSBR
+  if (! IS_LTHREAD ())
+    urcu_qsbr_register_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
 
   unsigned long listen_groups;
   listen_groups = RTMGRP_LINK;
@@ -1275,7 +1286,10 @@ netlink_thread (void *arg)
   while (! startup_config_completed &&
          ! force_quit && ! force_stop[lthread_core])
     {
-      lthread_sleep (100);
+      if (IS_LTHREAD ())
+        lthread_sleep (100);
+      else
+        usleep (100);
       urcu_qsbr_quiescent_state ();
     }
 
@@ -1321,7 +1335,8 @@ netlink_thread (void *arg)
 
   while (! force_quit && ! force_stop[lthread_core])
     {
-      lthread_sleep (0); // yield.
+      if (IS_LTHREAD ())
+        lthread_sleep (0); // yield.
       // DEBUG_SDPLANE_LOG (NETLINK, "%s: schedule.", __func__);
 
       netlink_read (&netlink_cmd);
@@ -1332,6 +1347,11 @@ netlink_thread (void *arg)
       urcu_qsbr_quiescent_state ();
       loop_counter++;
     }
+
+#if HAVE_LIBURCU_QSBR
+  if (! IS_LTHREAD ())
+    urcu_qsbr_unregister_thread ();
+#endif /*HAVE_LIBURCU_QSBR*/
 
   DEBUG_SDPLANE_LOG (NETLINK, "%s: terminating.", __func__);
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);
