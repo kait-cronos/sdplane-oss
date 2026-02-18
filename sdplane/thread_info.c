@@ -5,10 +5,12 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
+#include <sdplane/debug_log.h>
 
 #include <rte_rwlock.h>
 
 #include "thread_info.h"
+#include "debug_sdplane.h"
 
 rte_rwlock_t thread_info_lock;
 
@@ -61,6 +63,13 @@ thread_unregister (int thread_id)
 {
   struct thread_info *tinfo;
 
+  if (thread_id < 0 || thread_info_size <= thread_id ||
+      THREAD_INFO_LIMIT <= thread_id)
+    {
+      WARNING ("thread_unregister: invalid thread_id %d.", thread_id);
+      return;
+    }
+
   rte_rwlock_write_lock (&thread_info_lock);
 
   tinfo = &threads[thread_id];
@@ -82,7 +91,8 @@ thread_update (int thread_id, int lcore_id, lthread_t *lthread,
   struct thread_info *tinfo;
   int i;
 
-  if (thread_id < 0 || thread_info_size <= thread_id)
+  if (thread_id < 0 || thread_info_size <= thread_id ||
+      THREAD_INFO_LIMIT <= thread_id)
     return -1;
 
   rte_rwlock_write_lock (&thread_info_lock);
@@ -106,7 +116,8 @@ int
 thread_register_loop_counter (int thread_id, uint64_t *ptr)
 {
   struct thread_counter *tcounter;
-  if (thread_id < 0 || THREAD_INFO_LIMIT <= thread_id)
+  if (thread_id < 0 || thread_info_size <= thread_id ||
+      THREAD_INFO_LIMIT <= thread_id)
     return -1;
   tcounter = &thread_counters[thread_id];
   tcounter->loop_counter_ptr = ptr;
@@ -117,7 +128,8 @@ int
 thread_unregister_loop_counter (int thread_id)
 {
   struct thread_counter *tcounter;
-  if (thread_id < 0 || THREAD_INFO_LIMIT <= thread_id)
+  if (thread_id < 0 || thread_info_size <= thread_id ||
+      THREAD_INFO_LIMIT <= thread_id)
     return -1;
   tcounter = &thread_counters[thread_id];
   tcounter->loop_counter_ptr = NULL;
