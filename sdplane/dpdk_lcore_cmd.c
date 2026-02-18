@@ -99,6 +99,7 @@ stop_lcore (struct shell *shell, int lcore_id)
 
 int dhcp_server (__rte_unused void *dummy);
 int rib_manager (__rte_unused void *dummy);
+int netlink_thread (__rte_unused void *dummy);
 
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore <0-16> "
@@ -112,6 +113,7 @@ CLI_COMMAND2 (set_worker,
 #endif
     "|dhcp-server"
     "|rib-manager"
+    "|netlink-thread"
     ")",
     SET_HELP, RESET_HELP, START_HELP, RESTART_HELP,
     WORKER_HELP, LCORE_HELP, LCORE_NUMBER_HELP,
@@ -133,6 +135,7 @@ CLI_COMMAND2 (set_worker,
 #endif
     "set lcore to launch dhcp-server\n"
     "set lcore to launch rib-manager\n"
+    "set lcore to launch netlink-thread\n"
     )
 {
   struct shell *shell = (struct shell *) context;
@@ -171,6 +174,8 @@ CLI_COMMAND2 (set_worker,
     func = dhcp_server;
   else if (! strcmp (argv[4], "rib-manager"))
     func = rib_manager;
+  else if (! strcmp (argv[4], "netlink-thread"))
+    func = netlink_thread;
   else if (! strcmp (argv[4], "l3fwd-lpm"))
     func = lpm_main_loop;
   else /* if (! strcmp (argv[4], "l3fwd")) */
@@ -214,6 +219,8 @@ CLI_COMMAND2 (set_worker,
     func_name = "dhcp-server";
   else if (func == rib_manager)
     func_name = "rib-manager";
+  else if (func == netlink_thread)
+    func_name = "netlink-thread";
   else
     func_name = "none";
 

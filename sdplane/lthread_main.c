@@ -256,6 +256,7 @@ lthread_main (__rte_unused void *dummy)
   while (! force_quit && ! force_stop[lthread_core])
     {
       lthread_sleep (1000); // yield.
+      urcu_qsbr_quiescent_state ();
       loop_counter++;
     }
 
