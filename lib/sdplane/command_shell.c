@@ -346,7 +346,7 @@ pager_start (struct shell *shell)
         DEBUG_NEW (PAGER, "setenv (TERM, vt100): succeeded.");
 #endif
 
-#if 1
+#if 0
       int flags;
       flags = fcntl (shell->pty_slave, F_GETFL, 0);
       if (flags < 0)
@@ -393,7 +393,7 @@ pager_start (struct shell *shell)
       shell->pager_saved_terminal = shell->terminal;
       shell->pager_saved_writefd = shell->writefd;
 
-#if 1
+#if 0
       int flags;
       flags = fcntl (shell->pipefd[1], F_GETFL, 0);
       if (flags < 0)
