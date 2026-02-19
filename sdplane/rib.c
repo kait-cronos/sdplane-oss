@@ -232,7 +232,7 @@ CLI_COMMAND2 (show_rib_router_if,
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
   int i;
-  char mac_str[18], ipv4_str[16], ipv6_str[40];
+  char mac_str[18], ipv4_str[16], ipv6_str[40], ll_addr_str[40];
 
   if (! rib || ! rib->rib_info)
     {
@@ -251,12 +251,16 @@ CLI_COMMAND2 (show_rib_router_if,
       rte_ether_format_addr (mac_str, sizeof (mac_str), &rif->mac_addr);
       inet_ntop (AF_INET, &rif->ipv4_addr, ipv4_str, sizeof (ipv4_str));
       inet_ntop (AF_INET6, &rif->ipv6_addr, ipv6_str, sizeof (ipv6_str));
+      inet_ntop (AF_INET6, &rif->ll_addr, ll_addr_str, sizeof (ll_addr_str));
 
       fprintf (shell->terminal, "vswitch[%d]: router interface configured%s",
                rib->rib_info->vswitch[i].vswitch_id, shell->NL);
       fprintf (shell->terminal, "  tap_name: %s%s", rif->tap_name, shell->NL);
+      fprintf (shell->terminal, "  vlan-id: %hu%s", rif->vlan_id, shell->NL);
+      fprintf (shell->terminal, "  ifindex: %d%s", rif->ifindex, shell->NL);
       fprintf (shell->terminal, "  MAC: %s, IPv4: %s, IPv6: %s%s", mac_str,
                ipv4_str, ipv6_str, shell->NL);
+      fprintf (shell->terminal, "  link local: %s%s", ll_addr_str, shell->NL);
       fprintf (shell->terminal, "  sockfd: %d, tap_ring_id: %u%s", rif->sockfd,
                rif->tap_ring_id, shell->NL);
       fprintf (shell->terminal, "  ring_up: %p, ring_dn: %p%s", rif->ring_up,
@@ -331,13 +335,23 @@ CLI_COMMAND2 (show_fdb,
   return 0;
 }
 
-CLI_COMMAND2 (show_neighbor, "show neighbor (ipv4|ipv6)", SHOW_HELP,
-              "show neighbor table.\n", "show ARP table.\n",
+CLI_COMMAND2 (show_neighbor,
+              "show neighbor (|ipv4|ipv6) (|<WORD>)",
+              SHOW_HELP,
+              "show neighbor table.\n",
+              "show ARP table.\n",
               "show ND table.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
   int thread_id;
+  bool spec_ipv4 = false;
+  bool spec_ipv6 = false;
+  bool spec_prefix = false;
+  char *prefix;
+  int ret;
+  int family = 0;
+  struct rib *rib = rib_tlocal;
 
   thread_id = thread_lookup (neigh_manager);
   if (thread_id < 0)
@@ -346,22 +360,109 @@ CLI_COMMAND2 (show_neighbor, "show neighbor (ipv4|ipv6)", SHOW_HELP,
       return -1;
     }
 
-  if (argc < 3)
+  if (argc > 2)
     {
-      fprintf (t, "Usage: %s\n", argv[0]);
-      return -1;
-    }
-  if (! strcmp (argv[2], "ipv4"))
-    neigh_manager_show_table (NEIGH_ARP_TABLE, shell);
-  else if (! strcmp (argv[2], "ipv6"))
-    neigh_manager_show_table (NEIGH_ND_TABLE, shell);
-  else
-    {
-      fprintf (t, "Unknown neighbor type: %s\n", argv[2]);
-      return -1;
+      if (! strcmp (argv[2], "ipv4"))
+        {
+          spec_ipv4 = true;
+          family = AF_INET;
+        }
+      else if (! strcmp (argv[2], "ipv6"))
+        {
+          spec_ipv6 = true;
+          family = AF_INET6;
+        }
     }
 
-  return 0;
+  if (argc > 3)
+    {
+      spec_prefix = true;
+      prefix = argv[3];
+    }
+  else if (argc > 2 && ! spec_ipv4 && ! spec_ipv6)
+    {
+      spec_prefix = true;
+      prefix = argv[2];
+    }
+  else if (argc == 2)
+    {
+      spec_ipv4 = spec_ipv6 = true;
+    }
+
+  if (spec_prefix)
+    {
+      struct in_addr ipv4_addr;
+      struct in6_addr ipv6_addr;
+
+      ret = inet_pton (AF_INET, prefix, &ipv4_addr);
+      if (ret == 1)
+        {
+          fprintf (shell->terminal, "ipv4 addr: %s%s",
+                   prefix, shell->NL);
+          family = AF_INET;
+        }
+      else
+        {
+          ret = inet_pton (AF_INET6, prefix, &ipv6_addr);
+          if (ret == 1)
+            {
+              fprintf (shell->terminal, "ipv6 addr: %s%s",
+                       prefix, shell->NL);
+              family = AF_INET6;
+            }
+          else
+            {
+              fprintf (shell->terminal, "unknown addr: %s%s",
+                       prefix, shell->NL);
+            }
+        }
+
+      int neigh_table_type;
+      struct neigh_entry *neigh_entry;
+      struct rte_ether_addr *dst_mac;
+      char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
+      neigh_table_type = AF_TO_NEIGH_TABLE (family);
+      switch (family)
+        {
+        case AF_INET:
+          neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                                neigh_table_type, &ipv4_addr, &neigh_entry);
+          break;
+        case AF_INET6:
+          neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                                neigh_table_type, &ipv6_addr, &neigh_entry);
+          break;
+        default:
+          break;
+        }
+      if (neigh_entry)
+        {
+          dst_mac = &neigh_entry->mac_addr;
+          rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str),
+                                 dst_mac);
+          fprintf (shell->terminal,
+                   "neighbor lookup succeeded: addr: %s mac: %s%s",
+                   prefix, neigh_mac_str, shell->NL);
+          return CMD_SUCCESS;
+        }
+      else
+        {
+          fprintf (shell->terminal,
+                   "neighbor lookup failed: addr: %s%s",
+                   prefix, shell->NL);
+          return CMD_FAILURE;
+        }
+    }
+
+  //if (! spec_prefix)
+    {
+      if (spec_ipv4)
+        neigh_manager_show_table (NEIGH_ARP_TABLE, shell);
+      if (spec_ipv6)
+        neigh_manager_show_table (NEIGH_ND_TABLE, shell);
+    }
+
+  return CMD_SUCCESS;
 }
 
 CLI_COMMAND2 (show_fib_ip_route,
@@ -376,7 +477,7 @@ CLI_COMMAND2 (show_fib_ip_route,
   struct show_route_arg show_arg;
   int i;
 
-  if (! rib || ! rib->rib_info || ! rib->rib_info->fib_tree)
+  if (! rib || ! rib->rib_info)
     {
       fprintf (shell->terminal, "no routing information%s", shell->NL);
       return 0;
@@ -389,7 +490,7 @@ CLI_COMMAND2 (show_fib_ip_route,
   else if (! strcmp (argv[2], "ipv6"))
     show_arg.family = AF_INET6;
 
-  fprintf (shell->terminal, "%-30s  %-30s  Interface%s",
+  fprintf (shell->terminal, "%-30s  %-20s%s",
            "Destination", "Nexthop", shell->NL);
 
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
@@ -421,7 +522,7 @@ CLI_COMMAND2 (show_rib_ip_route,
   struct show_route_arg show_arg;
   int i;
 
-  if (! rib || ! rib->rib_info || ! rib_tree_master)
+  if (! rib || ! rib->rib_info)
     {
       fprintf (shell->terminal, "no routing information%s", shell->NL);
       return 0;
@@ -439,6 +540,8 @@ CLI_COMMAND2 (show_rib_ip_route,
 
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
+      if (! rib_tree_master[i])
+        continue;
       /* main table only for test */
       if (rib_tree_master[i]->table_id == 254 &&
           rib_tree_master[i]->family == show_arg.family)
@@ -450,6 +553,97 @@ CLI_COMMAND2 (show_rib_ip_route,
           break;
         }
     }
+
+  return 0;
+}
+
+CLI_COMMAND2 (show_rib_nexthop,
+              "show rib nexthop",
+              SHOW_HELP,
+              "rib_tree\n",
+              "nexthop\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  struct show_route_arg show_arg;
+  char nexthop_str[INET6_ADDRSTRLEN];
+  int i, j;
+
+  if (! rib || ! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no routing information%s", shell->NL);
+      return 0;
+    }
+
+  fprintf (shell->terminal, "nexthop type: NH_TYPE_LEGACY%s", shell->NL);
+
+  fprintf (shell->terminal, "%-5s  %-7s  %-30s  Interface%s",
+           "ID", "RefCnt", "Nexthop", shell->NL);
+
+  for (i = 0; i < MAX_NEXTHOP_OBJ_SIZE; i++)
+    {
+      switch (rib->rib_info->nexthop.legacy.object[i].type)
+        {
+          case NH_OBJ_TYPE_OBJECT:
+            {
+              struct nh_info *nh_info =
+                &rib->rib_info->nexthop.legacy.object[i].nh_info;
+
+              if (rib->rib_info->nexthop.legacy.object[i].ref_count == 0)
+                continue;
+
+              inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
+                         nexthop_str, sizeof (nexthop_str));
+              fprintf(shell->terminal,
+                      "%-5d  %-7d  %-30s  dev %u%s",
+                      i,
+                      rib->rib_info->nexthop.legacy.object[i].ref_count,
+                      nexthop_str,
+                      rib->rib_info->nexthop.legacy.object[i].nh_info.oif,
+                      shell->NL);
+              break;
+            }
+
+          case NH_OBJ_TYPE_GROUP:
+            {
+              struct nh_info_group *nh_grp =
+                &rib->rib_info->nexthop.legacy.object[i].nh_grp;
+
+              if (rib->rib_info->nexthop.legacy.object[i].ref_count == 0)
+                continue;
+
+              for (j = 0; j < nh_grp->num; j++)
+                {
+                  inet_ntop (nh_grp->nh_info_list[j].family,
+                             &nh_grp->nh_info_list[j].nh_ip_addr,
+                             nexthop_str, sizeof (nexthop_str));
+                  if (j == 0)
+                    fprintf(shell->terminal,
+                            "%-5d  %-7d  %-30s  dev %u%s",
+                            i,
+                            rib->rib_info->nexthop.legacy.object[i].ref_count,
+                            nexthop_str,
+                            nh_grp->nh_info_list[j].oif,
+                            shell->NL);
+                  else
+                    fprintf(shell->terminal,
+                            "%-5s  %-7s  %-30s  dev %u%s",
+                            "",
+                            "",
+                            nexthop_str,
+                            nh_grp->nh_info_list[j].oif,
+                            shell->NL);
+                }
+              break;
+            }
+
+          default:
+            snprintf (nexthop_str, sizeof (nexthop_str), "unknown");
+            break;
+        }
+      }
+
+  // TODO: show NH_TYPE_OBJECT nexthop
 
   return 0;
 }
@@ -554,6 +748,19 @@ CLI_COMMAND2 (set_vswitch_port_tag_swap,
   return 0;
 }
 
+static inline __attribute__ ((always_inline)) struct vswitch_conf *
+vswitch_lookup (struct rib_info *new, uint16_t vswitch_id)
+{
+  int i;
+  for (i = 0; i < new->vswitch_size; i++)
+    {
+      if (new->vswitch[i].vswitch_id == vswitch_id &&
+          ! new->vswitch[i].is_deleted)
+        return &new->vswitch[i];
+    }
+  return NULL;
+}
+
 CLI_COMMAND2 (set_router_if,
               "set vswitch <1-4094> router-if <WORD>",
               SET_HELP,
@@ -567,7 +774,9 @@ CLI_COMMAND2 (set_router_if,
   struct internal_msg_header *msgp;
   int vswitch_id;
   char *tap_name;
+  struct rib *rib = rib_tlocal;
 
+  memset (&router_if_set, 0, sizeof (router_if_set));
   vswitch_id = atoi (argv[2]);
   tap_name = argv[4];
 
@@ -575,12 +784,44 @@ CLI_COMMAND2 (set_router_if,
   snprintf (router_if_set.tap_name, sizeof (router_if_set.tap_name), "%s",
             tap_name);
 
+  if (argc > 5)
+    {
+      if (! strcmp (argv[5], "vlan-id"))
+        {
+          uint16_t vlan_id = strtol (argv[6], NULL, 0);
+          router_if_set.vlan_id = vlan_id;
+        }
+    }
+  else
+    {
+#if 0
+      if (rib && rib->rib_info)
+        {
+          struct vswitch_conf *vswitch;
+          vswitch = vswitch_lookup (rib->rib_info, vswitch_id);
+          if (vswitch)
+            router_if_set.vlan_id = vswitch->vlan_id;
+        }
+#endif
+#define NO_VLAN_SPECIFIED 65535
+      router_if_set.vlan_id = NO_VLAN_SPECIFIED;
+    }
+
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTER_IF_SET, &router_if_set,
                               sizeof (router_if_set));
   shell_rib_send_message (msgp, shell);
 
   return 0;
 }
+
+ALIAS_COMMAND (set_router_if_vlan,
+              set_router_if,
+              "set vswitch <1-4094> router-if <WORD> vlan-id <0-4094>",
+              SET_HELP
+              "vswitch\n"
+              "vswitch id\n"
+              "router interface\n"
+              "tap name\n");
 
 CLI_COMMAND2 (set_router_if_hwaddr,
               "set vswitch <1-4094> router-if <WORD> hwaddr <WORD>",
@@ -757,10 +998,12 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, show_fib_ip_route);
   INSTALL_COMMAND2 (cmdset, show_rib_ip_route);
+  INSTALL_COMMAND2 (cmdset, show_rib_nexthop);
   INSTALL_COMMAND2 (cmdset, set_vswitch);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port_tag_swap);
   INSTALL_COMMAND2 (cmdset, set_router_if);
+  INSTALL_COMMAND2 (cmdset, set_router_if_vlan);
   INSTALL_COMMAND2 (cmdset, set_router_if_hwaddr);
   INSTALL_COMMAND2 (cmdset, set_capture_if);
   INSTALL_COMMAND2 (cmdset, no_set_vswitch);

@@ -1,7 +1,5 @@
+#!/bin/sh
 
-# libtoolize -c -f
-aclocal
-autoheader
-automake -a -c
-autoconf
+set -e
 
+autoreconf -iv

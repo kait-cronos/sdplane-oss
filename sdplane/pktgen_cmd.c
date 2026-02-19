@@ -4,6 +4,7 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 
+#include "argv_list.h"
 #include "sdplane.h"
 // #include "tap_handler.h"
 
@@ -119,10 +120,12 @@ CLI_COMMAND2 (pktgen_init,
   int index;
   index = strtol (argv[3], NULL, 0);
 
+  pthread_mutex_lock (&argv_list_mutex);
   int *argcp = &argv_list_argc[index];
   char **argvp = argv_list[index];
 
   _pktgen_main_init (*argcp, argvp);
+  pthread_mutex_unlock (&argv_list_mutex);
   rte_eal_init_done = true;
   return 0;
 }

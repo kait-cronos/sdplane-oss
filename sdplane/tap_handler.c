@@ -303,7 +303,8 @@ tap_handler_handle_packet_up ()
           if (DEBUG_CHECK (SDPLANE, PACKET))
             log_packet (m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
 
-          send_fdb_entry_add_msg (m);
+          uint16_t vlan_id = 0;
+          send_fdb_entry_add_msg (m, vlan_id);
           tap_handler_write_peek (m);
           tap_handler_write_port_all (m);
 
@@ -420,6 +421,8 @@ tap_handler (__rte_unused void *dummy)
   struct vswitch_port *vswport;
   int vswport_id;
 
+  uint64_t rib_ver = 0;
+
   DEBUG_SDPLANE_LOG (TAPHANDLER, "start thread on lcore[%d].",
                      rte_lcore_id ());
 
@@ -431,7 +434,7 @@ tap_handler (__rte_unused void *dummy)
   tap_admin_up (capture_ifname);
   DEBUG_SDPLANE_LOG (TAPHANDLER, "create %s and make it up.", capture_ifname);
 
-  memset (&vswitch0, 0, sizeof (vswitch));
+  memset (&vswitch0, 0, sizeof (vswitch0));
   vswitch = &vswitch0;
   vswitch->limit = VSWITCH_PORT_SIZE;
 
@@ -490,7 +493,6 @@ tap_handler (__rte_unused void *dummy)
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      uint64_t rib_ver;
       if (rib && rib->rib_info && rib_ver < rib->rib_info->ver)
         {
           vswitch_port_update ();

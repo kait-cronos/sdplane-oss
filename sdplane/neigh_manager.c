@@ -184,7 +184,7 @@ neigh_manager_lookup (const struct neigh_table *neigh_table, const int type,
 void
 neigh_manager_show_table (const int type, const struct shell *shell)
 {
-  int i;
+  int i, ifindex;
   char addr[64];
   char lladdr[RTE_ETHER_ADDR_FMT_SIZE];
   struct rib *rib = rib_tlocal;
@@ -201,11 +201,12 @@ neigh_manager_show_table (const int type, const struct shell *shell)
       inet_ntop (rib->rib_info->neigh_tables[type].entries[i].family,
                  &rib->rib_info->neigh_tables[type].entries[i].ip_addr, addr,
                  sizeof (addr));
+      ifindex = rib->rib_info->neigh_tables[type].entries[i].ifindex;
       rte_ether_format_addr (
           lladdr, sizeof (lladdr),
           &rib->rib_info->neigh_tables[type].entries[i].mac_addr);
-      fprintf (shell->terminal, "[%d] %s lladdr %s state %s%s", i, addr,
-               lladdr,
+      fprintf (shell->terminal, "[%d] %s dev %d lladdr %s state %s%s", i, addr,
+               ifindex, lladdr,
                neigh_manager_state_str (
                    rib->rib_info->neigh_tables[type].entries[i].state),
                shell->NL);
@@ -280,7 +281,7 @@ neigh_manager_init ()
   /* initialize */
   if (! msg_queue_neigh)
     msg_queue_neigh =
-        rte_ring_create ("msg_queue_neigh", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+        rte_ring_create ("msg_queue_neigh", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
 }
 
 int

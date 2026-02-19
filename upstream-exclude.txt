@@ -1,4 +1,8 @@
-#.git/*
+sdplane/sdplane
+usr/sbin/sdplane
+Makefile
+Makefile.in
+.git/*
 autom4te.cache*
 *.o
 *.a

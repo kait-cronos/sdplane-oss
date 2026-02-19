@@ -38,6 +38,11 @@
 #define DEBUG_SDPLANE_DHCP_SERVER        (1ULL << 33)
 #define DEBUG_SDPLANE_L2_SWITCH          (1ULL << 34)
 #define DEBUG_SDPLANE_ROUTE_ENTRY        (1ULL << 35)
+#define DEBUG_SDPLANE_ROUTER             (1ULL << 36)
+#define DEBUG_SDPLANE_ENHANCED_INFO      (1ULL << 37)
+#define DEBUG_SDPLANE_WARNING            (1ULL << 38)
+#define DEBUG_SDPLANE_ERROR              (1ULL << 39)
+#define DEBUG_SDPLANE_NETLINK_HOOK       (1ULL << 40)
 
 #define DEBUG_DOMAIN_OF_LTHREAD            SDPLANE
 #define DEBUG_DOMAIN_OF_CONSOLE            SDPLANE
@@ -74,6 +79,11 @@
 #define DEBUG_DOMAIN_OF_DHCP_SERVER        SDPLANE
 #define DEBUG_DOMAIN_OF_L2_SWITCH          SDPLANE
 #define DEBUG_DOMAIN_OF_ROUTE_ENTRY        SDPLANE
+#define DEBUG_DOMAIN_OF_ROUTER             SDPLANE
+#define DEBUG_DOMAIN_OF_ENHANCED_INFO      SDPLANE
+#define DEBUG_DOMAIN_OF_WARNING            SDPLANE
+#define DEBUG_DOMAIN_OF_ERROR              SDPLANE
+#define DEBUG_DOMAIN_OF_NETLINK_HOOK       SDPLANE
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)
@@ -103,12 +113,12 @@
 
 #ifndef ERROR_MSG
 #define ERROR_MSG(format, ...) \
-    DEBUG_LOG_MSG(format, ##__VA_ARGS__)
+    DEBUG_LOG(SDPLANE, ERROR, format, ##__VA_ARGS__)
 #endif
 
 #ifndef WARNING
 #define WARNING(format, ...) \
-    DEBUG_LOG_MSG(format, ##__VA_ARGS__)
+    DEBUG_LOG(SDPLANE, WARNING, format, ##__VA_ARGS__)
 #endif
 
 EXTERN_COMMAND (debug_sdplane);

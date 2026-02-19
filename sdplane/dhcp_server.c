@@ -47,6 +47,7 @@ is_dhcp_packet (struct rte_mbuf *m)
   struct rte_ether_hdr *eth;
   uint16_t eth_type;
   struct rte_vlan_hdr *vlan = NULL;
+  struct llc_snap_hdr *snap = NULL;
   struct rte_ipv4_hdr *ipv4 = NULL;
   struct rte_ipv6_hdr *ipv6 = NULL;
   struct rte_ipv6_routing_ext *srh = NULL;
@@ -54,7 +55,7 @@ is_dhcp_packet (struct rte_mbuf *m)
   struct rte_udp_hdr *udp = NULL;
   struct rte_tcp_hdr *tcp = NULL;
 
-  __parse_packet (m, &eth, &vlan, &ipv4, &ipv6, &srh, &icmp, &udp, &tcp);
+  __parse_packet (m, &eth, &vlan, &snap, &ipv4, &ipv6, &srh, &icmp, &udp, &tcp);
 
   uint16_t src_port;
   uint16_t dst_port;
@@ -149,17 +150,17 @@ dhcp_server_rx ()
 
   if (! ring_dhcp_rx)
     return;
- 
+
   dequeued = rte_ring_dequeue_burst (ring_dhcp_rx,
                                      (void **) pkts_burst,
                                      MAX_PKT_BURST, &avail);
- 
+
   for (i = 0; i < dequeued; i++)
     {
       m = pkts_burst[i];
       if (! m)
         continue;
- 
+
       dhcp_server_read (m);
       rte_pktmbuf_free (m);
     }

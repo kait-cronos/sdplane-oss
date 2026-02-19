@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include "queue_config.h"
 #include "neigh_manager.h"
+#include "radix.h"
 
 struct internal_msg_header
 {
@@ -35,12 +36,19 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET     17
 #define INTERNAL_MSG_TYPE_FDB_ENTRY_ADD         18
 #define INTERNAL_MSG_TYPE_APPLICATION_SLOT      19
-#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       20 
-#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21 
-#define INTERNAL_MSG_TYPE_PORT_GET_REQUEST      22
-#define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     23
-#define INTERNAL_MSG_TYPE_CMD_SUCCESS           24
-#define INTERNAL_MSG_TYPE_CMD_ERROR             25
+#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       20
+#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21
+#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_ADD     22
+#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_DEL     23
+#define INTERNAL_MSG_TYPE_PORT_GET_REQUEST      24
+#define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     25
+#define INTERNAL_MSG_TYPE_CMD_SUCCESS           26
+#define INTERNAL_MSG_TYPE_CMD_ERROR             27
+#define INTERNAL_MSG_TYPE_MAC_ADDR_ADD          28
+#define INTERNAL_MSG_TYPE_MAC_ADDR_DEL          29
+#define INTERNAL_MSG_TYPE_IP_ADDR_ADD           30
+#define INTERNAL_MSG_TYPE_IP_ADDR_DEL           31
+#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID        32
 
 struct internal_msg_eth_link
 {
@@ -55,6 +63,9 @@ struct internal_msg_qconf
 struct internal_msg_txrx_desc
 {
   uint16_t portid;
+  uint16_t mtu;
+  uint16_t nrxq;
+  uint16_t ntxq;
   uint16_t nb_rxd;
   uint16_t nb_txd;
 };
@@ -77,6 +88,7 @@ struct internal_msg_tap_dev
 {
   uint16_t vswitch_id;
   char tap_name[16];
+  uint16_t vlan_id;
 };
 
 struct internal_msg_neigh_entry
@@ -98,10 +110,19 @@ struct internal_msg_route_entry
 {
   int family;
   int table_id;
-  uint8_t dst_ip[16];
-  uint8_t nexthop[16];
-  uint32_t oif; // output interface index
-  uint32_t plen;
+  struct route_dst_info dst;
+  enum nexthop_type nh_type;
+  union
+  {
+    int nh_id; // NH_TYPE_OBJECT_CAP (using RTA_NH_ID)
+    struct nh_legacy nh_legacy; // NH_TYPE_LEGACY
+  } nh;
+};
+
+struct internal_msg_nexthop_entry
+{
+  int nh_id; // kernel's nhid
+  struct nh_object nh_object;
 };
 
 struct internal_msg_port_info
@@ -121,6 +142,30 @@ struct internal_msg_cmd_error
   char message[64];
 };
 
+struct internal_msg_mac_addr
+{
+  char ifname[16];
+  struct rte_ether_addr mac_addr;
+};
+
+struct internal_msg_ip_addr
+{
+  char ifname[16];
+  int family;
+  bool is_ll_addr;
+  union
+    {
+      struct in_addr ipv4_addr;
+      struct in6_addr ipv6_addr;
+    } ip_addr;
+};
+
+struct internal_msg_srv6_local_sid
+{
+  struct in6_addr srv6_local_sid_addr;
+  uint8_t srv6_local_sid_addr_index;
+};
+
 void *internal_msg_body (struct internal_msg_header *msgp);
 
 struct internal_msg_header *internal_msg_create (uint16_t type, void *contentp,
@@ -132,5 +177,8 @@ int internal_msg_send_to (struct rte_ring *ring,
                           struct internal_msg_header *msgp,
                           struct shell *shell);
 struct internal_msg_header *internal_msg_recv (struct rte_ring *ring);
+int internal_msg_recv_burst (struct rte_ring *ring,
+                             struct internal_msg_header **msg_table,
+                             int size);
 
 #endif /*__INTERNAL_MESSAGE_H__*/

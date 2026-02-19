@@ -54,6 +54,11 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_L2_SWITCH, "l2-switch" },
   { DEBUG_SDPLANE_DHCP_SERVER, "dhcp-server" },
   { DEBUG_SDPLANE_ROUTE_ENTRY, "route-entry" },
+  { DEBUG_SDPLANE_ROUTER, "router" },
+  { DEBUG_SDPLANE_ENHANCED_INFO, "enhanced-info" },
+  { DEBUG_SDPLANE_WARNING, "warning" },
+  { DEBUG_SDPLANE_ERROR, "error" },
+  { DEBUG_SDPLANE_NETLINK_HOOK, "netlink-hook" },
 };
 
 struct command_header debug_sdplane_cmd;
@@ -113,13 +118,13 @@ debug_sdplane_func (void *context, int argc, char **argv)
           if (negate)
             {
               FLAG_CLEAR (DEBUG_CONFIG (SDPLANE), debug_types[i].flag);
-              fprintf (shell->terminal, "debug: sdplane %s (%#x): disabled.%s",
+              fprintf (shell->terminal, "debug: sdplane %s (%#lx): disabled.%s",
                        debug_types[i].name, debug_types[i].flag, shell->NL);
             }
           else
             {
               FLAG_SET (DEBUG_CONFIG (SDPLANE), debug_types[i].flag);
-              fprintf (shell->terminal, "debug: sdplane %s (%#x): enabled.%s",
+              fprintf (shell->terminal, "debug: sdplane %s (%#lx): enabled.%s",
                        debug_types[i].name, debug_types[i].flag, shell->NL);
             }
         }

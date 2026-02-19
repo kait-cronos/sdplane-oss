@@ -33,4 +33,10 @@
   #define __rte_packed_end __rte_packed
 #endif
 
+#if RTE_VERSION >= RTE_VERSION_NUM(24,11,0,0)
+  #define IPV6_ADDR_BYTES(x) ((x).a)
+#else
+  #define IPV6_ADDR_BYTES(x) (x)
+#endif
+
 #endif /*__RTE_OVERRIDE_H__*/

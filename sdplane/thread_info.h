@@ -20,7 +20,7 @@ struct thread_counter
   uint64_t persec;
 };
 
-#define THREAD_INFO_LIMIT 16
+#define THREAD_INFO_LIMIT 128
 extern struct thread_info threads[];
 extern rte_rwlock_t thread_info_lock;
 extern uint8_t thread_info_size;
@@ -41,7 +41,7 @@ int thread_lookup_by_lcore (void *func, int lcore);
 
 EXTERN_COMMAND (show_thread_cmd);
 
-int thread_info_cmd_init (struct command_set *cmdset);
+void thread_info_cmd_init (struct command_set *cmdset);
 int thread_info_init ();
 
 void lthread_cancel_all ();

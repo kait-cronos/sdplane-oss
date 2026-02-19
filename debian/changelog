@@ -1,3 +1,177 @@
+sdplane (0.1.3-571) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * fix build-debian-prep.sh
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 11 Feb 2026 22:10:47 +0900
+
+sdplane (0.1.3-574) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 11 Feb 2026 22:03:13 +0900
+
+sdplane (0.1.3-573) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 11 Feb 2026 22:02:19 +0900
+
+sdplane (0.1.3-572) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 11 Feb 2026 22:01:49 +0900
+
+sdplane (0.1.3-571) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 11 Feb 2026 22:01:35 +0900
+
+sdplane (0.1.3-570) UNRELEASED; urgency=low
+
+  * release. update changelog.
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 11 Feb 2026 22:01:07 +0900
+
+sdplane (0.1.3-569) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge pull request #280 from kait-cronos/netlink-rib-debug-log
+  * adjust log message to debug netlink and rib for routes.
+  * Merge pull request #279 from kait-cronos/netlink-thread-fix
+  * netlink-thread-fix: make netlink-thread yield so that rib_manager can process their message. now we're yielding in netlink_read(), where we yield once after a netlink message was processed.
+  * Merge pull request #278 from kait-cronos/merge_srv6_end_router
+  * the size of msg_queue_neigh and msg_queue_rib is now 1024, from previous 32.
+  * fix crash.
+  * make sure fdb_lookup checks all slots.
+  * the extended show-neighbor cmd.
+  * a self-destined packet is not a control-packet.
+  * netlink_thread now uses proper urcu_qsbr_quiescent_state(), and waits startup_config_completed.
+  * is_fdb_send_add() to check if the fdb entry actually needs to be added.
+  * srv6 multi-sids.
+  * internal_msg_recv_burst (). print queue length in internal_msg_send_to(). warning when internal_msg_send_to() failed. rib_manager does now 512 burst internal_msg_recv().
+  * jumbo-frame (of size 9500U) support in mempool.
+  * native rib-manager thread.
+  * disable feature of WARNING() and ERROR_MSG().
+  * Merge pull request #276 from kait-cronos/fix-ci-cache
+  * cache dpdk binary tarball instead
+  * Merge pull request #274 from kait-cronos/kinoshita/2times_sending
+  * clean
+  * 2 times to 1 time
+  * Merge pull request #270 from kait-cronos/install-memo-update
+  * install-memo update.
+  * Merge pull request #265 from kait-cronos/srv6-router
+  * add example-config/sdpalne-srv6.conf
+  * (set|show) srv6 local-sid commands. INTERNAL_MSG_TYPE_SRV6_LOCAL_SID, struct internal_msg_srv6_local_sid. It is expected to work as SRv6 End, if the router-if had the address configured as the same local-sid addr as specified by the "set srv6 local-sid" command.
+  * update router.c progress into srv6_router.c
+  * Merge pull request #264 from kait-cronos/update-release-sdplane-conf
+  * update release sdplane.conf (sample).
+  * Merge pull request #263 from kait-cronos/dpkg-j6412
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 8 Feb 2026 22:47:58 +0900
+
+sdplane (0.1.3-537) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * Merge pull request #257 from kait-cronos/fix/forward-src-mac
+  * Merge pull request #255 from kait-cronos/fix/router-up
+  * Merge pull request #260 from kait-cronos/autogen
+  * chore: formating code style
+  * use autogen.sh on ci
+  * use autoreconf instead
+  * Merge pull request #259 from kait-cronos/fix-capture-if-enobufs
+  * Merge pull request #258 from kait-cronos/add-netlink-wait-handling
+  * add dequeue operation from capture_if ring
+  * add warning msg_queue ENOBUFS error
+  * add netlink wait handling
+  * fix: use router-if MAC address for source in Ethernet header in forwarding
+  * fix: packet handling by adding debug logs for split-horizon and link status checks
+  * fix: packet routing by adding IPv4 and IPv6 address checks
+  * Merge pull request #253 from kait-cronos/CITATION-cff
+  * CITATION.cff
+  * Merge pull request #252 from kait-cronos/fix-crash-amd-mlx
+  * guard against crash in AMD w/ MLX.
+  * Merge pull request #250 from kait-cronos/router-fix-tx-switching
+  * fix router's process_tx_packet(). Previously the router's process_tx_packet() was sending to the vswitch if the packet is mcast or bcast, and was forwarding() otherwise. The behavior was preventing the Linux bridge'ed packets to be sent through the sdplane's DPDK port. (for example, br-2-0-0 was bridging enp2s0 and port-3-0-0, and the DHCP packets should be bridged accordingly. The DHCP packets are getting dropped by the forwarding().) the process_tx_packet() was changed to do switching() no matter what the packet type is.
+  * update install-memo-new.txt libsdplane_0.3.37-73_amd64.deb sdplane_0.1.3-514_amd64.deb
+  * Merge pull request #249 from kait-cronos/install-memo-update
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Wed, 21 Jan 2026 21:11:06 +0900
+
+sdplane (0.1.3-514) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * fix build-debian.sh
+  * build-debian-prep.sh
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 11 Jan 2026 04:04:29 +0900
+
+sdplane (0.1.3-511) UNRELEASED; urgency=low
+
+  * release. update changelog.
+  * update install-memo
+  * Merge pull request #248 from kait-cronos/router-fix
+  * fix router. make router-if tap persist. receive mac-addr matched packets. receive multicast/broadcast packets (and then switch/forward).
+  * Merge pull request #247 from kait-cronos/net_subr_h
+  * add srv6_router.c.
+  * router.c's inline funcs are moved to net_subr.h and srv6.h.
+  * Merge pull request #244 from kait-cronos/r-trfk/srv6-forwading
+  * Merge pull request #243 from kait-cronos/r-trfk/fix-srv6-pktgen
+  * ping ok!
+  * srv6_router: optimistic srv6 end
+  * srv6_router: draft version
+  * [tools/srv6-pktgen] fix config typo and update reference topology
+  * Merge pull request #238 from kait-cronos/fix-vlan-forwarding
+  * functionalise vlan operation
+  * Merge pull request #242 from kait-cronos/r-trfk/fix-vlan-forwading
+  * restore control packet decision logic
+  * block rif to rif packet
+  * flooding to router-if
+  * broadcast addr is also me
+  * fix debug msg when flooding missing %p?
+  * fix lookup logic (if mac addr is all zero, treat as unresolved)
+  * Merge pull request #241 from kait-cronos/reduce-warnings
+  * reduce warnings.
+  * Merge pull request #240 from kait-cronos/r-trfk/srv6pketgen-utils
+  * [tools/srv6-pktgen] add configuration example/tools for debugging sdplane
+  * Merge pull request #239 from kait-cronos/r-trfk/seg6gen-vlan
+  * Merge pull request #234 from kait-cronos/control-packet
+  * [tools/srv6-pktgen] add vlan supprt for testing/implement srv6 end
+  * use oif for searching tx vswitch_link
+  * fix split-holizon
+  * add vlan_hdr operation
+  * remove unrequired comments
+  * restore l3_tap_handler.c
+  * wip: contorl packet filter
+  * Merge pull request #229 from kait-cronos/kinoshita/ping_deplicated
+  * #if 0 due to smart
+  * tx link is duplicated with enhanced repeater.
+  * Merge pull request #233 from kait-cronos/fix-neighbor-transmission
+  * fix format
+  * separate packet generate functions
+  * add internal message for neighbor transmission
+  * improve neighbor-transmission
+  * Merge pull request #232 from kait-cronos/debug-router
+  * add creation and transmission processing for ARP request
+  * remove unused arguments
+  * add neigh_entry's ifindex
+  * add router-if's ifindex
+  * Merge pull request #224 from kait-cronos/netlink-srv6-subscription
+  * add SRv6 to Netlink subscription
+  * Merge pull request #228 from kait-cronos/fix-l3-taph-crash
+  * fix l3-tap-handler crash.
+  * Merge pull request #227 from kait-cronos/fix/yykzm/fix-debug-format
+  * router: fix debug log format argument mismatch
+  * Merge pull request #217 from kait-cronos/develop/yykzm/revise-nexthop
+  * Merge pull request #225 from kait-cronos/r-trfk/add-srv6pktgen
+  * format: minor fix
+  * add: srv6-pktgen for implement srv6 end behavior
+  * rib: refactor nexthop model to abstract legacy and object-capable nexthops
+
+ -- Yasuhiro Ohara <yasu1976@gmail.com>  Sun, 11 Jan 2026 02:57:25 +0900
+
 sdplane (0.1.3-352) UNRELEASED; urgency=low
 
   * release. update changelog.

@@ -121,11 +121,7 @@ static inline __attribute__ ((always_inline)) void
 l2_repeater_tap_up (struct rte_mbuf *m, unsigned portid, unsigned queueid)
 {
   struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
   int ret;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
 
   DEBUG_SDPLANE_LOG (L2_REPEATER,
                      "lcore[%d]: m: %p port %d queue %d to ring_up: %p",
@@ -248,7 +244,6 @@ int
 l2_repeater (__rte_unused void *dummy)
 {
   uint64_t prev_tsc, diff_tsc, cur_tsc;
-  struct lcore_queue_conf *qconf;
   const uint64_t drain_tsc =
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
 
@@ -258,7 +253,6 @@ l2_repeater (__rte_unused void *dummy)
 
   prev_tsc = 0;
   lcore_id = rte_lcore_id ();
-  qconf = &lcore_queue_conf[lcore_id];
 
   int thread_id;
   thread_id = thread_lookup_by_lcore (l2_repeater, lcore_id);
@@ -300,4 +294,6 @@ l2_repeater (__rte_unused void *dummy)
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_unregister_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
+
+  return 0;
 }

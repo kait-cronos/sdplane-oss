@@ -25,6 +25,11 @@
 #include "enhanced_repeater.h"
 #include "l2_switch.h"
 
+#include "argv_list.h"
+
+int router (__rte_unused void *dummy);
+int srv6_router (__rte_unused void *dummy);
+
 #include "thread_info.h"
 
 // clang-format off
@@ -32,6 +37,7 @@
 bool rte_eal_init_done = false;
 
 volatile bool force_stop[RTE_MAX_LCORE];
+volatile bool startup_config_completed = false;
 
 struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 
@@ -92,33 +98,44 @@ stop_lcore (struct shell *shell, int lcore_id)
 }
 
 int dhcp_server (__rte_unused void *dummy);
+int rib_manager (__rte_unused void *dummy);
+int netlink_thread (__rte_unused void *dummy);
 
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore <0-16> "
-    "(|none|l2fwd|l3fwd|l3fwd-lpm|"
-    "tap-handler|l2-repeater|nettlp-thread|vlan-switch|l3-tap-handler|enhanced-repeater|l2-switch"
+    "(|none|l2fwd|l3fwd|l3fwd-lpm"
+    "|tap-handler|l3-tap-handler"
+    "|l2-repeater|vlan-switch|enhanced-repeater|l2-switch"
+    "|router|srv6-router"
+    "|nettlp-thread"
 #ifdef ENABLE_PKTGEN
     "|pktgen"
 #endif
     "|dhcp-server"
+    "|rib-manager"
+    "|netlink-thread"
     ")",
     SET_HELP, RESET_HELP, START_HELP, RESTART_HELP,
     WORKER_HELP, LCORE_HELP, LCORE_NUMBER_HELP,
     "set lcore not to launch anything\n",
     "set lcore to launch l2fwd\n",
     "set lcore to launch l3fwd (default: lpm)\n",
-    "set lcore to launch l3fwd-lpm\n", "set lcore to launch tap-handler\n",
-    "set lcore to launch l2-repeater\n",
-    "set lcore to launch nettlp-thread\n"
-    "set lcore to launch vlan-switch\n"
+    "set lcore to launch l3fwd-lpm\n",
+    "set lcore to launch tap-handler\n",
     "set lcore to launch l3-tap-handler\n"
+    "set lcore to launch l2-repeater\n",
+    "set lcore to launch vlan-switch\n"
     "set lcore to launch enhanced-repeater\n"
     "set lcore to launch l2-switch\n"
+    "set lcore to launch router\n"
+    "set lcore to launch srv6-router\n"
+    "set lcore to launch nettlp-thread\n"
 #ifdef ENABLE_PKTGEN
     "set lcore to launch pktgen\n"
 #endif
-    "set lcore to launch link-flap-generator\n"
     "set lcore to launch dhcp-server\n"
+    "set lcore to launch rib-manager\n"
+    "set lcore to launch netlink-thread\n"
     )
 {
   struct shell *shell = (struct shell *) context;
@@ -137,8 +154,6 @@ CLI_COMMAND2 (set_worker,
     func = tap_handler;
   else if (! strcmp (argv[4], "l2-repeater"))
     func = l2_repeater;
-  else if (! strcmp (argv[4], "nettlp-thread"))
-    func = nettlp_thread;
   else if (! strcmp (argv[4], "vlan-switch"))
     func = vlan_switch;
   else if (! strcmp (argv[4], "l3-tap-handler"))
@@ -147,12 +162,20 @@ CLI_COMMAND2 (set_worker,
     func = enhanced_repeater;
   else if (! strcmp (argv[4], "l2-switch"))
     func = l2_switch;
+  else if (! strcmp (argv[4], "router"))
+    func = router;
+  else if (! strcmp (argv[4], "srv6-router"))
+    func = srv6_router;
 #ifdef ENABLE_PKTGEN
   else if (! strcmp (argv[4], "pktgen"))
     func = pktgen_launch_one_lcore;
 #endif
   else if (! strcmp (argv[4], "dhcp-server"))
     func = dhcp_server;
+  else if (! strcmp (argv[4], "rib-manager"))
+    func = rib_manager;
+  else if (! strcmp (argv[4], "netlink-thread"))
+    func = netlink_thread;
   else if (! strcmp (argv[4], "l3fwd-lpm"))
     func = lpm_main_loop;
   else /* if (! strcmp (argv[4], "l3fwd")) */
@@ -176,8 +199,6 @@ CLI_COMMAND2 (set_worker,
     func_name = "tap-handler";
   else if (func == l2_repeater)
     func_name = "l2-repeater";
-  else if (func == nettlp_thread)
-    func_name = "nettlp-thread";
   else if (func == vlan_switch)
     func_name = "vlan-switch";
   else if (func == l3_tap_handler)
@@ -186,12 +207,20 @@ CLI_COMMAND2 (set_worker,
     func_name = "enhanced-repeater";
   else if (func == l2_switch)
     func_name = "l2-switch";
+  else if (func == router)
+    func_name = "router";
+  else if (func == srv6_router)
+    func_name = "srv6-router";
 #ifdef ENABLE_PKTGEN
   else if (func == pktgen_launch_one_lcore)
     func_name = "pktgen";
 #endif
   else if (func == dhcp_server)
     func_name = "dhcp-server";
+  else if (func == rib_manager)
+    func_name = "rib-manager";
+  else if (func == netlink_thread)
+    func_name = "netlink-thread";
   else
     func_name = "none";
 
@@ -306,7 +335,7 @@ CLI_COMMAND2 (set_mempool, "set mempool", SET_HELP, "mempool\n")
 
   l2fwd_pktmbuf_pool =
       rte_pktmbuf_pool_create ("mbuf_pool", nb_mbufs, MEMPOOL_CACHE_SIZE, 0,
-                               RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id ());
+                               9500U, rte_socket_id ());
   if (l2fwd_pktmbuf_pool == NULL)
     {
       fprintf (shell->terminal, "Cannot init mbuf pool.%s", shell->NL);
@@ -457,10 +486,12 @@ CLI_COMMAND2 (rte_eal_init_argv_list,
   int index;
   index = strtol (argv[2], NULL, 0);
 
+  pthread_mutex_lock (&argv_list_mutex);
   int *argcp = &argv_list_argc[index];
   char **argvp = argv_list[index];
 
   ret = rte_eal_init (*argcp, argvp);
+  pthread_mutex_unlock (&argv_list_mutex);
   if (ret < 0)
     {
       fprintf (shell->terminal, "Invalid EAL parameters.%s", shell->NL);

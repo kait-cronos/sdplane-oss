@@ -1,5 +1,5 @@
 
-AM_CFLAGS = -Wno-format-truncation
+AM_CFLAGS = -Wno-format-truncation -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-function
 
 COMMON_DIR = $(top_srcdir)/module/common
 SDPLANE_DIR = $(top_srcdir)/sdplane
@@ -18,18 +18,20 @@ sdplane_SOURCES = \
         $(L3FWD_MODULE_DIR)/l3fwd_cmd.c $(L3FWD_MODULE_DIR)/l3fwd_cmd.h \
         $(L2FWD_MODULE_DIR)/l2fwd.c \
         $(L2FWD_MODULE_DIR)/l2fwd_cmd.c $(L2FWD_MODULE_DIR)/l2fwd_cmd.h \
-        tap.c tap_handler.h tap_handler.c stat_collector.c \
+        tap.c stat_collector.c \
         startup_config.c snprintf_flags.c dpdk_flag.h \
         dpdk_lcore_cmd.c dpdk_port_cmd.c \
-        vty_server.c vty_shell.c \
+        vty_server.c vty_shell.c argv_list.c \
         main.c lthread_main.c sdplane.h sdplane.c debug_sdplane.c \
+        tap_handler.h tap_handler.c l3_tap_handler.c \
         console_shell.c l2_repeater.c \
         sdplane_version.c thread_info.c queue_config.c rib_manager.c \
-        internal_message.c rib.c nettlp.c nettlp_support.c tap_cmd.c \
+        internal_message.c rib.c tap_cmd.c \
         dpdk_devbind.c netlink_thread.c stream_buf.c vlan_switch.c \
-        dhcp_server.c dhcp_cmd.c \
-        enhanced_repeater.c l3_tap_handler.c neigh_manager.c l2_switch.c \
-        radix.c fib.c
+        dhcp_server.c dhcp_cmd.c netlink_hook.c \
+        enhanced_repeater.c neigh_manager.c l2_switch.c \
+        radix.c fib.c rte_flow_support.c control_packet.c \
+        router.c srv6_router.c srv6_cmd.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
 sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
 

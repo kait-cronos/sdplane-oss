@@ -3,10 +3,10 @@
 
 #define MAX_TAP_IF              8
 #define MAX_ROUTER_IF           8
-#define MAX_VSWITCH_PORTS       4
+#define MAX_VSWITCH_PORTS       16
 #define MAX_VSWITCH             4
 #define MAX_VSWITCH_LINK        32
-#define MAX_VLAN_PER_PORT       4
+#define MAX_VLAN_PER_PORT       8
 #define MAX_ETH_PORTS           8
 #define MAX_NEIGHBOR_ENTRY_SIZE 1024
 #define FDB_SIZE                1024
@@ -14,8 +14,9 @@
 #define FDB_STATE_NONE          0
 #define FDB_STATE_ACTIVE        1
 #define FDB_AGING_TIME_DEFAULT  300 /* Default aging time: 300 seconds */
-#define ROUTE_TABLE_SIZE        1024
-#define ROUTE_TABLE_HASH_MASK   0x3FF
+#define MAX_NEXTHOP_OBJ_SIZE    1024
+#define NEXTHOP_HASH_TAB_SIZE   1024
+#define NEXTHOP_HASH_MASK       0x3FF
 #define MAX_ECMP_ENTRY          4
 #define ROUTE_TREE_SIZE         2
 #define K                       2
@@ -35,9 +36,12 @@ struct router_if
   struct rte_ring *ring_up;
   struct rte_ring *ring_dn;
 
+  uint16_t vlan_id;
+  int ifindex;
   struct rte_ether_addr mac_addr;
   struct in_addr ipv4_addr;
   struct in6_addr ipv6_addr;
+  struct in6_addr ll_addr;
   char tap_name[16];
 };
 
@@ -76,6 +80,9 @@ struct vswitch_conf
 struct port_conf
 {
   uint16_t dpdk_port_id;
+  uint16_t mtu;
+  uint16_t nrxq;
+  uint16_t ntxq;
   uint16_t nb_rxd;
   uint16_t nb_txd;
   struct rte_eth_link link;
@@ -103,6 +110,10 @@ enum
   NEIGH_NR_TABLES,
 };
 
+/* mapping between address family and neighbor table type */
+#define AF_TO_NEIGH_TABLE(af) \
+  ((af) == AF_INET ? NEIGH_ARP_TABLE : NEIGH_ND_TABLE)
+
 extern const int neigh_key_lengths[];
 
 struct neigh_entry
@@ -115,6 +126,7 @@ struct neigh_entry
   } ip_addr;
   struct rte_ether_addr mac_addr;
   uint8_t state;
+  int ifindex;
 };
 
 struct neigh_table
@@ -132,7 +144,7 @@ struct fdb_entry
   time_t last_seen;
 };
 
-#define APPLI_SLOT_SIZE 4
+#define APPLI_SLOT_SIZE 32
 struct application_slot_entry
 {
   char *name;
@@ -140,28 +152,114 @@ struct application_slot_entry
   bool (*is_packet_match) (struct rte_mbuf *m);
 };
 
-struct route_entry
+enum route_type
 {
-  int family;
-  int ref_count;
-  uint32_t oif; // output interface index
-  uint8_t nexthop[16];
+  ROUTE_TYPE_CONNECTED,
+  ROUTE_TYPE_NEXTHOP,
 };
 
-struct fib_node
+struct nh_info
 {
-  int leaf; // 0: non-leaf, 1: leaf
-  uint8_t key[16];
-  int keylen;
-  int num_routes;
-  int route_idx[MAX_ECMP_ENTRY];
-  struct fib_node *child[BRANCH_SZ];
+  int family; // nexthop address family
+  enum route_type type;
+  union
+  {
+    struct in_addr ipv4_addr;
+    struct in6_addr ipv6_addr;
+  } nh_ip_addr;
+  uint32_t oif;
+  /**
+   * If you need the interface *name* instead of its index (oif),
+   * use:
+   *     if_indextoname(index, ifname);
+   */
 };
-struct fib_tree
+
+enum nexthop_object_type
 {
-  int family;
-  int table_id;
-  struct fib_node *root;
+  NH_OBJ_TYPE_OBJECT,
+  NH_OBJ_TYPE_GROUP,
+};
+
+/**
+ * legacy: multipath is handled as a single object,
+ * and nexthop objects are not reused to compose groups.
+ */
+struct nh_info_group
+{
+  int num;
+  struct nh_info nh_info_list[MAX_ECMP_ENTRY];
+};
+
+struct nh_legacy
+{
+  int ref_count;
+  /**
+   * if ref_count reaches zero, the legacy nexthop object
+   * is considered unused and can be deleted.
+   */
+  enum nexthop_object_type type;
+  union
+  {
+    struct nh_info nh_info;      // NH_TYPE_OBJECT
+    struct nh_info_group nh_grp; // NH_TYPE_GROUP
+  };
+};
+
+/**
+ * object-capable: multipath is handled as a group object,
+ * composed of reusable nexthop objects represented as a list of "IDs".
+ */
+struct nh_id_group
+{
+  int num;
+  int nh_id_list[MAX_ECMP_ENTRY];
+};
+
+struct nh_object
+{
+  enum nexthop_object_type type;
+  union
+  {
+    struct nh_info nh_info;    // NH_TYPE_OBJECT
+    struct nh_id_group nh_grp; // NH_TYPE_GROUP
+  };
+};
+
+enum nexthop_type
+{
+  NH_TYPE_LEGACY,
+  NH_TYPE_OBJECT_CAP,
+};
+
+/* nh_common stored in FIB entries */
+struct nh_common
+{
+  enum nexthop_type nh_type;
+  int nh_id;
+  /**
+   * nh_id's meaning depends on nh_type:
+   * - NH_TYPE_LEGACY: index of rib_info->nh_legacy[],
+   *   which is internal nhid.
+   * - NH_TYPE_OBJECT_CAP: index of rib_info->nh_object[],
+   *   which is also used as the kernel's nhid.
+   */
+};
+
+struct nh_hash_node
+{
+  int nh_id;
+  struct nh_hash_node *next;
+};
+
+struct nexthop
+{
+  struct
+  {
+    int top;
+    struct nh_legacy object[MAX_NEXTHOP_OBJ_SIZE];
+  } legacy;
+  struct nh_object object[MAX_NEXTHOP_OBJ_SIZE];
 };
 
 struct rib_info
@@ -180,8 +278,11 @@ struct rib_info
   struct neigh_table neigh_tables[NEIGH_NR_TABLES];
   struct fdb_entry fdb[FDB_SIZE];
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
-  struct route_entry route_table[ROUTE_TABLE_SIZE];
+  struct nexthop nexthop;
   struct fib_tree *fib_tree[ROUTE_TREE_SIZE];
+#define MAX_SRV6_LOCAL_SID_ADDR_NUM 16
+  struct in6_addr srv6_local_sid_addr[MAX_SRV6_LOCAL_SID_ADDR_NUM];
+  uint8_t srv6_local_sid_addr_num;
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);

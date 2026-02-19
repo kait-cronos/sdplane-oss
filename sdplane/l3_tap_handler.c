@@ -40,33 +40,7 @@ static __thread uint64_t loop_counter = 0;
 static __thread struct rib *rib = NULL;
 
 static inline __attribute__ ((always_inline)) void
-l3_tap_handler_write_capture_if (int capture_fd, struct rte_mbuf *m)
-{
-  uint32_t pkt_len;
-  uint16_t data_len;
-  char *pkt;
-  int ret;
-
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
-  pkt = rte_pktmbuf_mtod (m, char *);
-
-  /* write to capture_fd for packet capture. */
-  if (capture_fd >= 0)
-    {
-      ret = write (capture_fd, pkt, data_len);
-      if (ret < 0)
-        DEBUG_NEW (TAPHANDLER, "warning: write () failed: %s",
-                   strerror (errno));
-      else
-        DEBUG_NEW (TAPHANDLER, "packet [%d/%d] (in_port: %d) "
-                   "written to capture I/F.",
-                   data_len, pkt_len, m->port);
-    }
-}
-
-static inline __attribute__ ((always_inline)) void
-l3_tap_handler_write_router_if (int router_fd, struct rte_mbuf *m)
+l3_tap_handler_write (int tap_fd, struct rte_mbuf *m)
 {
   uint32_t pkt_len;
   uint16_t data_len;
@@ -81,58 +55,73 @@ l3_tap_handler_write_router_if (int router_fd, struct rte_mbuf *m)
     DEBUG_NEW (TAPHANDLER, "warning: multi-seg mbuf: %u < %u",
                data_len, pkt_len);
 
-  ret = write (router_fd, pkt, data_len);
+  ret = write (tap_fd, pkt, data_len);
   if (ret < 0)
-    DEBUG_NEW (TAPHANDLER, "write() failed: router_fd: %d error: %s.",
-               router_fd, strerror (errno));
+    DEBUG_NEW (TAPHANDLER, "write() failed: tap_fd: %d error: %s.",
+               tap_fd, strerror (errno));
   else
-    DEBUG_NEW (TAPHANDLER, "packet [%d/%d] router_fd: %d.", data_len,
-               pkt_len, router_fd);
+    DEBUG_NEW (TAPHANDLER, "packet [%d/%d] tap_fd: %d.", data_len,
+               pkt_len, tap_fd);
+}
+
+static inline __attribute__ ((always_inline)) void
+l3_tap_handler_dequeue_burst (int tap_fd, struct rte_ring *tap_ring,
+                              struct vswitch_conf *vswitch)
+{
+  int i;
+  struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
+  unsigned int dequeued = 0, avail = 0;
+
+  if (! tap_ring || tap_fd < 0)
+    return;
+
+  dequeued = rte_ring_dequeue_burst (tap_ring, (void **) pkts_burst,
+                                      MAX_PKT_BURST, &avail);
+
+  for (i = 0; i < dequeued; i++)
+    {
+      struct rte_mbuf *m;
+
+      m = pkts_burst[i];
+      if (! m)
+        continue;
+
+      if (IS_DEBUG (PACKET))
+        log_packet (m, vswitch->vswitch_id, vswitch->router_if.tap_ring_id);
+
+      if (rib && rib->rib_info &&
+          is_fdb_send_add (rib->rib_info, m, vswitch->vlan_id))
+        send_fdb_entry_add_msg (m, vswitch->vlan_id);
+      if (tap_fd >= 0)
+        l3_tap_handler_write (tap_fd, m);
+
+      rte_pktmbuf_free (m);
+    }
 }
 
 static inline __attribute__ ((always_inline)) void
 l3_tap_handler_handle_packet_up ()
 {
   struct rte_ring *tap_ring;
-  int i;
   int vswitch_id;
+
+  if (! rib || ! rib->rib_info)
+    return;
 
   for (vswitch_id = 0; vswitch_id < rib->rib_info->vswitch_size; vswitch_id++)
     {
-      struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
-      unsigned int dequeued = 0, avail = 0;
-
       struct vswitch_conf *vswitch = &rib->rib_info->vswitch[vswitch_id];
 
       int router_fd = vswitch->router_if.sockfd;
+      struct rte_ring *router_tap_ring = vswitch->router_if.ring_up;
       int capture_fd = vswitch->capture_if.sockfd;
+      struct rte_ring *capture_tap_ring = vswitch->capture_if.ring_up;
 
       if (vswitch->router_if.tap_ring_id != vswitch->vswitch_id)
         continue;
 
-      tap_ring = vswitch->router_if.ring_up;
-      dequeued = rte_ring_dequeue_burst (tap_ring, (void **) pkts_burst,
-                                         MAX_PKT_BURST, &avail);
-
-      for (i = 0; i < dequeued; i++)
-        {
-          struct rte_mbuf *m;
-
-          m = pkts_burst[i];
-          if (! m)
-            continue;
-
-          if (IS_DEBUG (PACKET))
-            log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
-
-          send_fdb_entry_add_msg (m);
-          if (capture_fd >= 0)
-            l3_tap_handler_write_capture_if (capture_fd, m);
-          if (router_fd >= 0)
-            l3_tap_handler_write_router_if (router_fd, m);
-
-          rte_pktmbuf_free (m);
-        }
+      l3_tap_handler_dequeue_burst (router_fd, router_tap_ring, vswitch);
+      l3_tap_handler_dequeue_burst (capture_fd, capture_tap_ring, vswitch);
     }
 }
 
@@ -149,6 +138,9 @@ l3_tap_handler_handle_packet_down ()
 
   struct vswitch_conf *vswitch;
   int vswitch_id;
+
+  if (! rib || ! rib->rib_info)
+    return;
 
   nfds = 0;
   for (vswitch_id = 0; vswitch_id < rib->rib_info->vswitch_size; vswitch_id++)
@@ -195,29 +187,43 @@ l3_tap_handler_handle_packet_down ()
           continue;
         }
       if (ret == 0)
-        continue;
+        {
+          DEBUG_NEW (TAPHANDLER, "read() ret: 0: vswitch[%d]", vswitch_id);
+          continue;
+        }
 
       if (vswitch->router_if.ring_dn)
         {
           struct rte_mempool *mp = l2fwd_pktmbuf_pool;
           struct rte_mbuf *m = rte_pktmbuf_alloc (mp);
 
-          size = ret;
-          if (size >= m->buf_len)
+	  if (m)
             {
-              WARNING ("m: %p insufficient buf: %d bytes read, "
-                       "m->buf_len: %d", m, ret, m->buf_len);
-              size = m->buf_len;
+              size = ret;
+              if (size >= m->buf_len)
+                {
+                  WARNING ("m: %p insufficient buf: %d bytes read, "
+                           "m->buf_len: %d", m, ret, m->buf_len);
+                  size = m->buf_len;
+                }
+
+              rte_pktmbuf_append (m, size);
+              pkt = rte_pktmbuf_mtod (m, char *);
+              memcpy (pkt, data, size);
+
+              rte_ring_enqueue (vswitch->router_if.ring_dn, m);
+              DEBUG_NEW (TAPHANDLER,
+                         "vswitch[%d]: packet: sockfd %d -> ring_dn %d",
+                         vswitch_id,
+                         vswitch->router_if.sockfd,
+                         vswitch->router_if.tap_ring_id);
+
+              if (IS_DEBUG (PACKET))
+                log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
             }
-
-          rte_pktmbuf_append (m, size);
-          pkt = rte_pktmbuf_mtod (m, char *);
-          memcpy (pkt, data, size);
-
-          rte_ring_enqueue (vswitch->router_if.ring_dn, m);
-          DEBUG_NEW (TAPHANDLER, "packet: sockfd %d -> ring_dn %d",
-                     vswitch->router_if.sockfd,
-                     vswitch->router_if.tap_ring_id);
+	  else
+              WARNING ("rte_pktmbuf_alloc() failed: ring_dn: drop %d bytes",
+                       ret);
         }
     }
 }
@@ -281,4 +287,10 @@ l3_tap_handler (__rte_unused void *dummy)
 #endif /*HAVE_LIBURCU_QSBR*/
 
   return 0;
+}
+
+bool
+should_send_to_tap(struct rte_mbuf *m)
+{
+  return true;
 }

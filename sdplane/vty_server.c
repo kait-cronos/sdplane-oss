@@ -147,6 +147,7 @@ vty_server (void *arg)
             client_size = client_id + 1;
         }
 
+      urcu_qsbr_quiescent_state ();
       loop_counter++;
     }
 

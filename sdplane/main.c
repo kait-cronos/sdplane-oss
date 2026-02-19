@@ -70,6 +70,11 @@ signal_handler (int signum)
       printf ("Signal %d received, preparing to exit...\n", signum);
       force_quit = true;
     }
+  else if (signum == SIGCHLD)
+    {
+      printf ("Signal %d received, waitpid.\n", signum);
+      waitpid (-1, NULL, WNOHANG);
+    }
 }
 
 void
@@ -79,7 +84,6 @@ pid_file_lock (char *path)
   int fd;
   char buf[32];
   char *p;
-  int ret;
 
   pid = getpid ();
   fd = open (path, O_RDWR | O_CREAT | O_EXCL, 0644);
@@ -90,7 +94,7 @@ pid_file_lock (char *path)
         fprintf (stderr, "Can't create pid lock file, exit.\n");
       else
         {
-          ret = read (fd, buf, sizeof (buf));
+          read (fd, buf, sizeof (buf));
           p = index (buf, '\n');
           if (p)
             *p = '\0';
@@ -100,7 +104,7 @@ pid_file_lock (char *path)
     }
 
   snprintf (buf, sizeof (buf), "%d\n", (int) pid);
-  ret = write (fd, buf, strlen (buf));
+  write (fd, buf, strlen (buf));
   close (fd);
 }
 
@@ -111,7 +115,6 @@ pid_file_without_lock (char *path)
   int fd;
   char buf[32];
   char *p;
-  int ret;
 
   pid = getpid ();
   fd = open (path, O_RDWR | O_CREAT | O_EXCL, 0644);
@@ -122,7 +125,7 @@ pid_file_without_lock (char *path)
         fprintf (stderr, "Can't create pid lock file.\n");
       else
         {
-          ret = read (fd, buf, sizeof (buf));
+          read (fd, buf, sizeof (buf));
           p = index (buf, '\n');
           if (p)
             *p = '\0';
@@ -141,7 +144,7 @@ pid_file_without_lock (char *path)
     }
 
   snprintf (buf, sizeof (buf), "%d\n", (int) pid);
-  ret = write (fd, buf, strlen (buf));
+  write (fd, buf, strlen (buf));
   close (fd);
 }
 
@@ -155,6 +158,7 @@ main (int argc, char **argv)
   signal (SIGINT, signal_handler);
   signal (SIGTERM, signal_handler);
   signal (SIGHUP, signal_handler);
+  signal (SIGCHLD, signal_handler);
 
   /* Preserve name of myself. */
   char *progname, *p;

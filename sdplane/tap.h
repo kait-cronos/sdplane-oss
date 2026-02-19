@@ -8,4 +8,6 @@ void tap_admin_up (char *ifname);
 
 void tap_set_hwaddr (char *ifname, struct rte_ether_addr *hwaddr);
 
+int tap_get_ifindex (char *ifname);
+
 #endif /*__TAP_H__*/

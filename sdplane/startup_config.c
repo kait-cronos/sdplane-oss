@@ -100,5 +100,6 @@ startup_config (__rte_unused void *dummy)
   // termio_finish ();
   if (ret < 0)
     return ret;
+  startup_config_completed = true;
   return 0;
 }

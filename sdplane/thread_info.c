@@ -5,10 +5,12 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
+#include <sdplane/debug_log.h>
 
 #include <rte_rwlock.h>
 
 #include "thread_info.h"
+#include "debug_sdplane.h"
 
 rte_rwlock_t thread_info_lock;
 
@@ -61,6 +63,13 @@ thread_unregister (int thread_id)
 {
   struct thread_info *tinfo;
 
+  if (thread_id < 0 || thread_info_size <= thread_id ||
+      THREAD_INFO_LIMIT <= thread_id)
+    {
+      WARNING ("thread_unregister: invalid thread_id %d.", thread_id);
+      return;
+    }
+
   rte_rwlock_write_lock (&thread_info_lock);
 
   tinfo = &threads[thread_id];
@@ -82,7 +91,8 @@ thread_update (int thread_id, int lcore_id, lthread_t *lthread,
   struct thread_info *tinfo;
   int i;
 
-  if (thread_id < 0 || thread_info_size <= thread_id)
+  if (thread_id < 0 || thread_info_size <= thread_id ||
+      THREAD_INFO_LIMIT <= thread_id)
     return -1;
 
   rte_rwlock_write_lock (&thread_info_lock);
@@ -105,25 +115,25 @@ thread_update (int thread_id, int lcore_id, lthread_t *lthread,
 int
 thread_register_loop_counter (int thread_id, uint64_t *ptr)
 {
-  struct thread_info *tinfo;
   struct thread_counter *tcounter;
-  if (thread_id < 0 || THREAD_INFO_LIMIT <= thread_id)
+  if (thread_id < 0 || thread_info_size <= thread_id ||
+      THREAD_INFO_LIMIT <= thread_id)
     return -1;
-  tinfo = &threads[thread_id];
   tcounter = &thread_counters[thread_id];
   tcounter->loop_counter_ptr = ptr;
+  return 0;
 }
 
 int
 thread_unregister_loop_counter (int thread_id)
 {
-  struct thread_info *tinfo;
   struct thread_counter *tcounter;
-  if (thread_id < 0 || THREAD_INFO_LIMIT <= thread_id)
+  if (thread_id < 0 || thread_info_size <= thread_id ||
+      THREAD_INFO_LIMIT <= thread_id)
     return -1;
-  tinfo = &threads[thread_id];
   tcounter = &thread_counters[thread_id];
   tcounter->loop_counter_ptr = NULL;
+  return 0;
 }
 
 int
@@ -216,7 +226,7 @@ CLI_COMMAND2 (show_thread_counter, "show thread counter", SHOW_HELP,
   return 0;
 }
 
-int
+void
 thread_info_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, show_thread_cmd);
@@ -228,6 +238,7 @@ thread_info_init ()
 {
   memset (threads, 0, sizeof (threads));
   rte_rwlock_init (&thread_info_lock);
+  return 0;
 }
 
 void
@@ -252,4 +263,3 @@ is_lthread ()
   int lcore_id = rte_lcore_id ();
   return (lthread_core == lcore_id);
 }
-

@@ -52,10 +52,14 @@ do { \
       DEBUG_SDPLANE_LOG (RIB, "sending message to rib: %p.", (msgp)); \
       rte_ring_enqueue (msg_queue_rib, (msgp)); \
     } \
-  else if (shell)\
+  else if (shell) \
     { \
       fprintf ((shell)->terminal, "can't send message to rib: queue: NULL.%s", \
                (shell)->NL); \
+    } \
+  else \
+    { \
+      WARNING ("can't send message to rib: rib_queue: NULL."); \
     } \
 } while (0)
 
