@@ -5,7 +5,8 @@
 #ifndef __COMMAND_SHELL_H__
 #define __COMMAND_SHELL_H__
 
-#include <sdplane/shell.h>
+#include "command.h"
+#include "shell.h"
 
 extern char *prompt_default;
 extern struct command_set *cmdset_default;

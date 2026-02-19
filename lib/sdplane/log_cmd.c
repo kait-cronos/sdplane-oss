@@ -2,13 +2,11 @@
  * Copyright (C) 2024 Yasuhiro Ohara. All rights reserved.
  */
 
-#include <includes.h>
+#include "includes.h"
 
 #include "command.h"
 #include "flag.h"
 #include "shell.h"
-
-#include "debug_category.h"
 #include "debug_log.h"
 
 char *log_filename = NULL;

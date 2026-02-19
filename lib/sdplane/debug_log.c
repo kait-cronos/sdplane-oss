@@ -8,7 +8,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "debug_category.h"
 #include "debug_log.h"
 
 uint64_t debug_config_g[DEBUG_CATEGORY_MAX];
@@ -209,4 +208,3 @@ debug_backtrace ()
 
   free (strings);
 }
-

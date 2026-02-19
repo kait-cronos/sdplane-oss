@@ -5,14 +5,12 @@
 #ifndef __SHELL_H__
 #define __SHELL_H__
 
-#include <sys/types.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <stdint.h>
-
 #include <stdbool.h>
 #include <sys/ioctl.h>
-
-#include <sdplane/flag.h>
+#include <sys/types.h>
 
 #define SHELL_WORD_DELIMITERS     " "
 #define SHELL_WORD_DELIMITERS_SUB " /"

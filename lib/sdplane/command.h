@@ -5,6 +5,8 @@
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
 
+#include <stdio.h>
+
 #define COMMAND_WORD_DELIMITERS " "
 #define COMMAND_HELP_DELIMITERS "\n"
 

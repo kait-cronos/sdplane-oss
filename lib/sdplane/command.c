@@ -2,18 +2,13 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#include <includes.h>
+#include "includes.h"
 
-#include "debug.h"
 #include "flag.h"
-
 #include "command.h"
 #include "file.h"
 #include "vector.h"
-
-#include "debug_category.h"
 #include "debug_log.h"
-#include "debug_zcmdsh.h"
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
