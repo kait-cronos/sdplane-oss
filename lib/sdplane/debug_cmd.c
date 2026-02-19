@@ -2,17 +2,12 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#include <includes.h>
+#include "includes.h"
 
 #include "command.h"
-#include "debug.h"
 #include "flag.h"
 #include "shell.h"
-
-#include "debug_category.h"
 #include "debug_log.h"
-#include "debug_backtrace.h"
-#include "debug_zcmdsh.h"
 
 void
 debug_cmdstr_init (char *cate, char *cmdstr, int size,

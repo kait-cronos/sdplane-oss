@@ -2,16 +2,11 @@
  * Copyright (C) 2024 Yasuhiro Ohara. All rights reserved.
  */
 
-#include <includes.h>
+#include "includes.h"
 
-#include "debug.h"
 #include "flag.h"
 #include "shell.h"
 #include "shell_keyfunc.h"
-#include "vector.h"
-
-#include "command.h"
-#include "command_shell.h"
 
 shell_keyfunc_t default_keymap[256] = {
   NULL,                        /* Function for CONTROL('@') */
@@ -420,4 +415,3 @@ shell_escape_keyfunc_init (struct shell *shell)
 
   shell->keymap[CONTROL ('[')] = vty_shell_keyfunc_escape_1;
 }
-

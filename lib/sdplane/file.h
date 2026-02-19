@@ -5,6 +5,8 @@
 #ifndef __FILE_H__
 #define __FILE_H__
 
+#include <stdio.h>
+
 void path_disassemble (char *pathname, char **dirname, char **filename);
 
 FILE *fopen_create (char *file, char *mode);

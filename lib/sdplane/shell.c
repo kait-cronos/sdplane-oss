@@ -2,20 +2,13 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#include <includes.h>
+#include "includes.h"
 
-#include "debug.h"
 #include "flag.h"
-#include "vector.h"
 #include "shell.h"
 #include "shell_keyfunc.h"
 #include "shell_debug.h"
-
-#include "debug_category.h"
 #include "debug_log.h"
-#include "debug_zcmdsh.h"
-
-#include "command.h"
 
 #define FUNC_STR_MAP(x)                                                       \
   {                                                                           \

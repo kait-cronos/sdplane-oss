@@ -2,18 +2,13 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#include <includes.h>
+#include "includes.h"
 
-#include "debug.h"
 #include "flag.h"
-
 #include "command.h"
 #include "file.h"
 #include "vector.h"
-
-#include "debug_category.h"
 #include "debug_log.h"
-#include "debug_zcmdsh.h"
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -276,6 +271,9 @@ file_match (char *spec, char *word)
   struct stat statbuf;
   int ret;
 
+  if (word && word[0] == '-')
+    return 0;
+
   strncpy (pathname, word, sizeof (pathname) - 1);
   path_disassemble (pathname, &dirname, &filename);
 
@@ -388,6 +386,20 @@ file_replace (char *word)
 }
 
 int
+flag_spec (char *spec)
+{
+  return (! strcmp (spec, "<FLAGS>") || ! strcmp (spec, "<FLAG>"));
+}
+
+int
+flag_match (char *spec, char *word)
+{
+  if (word && word[0] == '-')
+    return 1;
+  return 0;
+}
+
+int
 line_spec (char *spec)
 {
   return (! strcmp (spec, "<LINE>"));
@@ -451,6 +463,11 @@ is_command_match_variable (char *spec, char *word)
   if (file_spec (spec))
     {
       if (file_match (spec, word))
+        return 1;
+    }
+  if (flag_spec (spec))
+    {
+      if (flag_match (spec, word))
         return 1;
     }
   if (line_spec (spec))
@@ -523,6 +540,8 @@ is_command_node_variable (struct command_node *node)
   if (ipv4_spec (node->cmdstr) || range_spec (node->cmdstr) ||
       double_spec (node->cmdstr) || file_spec (node->cmdstr) ||
       line_spec (node->cmdstr) || var_spec (node->cmdstr))
+    return 1;
+  if (word_spec (node->cmdstr))
     return 1;
   return 0;
 }

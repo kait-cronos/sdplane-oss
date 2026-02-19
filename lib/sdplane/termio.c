@@ -2,16 +2,11 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#include <stdio.h>
 #include <string.h>
 #include <termios.h>
 
-#include "debug.h"
 #include "flag.h"
-
-#include "debug_category.h"
 #include "debug_log.h"
-#include "debug_zcmdsh.h"
 
 struct termios termios_old;
 struct termios termios_new;

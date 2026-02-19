@@ -5,7 +5,8 @@
 #ifndef __COMMAND_SHELL_H__
 #define __COMMAND_SHELL_H__
 
-#include <sdplane/shell.h>
+#include "command.h"
+#include "shell.h"
 
 extern char *prompt_default;
 extern struct command_set *cmdset_default;
@@ -37,6 +38,7 @@ void command_shell_delete (struct shell *shell);
 
 void command_shell_install_default (struct shell *shell);
 
+int shell_pager_bridge (struct shell *shell);
 void shell_read_nowait_paging (struct shell *shell);
 
 void command_shell_init ();

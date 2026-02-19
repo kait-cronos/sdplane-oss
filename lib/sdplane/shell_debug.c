@@ -1,10 +1,7 @@
-#include <includes.h>
+#include "includes.h"
 
-#include "vector.h"
-#include "file.h"
 #include "shell.h"
 #include "shell_keyfunc.h"
-#include "termio.h"
 #include "command.h"
 #include "command_shell.h"
 
@@ -115,5 +112,3 @@ shell_debug (struct shell *shell)
 
   fflush (shell->terminal);
 }
-
-

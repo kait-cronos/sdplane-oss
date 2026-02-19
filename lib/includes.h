@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
+#include <linux/fcntl.h> // for F_SETPIPE_SZ
 #include <time.h>
 #include <syslog.h>
 #include <stdarg.h>

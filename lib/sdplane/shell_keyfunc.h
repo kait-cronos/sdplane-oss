@@ -2,6 +2,8 @@
  * Copyright (C) 2024 Yasuhiro Ohara. All rights reserved.
  */
 
+#include "shell.h"
+
 extern shell_keyfunc_t default_keymap[];
 
 int shell_keyfunc_forward_char (struct shell *shell);

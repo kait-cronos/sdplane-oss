@@ -2,7 +2,7 @@
  * Copyright (C) 2007-2023 Yasuhiro Ohara. All rights reserved.
  */
 
-#include <includes.h>
+#include "includes.h"
 
 void
 path_disassemble (char *pathname, char **dirname, char **filename)
