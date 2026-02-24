@@ -1243,6 +1243,13 @@ rib_check (struct rib *new)
               ring_up[rxq->port_id][rxq->queue_id] = rte_ring_create (
                   ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
                   (RING_F_SP_ENQ | RING_F_SC_DEQ));
+              if (! ring_up[rxq->port_id][rxq->queue_id])
+                {
+                  DEBUG_SDPLANE_LOG (RIB,
+                                     "rte_ring_create(%s) failed: %s", ring_name,
+                                     rte_strerror (rte_errno));
+                  return -1;
+                }
               DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  ring_up[rxq->port_id][rxq->queue_id]);
             }
@@ -1254,6 +1261,13 @@ rib_check (struct rib *new)
               ring_dn[rxq->port_id][rxq->queue_id] = rte_ring_create (
                   ring_name, RING_TO_TAP_SIZE, rte_socket_id (),
                   (RING_F_SP_ENQ | RING_F_SC_DEQ));
+              if (! ring_dn[rxq->port_id][rxq->queue_id])
+                {
+                  DEBUG_SDPLANE_LOG (RIB,
+                                     "rte_ring_create(%s) failed: %s", ring_name,
+                                     rte_strerror (rte_errno));
+                  return -1;
+                }
               DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  ring_dn[rxq->port_id][rxq->queue_id]);
             }
@@ -1274,6 +1288,13 @@ rib_check (struct rib *new)
               snprintf (ring_name, sizeof (ring_name), "router_up[%d]", i);
               router_if_ring_up[i] = rte_ring_create (
                   ring_name, RING_TO_TAP_SIZE, rte_socket_id (), 0);
+              if (! router_if_ring_up[i])
+                {
+                  DEBUG_SDPLANE_LOG (RIB,
+                                     "rte_ring_create(%s) failed: %s", ring_name,
+                                     rte_strerror (rte_errno));
+                  return -1;
+                }
               DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  router_if_ring_up[i]);
             }
@@ -1282,6 +1303,13 @@ rib_check (struct rib *new)
               snprintf (ring_name, sizeof (ring_name), "router_dn[%d]", i);
               router_if_ring_dn[i] = rte_ring_create (
                   ring_name, RING_TO_TAP_SIZE, rte_socket_id (), 0);
+              if (! router_if_ring_dn[i])
+                {
+                  DEBUG_SDPLANE_LOG (RIB,
+                                     "rte_ring_create(%s) failed: %s", ring_name,
+                                     rte_strerror (rte_errno));
+                  return -1;
+                }
               DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  router_if_ring_dn[i]);
             }
@@ -1297,6 +1325,13 @@ rib_check (struct rib *new)
               snprintf (ring_name, sizeof (ring_name), "capture_up[%d]", i);
               capture_if_ring_up[i] = rte_ring_create (
                   ring_name, RING_TO_TAP_SIZE, rte_socket_id (), 0);
+              if (! capture_if_ring_up[i])
+                {
+                  DEBUG_SDPLANE_LOG (RIB,
+                                     "rte_ring_create(%s) failed: %s", ring_name,
+                                     rte_strerror (rte_errno));
+                  return -1;
+                }
               DEBUG_SDPLANE_LOG (RIB, "rib: create: %s: %p", ring_name,
                                  capture_if_ring_up[i]);
             }
@@ -1467,7 +1502,7 @@ rib_manager_process_port_get (struct internal_msg_header *imsghdr)
   return retflag;
 }
 
-void
+int
 rib_manager_process_message (void *msgp)
 {
   int ret;
@@ -1512,7 +1547,10 @@ rib_manager_process_message (void *msgp)
       DEBUG_NEW (RIB, "port_get_request: receive");
       retflag = rib_manager_process_port_get (msg_header);
       if (FLAG_CHECK (retflag, RIB_RETFLAG_RETURN_IMMEDIATELY))
-        return;
+        {
+          free (msgp);
+          return 0;
+        }
       break;
 
     case INTERNAL_MSG_TYPE_PORT_STATUS:
@@ -1555,7 +1593,7 @@ rib_manager_process_message (void *msgp)
         {
           DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
           free (msgp);
-          return;
+          return -1;
         }
 
       /* for qconf change, we need an NULL intermittent state
@@ -1824,7 +1862,7 @@ rib_manager_process_message (void *msgp)
           {
             DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
             free (msgp);
-            return;
+            return -1;
           }
 #if 0
         /*
@@ -1896,7 +1934,7 @@ rib_manager_process_message (void *msgp)
           {
             DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
             free (msgp);
-            return;
+            return -1;
           }
 
         break;
@@ -2249,6 +2287,7 @@ rib_manager_process_message (void *msgp)
         }
     }
   rib_replace (new);
+  return 0;
 }
 
 #if 0
@@ -2286,7 +2325,7 @@ rib_manager (void *arg)
 
   /* initialize */
   msg_queue_rib =
-      rte_ring_create ("msg_queue_rib", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
+      rte_ring_create ("msg_queue_rib", 1024 * 1024 * 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
   DEBUG_NEW (RIB, "msg_queue_rib: %p", msg_queue_rib);
 
   int thread_id;
@@ -2322,7 +2361,14 @@ rib_manager (void *arg)
 #if 0
       msgp = internal_msg_recv (msg_queue_rib);
       if (msgp)
-        rib_manager_process_message (msgp);
+        {
+          ret = rib_manager_process_message (msgp);
+          if (ret < 0)
+            {
+              DEBUG_SDPLANE_LOG (RIB,
+                                 "rib_manager_process_message() failed: continue processing");
+            }
+        }
 #else
 #define RIB_RING_BURST_SIZE 512
       int num = 0;
@@ -2332,7 +2378,12 @@ rib_manager (void *arg)
       for (int i = 0; i < num; i++)
         {
           msgp = msg_table[i];
-          rib_manager_process_message (msgp);
+          ret = rib_manager_process_message (msgp);
+          if (ret < 0)
+            {
+              DEBUG_SDPLANE_LOG (RIB,
+                                 "rib_manager_process_message() failed: continue processing");
+            }
         }
 #endif
 

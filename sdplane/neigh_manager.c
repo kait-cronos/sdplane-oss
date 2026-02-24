@@ -275,26 +275,42 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
   free (msgp);
 }
 
-void
+int
 neigh_manager_init ()
 {
   /* initialize */
   if (! msg_queue_neigh)
-    msg_queue_neigh =
-        rte_ring_create ("msg_queue_neigh", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
+    {
+      msg_queue_neigh =
+          rte_ring_create ("msg_queue_neigh", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
+      if (! msg_queue_neigh)
+        {
+          DEBUG_SDPLANE_LOG (NEIGH,
+                             "rte_ring_create(msg_queue_neigh) failed: %s",
+                             rte_strerror (rte_errno));
+          return -1;
+        }
+    }
+  return 0;
 }
 
 int
 neigh_manager (void *arg __rte_unused)
 {
-  int i;
+  int i, ret;
   void *msgp;
   unsigned lcore_id = rte_lcore_id ();
 
   printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
   DEBUG_SDPLANE_LOG (NEIGH, "%s: started.", __func__);
 
-  neigh_manager_init ();
+  ret = neigh_manager_init();
+  if (ret < 0)
+    {
+      DEBUG_SDPLANE_LOG (NEIGH,
+                         "neigh_manager_init() failed: unable to create message queue");
+      return -1;
+    }
 
   int thread_id;
   thread_id = thread_lookup (neigh_manager);
