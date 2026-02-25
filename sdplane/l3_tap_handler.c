@@ -47,6 +47,10 @@ l3_tap_handler_write (int tap_fd, struct rte_mbuf *m)
   char *pkt;
   int ret;
 
+  struct rte_ether_hdr *eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  if (rte_be_to_cpu_16 (eth->ether_type) == RTE_ETHER_TYPE_VLAN)
+    rte_vlan_strip (m);
+
   pkt_len = rte_pktmbuf_pkt_len (m);
   data_len = rte_pktmbuf_data_len (m);
   pkt = rte_pktmbuf_mtod (m, char *);
