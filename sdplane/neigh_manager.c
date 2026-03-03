@@ -285,6 +285,7 @@ neigh_manager_init ()
           rte_ring_create ("msg_queue_neigh", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
       if (! msg_queue_neigh)
         {
+          printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
           DEBUG_SDPLANE_LOG (NEIGH,
                              "rte_ring_create(msg_queue_neigh) failed: %s",
                              rte_strerror (rte_errno));
@@ -301,12 +302,10 @@ neigh_manager (void *arg __rte_unused)
   void *msgp;
   unsigned lcore_id = rte_lcore_id ();
 
-  printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
-  DEBUG_SDPLANE_LOG (NEIGH, "%s: started.", __func__);
-
   ret = neigh_manager_init();
   if (ret < 0)
     {
+      printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
       DEBUG_SDPLANE_LOG (NEIGH,
                          "neigh_manager_init() failed: unable to create message queue");
       return -1;
@@ -318,6 +317,9 @@ neigh_manager (void *arg __rte_unused)
 
   /* initialize master neigh tables */
   memset (master_neigh_tables, 0, sizeof (master_neigh_tables));
+
+  printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
+  DEBUG_SDPLANE_LOG (NEIGH, "%s: started.", __func__);
 
   while (! force_quit && ! force_stop[lcore_id])
     {

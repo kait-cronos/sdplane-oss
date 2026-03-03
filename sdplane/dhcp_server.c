@@ -55,8 +55,7 @@ is_dhcp_packet (struct rte_mbuf *m)
   struct rte_udp_hdr *udp = NULL;
   struct rte_tcp_hdr *tcp = NULL;
 
-  __parse_packet (m, &eth, &vlan, &snap, &ipv4, &ipv6, &srh, &icmp, &udp,
-                  &tcp);
+  __parse_packet (m, &eth, &vlan, &snap, &ipv4, &ipv6, &srh, &icmp, &udp, &tcp);
 
   uint16_t src_port;
   uint16_t dst_port;
@@ -80,13 +79,13 @@ is_dhcp_packet (struct rte_mbuf *m)
   /* ipv4 bootps/bootpc (DHCP) */
   if (ipv4 && udp &&
       ((src_port == 67 || src_port == 68) ||
-       (dst_port == 67 || dst_port == 68)))
+      (dst_port == 67 || dst_port == 68)))
     return true;
 
   /* ipv6 dhcpv6-client/dhcpv6-server */
   if (ipv6 && udp &&
       ((src_port == 546 || src_port == 547) ||
-       (dst_port == 546 || dst_port == 547)))
+      (dst_port == 546 || dst_port == 547)))
     return true;
 
   return false;
@@ -105,10 +104,11 @@ dhcp_server_read (struct rte_mbuf *m)
   pkt = rte_pktmbuf_mtod (m, char *);
 
   if (data_len < pkt_len)
-    ERROR_MSG ("m: %p warning: multi-seg mbuf: %u < %u", m, data_len, pkt_len);
+    ERROR_MSG ("m: %p warning: multi-seg mbuf: %u < %u",
+               m, data_len, pkt_len);
 
-  DEBUG_NEW (DHCP_SERVER, "DEBUG_NEW: m: %p packet [size: %d/%d] received.", m,
-             data_len, pkt_len);
+  DEBUG_NEW (DHCP_SERVER, "DEBUG_NEW: m: %p packet [size: %d/%d] received.",
+                     m, data_len, pkt_len);
   if (IS_DEBUG (DHCP_SERVER))
     log_packet (m, 0, 0);
 }
@@ -136,8 +136,8 @@ dhcp_server_write (char *data, int size, unsigned vswitch_id)
   memcpy (pkt, data, size);
 
   rte_ring_enqueue (vswitch->router_if.ring_dn, m);
-  DEBUG_NEW (DHCP_SERVER, "m: %p size: %d -> vswitch %d ring_dn %d", m, size,
-             vswitch_id, vswitch->router_if.tap_ring_id);
+  DEBUG_NEW (DHCP_SERVER, "m: %p size: %d -> vswitch %d ring_dn %d",
+             m, size, vswitch_id, vswitch->router_if.tap_ring_id);
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -151,7 +151,8 @@ dhcp_server_rx ()
   if (! ring_dhcp_rx)
     return;
 
-  dequeued = rte_ring_dequeue_burst (ring_dhcp_rx, (void **) pkts_burst,
+  dequeued = rte_ring_dequeue_burst (ring_dhcp_rx,
+                                     (void **) pkts_burst,
                                      MAX_PKT_BURST, &avail);
 
   for (i = 0; i < dequeued; i++)
@@ -171,6 +172,7 @@ dhcp_server_init ()
   ring_dhcp_rx = rte_ring_create ("dhcp_rx", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
   if (! ring_dhcp_rx)
     {
+      printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
       DEBUG_SDPLANE_LOG (DHCP_SERVER, "rte_ring_create(dhcp_rx) failed: %s",
                          rte_strerror (rte_errno));
       return -1;
@@ -190,10 +192,9 @@ dhcp_server (__rte_unused void *dummy)
   ret = dhcp_server_init ();
   if (ret < 0)
     {
-      DEBUG_SDPLANE_LOG (
-          DHCP_SERVER, "dhcp_server_init() failed: unable to create rx ring");
+      DEBUG_SDPLANE_LOG (DHCP_SERVER, "dhcp_server_init() failed: unable to create rx ring");
       return -1;
-    }
+  }
 
   /* register an application slot entry in rib,
      to receive packets from enhanced_repeater. */
