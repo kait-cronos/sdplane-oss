@@ -1460,6 +1460,7 @@ rib_manager_process_port_get (struct internal_msg_header *imsghdr)
     {
       WARNING ("cannot send response: %p", resp);
       WARNING ("probably no shell ring response. update libsdplane.");
+      internal_msg_delete (resp);
     }
 
   free (imsghdr);
@@ -1512,7 +1513,10 @@ rib_manager_process_message (void *msgp)
       DEBUG_NEW (RIB, "port_get_request: receive");
       retflag = rib_manager_process_port_get (msg_header);
       if (FLAG_CHECK (retflag, RIB_RETFLAG_RETURN_IMMEDIATELY))
-        return;
+        {
+          rib_delete (new);
+          return;
+        }
       break;
 
     case INTERNAL_MSG_TYPE_PORT_STATUS:
@@ -1554,6 +1558,7 @@ rib_manager_process_message (void *msgp)
       if (ret < 0)
         {
           DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+          rib_delete (new);
           free (msgp);
           return;
         }
@@ -1823,6 +1828,7 @@ rib_manager_process_message (void *msgp)
         if (ret < 0)
           {
             DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+            rib_delete (new);
             free (msgp);
             return;
           }
@@ -1895,6 +1901,7 @@ rib_manager_process_message (void *msgp)
         if (ret < 0)
           {
             DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+            rib_delete (new);
             free (msgp);
             return;
           }

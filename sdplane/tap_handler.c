@@ -86,6 +86,8 @@ vswitch_port_update ()
       DEBUG_SDPLANE_LOG (VSWITCH, "remove vswport[%d]", i);
       if (vswport->type == VSWITCH_PORT_TYPE_DPDK_LCORE)
         {
+          free (vswport->name);
+          vswport->name = NULL;
           if (i + 1 < vswitch->size)
             {
               nextport = &vswitch->port[i + 1];
