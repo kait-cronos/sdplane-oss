@@ -5,6 +5,7 @@
 #include "queue_config.h"
 
 #include "rib.h"
+#include "sdplane.h"
 
 extern struct rib_tree *rib_tree_master[ROUTE_TREE_SIZE];
 

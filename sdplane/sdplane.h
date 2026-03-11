@@ -4,6 +4,7 @@
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 #include <sdplane/shell.h>
+#include <sdplane/command.h>
 
 extern char *pid_path;
 

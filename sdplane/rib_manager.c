@@ -13,24 +13,20 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
+#include "debug_sdplane.h"
 #include "rib_manager.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "tap.h"
-#include "l3_tap_handler.h"
-
+#include "neigh_manager.h"
 #include "l2fwd_export.h"
-
 #include "internal_message.h"
-
 #include "radix.h"
 #include "fib.h"
 

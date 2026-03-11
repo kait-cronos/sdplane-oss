@@ -10,6 +10,7 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
+#include <rte_ether.h>
 
 #include <sdplane/debug.h>
 #include <sdplane/termio.h>
@@ -18,21 +19,15 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
-
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
-#include <rte_ether.h>
 #include "l2fwd_export.h"
-
 #include "sdplane.h"
 #include "thread_info.h"
 #include "rib_manager.h"
-#include "tap.h"
 #include "internal_message.h"
-
 #include "log_packet.h"
 
 static __thread uint64_t loop_counter_dhcp = 0;

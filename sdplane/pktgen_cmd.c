@@ -6,7 +6,6 @@
 
 #include "argv_list.h"
 #include "sdplane.h"
-// #include "tap_handler.h"
 
 #ifdef ENABLE_PKTGEN
 

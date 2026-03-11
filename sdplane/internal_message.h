@@ -1,12 +1,12 @@
 #ifndef __INTERNAL_MESSAGE_H__
 #define __INTERNAL_MESSAGE_H__
 
-#include <rte_ring.h>
-
-#include <rte_ethdev.h>
 #include <stdint.h>
+#include <rte_ring.h>
+#include <rte_ethdev.h>
+#include <sdplane/shell.h>
+
 #include "queue_config.h"
-#include "neigh_manager.h"
 #include "radix.h"
 
 struct internal_msg_header

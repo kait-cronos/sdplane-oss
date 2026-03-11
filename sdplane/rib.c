@@ -10,25 +10,20 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
 #include "rib_manager.h"
 #include "neigh_manager.h"
 #include "sdplane.h"
 #include "thread_info.h"
-
-#include "l2fwd_export.h"
-
 #include "internal_message.h"
-
 #include "tap.h"
 #include "fib.h"
+#include "rib.h"
 #include "radix.h"
 
 // clang-format off

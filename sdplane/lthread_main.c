@@ -38,8 +38,6 @@
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
-
 #include <sdplane/termio.h>
 #include <sdplane/vector.h>
 #include <sdplane/shell.h>
@@ -47,20 +45,11 @@
 #include <sdplane/command_shell.h>
 
 #include "l3fwd.h"
-#include "l3fwd_event.h"
 #include "l3fwd_route.h"
-#include "l3fwd_cmd.h"
-
-#include "l2fwd_export.h"
-#include "l2fwd_cmd.h"
-
 #include "sdplane.h"
 #include "tap_handler.h"
 #include "neigh_manager.h"
-
-#include "vty_shell.h"
 #include "thread_info.h"
-
 #include "dhcp_server.h"
 
 #if HAVE_LIBURCU_QSBR

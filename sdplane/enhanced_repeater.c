@@ -23,21 +23,14 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug_log.h>
-#include "debug_sdplane.h"
 
-#include "l2fwd_export.h"
 #include "sdplane.h"
-#include "tap_handler.h"
-
+#include "l2fwd_export.h"
 #include "rib_manager.h"
 #include "thread_info.h"
-
 #include "packet_hdr.h"
-#include "rte_override.h"
 
-#include "dhcp_server.h"
 
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;

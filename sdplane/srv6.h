@@ -1,13 +1,14 @@
 #ifndef __SRV6_H__
 #define __SRV6_H__
 
-#include "rte_override.h"
 #include <rte_version.h>
 #if RTE_VERSION < RTE_VERSION_NUM(24, 0, 0, 0)
   #include <rte_ip.h>
 #else
   #include <rte_ip6.h>
 #endif
+#include "rte_override.h"
+#include "debug_sdplane.h"
 
 static inline __attribute__ ((always_inline)) bool
 _process_srv6_packet (struct rte_mbuf *m,

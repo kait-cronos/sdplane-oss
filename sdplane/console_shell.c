@@ -45,27 +45,16 @@
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_cmd.h>
-// #include <sdplane/shell_fselect.h>
 #include <sdplane/debug_zcmdsh.h>
 
 #include "l3fwd.h"
-#include "l3fwd_event.h"
 #include "l3fwd_route.h"
 #include "l3fwd_cmd.h"
-
-#include "l2fwd_export.h"
 #include "l2fwd_cmd.h"
-
 #include "sdplane.h"
-#include "tap_handler.h"
-
-#include "debug_sdplane.h"
 #include "vty_shell.h"
-
 #include "thread_info.h"
 #include "rib_manager.h"
-
-#include "dpdk_port_cmd.h"
 
 extern int lthread_core;
 

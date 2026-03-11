@@ -1,6 +1,8 @@
 #ifndef __SNPRINTF_FLAGS__
 #define __SNPRINTF_FLAGS__
 
+#include <stdint.h>
+
 struct flag_name
 {
   char *name;

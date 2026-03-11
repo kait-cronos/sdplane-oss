@@ -17,22 +17,14 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
-
 #include <sdplane/debug_log.h>
-#include "debug_sdplane.h"
 
 #include "l3fwd.h"
-#include "l3fwd_event.h"
 #include "l3fwd_route.h"
-
 #include "l2fwd_export.h"
-#include "l2fwd_cmd.h"
-
 #include "sdplane.h"
 #include "thread_info.h"
-
 #include "rib_manager.h"
-#include "tap.h"
 #include "log_packet.h"
 #include "tap_handler.h"
 
