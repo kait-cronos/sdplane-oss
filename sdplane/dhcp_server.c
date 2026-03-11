@@ -40,7 +40,6 @@ bool
 is_dhcp_packet (struct rte_mbuf *m)
 {
   struct rte_ether_hdr *eth;
-  uint16_t eth_type;
   struct rte_vlan_hdr *vlan = NULL;
   struct llc_snap_hdr *snap = NULL;
   struct rte_ipv4_hdr *ipv4 = NULL;
@@ -91,12 +90,9 @@ dhcp_server_read (struct rte_mbuf *m)
 {
   uint32_t pkt_len;
   uint16_t data_len;
-  char *pkt;
-  int ret;
 
   pkt_len = rte_pktmbuf_pkt_len (m);
   data_len = rte_pktmbuf_data_len (m);
-  pkt = rte_pktmbuf_mtod (m, char *);
 
   if (data_len < pkt_len)
     ERROR_MSG ("m: %p warning: multi-seg mbuf: %u < %u",
@@ -112,7 +108,6 @@ static inline __attribute__ ((always_inline)) void
 dhcp_server_write (char *data, int size, unsigned vswitch_id)
 {
   char *pkt;
-  int ret;
   struct vswitch_conf *vswitch;
 
   vswitch = &rib->rib_info->vswitch[vswitch_id];
@@ -123,7 +118,6 @@ dhcp_server_write (char *data, int size, unsigned vswitch_id)
   if (! vswitch->router_if.ring_dn)
     return;
 
-  int socket = rte_lcore_to_socket_id (rte_lcore_id ());
   struct rte_mempool *mp = l2fwd_pktmbuf_pool;
   struct rte_mbuf *m = rte_pktmbuf_alloc (mp);
   rte_pktmbuf_append (m, size);

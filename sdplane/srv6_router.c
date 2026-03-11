@@ -45,7 +45,6 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   struct vswitch_conf *vswitch = NULL;
   struct vswitch_link *vswitch_link = NULL;
   int i;
-  int ret;
 
   struct rte_ether_hdr *eth;
   uint16_t eth_type;

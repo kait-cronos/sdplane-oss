@@ -114,8 +114,6 @@ CLI_COMMAND2 (pktgen_init,
               "specify argv-list\n",
               "specify argv-list number\n")
 {
-  struct shell *shell = (struct shell *) context;
-
   int index;
   index = strtol (argv[3], NULL, 0);
 
@@ -142,7 +140,6 @@ CLI_COMMAND2 (pktgen_do_start_stop,
               "specify for all ports.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
@@ -169,7 +166,6 @@ CLI_COMMAND2 (pktgen_do_set_count,
               "set packet count.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
@@ -196,7 +192,6 @@ CLI_COMMAND2 (pktgen_do_set_size,
               "set packet size.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
@@ -223,7 +218,6 @@ CLI_COMMAND2 (pktgen_do_set_rate,
               "set packet rate in percentage.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
@@ -253,7 +247,6 @@ CLI_COMMAND2 (pktgen_do_set_tcp_port,
               "specify the packet tcp port number.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
@@ -284,7 +277,6 @@ CLI_COMMAND2 (pktgen_do_set_ttl,
               "specify the packet ttl number.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];

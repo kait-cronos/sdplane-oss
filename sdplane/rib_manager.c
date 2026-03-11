@@ -52,10 +52,7 @@ struct rte_ring *msg_queue_rib;
 void *rcu_global_ptr_rib;
 uint64_t rib_rcu_replace = 0;
 
-static __thread struct rib *rib = NULL;
-
 struct rib_tree *rib_tree_master[ROUTE_TREE_SIZE];
-static int rib_tree_size;
 struct nh_hash_node *nh_hash_table[NEXTHOP_HASH_TAB_SIZE];
 
 static inline __attribute__ ((always_inline)) int
@@ -821,7 +818,6 @@ nexthop_common_add_entry (struct rib_info *rib_info, enum nexthop_type nh_type, 
 
       case NH_TYPE_OBJECT_CAP:
         {
-          struct nh_object *nh_object = (struct nh_object *) nh;
           DEBUG_NEW (RIB, "not implemented yet");
           nh_id = -1;
           break;
@@ -1045,7 +1041,6 @@ rib_delete (struct rib *old)
 static inline __attribute__ ((always_inline)) int
 rib_check (struct rib *new)
 {
-  struct sdplane_queue_conf *qconf;
   struct lcore_qconf *lcore_qconf;
   int lcore;
   int i, ret;
@@ -1471,8 +1466,6 @@ rib_manager_process_message (void *msgp)
   int i, j;
   //DEBUG_SDPLANE_LOG (RIB, "msg: %p.", msgp);
 
-  int route_idx_add = -1, tree_idx_add = -1;
-
   struct rib *new, *old;
 
   /* retrieve old */
@@ -1492,7 +1485,6 @@ rib_manager_process_message (void *msgp)
 
   /* change something according to the update instruction message. */
   struct internal_msg_header *msg_header;
-  struct internal_msg_eth_link *msg_eth_link;
   struct internal_msg_qconf *msg_qconf;
   struct internal_msg_neigh_entry *msg_neigh_entry;
   struct internal_msg_route_entry *msg_route_entry;
@@ -1784,7 +1776,6 @@ rib_manager_process_message (void *msgp)
       {
         struct internal_msg_tap_dev *msg_router_if_set;
         struct router_if *rif;
-        struct application_slot_entry app_slot;
         DEBUG_SDPLANE_LOG (RIB, "recv msg_router_if_set: %p.", msgp);
         msg_router_if_set = (struct internal_msg_tap_dev *) (msg_header + 1);
 
@@ -2277,7 +2268,7 @@ static __thread time_t last_fdb_aging_time = 0;
 int
 rib_manager (void *arg)
 {
-  int ret, i;
+  int i;
   void *msgp;
   unsigned lcore_id = rte_lcore_id ();
 

@@ -71,7 +71,6 @@ vty_server (void *arg)
 
   int client_size = 0;
   int i, client_id;
-  lthread_t *client_lt = NULL;
 
   /* initialize */
   for (i = 0; i < VTY_CLIENT_MAX; i++)

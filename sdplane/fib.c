@@ -89,7 +89,6 @@ static struct fib_node *
 _create_fib_node (void)
 {
   struct fib_node *new;
-  int i;
 
   new = malloc (sizeof (struct fib_node));
   if (! new)
@@ -330,7 +329,7 @@ fib_show_route (struct fib_node *n, void *arg)
 {
   struct show_route_arg *show_arg = (struct show_route_arg *) arg;
   struct shell *shell = show_arg->shell;
-  int i, family = show_arg->family;
+  int family = show_arg->family;
 
   char prefix_str[INET6_ADDRSTRLEN];
   char dst_str[INET6_ADDRSTRLEN + 5];

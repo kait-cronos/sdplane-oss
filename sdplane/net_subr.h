@@ -67,11 +67,7 @@ _send_ring (struct rte_mbuf *m,
             struct rte_ring *ring)
 {
   struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
   int ret;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
 
   DEBUG_NEW (ROUTER,
              "m: %p port %d queue %d to ring: %s (%p)",

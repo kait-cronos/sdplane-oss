@@ -80,11 +80,7 @@ _send_ring (struct rte_mbuf *m,
             struct rte_ring *ring)
 {
   struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
   int ret;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
 
   DEBUG_NEW (ENHANCED_REPEATER,
              "m: %p port %d queue %d to ring: %s (%p)",
@@ -227,7 +223,6 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   struct vswitch_conf *vswitch = NULL;
   struct vswitch_link *vswitch_link = NULL;
   int i;
-  int ret;
   uint16_t vlan_id = 0;
 
   struct rte_ether_hdr *eth;

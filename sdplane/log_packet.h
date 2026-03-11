@@ -224,7 +224,6 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
                 RTE_VLAN_TCI_ID (vlan_tci), eth_proto);
     }
 
-  uint8_t ip_proto;
   char ip_src[64];
   char ip_dst[64];
 
@@ -242,7 +241,6 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
           const struct stp_bpdu *bpdu = (const struct stp_bpdu *) snap;
 
           uint16_t proto_id = rte_be_to_cpu_16 (bpdu->protocol_id);
-          uint16_t port_id = rte_be_to_cpu_16 (bpdu->port_id);
 
           snprintf (pvst_str, sizeof (pvst_str),
                     " PVST+ BPDU: "
