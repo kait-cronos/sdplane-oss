@@ -98,7 +98,6 @@ l3_tap_handler_dequeue_burst (int tap_fd, struct rte_ring *tap_ring,
 static inline __attribute__ ((always_inline)) void
 l3_tap_handler_handle_packet_up ()
 {
-  struct rte_ring *tap_ring;
   int vswitch_id;
 
   if (! rib || ! rib->rib_info)
@@ -227,15 +226,8 @@ l3_tap_handler_handle_packet_down ()
 int
 l3_tap_handler (__rte_unused void *dummy)
 {
-  int ret;
-
-  unsigned lcore_id;
-  struct rte_ring *tap_ring;
-
   DEBUG_NEW (TAPHANDLER, "start thread on lcore[%d].",
              rte_lcore_id ());
-
-  int i, j;
 
   unsigned tap_handler_id = rte_lcore_id ();
 

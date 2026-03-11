@@ -586,7 +586,6 @@ netlink_parse_seg6 (struct rtattr *rta, struct seg6_param *param)
 static inline __attribute__ ((always_inline)) void
 netlink_parse_seg6local (struct rtattr *rta, struct seg6local_param *param)
 {
-  int i;
   struct rtattr *rtas[SEG6_LOCAL_MAX + 1] = { 0 };
   netlink_get_rtattr (rtas, SEG6_LOCAL_MAX, RTA_DATA (rta), RTA_PAYLOAD (rta));
 

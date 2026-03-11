@@ -57,8 +57,6 @@ extern volatile bool force_stop[RTE_MAX_LCORE];
 
 uint64_t loop_vty_shell = 0;
 
-static __thread struct rib *rib = NULL;
-
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <sys/utsname.h>
@@ -104,12 +102,11 @@ snprintf_signature (char *buf, int size, char *ifname)
 void
 vty_banner (struct shell *shell)
 {
-  int ret;
-  char signature[1024];
   fprintf (shell->terminal, "welcome to sdplane vty_shell.%s", shell->NL);
   fprintf (shell->terminal, "sdplane version: %s%s", sdplane_version,
            shell->NL);
 #if 0
+  char signature[1024];
   snprintf_signature (signature, sizeof (signature), "enp1s0");
   fprintf (shell->terminal, "signature: %s%s", signature, shell->NL);
 #endif

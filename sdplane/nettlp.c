@@ -47,11 +47,7 @@ nettlp_send_packet_tap_up (struct rte_mbuf *m, unsigned portid,
                            unsigned queueid)
 {
   struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
   int ret = 0;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
 
   DEBUG_SDPLANE_LOG (NETTLP,
                      "lcore[%d]: m: %p port %d queue %d to ring_up: %p",
@@ -757,8 +753,6 @@ nettlp_rx_burst ()
 int
 nettlp_thread (void *arg)
 {
-  int ret;
-
   lcore_id = rte_lcore_id ();
 
   printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
@@ -928,7 +922,6 @@ CLI_COMMAND2 (set_nettlp_bus_number,
               "Specify device-number (i.e. 0x1234 in Hex).\n")
 {
   struct shell *shell = (struct shell *) context;
-  int ret;
 
   bus_number = strtol (argv[3], NULL, 0);
   dev_number = strtol (argv[5], NULL, 0);
@@ -1151,7 +1144,6 @@ CLI_COMMAND2 (show_nettlp_psmem, "show nettlp psmem (|<WORD>)", SHOW_HELP,
   uintptr_t end_offset;
   uint32_t i;
   uint32_t psmem_show_size = 8 * 1024; // 8KiB.
-  uint32_t show_size;
 
   start_offset = 0;
   if (argc > 3)

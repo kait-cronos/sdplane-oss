@@ -216,7 +216,7 @@ neigh_manager_show_table (const int type, const struct shell *shell)
 void
 neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
 {
-  int i, ret;
+  int ret;
   DEBUG_SDPLANE_LOG (NEIGH, "%s: msg: %p.", __func__, msgp);
 
   void *new_msgp;
@@ -287,7 +287,6 @@ neigh_manager_init ()
 int
 neigh_manager (void *arg __rte_unused)
 {
-  int i;
   void *msgp;
   unsigned lcore_id = rte_lcore_id ();
 

@@ -59,8 +59,6 @@ is_net_device (char *device_dirname)
 char *
 get_net_devname (char *device_dirname)
 {
-  int ret;
-  struct stat statbuf;
   char filename[256];
   DIR *dir;
   struct dirent *dirent;
@@ -100,7 +98,6 @@ CLI_COMMAND2 (show_devices, "show devices", SHOW_HELP,
   char devname[16];
   char devpath[256];
   char drvrpath[256];
-  int i;
 
   dir = opendir (drivers_path);
   if (dir == NULL)
@@ -265,8 +262,6 @@ CLI_COMMAND2 (
 {
   struct shell *shell = (struct shell *) context;
   char driver_bind_path[256];
-  DIR *driver_dir;
-  struct dirent *driver_ent;
   int fd;
   int ret;
   char pci_number[16];

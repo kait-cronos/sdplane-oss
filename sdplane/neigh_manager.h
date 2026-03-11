@@ -21,8 +21,6 @@ arp_copy_to_tap_ring (struct rte_mbuf *m, unsigned portid)
   uint16_t data_len;
   int ret;
   struct rte_ring *ring;
-  struct rte_ether_hdr *eth_hdr;
-  uint16_t etype;
 
   ring = ring_up[portid][0];
   pkt_len = rte_pktmbuf_pkt_len (m);

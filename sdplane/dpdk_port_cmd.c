@@ -99,7 +99,6 @@ CLI_COMMAND2 (start_stop_port, "(start|stop|reset) port (|<0-16>|all)",
               START_HELP, STOP_HELP, RESET_HELP, PORT_HELP, PORT_NUMBER_HELP,
               PORT_ALL_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   int port_id;
   int port_spec = -1;
   uint16_t nb_ports;
@@ -137,7 +136,6 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
   int ret;
   struct rte_eth_dev_info dev_info;
   struct rte_eth_dev_info *dev = &dev_info;
-  const struct rte_pci_device *pci_dev = NULL;
   FILE *t = shell->terminal;
   char link_capa[32];
   char link_capa2[48];
@@ -290,17 +288,15 @@ CLI_COMMAND2 (show_port_statistics,
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
-  int i, port_id;
+  int port_id;
   uint16_t nb_ports;
   char name[16];
   bool packets = false;
   bool bytes = false;
-  bool total = false;
   struct rte_eth_stats *stats, *stats_array;
 
   /* default is to show "pps" */
   packets = true;
-  total = false;
   stats_array = stats_per_sec;
 
   if (argc > 3)
@@ -308,33 +304,28 @@ CLI_COMMAND2 (show_port_statistics,
   if (! strcmp (argv[3], "pps"))
     {
       packets = true;
-      total = false;
       stats_array = stats_per_sec;
     }
   else if (! strcmp (argv[3], "total"))
     {
       packets = true;
-      total = true;
       stats_array = stats_current;
     }
   else if (! strcmp (argv[3], "bps"))
     {
       packets = false;
-      total = false;
       stats_array = stats_per_sec;
     }
   else if (! strcmp (argv[3], "Bps"))
     {
       packets = false;
       bytes = true;
-      total = false;
       stats_array = stats_per_sec;
     }
   else if (! strcmp (argv[3], "total-bytes"))
     {
       packets = false;
       bytes = true;
-      total = true;
       stats_array = stats_current;
     }
     }
@@ -373,7 +364,7 @@ CLI_COMMAND2 (show_port_promiscuous, "show port (<0-16>|all) promiscuous",
               SHOW_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP "promiscuous\n")
 {
   struct shell *shell = (struct shell *) context;
-  int i, port_spec = -1;
+  int port_spec = -1;
   uint16_t port_id, nb_ports;
   int ret;
 
@@ -403,7 +394,7 @@ CLI_COMMAND2 (show_port_flowcontrol, "show port (<0-16>|all) flowcontrol",
               SHOW_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP "flowcontrol\n")
 {
   struct shell *shell = (struct shell *) context;
-  int i, port_spec = -1;
+  int port_spec = -1;
   uint16_t port_id, nb_ports;
   int ret;
   struct rte_eth_fc_conf fc_conf;
@@ -466,7 +457,7 @@ CLI_COMMAND2 (set_port_promiscuous,
               "promiscuous\n" ENABLE_HELP DISABLE_HELP)
 {
   struct shell *shell = (struct shell *) context;
-  int i, port_spec = -1;
+  int port_spec = -1;
   uint16_t port_id, nb_ports;
   int ret;
 
@@ -502,7 +493,7 @@ CLI_COMMAND2 (
     "flowcontrol off\n")
 {
   struct shell *shell = (struct shell *) context;
-  int i, port_spec = -1;
+  int port_spec = -1;
   uint16_t port_id, nb_ports;
   int ret;
   struct rte_eth_fc_conf fc_conf;
@@ -726,7 +717,7 @@ CLI_COMMAND2 (set_port_txrx_desc,
               "Specify the descriptor number.\n")
 {
   struct shell *shell = (struct shell *) context;
-  int i, port_spec = -1;
+  int port_spec = -1;
   uint16_t port_id, nb_ports;
   int ret;
   bool rx_spec, tx_spec;
@@ -811,11 +802,10 @@ CLI_COMMAND2 (set_port_mtu,
               "Specify the mtu number.\n")
 {
   struct shell *shell = (struct shell *) context;
-  int i, port_spec = -1;
+  int port_spec = -1;
   uint16_t port_id, nb_ports;
   int ret;
   uint16_t mtu_val;
-  struct rib *rib = rib_tlocal;
 
   if (strcmp (argv[2], "all"))
     port_spec = strtol (argv[2], NULL, 0);
@@ -855,11 +845,10 @@ CLI_COMMAND2 (set_port_nb_txrx_queue,
               "Specify the number of queues.\n")
 {
   struct shell *shell = (struct shell *) context;
-  int i, port_spec = -1;
+  int port_spec = -1;
   uint16_t port_id, nb_ports;
   int ret;
   uint16_t nb_queues;
-  struct rib *rib = rib_tlocal;
 
   if (strcmp (argv[2], "all"))
     port_spec = strtol (argv[2], NULL, 0);
@@ -901,10 +890,8 @@ CLI_COMMAND2 (set_port_link_updown,
               "set port the link status up\n",
               "set port the link status down\n")
 {
-  struct shell *shell = (struct shell *) context;
-  int i, port_spec = -1;
+  int port_spec = -1;
   uint16_t port_id, nb_ports;
-  int ret;
   int negate = 0;
 
   if (strcmp (argv[2], "all"))
@@ -934,10 +921,7 @@ CLI_COMMAND2 (show_port_get_info,
 {
   struct shell *shell = (struct shell *) context;
   uint16_t port_id;
-  int ret;
-  struct rte_ring *ring_resp;
   struct internal_msg_header *imsghdr;
-  void *msgp;
   struct internal_msg_port_info port_info;
 
   port_id = strtol (argv[2], NULL, 0);
