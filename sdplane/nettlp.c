@@ -807,6 +807,8 @@ nettlp_thread (void *arg)
 #if HAVE_LIBURCU_QSBR
   urcu_qsbr_unregister_thread ();
 #endif /*HAVE_LIBURCU_QSBR*/
+
+  return 0;
 }
 
 CLI_COMMAND2 (nettlp_send_dma_write_read, "nettlp-send (dma-write|dma-read)",
