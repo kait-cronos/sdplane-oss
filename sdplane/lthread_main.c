@@ -118,6 +118,7 @@ CLI_COMMAND2 (set_worker_lthread_netlink_thread,
               "set worker lthread netlink-thread", SET_HELP, WORKER_HELP,
               "lthread information\n", "netlink-thread\n")
 {
+  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) netlink_thread, NULL);
@@ -131,6 +132,7 @@ CLI_COMMAND2 (set_worker_lthread_neigh_manager,
               "set worker lthread neigh-manager", SET_HELP, WORKER_HELP,
               "lthread information\n", "neigh_manager\n")
 {
+  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) neigh_manager, NULL);
@@ -156,6 +158,7 @@ CLI_COMMAND2 (set_worker_lthread_dhcp_server,
               "set worker lthread dhcp-server", SET_HELP, WORKER_HELP,
               "lthread information\n", "dhcp-server\n")
 {
+  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) dhcp_server, NULL);
