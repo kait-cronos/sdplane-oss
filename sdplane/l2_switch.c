@@ -25,16 +25,13 @@
 #endif /*HAVE_LIBURCU_QSBR*/
 
 #include <sdplane/command.h>
-
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
+#include "debug_sdplane.h"
 #include "l2fwd_export.h"
 #include "sdplane.h"
-#include "tap_handler.h"
-
 #include "rib_manager.h"
 #include "thread_info.h"
 
@@ -85,11 +82,7 @@ l2_switch_send_router_if (struct rte_mbuf *m, unsigned rx_portid,
                                   unsigned rx_queueid, struct router_if *rif)
 {
   struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
   int ret;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
 
   DEBUG_SDPLANE_LOG (L2_SWITCH,
                      "m: %p port %d queue %d to ring_up: %p", m, rx_portid,
@@ -120,11 +113,7 @@ l2_switch_send_capture_if (struct rte_mbuf *m, unsigned rx_portid,
                                    unsigned rx_queueid, struct capture_if *cif)
 {
   struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
   int ret;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
 
   DEBUG_SDPLANE_LOG (L2_SWITCH,
                      "m: %p port %d queue %d to ring_up: %p", m, rx_portid,
@@ -552,17 +541,13 @@ int
 l2_switch (__rte_unused void *dummy)
 {
   uint64_t prev_tsc, diff_tsc, cur_tsc;
-  struct lcore_queue_conf *qconf;
   const uint64_t drain_tsc =
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
-
-  uint16_t nb_ports;
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
 
   prev_tsc = 0;
   lcore_id = rte_lcore_id ();
-  qconf = &lcore_queue_conf[lcore_id];
 
   int thread_id;
   thread_id = thread_lookup_by_lcore (l2_switch, lcore_id);

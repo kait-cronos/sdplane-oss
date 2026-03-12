@@ -25,16 +25,13 @@
 #endif /*HAVE_LIBURCU_QSBR*/
 
 #include <sdplane/command.h>
-
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
+#include "debug_sdplane.h"
 #include "l2fwd_export.h"
 #include "sdplane.h"
-#include "tap_handler.h"
-
 #include "rib_manager.h"
 #include "thread_info.h"
 
@@ -127,11 +124,7 @@ static inline __attribute__ ((always_inline)) void
 vlan_switch_tap_up (struct rte_mbuf *m, unsigned portid, unsigned queueid)
 {
   struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
   int ret;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
 
   DEBUG_SDPLANE_LOG (VLAN_SWITCH,
                      "lcore[%d]: m: %p port %d queue %d to ring_up: %p",
@@ -295,11 +288,8 @@ vlan_switch_send_link (struct rte_mbuf *m, unsigned rx_portid,
 static inline __attribute__ ((always_inline)) void
 vlan_switch_run (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
 {
-  struct rte_eth_dev_tx_buffer *buffer;
   uint16_t nb_ports;
   int tx_portid;
-  int sent;
-  struct rte_mbuf *c;
   uint16_t tx_queueid;
 
   tx_queueid = lcore_id;
@@ -310,6 +300,10 @@ vlan_switch_run (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
 #if 1
       vlan_switch_send (m, rx_portid, rx_queueid, tx_portid, tx_queueid);
 #else
+      struct rte_eth_dev_tx_buffer *buffer;
+      int sent;
+      struct rte_mbuf *c;
+
       if (rx_portid == tx_portid)
         continue;
 
@@ -503,17 +497,13 @@ int
 vlan_switch (__rte_unused void *dummy)
 {
   uint64_t prev_tsc, diff_tsc, cur_tsc;
-  struct lcore_queue_conf *qconf;
   const uint64_t drain_tsc =
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
-
-  uint16_t nb_ports;
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
 
   prev_tsc = 0;
   lcore_id = rte_lcore_id ();
-  qconf = &lcore_queue_conf[lcore_id];
 
   int thread_id;
   thread_id = thread_lookup_by_lcore (vlan_switch, lcore_id);

@@ -5,6 +5,7 @@
 #include "queue_config.h"
 
 #include "rib.h"
+#include "sdplane.h"
 
 extern struct rib_tree *rib_tree_master[ROUTE_TREE_SIZE];
 
@@ -41,7 +42,17 @@ do { \
   if (msg_queue_rib) \
     { \
       DEBUG_SDPLANE_LOG (RIB, "sending message to rib: %p.", (msgp)); \
-      rte_ring_enqueue (msg_queue_rib, (msgp)); \
+      if (rte_ring_enqueue (msg_queue_rib, (msgp)) != 0) \
+        { \
+          WARNING ("rte_ring_enqueue: msg_queue_rib full. " \
+                   "message %p lost.", (msgp)); \
+          free (msgp); \
+        } \
+    } \
+  else \
+    { \
+      WARNING ("can't send message to rib: queue: NULL."); \
+      free (msgp); \
     } \
 } while (0)
 
@@ -50,16 +61,23 @@ do { \
   if (msg_queue_rib) \
     { \
       DEBUG_SDPLANE_LOG (RIB, "sending message to rib: %p.", (msgp)); \
-      rte_ring_enqueue (msg_queue_rib, (msgp)); \
+      if (rte_ring_enqueue (msg_queue_rib, (msgp)) != 0) \
+        { \
+          WARNING ("rte_ring_enqueue: msg_queue_rib full. " \
+                   "message %p lost.", (msgp)); \
+          free (msgp); \
+        } \
     } \
   else if (shell) \
     { \
       fprintf ((shell)->terminal, "can't send message to rib: queue: NULL.%s", \
                (shell)->NL); \
+      free (msgp); \
     } \
   else \
     { \
       WARNING ("can't send message to rib: rib_queue: NULL."); \
+      free (msgp); \
     } \
 } while (0)
 

@@ -17,28 +17,19 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
-
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
+
 #include "debug_sdplane.h"
-
 #include "l3fwd.h"
-#include "l3fwd_event.h"
 #include "l3fwd_route.h"
-
 #include "l2fwd_export.h"
-#include "l2fwd_cmd.h"
-
 #include "sdplane.h"
 #include "thread_info.h"
-
 #include "rib_manager.h"
-
 #include "tap.h"
-
 #include "log_packet.h"
-
 #include "tap_handler.h"
 
 int capture_fd = -1;
@@ -86,6 +77,8 @@ vswitch_port_update ()
       DEBUG_SDPLANE_LOG (VSWITCH, "remove vswport[%d]", i);
       if (vswport->type == VSWITCH_PORT_TYPE_DPDK_LCORE)
         {
+          free (vswport->name);
+          vswport->name = NULL;
           if (i + 1 < vswitch->size)
             {
               nextport = &vswitch->port[i + 1];
@@ -271,7 +264,6 @@ tap_handler_handle_packet_up ()
 {
   struct vswitch *vswitch;
   struct vswitch_port *vswport;
-  int vswport_id;
   int port_id;
   struct rte_ring *tap_ring;
   int i;
@@ -320,7 +312,6 @@ tap_handler_handle_packet_down ()
   struct pollfd fds[16];
   struct vswitch *vswitch;
   struct vswitch_port *vswport;
-  int vswport_id;
   int port_id;
   int ret;
   int i;
@@ -378,7 +369,6 @@ tap_handler_handle_packet_down ()
 
       for (port_id = 0; port_id < vswitch->size; port_id++)
         {
-          int socket;
           struct rte_mempool *mp;
           struct rte_mbuf *m;
           struct rte_ring *ring;
@@ -387,7 +377,8 @@ tap_handler_handle_packet_down ()
           if (vswport->type != VSWITCH_PORT_TYPE_DPDK_LCORE)
             continue;
 
-          socket = rte_lcore_to_socket_id (rte_lcore_id ());
+          // int socket;
+          // socket = rte_lcore_to_socket_id (rte_lcore_id ());
           // mp = pktmbuf_pool[vswport->dpdk_port_id][socket];
           mp = l2fwd_pktmbuf_pool;
           m = rte_pktmbuf_alloc (mp);
@@ -407,14 +398,9 @@ tap_handler_handle_packet_down ()
 int
 tap_handler (__rte_unused void *dummy)
 {
-  int ret;
-
   int port_id;
   uint16_t nb_ports;
   char port_name[64];
-
-  unsigned lcore_id;
-  struct rte_ring *tap_ring;
 
   struct vswitch *vswitch;
 
@@ -467,8 +453,6 @@ tap_handler (__rte_unused void *dummy)
           vswitch->size++;
         }
     }
-
-  int i, j;
 
   unsigned tap_handler_id = rte_lcore_id ();
 

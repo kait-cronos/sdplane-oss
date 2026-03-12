@@ -2,6 +2,8 @@
 #define __DEBUG_SDPLANE_H__
 
 #include <stdint.h>
+#include <sdplane/command.h>
+#include <sdplane/debug_log.h>
 
 #define DEBUG_SDPLANE_LTHREAD            (1ULL << 0)
 #define DEBUG_SDPLANE_CONSOLE            (1ULL << 1)

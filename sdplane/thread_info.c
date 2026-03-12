@@ -89,7 +89,6 @@ thread_update (int thread_id, int lcore_id, lthread_t *lthread,
                lthread_func func, char *name, void *arg)
 {
   struct thread_info *tinfo;
-  int i;
 
   if (thread_id < 0 || thread_info_size <= thread_id ||
       THREAD_INFO_LIMIT <= thread_id)

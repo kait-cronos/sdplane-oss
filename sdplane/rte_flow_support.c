@@ -51,7 +51,6 @@ CLI_COMMAND2 (set_rte_flow_pattern_ether_any,
               "set rte-flow-pattern <0-15> index <0-15> ether (any|zero)",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   struct rte_flow_item_eth *eth_spec;
   struct rte_flow_item_eth *eth_mask;
   int pattern = 0;
@@ -75,7 +74,6 @@ CLI_COMMAND2 (set_rte_flow_pattern_ether_src_dst,
               "ether (src|dst) <WORD>",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   struct rte_flow_item_eth *eth_spec;
   struct rte_flow_item_eth *eth_mask;
   int pattern = 0;
@@ -106,7 +104,6 @@ CLI_COMMAND2 (set_rte_flow_pattern_ether_type,
               "ether type <0-0xffff>",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   struct rte_flow_item_eth *eth_spec;
   struct rte_flow_item_eth *eth_mask;
   int pattern = 0;
@@ -130,7 +127,6 @@ CLI_COMMAND2 (set_rte_flow_pattern_vlan_any,
               "set rte-flow-pattern <0-15> index <0-15> vlan (any|zero)",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   struct rte_flow_item_vlan *vlan_spec;
   struct rte_flow_item_vlan *vlan_mask;
   int pattern = 0;
@@ -153,7 +149,6 @@ CLI_COMMAND2 (set_rte_flow_pattern_vlan_id,
               "set rte-flow-pattern <0-15> index <0-15> vlan id <1-4094>",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   struct rte_flow_item_vlan *vlan_spec;
   struct rte_flow_item_vlan *vlan_mask;
   int pattern = 0;
@@ -177,7 +172,6 @@ CLI_COMMAND2 (set_rte_flow_pattern_ipv4_any,
               "set rte-flow-pattern <0-15> index <0-15> ipv4 (any|zero)",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   struct rte_flow_item_ipv4 *ipv4_spec;
   struct rte_flow_item_ipv4 *ipv4_mask;
   int pattern = 0;
@@ -200,7 +194,6 @@ CLI_COMMAND2 (set_rte_flow_pattern_ipv4_src_dst,
               "set rte-flow-pattern <0-15> index <0-15> ipv4 (src|dst) A.B.C.D",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   struct rte_flow_item_ipv4 *ipv4_spec;
   struct rte_flow_item_ipv4 *ipv4_mask;
   int pattern = 0;
@@ -235,7 +228,6 @@ CLI_COMMAND2 (set_rte_flow_pattern_ipv4_proto,
               "set rte-flow-pattern <0-15> index <0-15> ipv4 proto <0-255>",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   struct rte_flow_item_ipv4 *ipv4_spec;
   struct rte_flow_item_ipv4 *ipv4_mask;
   int pattern = 0;
@@ -259,10 +251,8 @@ CLI_COMMAND2 (set_rte_flow_pattern_end,
               "set rte-flow-pattern <0-15> index <0-15> end",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   int pattern = 0;
   int index = 0;
-  struct in_addr ipv4_addr;
   pattern = strtol (argv[2], NULL, 0);
   index = strtol (argv[4], NULL, 0);
   configured_pattern[pattern]++;
@@ -397,7 +387,6 @@ CLI_COMMAND2 (set_rte_flow_action_queue,
               "set rte-flow action <0-15> index <0-15> queue <0-127>",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   int action_list_id = 0;
   int action_index = 0;
   uint16_t queue_id = 0;
@@ -422,11 +411,8 @@ CLI_COMMAND2 (set_rte_flow_action_drop_end,
               "set rte-flow action <0-15> index <0-15> (drop|end)",
               SET_HELP)
 {
-  struct shell *shell = (struct shell *) context;
   int action_list_id = 0;
   int action_index = 0;
-  int queue_id = 0;
-  struct rte_flow_action_queue *queue;
   struct rte_flow_action *action;
   action_list_id = strtol (argv[3], NULL, 0);
   action_index = strtol (argv[5], NULL, 0);
@@ -548,4 +534,3 @@ rte_flow_cmd_init (struct command_set *cmdset)
 
   INSTALL_COMMAND2 (cmdset, set_rte_flow_port_pattern_action);
 }
-

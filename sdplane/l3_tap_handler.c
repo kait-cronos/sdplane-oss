@@ -17,22 +17,14 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
-
 #include <sdplane/debug_log.h>
-#include "debug_sdplane.h"
 
 #include "l3fwd.h"
-#include "l3fwd_event.h"
 #include "l3fwd_route.h"
-
 #include "l2fwd_export.h"
-#include "l2fwd_cmd.h"
-
 #include "sdplane.h"
 #include "thread_info.h"
-
 #include "rib_manager.h"
-#include "tap.h"
 #include "log_packet.h"
 #include "tap_handler.h"
 
@@ -46,6 +38,10 @@ l3_tap_handler_write (int tap_fd, struct rte_mbuf *m)
   uint16_t data_len;
   char *pkt;
   int ret;
+
+  struct rte_ether_hdr *eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
+  if (rte_be_to_cpu_16 (eth->ether_type) == RTE_ETHER_TYPE_VLAN)
+    rte_vlan_strip (m);
 
   pkt_len = rte_pktmbuf_pkt_len (m);
   data_len = rte_pktmbuf_data_len (m);
@@ -102,7 +98,6 @@ l3_tap_handler_dequeue_burst (int tap_fd, struct rte_ring *tap_ring,
 static inline __attribute__ ((always_inline)) void
 l3_tap_handler_handle_packet_up ()
 {
-  struct rte_ring *tap_ring;
   int vswitch_id;
 
   if (! rib || ! rib->rib_info)
@@ -231,15 +226,8 @@ l3_tap_handler_handle_packet_down ()
 int
 l3_tap_handler (__rte_unused void *dummy)
 {
-  int ret;
-
-  unsigned lcore_id;
-  struct rte_ring *tap_ring;
-
   DEBUG_NEW (TAPHANDLER, "start thread on lcore[%d].",
              rte_lcore_id ());
-
-  int i, j;
 
   unsigned tap_handler_id = rte_lcore_id ();
 

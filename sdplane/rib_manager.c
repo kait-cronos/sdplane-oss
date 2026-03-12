@@ -13,24 +13,20 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
+#include "debug_sdplane.h"
 #include "rib_manager.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "tap.h"
-#include "l3_tap_handler.h"
-
+#include "neigh_manager.h"
 #include "l2fwd_export.h"
-
 #include "internal_message.h"
-
 #include "radix.h"
 #include "fib.h"
 
@@ -56,10 +52,7 @@ struct rte_ring *msg_queue_rib;
 void *rcu_global_ptr_rib;
 uint64_t rib_rcu_replace = 0;
 
-static __thread struct rib *rib = NULL;
-
 struct rib_tree *rib_tree_master[ROUTE_TREE_SIZE];
-static int rib_tree_size;
 struct nh_hash_node *nh_hash_table[NEXTHOP_HASH_TAB_SIZE];
 
 static inline __attribute__ ((always_inline)) int
@@ -825,7 +818,6 @@ nexthop_common_add_entry (struct rib_info *rib_info, enum nexthop_type nh_type, 
 
       case NH_TYPE_OBJECT_CAP:
         {
-          struct nh_object *nh_object = (struct nh_object *) nh;
           DEBUG_NEW (RIB, "not implemented yet");
           nh_id = -1;
           break;
@@ -1049,7 +1041,6 @@ rib_delete (struct rib *old)
 static inline __attribute__ ((always_inline)) int
 rib_check (struct rib *new)
 {
-  struct sdplane_queue_conf *qconf;
   struct lcore_qconf *lcore_qconf;
   int lcore;
   int i, ret;
@@ -1460,6 +1451,7 @@ rib_manager_process_port_get (struct internal_msg_header *imsghdr)
     {
       WARNING ("cannot send response: %p", resp);
       WARNING ("probably no shell ring response. update libsdplane.");
+      internal_msg_delete (resp);
     }
 
   free (imsghdr);
@@ -1473,8 +1465,6 @@ rib_manager_process_message (void *msgp)
   int ret;
   int i, j;
   //DEBUG_SDPLANE_LOG (RIB, "msg: %p.", msgp);
-
-  int route_idx_add = -1, tree_idx_add = -1;
 
   struct rib *new, *old;
 
@@ -1495,7 +1485,6 @@ rib_manager_process_message (void *msgp)
 
   /* change something according to the update instruction message. */
   struct internal_msg_header *msg_header;
-  struct internal_msg_eth_link *msg_eth_link;
   struct internal_msg_qconf *msg_qconf;
   struct internal_msg_neigh_entry *msg_neigh_entry;
   struct internal_msg_route_entry *msg_route_entry;
@@ -1512,7 +1501,10 @@ rib_manager_process_message (void *msgp)
       DEBUG_NEW (RIB, "port_get_request: receive");
       retflag = rib_manager_process_port_get (msg_header);
       if (FLAG_CHECK (retflag, RIB_RETFLAG_RETURN_IMMEDIATELY))
-        return;
+        {
+          rib_delete (new);
+          return;
+        }
       break;
 
     case INTERNAL_MSG_TYPE_PORT_STATUS:
@@ -1554,6 +1546,7 @@ rib_manager_process_message (void *msgp)
       if (ret < 0)
         {
           DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+          rib_delete (new);
           free (msgp);
           return;
         }
@@ -1783,7 +1776,6 @@ rib_manager_process_message (void *msgp)
       {
         struct internal_msg_tap_dev *msg_router_if_set;
         struct router_if *rif;
-        struct application_slot_entry app_slot;
         DEBUG_SDPLANE_LOG (RIB, "recv msg_router_if_set: %p.", msgp);
         msg_router_if_set = (struct internal_msg_tap_dev *) (msg_header + 1);
 
@@ -1823,6 +1815,7 @@ rib_manager_process_message (void *msgp)
         if (ret < 0)
           {
             DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+            rib_delete (new);
             free (msgp);
             return;
           }
@@ -1895,6 +1888,7 @@ rib_manager_process_message (void *msgp)
         if (ret < 0)
           {
             DEBUG_SDPLANE_LOG (RIB, "rib_check() failed: return.");
+            rib_delete (new);
             free (msgp);
             return;
           }
@@ -2274,7 +2268,7 @@ static __thread time_t last_fdb_aging_time = 0;
 int
 rib_manager (void *arg)
 {
-  int ret, i;
+  int i;
   void *msgp;
   unsigned lcore_id = rte_lcore_id ();
 

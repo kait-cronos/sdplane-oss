@@ -1,6 +1,10 @@
 #ifndef __QUEUE_CONFIG_H__
 #define __QUEUE_CONFIG_H__
 
+#include <stdint.h>
+#include <rte_common.h>
+#include <sdplane/command.h>
+
 struct port_queue_conf
 {
   uint16_t port_id;

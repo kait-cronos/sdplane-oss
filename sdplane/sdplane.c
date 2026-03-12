@@ -1,5 +1,7 @@
 #include "include.h"
 
+#include <lthread.h>
+
 #include <rte_ethdev.h>
 #include <rte_bus_pci.h>
 
@@ -14,24 +16,19 @@
 #include <sdplane/libsdplane_version.h>
 #endif
 
-#include "l3fwd.h"
 #include "l2fwd_export.h"
-
+#include "internal_message.h"
 #include "sdplane.h"
 #include "sdplane_version.h"
 #include "stat_collector.h"
-#include "tap_handler.h"
 #include "debug_sdplane.h"
-
-#include <lthread.h>
 #include "thread_info.h"
 #include "queue_config.h"
-
 #include "rib.h"
 #include "tap_cmd.h"
 #include "dpdk_port_cmd.h"
-
 #include "rte_flow_support.h"
+#include "netlink_hook.h"
 
 #include "argv_list.h"
 
@@ -175,14 +172,12 @@ shell_read_response_port_get (struct shell *shell,
   struct rte_eth_dev_info *dev;
   char link_capa[32];
   char devname[32];
-  const char *businfo;
   char drivername[32];
 
   port_info = internal_msg_body (imsghdr);
   dev = &port_info->dev_info;
 
   snprintf (devname, sizeof (devname), "%s", rte_dev_name (dev->device));
-  businfo = rte_dev_bus_info (dev->device);
   snprintf_flags (link_capa, sizeof (link_capa), dev->speed_capa,
                   link_speeds, "|", LINK_SPEEDS_SIZE);
   snprintf (drivername, sizeof (drivername), "%s", dev->driver_name);
@@ -293,7 +288,6 @@ sdplane_cmd_init (struct command_set *cmdset)
 void
 sdplane_init ()
 {
-  int lcore_id;
   argv_list_init ();
   nlhook_init ();
   debug_sdplane_cmd_init ();

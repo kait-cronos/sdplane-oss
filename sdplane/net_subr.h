@@ -1,6 +1,19 @@
 #ifndef __NET_SUBR_H__
 #define __NET_SUBR_H__
 
+#include <stdint.h>
+#include <rte_common.h>
+#include <rte_ethdev.h>
+#include <linux/rtnetlink.h>
+
+#include "internal_message.h"
+#include "packet_gen.h"
+#include "neigh_manager.h"
+#include "rib_manager.h"
+#include "packet_hdr.h"
+#include "log_packet.h"
+#include "control_packet.h"
+
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
@@ -54,11 +67,7 @@ _send_ring (struct rte_mbuf *m,
             struct rte_ring *ring)
 {
   struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
   int ret;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
 
   DEBUG_NEW (ROUTER,
              "m: %p port %d queue %d to ring: %s (%p)",
@@ -663,8 +672,6 @@ _forwarding (struct rte_mbuf *m,
   _send_link (m, rx_portid, rx_queueid, vswitch_link,
               dst_port, tx_queueid, tx_link);
 }
-
-#define IPPROTO_OSPF 89
 
 static inline __attribute__ ((always_inline)) bool
 _check_control_packet (struct rte_mbuf *m,

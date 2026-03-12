@@ -11,23 +11,9 @@
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
 
-#include "l3fwd.h"
-#include "l2fwd_export.h"
+#include <lthread.h>
 
 #include "sdplane.h"
-#include "sdplane_version.h"
-#include "stat_collector.h"
-#include "tap_handler.h"
-#include "debug_sdplane.h"
-#include "neigh_manager.h"
-
-#include <lthread.h>
-#include "thread_info.h"
-#include "queue_config.h"
-
-#include "rib.h"
-#include "tap_cmd.h"
-
 #include "dhcp_server.h"
 
 CLI_COMMAND2 (init_dhcp_server,
@@ -36,7 +22,6 @@ CLI_COMMAND2 (init_dhcp_server,
               "dhcp-server.\n")
 {
   struct shell *shell = (struct shell *) context;
-  FILE *t = shell->terminal;
   if (! rte_eal_init_done)
     {
       fprintf (shell->terminal,

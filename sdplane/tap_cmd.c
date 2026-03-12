@@ -12,7 +12,6 @@ CLI_COMMAND2 (set_tap_capture_ifname, "set tap capture ifname <WORD>",
               "tun/tap I/F capture information.\n", "set tun/tap I/F name.\n",
               "Specify ifname string.\n")
 {
-  struct shell *shell = (struct shell *) context;
   memset (capture_ifname, 0, sizeof (capture_ifname));
   snprintf (capture_ifname, sizeof (capture_ifname), "%s", argv[4]);
   return 0;
@@ -24,7 +23,6 @@ CLI_COMMAND2 (set_tap_capture_persistent,
               "tun/tap I/F capture information.\n",
               "set tun/tap capture I/F persistent.\n", )
 {
-  struct shell *shell = (struct shell *) context;
   capture_if_persistent = 1;
   return 0;
 }

@@ -1,16 +1,24 @@
 #ifndef __LOG_PACKET_H__
 #define __LOG_PACKET_H__
 
-#include "rte_override.h"
-
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
+
 #include <rte_version.h>
 #if RTE_VERSION < RTE_VERSION_NUM(24, 0, 0, 0)
   #include <rte_ip.h>
 #else
   #include <rte_ip6.h>
 #endif
+
+#include <rte_ether.h>
+#include <rte_icmp.h>
+#include <rte_udp.h>
+#include <rte_tcp.h>
+#include "rte_override.h"
+
+#include <sdplane/debug_log.h>
+
 
 struct llc_snap_hdr
 {
@@ -216,7 +224,6 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
                 RTE_VLAN_TCI_ID (vlan_tci), eth_proto);
     }
 
-  uint8_t ip_proto;
   char ip_src[64];
   char ip_dst[64];
 
@@ -234,7 +241,6 @@ __log_packet (char *file, int line, const char *func, struct rte_mbuf *m,
           const struct stp_bpdu *bpdu = (const struct stp_bpdu *) snap;
 
           uint16_t proto_id = rte_be_to_cpu_16 (bpdu->protocol_id);
-          uint16_t port_id = rte_be_to_cpu_16 (bpdu->port_id);
 
           snprintf (pvst_str, sizeof (pvst_str),
                     " PVST+ BPDU: "

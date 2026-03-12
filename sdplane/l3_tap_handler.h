@@ -4,8 +4,8 @@
 #include <sdplane/debug.h>
 #include <sdplane/command.h>
 
-#include "sdplane.h"
-#include "rib_manager.h"
+#include <rte_common.h>
+#include <rte_mbuf.h>
 
 #define L3_TAP_HANDLER_APP_NAME "l3_tap_handler"
 

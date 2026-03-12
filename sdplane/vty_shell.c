@@ -6,7 +6,6 @@
 #include <lthread.h>
 
 #include <rte_errno.h>
-
 #include <rte_common.h>
 #include <rte_launch.h>
 #include <rte_ether.h>
@@ -20,24 +19,19 @@
 #include <sdplane/debug_cmd.h>
 #include <sdplane/log.h>
 #include <sdplane/log_cmd.h>
-
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
+#include "debug_sdplane.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "l2fwd_cmd.h"
 #include "l3fwd_cmd.h"
-
 #include "vty_server.h"
 #include "vty_shell.h"
-
 #include "sdplane_version.h"
 #include "rib_manager.h"
-
-#include "internal_message.h"
 
 int
 shell_keyfunc_clear_terminal (struct shell *shell)
@@ -62,8 +56,6 @@ extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 
 uint64_t loop_vty_shell = 0;
-
-static __thread struct rib *rib = NULL;
 
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -110,12 +102,11 @@ snprintf_signature (char *buf, int size, char *ifname)
 void
 vty_banner (struct shell *shell)
 {
-  int ret;
-  char signature[1024];
   fprintf (shell->terminal, "welcome to sdplane vty_shell.%s", shell->NL);
   fprintf (shell->terminal, "sdplane version: %s%s", sdplane_version,
            shell->NL);
 #if 0
+  char signature[1024];
   snprintf_signature (signature, sizeof (signature), "enp1s0");
   fprintf (shell->terminal, "signature: %s%s", signature, shell->NL);
 #endif

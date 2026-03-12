@@ -4,19 +4,17 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
-
-#include "sdplane.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <dirent.h>
+
+#include "sdplane.h"
 
 const char *drivers_path = "/sys/bus/pci/drivers";
 const char *devices_path = "/sys/bus/pci/devices";
@@ -61,8 +59,6 @@ is_net_device (char *device_dirname)
 char *
 get_net_devname (char *device_dirname)
 {
-  int ret;
-  struct stat statbuf;
   char filename[256];
   DIR *dir;
   struct dirent *dirent;
@@ -102,7 +98,6 @@ CLI_COMMAND2 (show_devices, "show devices", SHOW_HELP,
   char devname[16];
   char devpath[256];
   char drvrpath[256];
-  int i;
 
   dir = opendir (drivers_path);
   if (dir == NULL)
@@ -267,8 +262,6 @@ CLI_COMMAND2 (
 {
   struct shell *shell = (struct shell *) context;
   char driver_bind_path[256];
-  DIR *driver_dir;
-  struct dirent *driver_ent;
   int fd;
   int ret;
   char pci_number[16];

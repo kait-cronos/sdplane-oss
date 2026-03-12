@@ -4,12 +4,8 @@
 #include <sdplane/debug.h>
 #include <sdplane/command.h>
 
-#include "sdplane.h"
 #include "rib_manager.h"
-
 #include "internal_message.h"
-
-#include "rte_override.h"
 
 extern int capture_fd;
 extern char capture_ifname[64];

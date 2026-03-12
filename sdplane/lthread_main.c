@@ -38,8 +38,6 @@
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
-
 #include <sdplane/termio.h>
 #include <sdplane/vector.h>
 #include <sdplane/shell.h>
@@ -47,20 +45,11 @@
 #include <sdplane/command_shell.h>
 
 #include "l3fwd.h"
-#include "l3fwd_event.h"
 #include "l3fwd_route.h"
-#include "l3fwd_cmd.h"
-
-#include "l2fwd_export.h"
-#include "l2fwd_cmd.h"
-
 #include "sdplane.h"
 #include "tap_handler.h"
 #include "neigh_manager.h"
-
-#include "vty_shell.h"
 #include "thread_info.h"
-
 #include "dhcp_server.h"
 
 #if HAVE_LIBURCU_QSBR
@@ -90,7 +79,6 @@ CLI_COMMAND2 (set_worker_lthread_stat_collector,
               "set worker lthread stat-collector", SET_HELP, WORKER_HELP,
               "lthread information\n", "stat-collector\n")
 {
-  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
@@ -130,7 +118,6 @@ CLI_COMMAND2 (set_worker_lthread_netlink_thread,
               "set worker lthread netlink-thread", SET_HELP, WORKER_HELP,
               "lthread information\n", "netlink-thread\n")
 {
-  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) netlink_thread, NULL);
@@ -144,7 +131,6 @@ CLI_COMMAND2 (set_worker_lthread_neigh_manager,
               "set worker lthread neigh-manager", SET_HELP, WORKER_HELP,
               "lthread information\n", "neigh_manager\n")
 {
-  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) neigh_manager, NULL);
@@ -170,7 +156,6 @@ CLI_COMMAND2 (set_worker_lthread_dhcp_server,
               "set worker lthread dhcp-server", SET_HELP, WORKER_HELP,
               "lthread information\n", "dhcp-server\n")
 {
-  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) dhcp_server, NULL);
@@ -196,7 +181,6 @@ CLI_COMMAND2 (set_worker_lthread_l3_tap_handler,
               "set worker lthread l3-tap-handler", SET_HELP, WORKER_HELP,
               "lthread information\n", "l3-tap-handler\n")
 {
-  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) l3_tap_handler, NULL);

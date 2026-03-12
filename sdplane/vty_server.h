@@ -1,6 +1,8 @@
 #ifndef __VTY_SERVER_H__
 #define __VTY_SERVER_H__
 
+#include <lthread.h>
+
 struct vty_client
 {
   int id;
