@@ -94,7 +94,7 @@ __icmp6_type_str (uint8_t type)
   return "unknown";
 }
 
-inline __attribute__ ((always_inline)) void
+static inline __attribute__ ((always_inline)) void
 __parse_packet (struct rte_mbuf *m, struct rte_ether_hdr **eth,
                 struct rte_vlan_hdr **vlan, struct llc_snap_hdr **snap,
                 struct rte_ipv4_hdr **ipv4, struct rte_ipv6_hdr **ipv6,
