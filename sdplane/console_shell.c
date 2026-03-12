@@ -58,6 +58,8 @@
 
 extern int lthread_core;
 
+struct rte_ring *ring_resp;
+
 void lthread_cancel_all ();
 
 CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
@@ -124,9 +126,14 @@ console_shell (void *arg)
   sdplane_cmd_init (shell->cmdset);
 
   char ring_name[32];
-  struct rte_ring *ring_resp;
   snprintf (ring_name, sizeof (ring_name), "console-resp");
   ring_resp = rte_ring_create (ring_name, 4, rte_socket_id (), 0);
+  if (! ring_resp)
+    {
+      DEBUG_SDPLANE_LOG (CONSOLE, "rte_ring_create(console-resp) failed: %s",
+                         rte_strerror (rte_errno));
+      return;
+    }
 #ifdef SHELL_RING_RESPONSE
   shell->ring_response = ring_resp;
 #endif

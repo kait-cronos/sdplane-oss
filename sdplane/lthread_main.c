@@ -62,6 +62,11 @@ static __thread uint64_t loop_counter = 0;
 
 int lthread_core = 0;
 
+extern struct rte_ring *msg_queue_rib;
+extern struct rte_ring *msg_queue_neigh;
+extern struct rte_ring *ring_dhcp_rx;
+extern struct rte_ring *ring_resp;
+
 int startup_config (__rte_unused void *dummy);
 void console_shell (void *arg);
 void vty_server (void *arg);
@@ -113,6 +118,7 @@ CLI_COMMAND2 (set_worker_lthread_netlink_thread,
               "set worker lthread netlink-thread", SET_HELP, WORKER_HELP,
               "lthread information\n", "netlink-thread\n")
 {
+  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) netlink_thread, NULL);
@@ -126,26 +132,52 @@ CLI_COMMAND2 (set_worker_lthread_neigh_manager,
               "set worker lthread neigh-manager", SET_HELP, WORKER_HELP,
               "lthread information\n", "neigh_manager\n")
 {
+  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) neigh_manager, NULL);
   thread_register (lthread_core, lt, (lthread_func) neigh_manager,
                    "neigh_manager", NULL);
   lthread_detach2 (lt);
-  return 0;
+
+  /* neigh_manager needs to be started immediately.
+     If it is a lthread, lthread_sleep() is necessary. */
+  lthread_sleep (0);
+
+  /* check whether the neigh_manager is actually started. */
+  if (! msg_queue_neigh)
+    {
+      fprintf (shell->terminal, "Can't start neigh_manager.%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  return CMD_SUCCESS;
 }
 
 CLI_COMMAND2 (set_worker_lthread_dhcp_server,
               "set worker lthread dhcp-server", SET_HELP, WORKER_HELP,
               "lthread information\n", "dhcp-server\n")
 {
+  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) dhcp_server, NULL);
   thread_register (lthread_core, lt, (lthread_func) dhcp_server,
                    "dhcp-server", NULL);
   lthread_detach2 (lt);
-  return 0;
+
+  /* dhcp_server needs to be started immediately.
+     If it is a lthread, lthread_sleep() is necessary. */
+  lthread_sleep (0);
+
+  /* check whether the dhcp_server is actually started. */
+  if (! ring_dhcp_rx)
+    {
+      fprintf (shell->terminal, "Can't start dhcp_server.%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  return CMD_SUCCESS;
 }
 
 CLI_COMMAND2 (set_worker_lthread_l3_tap_handler,
@@ -235,6 +267,14 @@ lthread_main (__rte_unused void *dummy)
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   thread_id =
       thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
+
+  lthread_sleep (0);
+  if (! ring_resp)
+    {
+      printf ("%s[%d]: %s: error in console_shell.\n", __FILE__, __LINE__,
+              __func__);
+      force_quit = 1;
+    }
 
   /* quietly wait/check for the application process quit status. */
   while (! force_quit && ! force_stop[lthread_core])

@@ -2282,6 +2282,12 @@ rib_manager (void *arg)
   msg_queue_rib =
       rte_ring_create ("msg_queue_rib", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
   DEBUG_NEW (RIB, "msg_queue_rib: %p", msg_queue_rib);
+  if (! msg_queue_rib)
+  {
+    printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
+    DEBUG_NEW (RIB, "rte_ring_create failed: %s", rte_strerror (rte_errno));
+    return -1;
+  }
 
   int thread_id;
   thread_id = thread_lookup_by_lcore (rib_manager, lcore_id);

@@ -761,6 +761,14 @@ nettlp_thread (void *arg)
   /* initialize */
   msg_queue_nettlp =
       rte_ring_create ("msg_queue_nettlp", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+  if (! msg_queue_nettlp)
+    {
+      printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
+      DEBUG_SDPLANE_LOG (NETTLP,
+                         "rte_ring_create(msg_queue_nettlp) failed: %s",
+                         rte_strerror (rte_errno));
+      return -1;
+    }
 
   int thread_id;
   thread_id = thread_lookup (nettlp_thread);

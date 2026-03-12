@@ -155,22 +155,35 @@ dhcp_server_rx ()
     }
 }
 
-void
+int
 dhcp_server_init ()
 {
-  ring_dhcp_rx = rte_ring_create ("dhcp_rx", 32, SOCKET_ID_ANY,
-                                  RING_F_SC_DEQ);
+  ring_dhcp_rx = rte_ring_create ("dhcp_rx", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+  if (! ring_dhcp_rx)
+    {
+      printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
+      DEBUG_SDPLANE_LOG (DHCP_SERVER, "rte_ring_create(dhcp_rx) failed: %s",
+                         rte_strerror (rte_errno));
+      return -1;
+    }
+  return 0;
 }
 
 int
 dhcp_server (__rte_unused void *dummy)
 {
   unsigned lcore_id;
+  int ret;
 
   lcore_id = rte_lcore_id ();
   DEBUG_NEW (DHCP_SERVER, "start thread on lcore[%d].", lcore_id);
 
-  dhcp_server_init ();
+  ret = dhcp_server_init ();
+  if (ret < 0)
+    {
+      DEBUG_SDPLANE_LOG (DHCP_SERVER, "dhcp_server_init() failed: unable to create rx ring");
+      return -1;
+  }
 
   /* register an application slot entry in rib,
      to receive packets from enhanced_repeater. */
