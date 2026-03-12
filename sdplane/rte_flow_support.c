@@ -271,8 +271,8 @@ void
 show_flow_pattern_item_eth (struct shell *shell,
                             struct rte_flow_item *item)
 {
-  struct rte_flow_item_eth *eth_spec = item->spec;
-  struct rte_flow_item_eth *eth_mask = item->mask;
+  const struct rte_flow_item_eth *eth_spec = item->spec;
+  const struct rte_flow_item_eth *eth_mask = item->mask;
   char eth_dst[18], eth_src[18];
   rte_ether_format_addr (eth_dst, sizeof (eth_dst), &eth_spec->dst);
   rte_ether_format_addr (eth_src, sizeof (eth_src), &eth_spec->src);
@@ -290,8 +290,8 @@ void
 show_flow_pattern_item_vlan (struct shell *shell,
                              struct rte_flow_item *item)
 {
-  struct rte_flow_item_vlan *vlan_spec = item->spec;
-  struct rte_flow_item_vlan *vlan_mask = item->mask;
+  const struct rte_flow_item_vlan *vlan_spec = item->spec;
+  const struct rte_flow_item_vlan *vlan_mask = item->mask;
   fprintf (shell->terminal, "    vlan spec: vlan_id: %d%s",
            RTE_VLAN_TCI_ID (rte_be_to_cpu_16 (vlan_spec->tci)),
            shell->NL);
@@ -304,8 +304,8 @@ void
 show_flow_pattern_item_ipv4 (struct shell *shell,
                              struct rte_flow_item *item)
 {
-  struct rte_flow_item_ipv4 *ipv4_spec = item->spec;
-  struct rte_flow_item_ipv4 *ipv4_mask = item->mask;
+  const struct rte_flow_item_ipv4 *ipv4_spec = item->spec;
+  const struct rte_flow_item_ipv4 *ipv4_mask = item->mask;
   char ipv4_src[16], ipv4_dst[16];
   inet_ntop (AF_INET, &ipv4_spec->hdr.src_addr,
              ipv4_src, sizeof (ipv4_src));
