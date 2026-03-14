@@ -1593,10 +1593,10 @@ rib_manager_process_message (void *msgp)
       inet_ntop (msg_route_entry->dst.family,
                  &msg_route_entry->dst.dst_ip_addr,
                  dst_addr, sizeof (dst_addr));
-      // DEBUG_NEW (RIB, "route added: dst=%s/%d nexthop=%s",
-      //            dst_addr, msg_route_entry->dst.plen,
-      //            nexthop_format (&msg_route_entry->nh, gw_addr,
-      //            sizeof (gw_addr)));
+      DEBUG_NEW (RIB, "route added: dst=%s/%d nexthop=%s",
+                 dst_addr, msg_route_entry->dst.plen,
+                 nexthop_format (&msg_route_entry->nh, gw_addr,
+                 sizeof (gw_addr)));
       break;
 
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL:
@@ -1655,10 +1655,10 @@ rib_manager_process_message (void *msgp)
       if (sdplane_nh_id < 0)
         break;
 
-      // DEBUG_NEW (RIB, "nexthop added: index=%d nexthop=%s",
-      //            sdplane_nh_id,
-      //            nexthop_format (&msg_nexthop_entry->nh, gw_addr,
-      //            sizeof (gw_addr)));
+      DEBUG_NEW (RIB, "nexthop added: index=%d nexthop=%s",
+                 sdplane_nh_id,
+                 nexthop_format (&msg_nexthop_entry->nh, gw_addr,
+                 sizeof (gw_addr)));
       break;
 
     case INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_DEL:
