@@ -1657,7 +1657,7 @@ rib_manager_process_message (void *msgp)
 
       DEBUG_NEW (RIB, "nexthop added: index=%d nexthop=%s",
                  sdplane_nh_id,
-                 nexthop_format (&msg_nexthop_entry->nh, gw_addr,
+                 nexthop_format (msg_nexthop_entry, gw_addr,
                  sizeof (gw_addr)));
       break;
 
@@ -1940,6 +1940,8 @@ rib_manager (void *arg)
   /* initialize fdb aging timer */
   last_fdb_aging_time = time (NULL);
 
+  nexthop_init ();
+
   while (! force_quit && ! force_stop[lcore_id])
     {
       if (IS_LTHREAD ())
@@ -2004,6 +2006,8 @@ rib_manager (void *arg)
     {
       rib_free (rib_tree_master[i]);
     }
+
+  nexthop_cleanup ();
 
   DEBUG_SDPLANE_LOG (RIB, "%s: terminating.", __func__);
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);

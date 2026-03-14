@@ -13,6 +13,7 @@
 
 struct rib_info;
 struct internal_msg_nh_entry;
+struct hash_table;
 
 enum nexthop_type
 {
@@ -58,7 +59,7 @@ struct nexthop
   int info_top; /* next-free-slot hint for info_pool[] */
 };
 
-void nexthop_init (struct nexthop *nexthop);
+void nexthop_init (void);
 void nexthop_cleanup (void);
 
 char *nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size);

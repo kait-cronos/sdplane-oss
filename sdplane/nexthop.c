@@ -10,7 +10,7 @@
 #include "internal_message.h"
 
 /* global hash table: mapping for kernel_nh_id to sdplane_nh_id. */
-static struct hash_table nh_ht;
+struct hash_table nh_ht;
 
 char *
 nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
@@ -210,9 +210,8 @@ nexthop_eq_kernel_nh_id (const void *a, const void *b)
 }
 
 void
-nexthop_init (struct nexthop *nexthop)
+nexthop_init (void)
 {
-  memset (nexthop, 0, sizeof (*nexthop));
   hash_table_init (&nh_ht, NEXTHOP_HASH_BUCKETS_SIZE,
                    nexthop_hash_kernel_nh_id, nexthop_eq_kernel_nh_id);
 }
