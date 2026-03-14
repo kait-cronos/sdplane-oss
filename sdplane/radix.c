@@ -95,7 +95,9 @@ _add (struct rib_node *n, const uint8_t *key, int keylen, struct route_entry *da
            * TODO: Support nexthop replacement when nlmsg_flags indicates a replace operation.
            * e.g., ip route replace ...
            */
-          *success = -1; // failed, already exists
+          memcpy (&n->entry, data, sizeof (struct route_entry));
+          *success = 0; // success, route entry updated
+          // *success = -1; // failed, already exists
           return n;
         }
       /* add route entry */
