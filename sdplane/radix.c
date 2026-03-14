@@ -92,14 +92,8 @@ _add (struct rib_node *n, const uint8_t *key, int keylen, struct route_entry *da
       if (n->valid)
         {
           /**
-           * TODO1: Replace nexthop info when nlmsg_flags indicates a replace operation
+           * TODO: Support nexthop replacement when nlmsg_flags indicates a replace operation.
            * e.g., ip route replace ...
-           */
-          /**
-           * Currently only the destination prefix is used as the key.
-           * Routes that share the same prefix but differ in outgoing interface
-           * (e.g., link-local routes such as fe80::/64) are treated as identical.
-           * TODO2: support composite keys (e.g., prefix + oif).
            */
           *success = -1; // failed, already exists
           return n;
@@ -254,9 +248,9 @@ _add_to_fib (struct rib_node *n, void *arg)
   char key_str[INET6_ADDRSTRLEN];
   inet_ntop (fib_tree->family, &n->entry.dst.dst_ip_addr, key_str, sizeof (key_str));
   DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding route to fib: keylen=%d key=%s nh_id=%d",
-                     n->entry.dst.plen, key_str, n->entry.nh.nh_id);
+                     n->entry.dst.plen, key_str, n->entry.sdplane_nh_id);
 
-  return fib_route_add (fib_tree, (uint8_t *)&n->entry.dst.dst_ip_addr, n->entry.dst.plen, &n->entry.nh);
+  return fib_route_add (fib_tree, (uint8_t *)&n->entry.dst.dst_ip_addr, n->entry.dst.plen, n->entry.sdplane_nh_id);
 }
 
 /* rebuild FIB from RIB */

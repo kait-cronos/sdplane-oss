@@ -25,6 +25,7 @@
 #include "thread_info.h"
 #include "tap.h"
 #include "neigh_manager.h"
+#include "nexthop.h"
 #include "l2fwd_export.h"
 #include "internal_message.h"
 #include "radix.h"
@@ -53,7 +54,6 @@ void *rcu_global_ptr_rib;
 uint64_t rib_rcu_replace = 0;
 
 struct rib_tree *rib_tree_master[ROUTE_TREE_SIZE];
-struct nh_hash_node *nh_hash_table[NEXTHOP_HASH_TAB_SIZE];
 
 static inline __attribute__ ((always_inline)) int
 router_if_delete (struct rib_info *rib_info, uint16_t vswitch_id);
@@ -560,398 +560,6 @@ route_table_alloc_slot (int table_id, int family)
         }
     }
   return -1;
-}
-
-/*
- * nexthop
- */
-
-static inline __attribute__ ((always_inline)) uint32_t
-nexthop_legacy_object_jenkins_hash (struct nh_info *nh_info)
-{
-  uint8_t data[sizeof (nh_info->family) +
-               sizeof (nh_info->nh_ip_addr) +
-               sizeof (nh_info->oif)];
-  memset (data, 0, sizeof (data));
-  uint8_t *ptr = data;
-
-  // copy family
-  memcpy (ptr, &nh_info->family, sizeof (nh_info->family));
-  ptr += sizeof (nh_info->family);
-  // copy nexthop IP address
-  memcpy (ptr, &nh_info->nh_ip_addr, sizeof (nh_info->nh_ip_addr));
-  ptr += sizeof (nh_info->nh_ip_addr);
-  // copy oif
-  uint32_t oif_be = rte_cpu_to_be_32 (nh_info->oif);
-  memcpy (ptr, &oif_be, sizeof (oif_be));
-
-  return jenkins_hash (data, sizeof (data)) & NEXTHOP_HASH_MASK;
-}
-
-static inline __attribute__ ((always_inline)) uint32_t
-nexthop_legacy_group_jenkins_hash (struct nh_info_group *nhg)
-{
-  uint32_t hash, combined_hash;
-  int i;
-  hash = combined_hash = 0;
-
-  for (i = 0; i < nhg->num; i++)
-    {
-      hash = nexthop_legacy_object_jenkins_hash (&nhg->nh_info_list[i]);
-      combined_hash ^= hash;
-      combined_hash += combined_hash << 1;
-    }
-
-  return combined_hash & NEXTHOP_HASH_MASK;
-}
-
-// nh is a pointer to struct nh_info or struct nh_info_group
-static inline __attribute__ ((always_inline)) uint32_t
-nexthop_legacy_jenkins_hash (enum nexthop_object_type nh_type, void *nh)
-{
-  switch (nh_type)
-    {
-      case NH_OBJ_TYPE_OBJECT:
-        return nexthop_legacy_object_jenkins_hash((struct nh_info *)nh);
-
-      case NH_OBJ_TYPE_GROUP:
-        return nexthop_legacy_group_jenkins_hash((struct nh_info_group *)nh);
-
-      default:
-        return 0;
-    }
-}
-
-static inline __attribute__ ((always_inline)) struct nh_hash_node *
-nexthop_legacy_alloc_hash_node (void)
-{
-  struct nh_hash_node *new;
-
-  new = calloc (1, sizeof (struct nh_hash_node));
-  new->nh_id = -1;
-  new->next = NULL;
-
-  return new;
-}
-
-static inline __attribute__ ((always_inline)) int
-nexthop_legacy_remove_hash_node (struct nh_hash_node **head,
-                                 struct nh_hash_node *target)
-{
-  struct nh_hash_node *prev = NULL, *cur;
-
-  if (! head || ! target)
-    return -1;
-
-  cur = *head;
-  while (cur)
-    {
-      if (cur == target)
-        {
-          if (prev)
-            prev->next = cur->next;
-          else
-            *head = cur->next;
-
-          free(cur);
-          return 0;
-        }
-      prev = cur;
-      cur = cur->next;
-    }
-  return -1; /* not found */
-}
-
-static inline __attribute__ ((always_inline)) int
-nexthop_legacy_cleanup_hash_table (struct nh_hash_node **nh_hash_table)
-{
-  int i;
-  struct nh_hash_node *current, *next;
-
-  for (i = 0; i < NEXTHOP_HASH_TAB_SIZE; i++)
-    {
-      current = nh_hash_table[i];
-      while (current != NULL)
-        {
-          next = current->next;
-          free (current);
-          current = next;
-        }
-      nh_hash_table[i] = NULL;
-    }
-
-  return 0;
-}
-
-static inline __attribute__ ((always_inline)) int
-nexthop_legacy_create_object (struct rib_info *rib_info, const struct nh_legacy *new)
-{
-  int start, i;
-
-  start = rib_info->nexthop.legacy.top;
-  if (start < 0)
-    {
-      DEBUG_NEW (RIB, "nexthop legacy object limit exceeded");
-      return -1;
-    }
-
-  /* store object at 'start' */
-  rib_info->nexthop.legacy.object[start] = *new;
-  rib_info->nexthop.legacy.object[start].ref_count = 1;
-
-  /* find next free slot (ref_count == 0); mark full with -1 */
-  i = start;
-  do
-    {
-      i++;
-      if (i == MAX_NEXTHOP_OBJ_SIZE)
-        i = 0;
-      if (i == start)
-        {
-          rib_info->nexthop.legacy.top = -1; /* no slot available */
-          return start;
-        }
-    }
-  while (rib_info->nexthop.legacy.object[i].ref_count != 0);
-
-  rib_info->nexthop.legacy.top = i;
-  return start;
-}
-
-// Note:
-// nh_info.nh_ip_addr must be zero-initialized before use.
-// this function compares the entire nh_ip_addr union.
-static inline __attribute__ ((always_inline)) int
-nexthop_legacy_compare_object (struct nh_legacy *a, struct nh_legacy *b)
-{
-  int i;
-
-  /* null check */
-  if (! a || ! b)
-    return 0;
-
-  /* compare type */
-  if (a->type != b->type)
-    return 0;
-
-  /* compare object */
-  switch (a->type)
-    {
-      case NH_OBJ_TYPE_OBJECT:
-        if (a->nh_info.family != b->nh_info.family ||
-            memcmp (&a->nh_info.nh_ip_addr, &b->nh_info.nh_ip_addr,
-                    sizeof (a->nh_info.nh_ip_addr)) != 0 ||
-            a->nh_info.oif != b->nh_info.oif)
-          return 0;
-        break;
-      case NH_OBJ_TYPE_GROUP:
-        if (a->nh_grp.num != b->nh_grp.num)
-          return 0;
-        /*
-         * compare multipath nexthop groups in an order-sensitive manner.
-         * groups with the same members but different ordering
-         * are treated as distinct objects.
-         */
-        for (i = 0; i < a->nh_grp.num; i++)
-          {
-            if (a->nh_grp.nh_info_list[i].family != b->nh_grp.nh_info_list[i].family ||
-                memcmp (&a->nh_grp.nh_info_list[i].nh_ip_addr,
-                        &b->nh_grp.nh_info_list[i].nh_ip_addr,
-                        sizeof (a->nh_grp.nh_info_list[i].nh_ip_addr)) != 0 ||
-                a->nh_grp.nh_info_list[i].oif != b->nh_grp.nh_info_list[i].oif)
-              return 0;
-          }
-        break;
-      default:
-        return 0;
-    }
-
-  return 1; // treat equal objects
-}
-
-static inline __attribute__ ((always_inline)) int
-nexthop_common_add_entry (struct rib_info *rib_info, enum nexthop_type nh_type, void *nh)
-{
-  int nh_id; // nexthop ID for FIB
-  int pos; // hash table index
-
-  switch (nh_type)
-    {
-      case NH_TYPE_LEGACY:
-        {
-          struct nh_legacy *nh_legacy = (struct nh_legacy *) nh;
-          pos = nexthop_legacy_jenkins_hash (nh_legacy->type, nh);
-          /* register nexthop object */
-          if (nh_hash_table[pos] == NULL)
-            {
-              nh_hash_table[pos] = nexthop_legacy_alloc_hash_node ();
-              nh_id = nexthop_legacy_create_object (rib_info, nh_legacy);
-              nh_hash_table[pos]->nh_id = nh_id;
-            }
-          else
-            {
-              /* conflict: search existing nexthop objects */
-              struct nh_hash_node *current = nh_hash_table[pos];
-              while (current != NULL)
-                {
-                  if (nexthop_legacy_compare_object (
-                        &rib_info->nexthop.legacy.object[current->nh_id],
-                        nh_legacy))
-                    {
-                      /* found existing nexthop */
-                      rib_info->nexthop.legacy.object[current->nh_id].ref_count++;
-                      nh_id = current->nh_id;
-                      return nh_id;
-                    }
-                  current = current->next;
-                }
-              /* not found: register new nexthop */
-              struct nh_hash_node *new = nexthop_legacy_alloc_hash_node ();
-              nh_id = nexthop_legacy_create_object (rib_info, nh_legacy);
-              new->nh_id = nh_id;
-              new->next = nh_hash_table[pos];
-              nh_hash_table[pos] = new;
-            }
-          DEBUG_NEW (RIB, "nexthop legacy added: index=%d, nh_id=%d", pos, nh_id);
-          break;
-        }
-
-      case NH_TYPE_OBJECT_CAP:
-        {
-          DEBUG_NEW (RIB, "not implemented yet");
-          nh_id = -1;
-          break;
-        }
-
-      default:
-        return -1;
-    }
-
-  return nh_id;
-}
-
-static inline __attribute__ ((always_inline)) int
-nexthop_common_del_entry (struct rib_info *rib_info, enum nexthop_type nh_type, void *nh)
-{
-  int nh_id; // nexthop ID for FIB
-  int pos; // hash table index
-
-  switch (nh_type)
-    {
-      case NH_TYPE_LEGACY:
-        {
-          struct nh_legacy *nh_legacy = (struct nh_legacy *) nh;
-          pos = nexthop_legacy_jenkins_hash (nh_legacy->type, nh);
-          /* nexthop object is not found */
-          if (nh_hash_table[pos] == NULL)
-            {
-              DEBUG_NEW (RIB, "nexthop legacy not found in hash table");
-              return -1;
-            }
-          /* search existing nexthop objects */
-          struct nh_hash_node **head = &nh_hash_table[pos];
-          struct nh_hash_node *current  = *head;
-
-          while (current != NULL)
-            {
-              if (nexthop_legacy_compare_object(
-                    &rib_info->nexthop.legacy.object[current->nh_id],
-                    nh_legacy))
-                {
-                  nh_id = current->nh_id;
-
-                  /* found existing nexthop (release one reference) */
-                  rib_info->nexthop.legacy.object[nh_id].ref_count--;
-
-                  /* delete hash node (unlink + free) */
-                  if (rib_info->nexthop.legacy.object[nh_id].ref_count == 0)
-                    nexthop_legacy_remove_hash_node(head, current);
-
-                  return nh_id;
-                }
-
-              current = current->next;
-            }
-          break;
-        }
-
-      case NH_TYPE_OBJECT_CAP:
-        DEBUG_NEW (RIB, "not implemented yet");
-        nh_id = -1;
-        break;
-
-      default:
-        return -1;
-    }
-
-  return nh_id;
-}
-
-// nh is a pointer to struct nh_legacy or struct nh_object
-static inline __attribute__ ((always_inline)) char *
-nexthop_common_format_object (enum nexthop_type nh_type, void *nh,
-                             char *buf, size_t buf_size)
-{
-  int i, len = 0;
-  char nh_ip_str[INET6_ADDRSTRLEN] = { 0 };
-
-  switch (nh_type)
-    {
-      case NH_TYPE_LEGACY:
-        {
-          struct nh_legacy *nh_legacy = (struct nh_legacy *) nh;
-          switch (nh_legacy->type)
-            {
-              case NH_OBJ_TYPE_OBJECT:
-                {
-                  struct nh_info *nh_info = &nh_legacy->nh_info;
-
-                  inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
-                             nh_ip_str, sizeof (nh_ip_str));
-                  len += snprintf (buf + len, buf_size - len,
-                                   "%s(oif=%d)",
-                                   nh_ip_str, nh_info->oif);
-                  break;
-                }
-
-              case NH_OBJ_TYPE_GROUP:
-                {
-                  struct nh_info_group *nhg = &nh_legacy->nh_grp;
-
-                  len += snprintf (buf + len, buf_size - len, "[");
-                  for (i = 0; i < nhg->num; i++)
-                    {
-                      inet_ntop (nhg->nh_info_list[i].family,
-                                 &nhg->nh_info_list[i].nh_ip_addr,
-                                 nh_ip_str, sizeof (nh_ip_str));
-                      len += snprintf (buf + len, buf_size - len,
-                                       "%s(oif=%d)%s",
-                                       nh_ip_str,
-                                       nhg->nh_info_list[i].oif,
-                                       (i == nhg->num - 1) ? "" : ", ");
-                    }
-                  snprintf (buf + len, buf_size - len, "]");
-                  break;
-                }
-
-              default:
-                return buf;
-            }
-          break;
-        }
-
-      case NH_TYPE_OBJECT_CAP:
-        {
-          int *nh_id = (int *) nh;
-          len += snprintf (buf + len, buf_size - len, "nhid=%d", *nh_id);
-          break;
-        }
-
-      default:
-        return buf;
-    }
-
-  return buf;
 }
 
 /*
@@ -1488,6 +1096,7 @@ rib_manager_process_message (void *msgp)
   struct internal_msg_qconf *msg_qconf;
   struct internal_msg_neigh_entry *msg_neigh_entry;
   struct internal_msg_route_entry *msg_route_entry;
+  struct internal_msg_nh_entry *msg_nexthop_entry;
   struct internal_msg_mac_addr *msg_mac_addr;
   struct internal_msg_ip_addr *msg_ip_addr;
 
@@ -1934,25 +1543,20 @@ rib_manager_process_message (void *msgp)
       }
 
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
-      //DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_add: %p.", msgp);
+      DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_add: %p.", msgp);
       msg_route_entry = (struct internal_msg_route_entry *) (msg_header + 1);
-      char dst_str_add[INET6_ADDRSTRLEN];
-      char nexthop_str_add_buf[512];
       struct route_entry route_entry;
-      int nh_id = 0;
+      int sdplane_nh_id = 0;
+
+      /* buffer for debug log */
+      char dst_addr[64] = {0};
+      char gw_addr[512] = {0};
 
       /* register nexthop entry to rib_info->nexthop */
-      nh_id = nexthop_common_add_entry (
-                                  new->rib_info,
-                                  msg_route_entry->nh_type,
-                                  &msg_route_entry->nh);
-      if (nh_id < 0)
+      sdplane_nh_id = nexthop_add_entry (new->rib_info, &msg_route_entry->nh);
+      if (sdplane_nh_id < 0)
         break;
-#if 0
-      DEBUG_NEW (RIB, "nexthop object added: nh_id=%d type=%s refcnt=%d",
-                 nh_id, msg_route_entry->nh_type ? "OBJECT_CAPABLE" : "LEGACY",
-                 new->rib_info->nexthop.legacy.object[nh_id].ref_count);
-#endif
+      nexthop_increment_refcnt (new->rib_info, sdplane_nh_id);
 
       /* search for existing RIB tree with matching family and table_id */
       i = route_table_lookup_id (msg_route_entry->table_id,
@@ -1974,8 +1578,7 @@ rib_manager_process_message (void *msgp)
       memcpy (&route_entry.dst,
               &msg_route_entry->dst,
               sizeof (struct route_dst_info));
-      route_entry.nh.nh_type = msg_route_entry->nh_type;
-      route_entry.nh.nh_id = nh_id;
+      route_entry.sdplane_nh_id = sdplane_nh_id;
 
       /* register route entry to RIB */
       if (rib_route_add (rib_tree_master[i],
@@ -1989,29 +1592,30 @@ rib_manager_process_message (void *msgp)
 
       inet_ntop (msg_route_entry->dst.family,
                  &msg_route_entry->dst.dst_ip_addr,
-                 dst_str_add, sizeof (dst_str_add));
-      DEBUG_NEW (RIB, "route added: dst=%s/%d nexthop=%s",
-                 dst_str_add, msg_route_entry->dst.plen,
-                 nexthop_common_format_object (msg_route_entry->nh_type,
-                 &msg_route_entry->nh, nexthop_str_add_buf,
-                 sizeof (nexthop_str_add_buf)));
+                 dst_addr, sizeof (dst_addr));
+      // DEBUG_NEW (RIB, "route added: dst=%s/%d nexthop=%s",
+      //            dst_addr, msg_route_entry->dst.plen,
+      //            nexthop_format (&msg_route_entry->nh, gw_addr,
+      //            sizeof (gw_addr)));
       break;
 
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_del: %p.", msgp);
       msg_route_entry = (struct internal_msg_route_entry *) (msg_header + 1);
-      char dst_str_del[INET6_ADDRSTRLEN];
 
-      /* delete nexthop entry from rib_info->nexthop */
-      nh_id = nexthop_common_del_entry (
-                                  new->rib_info,
-                                  msg_route_entry->nh_type,
-                                  &msg_route_entry->nh);
-      if (nh_id < 0)
+      if (msg_route_entry->is_nhid)
+        {
+          sdplane_nh_id = nexthop_get_index_by_nhid (
+              new->rib_info, msg_route_entry->nh.kernel_nh_id);
+        }
+      else
+        {
+          sdplane_nh_id = nexthop_del_entry (new->rib_info,
+                                             &msg_route_entry->nh);
+        }
+      nexthop_decrement_refcnt (new->rib_info, sdplane_nh_id);
+      if (sdplane_nh_id < 0)
         break;
-      DEBUG_NEW (RIB, "nexthop object del: nh_id=%d type=%s refcnt=%d",
-                 nh_id, msg_route_entry->nh_type ? "OBJECT_CAPABLE" : "LEGACY",
-                 new->rib_info->nexthop.legacy.object[nh_id].ref_count);
 
       /* search for existing RIB tree with matching family and table_id */
       i = route_table_lookup_id (msg_route_entry->table_id,
@@ -2028,9 +1632,9 @@ rib_manager_process_message (void *msgp)
             }
           inet_ntop (msg_route_entry->family,
                      &msg_route_entry->dst.dst_ip_addr,
-                     dst_str_del, sizeof (dst_str_del));
+                     dst_addr, sizeof (dst_addr));
           DEBUG_SDPLANE_LOG (RIB, "route deleted: dst=%s/%d",
-                             dst_str_del, msg_route_entry->dst.plen);
+                             dst_addr, msg_route_entry->dst.plen);
         }
       else
         {
@@ -2040,6 +1644,33 @@ rib_manager_process_message (void *msgp)
           break;
         }
 
+      break;
+
+    case INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_ADD:
+      // DEBUG_SDPLANE_LOG (RIB, "recv msg_nexthop_entry_add: %p.", msgp);
+      msg_nexthop_entry = (struct internal_msg_nh_entry *) (msg_header + 1);
+
+      /* register nexthop entry to rib_info->nexthop */
+      sdplane_nh_id = nexthop_add_entry (new->rib_info, msg_nexthop_entry);
+      if (sdplane_nh_id < 0)
+        break;
+
+      // DEBUG_NEW (RIB, "nexthop added: index=%d nexthop=%s",
+      //            sdplane_nh_id,
+      //            nexthop_format (&msg_nexthop_entry->nh, gw_addr,
+      //            sizeof (gw_addr)));
+      break;
+
+    case INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_DEL:
+      // DEBUG_SDPLANE_LOG (RIB, "recv msg_nexthop_entry_add/del: %p.", msgp);
+      msg_nexthop_entry = (struct internal_msg_nh_entry *) (msg_header + 1);
+
+      /* delete nexthop entry */
+      sdplane_nh_id = nexthop_del_entry (new->rib_info, msg_nexthop_entry);
+      if (sdplane_nh_id < 0)
+        break;
+
+      DEBUG_NEW (RIB, "nexthop deleted: index=%d", sdplane_nh_id);
       break;
 
     case INTERNAL_MSG_TYPE_MAC_ADDR_ADD:
@@ -2373,7 +2004,6 @@ rib_manager (void *arg)
     {
       rib_free (rib_tree_master[i]);
     }
-  nexthop_legacy_cleanup_hash_table (nh_hash_table);
 
   DEBUG_SDPLANE_LOG (RIB, "%s: terminating.", __func__);
   printf ("%s[%d]: %s: terminating.\n", __FILE__, __LINE__, __func__);

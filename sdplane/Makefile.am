@@ -31,7 +31,7 @@ sdplane_SOURCES = \
         dhcp_server.c dhcp_cmd.c netlink_hook.c \
         enhanced_repeater.c neigh_manager.c l2_switch.c \
         radix.c fib.c rte_flow_support.c control_packet.c \
-        router.c srv6_router.c srv6_cmd.c
+        router.c srv6_router.c srv6_cmd.c hash_table.c nexthop.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
 sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
 

@@ -89,6 +89,7 @@ static struct fib_node *
 _create_fib_node (void)
 {
   struct fib_node *new;
+  int i;
 
   new = malloc (sizeof (struct fib_node));
   if (! new)
@@ -100,7 +101,7 @@ _create_fib_node (void)
 }
 
 static struct fib_node *
-_add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data,
+_add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
       int cur_plen, int *success)
 {
   uint32_t index, i;
@@ -130,7 +131,7 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data
         {
           for (i = 0; i < BRANCH_SZ; i++)
             n->child[i] =
-                _add (n->child[i], key, keylen, data, cur_plen + K, success);
+                _add (n->child[i], key, keylen, sdplane_nh_id, cur_plen + K, success);
           return n;
         }
       /* 葉ノードの場合 */
@@ -141,10 +142,9 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data
             {
               memcpy (&n->key_ip_addr, key, sizeof(n->key_ip_addr));
               n->keylen = keylen;
-              n->nh.nh_type = data->nh_type;
-              n->nh.nh_id = data->nh_id;
+              n->sdplane_nh_id = sdplane_nh_id;
               DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "update leaf keylen=%d cur_plen=%d nh_id=%d",
-                                 keylen, cur_plen, n->nh.nh_id);
+                                 keylen, cur_plen, n->sdplane_nh_id);
             }
           *success = 0;
           return n;
@@ -155,10 +155,9 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data
           memcpy (&n->key_ip_addr, key, sizeof(n->key_ip_addr));
           n->leaf = 1;
           n->keylen = keylen;
-          n->nh.nh_type = data->nh_type;
-          n->nh.nh_id = data->nh_id;
+          n->sdplane_nh_id = sdplane_nh_id;
           DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "set leaf keylen=%d cur_plen=%d nh_id=%d",
-                             keylen, cur_plen, n->nh.nh_id);
+                             keylen, cur_plen, n->sdplane_nh_id);
           *success = 0;
           return n;
         }
@@ -216,14 +215,14 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data
                   "copying parent to child[%d] (out of range, parent keylen=%d)",
                   i, n->keylen);
               n->child[i] = _add (n->child[i], &n->key_ip_addr, n->keylen,
-                                  &n->nh, cur_plen + K, success);
+                                  n->sdplane_nh_id, cur_plen + K, success);
             }
           if (i >= first && i < first + count)
             {
               /* この範囲には新しいノードを登録 */
               DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
                                   "adding to child[%d] (in range)", i);
-              n->child[i] = _add (n->child[i], key, keylen, data,
+              n->child[i] = _add (n->child[i], key, keylen, sdplane_nh_id,
                                   cur_plen + K, success);
             }
         }
@@ -237,16 +236,16 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data
   /* case3: さらに深い階層へ再帰 */
   index = BIT_INDEX (key, cur_plen, K);
   n->child[index] =
-      _add (n->child[index], key, keylen, data, cur_plen + K, success);
+      _add (n->child[index], key, keylen, sdplane_nh_id, cur_plen + K, success);
   return n;
 }
 
 int
 fib_route_add (struct fib_tree *t, const uint8_t *key, int keylen,
-               struct nh_common *data)
+               int sdplane_nh_id)
 {
   int success = 0;
-  t->root = _add (t->root, key, keylen, data, 0, &success);
+  t->root = _add (t->root, key, keylen, sdplane_nh_id, 0, &success);
   return success; /* error(-1) if root is NULL */
 }
 

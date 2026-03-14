@@ -18,7 +18,7 @@ struct route_dst_info
 struct route_entry
 {
   struct route_dst_info dst;
-  struct nh_common nh;
+  int sdplane_nh_id;
 };
 
 struct rib_node
@@ -28,17 +28,12 @@ struct rib_node
   /*
    * entry.dst_ip_addr is key
    * entry.plen is key length
-   * entry.nh is nexthop info
+   * entry.sdplane_nh_id is data
    */
   struct rib_node *left;
   struct rib_node *right;
 };
 
-/*
- * rib_tree->family: table family
- *   └─ rib_node->entry.family: destination address family
- *         └─ nh_common->...->nh_info.family: nexthop address family
- */
 struct rib_tree
 {
   int family; // table family
