@@ -327,35 +327,49 @@ int
 fib_show_route (struct fib_node *n, void *arg)
 {
   struct show_route_arg *show_arg = (struct show_route_arg *) arg;
-  struct shell *shell = show_arg->shell;
+  struct shell    *shell    = show_arg->shell;
+  struct rib_info *rib_info = show_arg->rib_info;
   int family = show_arg->family;
+  int sdplane_nh_id = n->sdplane_nh_id;
+  int i;
 
   char prefix_str[INET6_ADDRSTRLEN];
   char dst_str[INET6_ADDRSTRLEN + 5];
   char nexthop_str[INET6_ADDRSTRLEN];
+  char if_str[IF_NAMESIZE + 12];
 
-  inet_ntop(family, &n->key_ip_addr, prefix_str, sizeof(prefix_str));
-  snprintf(dst_str, sizeof(dst_str), "%s/%d", prefix_str, n->keylen);
+  inet_ntop (family, &n->key_ip_addr, prefix_str, sizeof (prefix_str));
+  snprintf (dst_str, sizeof (dst_str), "%s/%d", prefix_str, n->keylen);
 
-  switch (n->nh.nh_type)
+  struct nh_group *nh_grp = &rib_info->nexthop.groups[sdplane_nh_id];
+
+  if (nh_grp->nhcnt <= 0)
+    return 0;
+
+  for (i = 0; i < nh_grp->nhcnt; i++)
     {
-      case NH_TYPE_LEGACY:
-        fprintf(shell->terminal,
-                "%-30s  nh_id %-20d %s",
-                dst_str,
-                n->nh.nh_id,
-                shell->NL);
-        break;
+      int nh_idx = nh_grp->members[i].info_index;
+      if (nh_idx < 0)
+        continue;
+      const struct nh_info *nh_info = &rib_info->nexthop.info_pool[nh_idx];
 
-      case NH_TYPE_OBJECT_CAP:
-        snprintf (nexthop_str, sizeof (nexthop_str),
-                  "NH_TYPE_OBJECT_CAP not implemented yet");
-        break;
+      if (nh_info->type == NEXTHOP_TYPE_CONNECTED)
+        snprintf (nexthop_str, sizeof (nexthop_str), "connected");
+      else
+        inet_ntop (nh_info->family, &nh_info->gw,
+                   nexthop_str, sizeof (nexthop_str));
 
-      default:
-        snprintf (nexthop_str, sizeof (nexthop_str),
-                  "unknown nexthop type");
-        break;
+      snprintf (if_str, sizeof (if_str), "%s (%u)",
+                nh_info->oif_name, nh_info->oif);
+
+      if (family == AF_INET)
+        fprintf (shell->terminal, "    %-22s %-20s %-8d %-20s%s",
+                 i == 0 ? dst_str : "", nexthop_str,
+                 sdplane_nh_id, if_str, shell->NL);
+      else
+        fprintf (shell->terminal, "    %-47s %-45s %-8d %-20s%s",
+                 i == 0 ? dst_str : "", nexthop_str,
+                 sdplane_nh_id, if_str, shell->NL);
     }
 
   return 0;
