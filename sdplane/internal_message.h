@@ -106,23 +106,27 @@ struct internal_msg_fdb_entry
   uint16_t port;
 };
 
+struct internal_msg_nh_member
+{
+  int kernel_nh_id;
+  struct nh_info info;
+  uint32_t weight;
+};
+
+struct internal_msg_nh_entry
+{
+  int kernel_nh_id;
+  int nhcnt;
+  struct internal_msg_nh_member members[MAX_ECMP_ENTRY];
+};
+
 struct internal_msg_route_entry
 {
   int family;
   int table_id;
   struct route_dst_info dst;
-  enum nexthop_type nh_type;
-  union
-  {
-    int nh_id; // NH_TYPE_OBJECT_CAP (using RTA_NH_ID)
-    struct nh_legacy nh_legacy; // NH_TYPE_LEGACY
-  } nh;
-};
-
-struct internal_msg_nexthop_entry
-{
-  int nh_id; // kernel's nhid
-  struct nh_object nh_object;
+  bool is_nhid;
+  struct internal_msg_nh_entry nh;
 };
 
 struct internal_msg_port_info

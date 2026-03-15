@@ -92,16 +92,12 @@ _add (struct rib_node *n, const uint8_t *key, int keylen, struct route_entry *da
       if (n->valid)
         {
           /**
-           * TODO1: Replace nexthop info when nlmsg_flags indicates a replace operation
+           * TODO: Support nexthop replacement when nlmsg_flags indicates a replace operation.
            * e.g., ip route replace ...
            */
-          /**
-           * Currently only the destination prefix is used as the key.
-           * Routes that share the same prefix but differ in outgoing interface
-           * (e.g., link-local routes such as fe80::/64) are treated as identical.
-           * TODO2: support composite keys (e.g., prefix + oif).
-           */
-          *success = -1; // failed, already exists
+          memcpy (&n->entry, data, sizeof (struct route_entry));
+          *success = 0; // success, route entry updated
+          // *success = -1; // failed, already exists
           return n;
         }
       /* add route entry */
@@ -254,9 +250,9 @@ _add_to_fib (struct rib_node *n, void *arg)
   char key_str[INET6_ADDRSTRLEN];
   inet_ntop (fib_tree->family, &n->entry.dst.dst_ip_addr, key_str, sizeof (key_str));
   DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding route to fib: keylen=%d key=%s nh_id=%d",
-                     n->entry.dst.plen, key_str, n->entry.nh.nh_id);
+                     n->entry.dst.plen, key_str, n->entry.sdplane_nh_id);
 
-  return fib_route_add (fib_tree, (uint8_t *)&n->entry.dst.dst_ip_addr, n->entry.dst.plen, &n->entry.nh);
+  return fib_route_add (fib_tree, (uint8_t *)&n->entry.dst.dst_ip_addr, n->entry.dst.plen, n->entry.sdplane_nh_id);
 }
 
 /* rebuild FIB from RIB */
@@ -276,100 +272,65 @@ rib_show_route (struct rib_node *n, void *arg)
   struct show_route_arg *show_arg = (struct show_route_arg *) arg;
   struct rib_info *rib_info = show_arg->rib_info;
   struct shell *shell = show_arg->shell;
-  int i, family = show_arg->family;
-  struct nh_common *nh = &n->entry.nh;
-  int ret;
-
+  int family = show_arg->family;
+  int sdplane_nh_index = n->entry.sdplane_nh_id;
+  int  i, ret;
   char prefix_str[INET6_ADDRSTRLEN];
   char dst_str[INET6_ADDRSTRLEN + 5];
   char nexthop_str[INET6_ADDRSTRLEN];
+  char if_str[IF_NAMESIZE + 12];
 
-  inet_ntop(family, &n->entry.dst.dst_ip_addr, prefix_str, sizeof(prefix_str));
-  snprintf(dst_str, sizeof(dst_str), "%s/%d", prefix_str, n->entry.dst.plen);
+  inet_ntop (family, &n->entry.dst.dst_ip_addr,
+             prefix_str, sizeof (prefix_str));
+  snprintf (dst_str, sizeof (dst_str), "%s/%d",
+            prefix_str, n->entry.dst.plen);
 
-  switch (nh->nh_type)
+  struct nh_group *nh_grp = &rib_info->nexthop.groups[sdplane_nh_index];
+
+  if (nh_grp->nhcnt <= 0)
+    return 0;
+
+  for (i = 0; i < nh_grp->nhcnt; i++)
     {
-      case NH_TYPE_LEGACY:
+      int nh_idx = nh_grp->members[i].info_index;
+      if (nh_idx < 0)
+        continue;
+      const struct nh_info *nh_info = &rib_info->nexthop.info_pool[nh_idx];
+
+      if (nh_info->type == NEXTHOP_TYPE_CONNECTED)
+        snprintf (nexthop_str, sizeof (nexthop_str), "connected");
+      else
+        inet_ntop (nh_info->family, &nh_info->gw,
+                   nexthop_str, sizeof (nexthop_str));
+
+      snprintf (if_str, sizeof (if_str), "%s (%u)",
+                nh_info->oif_name, nh_info->oif);
+
+      if (family == AF_INET)
         {
-          struct nh_legacy *nh_legacy = &rib_info->nexthop.legacy.object[nh->nh_id];
-          switch (nh_legacy->type)
-            {
-              case NH_OBJ_TYPE_OBJECT:
-                {
-                  struct nh_info *nh_info = &nh_legacy->nh_info;
-
-                  inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
-                             nexthop_str, sizeof (nexthop_str));
-
-                  ret = fprintf (shell->terminal,
-                          "[%d] %-30s  nhid %-3d > %-19s  dev %u%s",
-                          route_count, dst_str,
-                          nh->nh_id,
-                          nexthop_str,
-                          nh_info->oif,
-                          shell->NL);
-                  if (ret < 0)
-                    WARNING ("route[%d]: %s fprintf() ret: %d %s",
-                             route_count, dst_str, ret, strerror (errno));
-                  route_count++;
-                  break;
-                }
-
-              case NH_OBJ_TYPE_GROUP:
-                {
-                  struct nh_info_group *nh_grp =
-                    &rib_info->nexthop.legacy.object[nh->nh_id].nh_grp;
-
-                  if (rib_info->nexthop.legacy.object[nh->nh_id].ref_count == 0)
-                    break;
-
-                  for (i = 0; i < nh_grp->num; i++)
-                    {
-                      inet_ntop (nh_grp->nh_info_list[i].family,
-                                 &nh_grp->nh_info_list[i].nh_ip_addr,
-                                 nexthop_str, sizeof (nexthop_str));
-                      ret = 0;
-                      if (i == 0)
-                        ret = fprintf (shell->terminal,
-                                "[%d] %-30s  nhid %-3d > %-19s  dev %u%s",
-                                route_count, dst_str,
-                                nh->nh_id,
-                                nexthop_str,
-                                nh_grp->nh_info_list[i].oif,
-                                shell->NL);
-                      else
-                        ret = fprintf(shell->terminal,
-                                "[%d] %-30s             %-19s  dev %u%s",
-                                route_count, "",
-                                nexthop_str,
-                                nh_grp->nh_info_list[i].oif,
-                                shell->NL);
-                      if (ret < 0)
-                        WARNING ("route[%d]: %s fprintf() ret: %d %s",
-                           route_count, dst_str, ret, strerror (errno));
-                    }
-                  route_count++;
-                  break;
-                }
-
-              default:
-                snprintf (nexthop_str, sizeof (nexthop_str),
-                          "unknown legacy nexthop type");
-                break;
-            }
-          break;
+          if (i == 0)
+            ret = fprintf (shell->terminal, "[%d] %-20s %-20s %-8d %-20s%s",
+                           route_count, dst_str, nexthop_str,
+                           sdplane_nh_index, if_str, shell->NL);
+          else
+            ret = fprintf (shell->terminal, "    %-20s %-20s %-8s %-20s%s",
+                           "", nexthop_str, "", if_str, shell->NL);
+        }
+      else
+        {
+          if (i == 0)
+            ret = fprintf (shell->terminal, "[%d] %-45s %-45s %-8d %-20s%s",
+                           route_count, dst_str, nexthop_str,
+                           sdplane_nh_index, if_str, shell->NL);
+          else
+            ret = fprintf (shell->terminal, "    %-45s %-45s %-8s %-20s%s",
+                           "", nexthop_str, "", if_str, shell->NL);
         }
 
-      case NH_TYPE_OBJECT_CAP:
-        snprintf (nexthop_str, sizeof (nexthop_str),
-                  "NH_TYPE_OBJECT_CAP not implemented yet");
-        break;
-
-      default:
-        snprintf (nexthop_str, sizeof (nexthop_str),
-                  "unknown nexthop type");
-        break;
+      if (ret < 0)
+        WARNING ("route[%d]: %s fprintf() ret: %d %s",
+                 route_count, dst_str, ret, strerror (errno));
     }
-
+  route_count++;
   return 0;
 }

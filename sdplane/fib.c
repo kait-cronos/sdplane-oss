@@ -89,6 +89,7 @@ static struct fib_node *
 _create_fib_node (void)
 {
   struct fib_node *new;
+  int i;
 
   new = malloc (sizeof (struct fib_node));
   if (! new)
@@ -100,7 +101,7 @@ _create_fib_node (void)
 }
 
 static struct fib_node *
-_add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data,
+_add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
       int cur_plen, int *success)
 {
   uint32_t index, i;
@@ -130,7 +131,7 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data
         {
           for (i = 0; i < BRANCH_SZ; i++)
             n->child[i] =
-                _add (n->child[i], key, keylen, data, cur_plen + K, success);
+                _add (n->child[i], key, keylen, sdplane_nh_id, cur_plen + K, success);
           return n;
         }
       /* 葉ノードの場合 */
@@ -141,10 +142,9 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data
             {
               memcpy (&n->key_ip_addr, key, sizeof(n->key_ip_addr));
               n->keylen = keylen;
-              n->nh.nh_type = data->nh_type;
-              n->nh.nh_id = data->nh_id;
+              n->sdplane_nh_id = sdplane_nh_id;
               DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "update leaf keylen=%d cur_plen=%d nh_id=%d",
-                                 keylen, cur_plen, n->nh.nh_id);
+                                 keylen, cur_plen, n->sdplane_nh_id);
             }
           *success = 0;
           return n;
@@ -155,10 +155,9 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data
           memcpy (&n->key_ip_addr, key, sizeof(n->key_ip_addr));
           n->leaf = 1;
           n->keylen = keylen;
-          n->nh.nh_type = data->nh_type;
-          n->nh.nh_id = data->nh_id;
+          n->sdplane_nh_id = sdplane_nh_id;
           DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "set leaf keylen=%d cur_plen=%d nh_id=%d",
-                             keylen, cur_plen, n->nh.nh_id);
+                             keylen, cur_plen, n->sdplane_nh_id);
           *success = 0;
           return n;
         }
@@ -216,14 +215,14 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data
                   "copying parent to child[%d] (out of range, parent keylen=%d)",
                   i, n->keylen);
               n->child[i] = _add (n->child[i], &n->key_ip_addr, n->keylen,
-                                  &n->nh, cur_plen + K, success);
+                                  n->sdplane_nh_id, cur_plen + K, success);
             }
           if (i >= first && i < first + count)
             {
               /* この範囲には新しいノードを登録 */
               DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
                                   "adding to child[%d] (in range)", i);
-              n->child[i] = _add (n->child[i], key, keylen, data,
+              n->child[i] = _add (n->child[i], key, keylen, sdplane_nh_id,
                                   cur_plen + K, success);
             }
         }
@@ -237,16 +236,16 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, struct nh_common *data
   /* case3: さらに深い階層へ再帰 */
   index = BIT_INDEX (key, cur_plen, K);
   n->child[index] =
-      _add (n->child[index], key, keylen, data, cur_plen + K, success);
+      _add (n->child[index], key, keylen, sdplane_nh_id, cur_plen + K, success);
   return n;
 }
 
 int
 fib_route_add (struct fib_tree *t, const uint8_t *key, int keylen,
-               struct nh_common *data)
+               int sdplane_nh_id)
 {
   int success = 0;
-  t->root = _add (t->root, key, keylen, data, 0, &success);
+  t->root = _add (t->root, key, keylen, sdplane_nh_id, 0, &success);
   return success; /* error(-1) if root is NULL */
 }
 
@@ -328,35 +327,49 @@ int
 fib_show_route (struct fib_node *n, void *arg)
 {
   struct show_route_arg *show_arg = (struct show_route_arg *) arg;
-  struct shell *shell = show_arg->shell;
+  struct shell    *shell    = show_arg->shell;
+  struct rib_info *rib_info = show_arg->rib_info;
   int family = show_arg->family;
+  int sdplane_nh_id = n->sdplane_nh_id;
+  int i;
 
   char prefix_str[INET6_ADDRSTRLEN];
   char dst_str[INET6_ADDRSTRLEN + 5];
   char nexthop_str[INET6_ADDRSTRLEN];
+  char if_str[IF_NAMESIZE + 12];
 
-  inet_ntop(family, &n->key_ip_addr, prefix_str, sizeof(prefix_str));
-  snprintf(dst_str, sizeof(dst_str), "%s/%d", prefix_str, n->keylen);
+  inet_ntop (family, &n->key_ip_addr, prefix_str, sizeof (prefix_str));
+  snprintf (dst_str, sizeof (dst_str), "%s/%d", prefix_str, n->keylen);
 
-  switch (n->nh.nh_type)
+  struct nh_group *nh_grp = &rib_info->nexthop.groups[sdplane_nh_id];
+
+  if (nh_grp->nhcnt <= 0)
+    return 0;
+
+  for (i = 0; i < nh_grp->nhcnt; i++)
     {
-      case NH_TYPE_LEGACY:
-        fprintf(shell->terminal,
-                "%-30s  nh_id %-20d %s",
-                dst_str,
-                n->nh.nh_id,
-                shell->NL);
-        break;
+      int nh_idx = nh_grp->members[i].info_index;
+      if (nh_idx < 0)
+        continue;
+      const struct nh_info *nh_info = &rib_info->nexthop.info_pool[nh_idx];
 
-      case NH_TYPE_OBJECT_CAP:
-        snprintf (nexthop_str, sizeof (nexthop_str),
-                  "NH_TYPE_OBJECT_CAP not implemented yet");
-        break;
+      if (nh_info->type == NEXTHOP_TYPE_CONNECTED)
+        snprintf (nexthop_str, sizeof (nexthop_str), "connected");
+      else
+        inet_ntop (nh_info->family, &nh_info->gw,
+                   nexthop_str, sizeof (nexthop_str));
 
-      default:
-        snprintf (nexthop_str, sizeof (nexthop_str),
-                  "unknown nexthop type");
-        break;
+      snprintf (if_str, sizeof (if_str), "%s (%u)",
+                nh_info->oif_name, nh_info->oif);
+
+      if (family == AF_INET)
+        fprintf (shell->terminal, "    %-22s %-20s %-8d %-20s%s",
+                 i == 0 ? dst_str : "", nexthop_str,
+                 sdplane_nh_id, if_str, shell->NL);
+      else
+        fprintf (shell->terminal, "    %-47s %-45s %-8d %-20s%s",
+                 i == 0 ? dst_str : "", nexthop_str,
+                 sdplane_nh_id, if_str, shell->NL);
     }
 
   return 0;

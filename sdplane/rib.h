@@ -14,10 +14,6 @@
 #define FDB_STATE_NONE          0
 #define FDB_STATE_ACTIVE        1
 #define FDB_AGING_TIME_DEFAULT  300 /* Default aging time: 300 seconds */
-#define MAX_NEXTHOP_OBJ_SIZE    1024
-#define NEXTHOP_HASH_TAB_SIZE   1024
-#define NEXTHOP_HASH_MASK       0x3FF
-#define MAX_ECMP_ENTRY          4
 #define ROUTE_TREE_SIZE         2
 #define K                       2
 #define BRANCH_SZ               (1 << K)
@@ -152,115 +148,7 @@ struct application_slot_entry
   bool (*is_packet_match) (struct rte_mbuf *m);
 };
 
-enum route_type
-{
-  ROUTE_TYPE_CONNECTED,
-  ROUTE_TYPE_NEXTHOP,
-};
-
-struct nh_info
-{
-  int family; // nexthop address family
-  enum route_type type;
-  union
-  {
-    struct in_addr ipv4_addr;
-    struct in6_addr ipv6_addr;
-  } nh_ip_addr;
-  uint32_t oif;
-  /**
-   * If you need the interface *name* instead of its index (oif),
-   * use:
-   *     if_indextoname(index, ifname);
-   */
-};
-
-enum nexthop_object_type
-{
-  NH_OBJ_TYPE_OBJECT,
-  NH_OBJ_TYPE_GROUP,
-};
-
-/**
- * legacy: multipath is handled as a single object,
- * and nexthop objects are not reused to compose groups.
- */
-struct nh_info_group
-{
-  int num;
-  struct nh_info nh_info_list[MAX_ECMP_ENTRY];
-};
-
-struct nh_legacy
-{
-  int ref_count;
-  /**
-   * if ref_count reaches zero, the legacy nexthop object
-   * is considered unused and can be deleted.
-   */
-  enum nexthop_object_type type;
-  union
-  {
-    struct nh_info nh_info;      // NH_TYPE_OBJECT
-    struct nh_info_group nh_grp; // NH_TYPE_GROUP
-  };
-};
-
-/**
- * object-capable: multipath is handled as a group object,
- * composed of reusable nexthop objects represented as a list of "IDs".
- */
-struct nh_id_group
-{
-  int num;
-  int nh_id_list[MAX_ECMP_ENTRY];
-};
-
-struct nh_object
-{
-  enum nexthop_object_type type;
-  union
-  {
-    struct nh_info nh_info;    // NH_TYPE_OBJECT
-    struct nh_id_group nh_grp; // NH_TYPE_GROUP
-  };
-};
-
-enum nexthop_type
-{
-  NH_TYPE_LEGACY,
-  NH_TYPE_OBJECT_CAP,
-};
-
-/* nh_common stored in FIB entries */
-struct nh_common
-{
-  enum nexthop_type nh_type;
-  int nh_id;
-  /**
-   * nh_id's meaning depends on nh_type:
-   * - NH_TYPE_LEGACY: index of rib_info->nh_legacy[],
-   *   which is internal nhid.
-   * - NH_TYPE_OBJECT_CAP: index of rib_info->nh_object[],
-   *   which is also used as the kernel's nhid.
-   */
-};
-
-struct nh_hash_node
-{
-  int nh_id;
-  struct nh_hash_node *next;
-};
-
-struct nexthop
-{
-  struct
-  {
-    int top;
-    struct nh_legacy object[MAX_NEXTHOP_OBJ_SIZE];
-  } legacy;
-  struct nh_object object[MAX_NEXTHOP_OBJ_SIZE];
-};
+#include "nexthop.h"
 
 struct rib_info
 {

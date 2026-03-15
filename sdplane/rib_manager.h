@@ -8,6 +8,7 @@
 #include "sdplane.h"
 
 extern struct rib_tree *rib_tree_master[ROUTE_TREE_SIZE];
+extern struct hash_table nh_ht;
 
 struct rib
 {

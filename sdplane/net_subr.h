@@ -420,7 +420,7 @@ _forwarding (struct rte_mbuf *m,
              struct rte_ipv6_hdr *ipv6, struct vswitch_conf *vswitch,
              struct vswitch_link *vswitch_link)
 {
-  struct nh_legacy *nh_legacy;
+  struct nh_info *nh_info;
   struct neigh_entry *neigh_entry;
   struct rte_ether_addr *dst_mac;
   struct fib_node *fib_node;
@@ -445,83 +445,25 @@ _forwarding (struct rte_mbuf *m,
       return;
     }
 
-  /**
-   * Currently only the legacy nexthop type is supported,
-   * where each FIB entry directly stores nexthops.
-   * TODO: add support for ECMP via multipath nexthops and nexthop groups.
-   */
   char nexthop_str[INET6_ADDRSTRLEN];
   /* determine the actual nexthop IP to lookup in neighbor table */
   uint8_t lookup_ip[16];
   char lookup_ip_str[INET6_ADDRSTRLEN];
   int family, oif;
 
-  switch (fib_node->nh.nh_type)
+  nh_info = nexthop_get_info_by_index (rib->rib_info, fib_node->sdplane_nh_id);
+  family = nh_info->family;
+  oif = nh_info->oif;
+  inet_ntop (family, &nh_info->gw, nexthop_str, sizeof (nexthop_str));
+  memcpy (lookup_ip, &nh_info->gw, sizeof (lookup_ip));
+  if (nh_info->type == NEXTHOP_TYPE_CONNECTED)
     {
-    case NH_TYPE_LEGACY:
-      nh_legacy =
-          &rib->rib_info->nexthop.legacy.object[fib_node->nh.nh_id];
-      switch (nh_legacy->type)
-        {
-        case NH_OBJ_TYPE_OBJECT:
-          family = nh_legacy->nh_info.family;
-          oif = nh_legacy->nh_info.oif;
-          inet_ntop (family,
-                     &nh_legacy->nh_info.nh_ip_addr,
-                     nexthop_str, sizeof (nexthop_str));
-          memcpy (lookup_ip,
-                  &nh_legacy->nh_info.nh_ip_addr,
-                  sizeof (lookup_ip));
-          /* for directly connected routes (nexthop = 0.0.0.0), use destination IP */
-          if (nh_legacy->nh_info.type == ROUTE_TYPE_CONNECTED)
-            {
-              memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
-              inet_ntop (family,
-                         lookup_ip, lookup_ip_str,
-                         sizeof (lookup_ip_str));
-              DEBUG_NEW (
-                  ROUTER,
-                  "m: %p directly connected route, using dst IP for ARP lookup:%s",
-                  m, lookup_ip_str);
-            }
-          break;
-
-        case NH_OBJ_TYPE_GROUP:
-          family = nh_legacy->nh_grp.nh_info_list[0].family;
-          oif = nh_legacy->nh_grp.nh_info_list[0].oif;
-          /* use the first nexthop in the group for now */
-          inet_ntop (family,
-                     &nh_legacy->nh_grp.nh_info_list[0].nh_ip_addr,
-                     nexthop_str, sizeof (nexthop_str));
-          memcpy (lookup_ip,
-                  &nh_legacy->nh_grp.nh_info_list[0].nh_ip_addr,
-                  sizeof (lookup_ip));
-          /* for directly connected routes (nexthop = 0.0.0.0), use destination IP */
-          if (nh_legacy->nh_grp.nh_info_list[0].type == ROUTE_TYPE_CONNECTED)
-            {
-              memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
-              inet_ntop (family,
-                         lookup_ip, lookup_ip_str,
-                         sizeof (lookup_ip_str));
-              DEBUG_NEW (
-                  ROUTER,
-                  "m: %p directly connected route, using dst IP for ARP lookup:%s",
-                  m, lookup_ip_str);
-            }
-          break;
-
-        default:
-          return;
-        }
-      break;
-
-    case NH_TYPE_OBJECT_CAP:
-      DEBUG_NEW (ROUTER, "m: %p unsupported nexthop type: %d",
-                 m, fib_node->nh.nh_type);
-      break;
-
-    default:
-      return;
+      memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
+      inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
+      DEBUG_NEW (
+          ROUTER,
+          "m: %p directly connected route, using dst IP for ARP lookup:%s",
+          m, lookup_ip_str);
     }
 
   DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s",
