@@ -1,6 +1,7 @@
 
 AM_CFLAGS = -Wno-format-truncation -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-function
 
+LIBSDPLANE_DIR= $(top_srcdir)/lib
 COMMON_DIR = $(top_srcdir)/module/common
 SDPLANE_DIR = $(top_srcdir)/sdplane
 L3FWD_MODULE_DIR = $(top_srcdir)/module/l3fwd
@@ -32,7 +33,7 @@ sdplane_SOURCES = \
         enhanced_repeater.c neigh_manager.c l2_switch.c \
         radix.c fib.c rte_flow_support.c control_packet.c \
         router.c srv6_router.c srv6_cmd.c hash_table.c nexthop.c
-sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
+sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(LIB_SDPLANE_DIR) -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
 sdplane_LDADD = ../lib/libsdplane.la @DPDK_LIBS@ -llthread -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
 
 if ENABLE_PKTGEN

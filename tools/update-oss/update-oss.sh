@@ -10,15 +10,18 @@ SDPLANE_DEV_REPO="git@github.com:kait-cronos/sdplane-dev.git"
 LIBSDPLANE_DEV_REPO="git@github.com:kait-cronos/libsdplane-dev.git"
 SDPLANE_OSS_REPO="git@github.com:kait-cronos/sdplane-oss.git"
 
-BRANCH="update/$(date +%Y-%m-%d)"
+BRANCH="$(date +%Y-%m-%d)"
 
 FILES_TO_REMOVE=(
     ai-workspace
     CLAUDE.md
-    NEWS
     TODO
     doc
     tools/update-oss
+    tools/add-ai-comments.sh
+    tools/ai-commit-helper.sh
+    tools/ai-stats.sh
+    tools/check-ai-branch.sh
 )
 
 # ---------------------------------------------------------------------------
