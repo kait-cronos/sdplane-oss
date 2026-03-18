@@ -33,7 +33,7 @@ sdplane_SOURCES = \
         enhanced_repeater.c neigh_manager.c l2_switch.c \
         radix.c fib.c rte_flow_support.c control_packet.c \
         router.c srv6_router.c srv6_cmd.c hash_table.c nexthop.c
-sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(LIB_SDPLANE_DIR) -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
+sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(LIBSDPLANE_DIR) -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
 sdplane_LDADD = ../lib/libsdplane.la @DPDK_LIBS@ -llthread -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
 
 if ENABLE_PKTGEN
