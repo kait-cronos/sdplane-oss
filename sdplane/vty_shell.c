@@ -160,6 +160,7 @@ vty_shell (void *arg)
   shell_set_terminal (shell, client->fd, client->fd);
   shell_set_prompt (shell, prompt);
   // get_winsize (shell);
+  shell->pager = false;
 
   DEBUG_SDPLANE_LOG (VTY, "%s[%d]: fd: %d terminal: %p.", "vty", client->id,
                      client->fd, shell->terminal);

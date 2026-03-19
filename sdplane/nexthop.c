@@ -500,6 +500,17 @@ nexthop_del_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
               const struct nh_info *a =
                 (aidx >= 0) ? &nexthop->info_pool[aidx] : NULL;
               const struct nh_info *b = &nh->members[i].info;
+
+              {
+                DEBUG_NEW (NEXTHOP, "nhcnt: %d", i);
+                DEBUG_NEW (NEXTHOP, "a: %p a->family: %d a->oif: %d",
+                           a, a->family, a->oif);
+                DEBUG_NEW (NEXTHOP, "b: %p b->family: %d b->oif: %d",
+                           b, b->family, b->oif);
+                DEBUG_NEW (NEXTHOP, "a->gw: %#x b->gw: %#x size: %d",
+                           a->gw, b->gw, sizeof (a->gw));
+              }
+
               if (! a || a->family != b->family ||
                   memcmp (&a->gw, &b->gw, sizeof (a->gw)) != 0 ||
                   a->oif != b->oif)
