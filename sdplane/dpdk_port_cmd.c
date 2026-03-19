@@ -360,6 +360,131 @@ CLI_COMMAND2 (show_port_statistics,
   return 0;
 }
 
+CLI_COMMAND2 (show_port_queue_statistics,
+              "show port statistics per-queue (<0-16>|all) (|pps|total|bps|Bps|total-bytes)",
+              SHOW_HELP,
+              PORT_HELP,
+              "show port statistics per-queue\n",
+              "port number (0-16 or all)\n",
+              "port number (0-16 or all)\n",
+              "show all port queues\n",
+              "packets per second.\n",
+              "total packets.\n",
+              "bits per second.\n",
+              "Bytes per second.\n",
+              "total bytes.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  FILE *t = shell->terminal;
+  int i, port_id, target_port = -1;
+  uint16_t nb_ports;
+  char name[16];
+  bool packets = false;
+  bool bytes = false;
+  bool total = false;
+  struct rte_eth_stats *stats, *stats_array;
+
+  if (strcmp (argv[4], "all"))
+    target_port = strtol (argv[4], NULL, 0);
+
+  /* default is to show "pps" */
+  packets = true;
+  total = false;
+  stats_array = stats_per_sec;
+
+  if (argc > 5)
+    {
+  if (! strcmp (argv[5], "pps"))
+    {
+      packets = true;
+      total = false;
+      stats_array = stats_per_sec;
+    }
+  else if (! strcmp (argv[5], "total"))
+    {
+      packets = true;
+      total = true;
+      stats_array = stats_current;
+    }
+  else if (! strcmp (argv[5], "bps"))
+    {
+      packets = false;
+      total = false;
+      stats_array = stats_per_sec;
+    }
+  else if (! strcmp (argv[5], "Bps"))
+    {
+      packets = false;
+      bytes = true;
+      total = false;
+      stats_array = stats_per_sec;
+    }
+  else if (! strcmp (argv[5], "total-bytes"))
+    {
+      packets = false;
+      bytes = true;
+      total = true;
+      stats_array = stats_current;
+    }
+    }
+
+  if (packets)
+    fprintf (t, "%16s %13s %13s %8s %8s%s", "port name:", "rx", "tx", "ierrors",
+             "oerrors", shell->NL);
+  else if (bytes)
+    fprintf (t, "%16s %15s %15s%s", "port name:", "bytes-in", "bytes-out",
+             shell->NL);
+  else
+    fprintf (t, "%16s %15s %15s%s", "port name:", "bits-in", "bits-out",
+             shell->NL);
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      if (target_port != -1 && port_id != target_port)
+        continue;
+      stats = &stats_array[port_id];
+      snprintf (name, sizeof (name), "port[%d]:", port_id);
+      if (packets)
+        fprintf (t, "%16s %'13lu %'13lu %'8lu %'8lu%s", name, stats->ipackets,
+                 stats->opackets, stats->ierrors, stats->oerrors, shell->NL);
+      else if (bytes)
+        fprintf (t, "%16s %'15lu %'15lu%s", name, stats->ibytes, stats->obytes,
+                 shell->NL);
+      else
+        fprintf (t, "%16s %'15lu %'15lu%s", name,
+                 stats->ibytes * 8, stats->obytes * 8,
+                 shell->NL);
+      /* Get current configured queues and print per queue stats. */
+      struct rte_eth_dev_info dev_info;
+      int ret = rte_eth_dev_info_get (port_id, &dev_info);
+      if (ret != 0)
+        {
+          fprintf (t, "rte_eth_dev_info_get() returned %d.%s", ret, shell->NL);
+          continue;
+        }
+      int max_queues = RTE_MAX (dev_info.nb_rx_queues, dev_info.nb_tx_queues);
+      for (i = 0; i < max_queues; i++)
+        {
+          char queue_name[32];
+          snprintf (queue_name, sizeof (queue_name), "queue[%d]:",
+                  i);
+          if (packets)
+            fprintf (t, "%18s %'11lu %'13lu%s", queue_name,
+                      stats->q_ipackets[i], stats->q_opackets[i], shell->NL);
+          else if (bytes)
+            fprintf (t, "%18s %'13lu %'15lu%s", queue_name,
+                      stats->q_ibytes[i], stats->q_obytes[i], shell->NL);
+          else
+            fprintf (t, "%18s %'13lu %'15lu%s", queue_name,
+                      stats->q_ibytes[i] * 8, stats->q_obytes[i] * 8,
+                      shell->NL);
+        }
+      fprintf (t, "%s", shell->NL);
+    }
+  return 0;
+}
+
 CLI_COMMAND2 (show_port_promiscuous, "show port (<0-16>|all) promiscuous",
               SHOW_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP "promiscuous\n")
 {
@@ -951,6 +1076,7 @@ dpdk_port_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, start_stop_port);
   INSTALL_COMMAND2 (cmdset, show_port);
   INSTALL_COMMAND2 (cmdset, show_port_statistics);
+  INSTALL_COMMAND2 (cmdset, show_port_queue_statistics);
   INSTALL_COMMAND2 (cmdset, show_port_promiscuous);
   INSTALL_COMMAND2 (cmdset, show_port_flowcontrol);
   INSTALL_COMMAND2 (cmdset, show_port_get_info);

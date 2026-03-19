@@ -35,7 +35,7 @@ struct rte_eth_stats stats_current[RTE_MAX_ETHPORTS];
 struct rte_eth_stats stats_per_sec[RTE_MAX_ETHPORTS];
 
 static inline void
-rte_eth_stats_per_sec (struct rte_eth_stats *per_sec,
+rte_eth_stats_per_sec (int port_id, struct rte_eth_stats *per_sec,
                        struct rte_eth_stats *stats_current,
                        struct rte_eth_stats *stats_prev)
 {
@@ -45,6 +45,31 @@ rte_eth_stats_per_sec (struct rte_eth_stats *per_sec,
   per_sec->obytes = stats_current->obytes - stats_prev->obytes;
   per_sec->ierrors = stats_current->ierrors - stats_prev->ierrors;
   per_sec->oerrors = stats_current->oerrors - stats_prev->oerrors;
+
+  /* Get current configured queues and print per queue stats. */
+  struct rte_eth_dev_info dev_info;
+
+  int ret = rte_eth_dev_info_get (port_id, &dev_info);
+  if (ret != 0)
+    {
+      DEBUG_SDPLANE_LOG (STAT_COLLECTOR, "rte_eth_dev_info_get() returned %d.",
+                         ret);
+      return;
+    }
+
+  int max_queues = RTE_MAX (dev_info.nb_rx_queues, dev_info.nb_tx_queues);
+
+  for (int i = 0; i < max_queues; i++)
+    {
+      per_sec->q_ipackets[i] =
+          stats_current->q_ipackets[i] - stats_prev->q_ipackets[i];
+      per_sec->q_opackets[i] =
+          stats_current->q_opackets[i] - stats_prev->q_opackets[i];
+      per_sec->q_ibytes[i] =
+          stats_current->q_ibytes[i] - stats_prev->q_ibytes[i];
+      per_sec->q_obytes[i] =
+          stats_current->q_obytes[i] - stats_prev->q_obytes[i];
+    }
 }
 
 static uint64_t loop_stat_collector = 0;
@@ -77,7 +102,7 @@ stat_collector (__rte_unused void *dummy)
       for (port_id = 0; port_id < nb_ports; port_id++)
         rte_eth_stats_get (port_id, &stats_current[port_id]);
       for (port_id = 0; port_id < nb_ports; port_id++)
-        rte_eth_stats_per_sec (&stats_per_sec[port_id],
+        rte_eth_stats_per_sec (port_id, &stats_per_sec[port_id],
                                &stats_current[port_id], &stats_prev[port_id]);
       // printf ("%s: stats collected.\n", __func__);
 
