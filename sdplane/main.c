@@ -13,11 +13,11 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/debug_log.h>
-#include <sdplane/debug_category.h>
-#include <sdplane/debug_zcmdsh.h>
 #ifdef HAVE_SDPLANE_LIBSDPLANE_VERSION_H
 #include <sdplane/libsdplane_version.h>
 #endif
+
+#include "debug_sdplane.h"
 
 #include "l3fwd.h"
 
@@ -57,22 +57,23 @@ print_version ()
 void
 signal_handler (int signum)
 {
-  printf ("%s:%d: %s: Signal %d received.\n", __FILE__, __LINE__, __func__,
-          signum);
+  if (IS_DEBUG (SIGNAL))
+    printf ("Signal %d received.\n", signum);
 
   if (signum == SIGINT)
     {
       /* do nothing. */
-      printf ("Signal %d received.\n", signum);
     }
   else if (signum == SIGTERM)
     {
-      printf ("Signal %d received, preparing to exit...\n", signum);
+      if (IS_DEBUG (SIGNAL))
+        printf ("SIGTERM received, preparing to exit...\n");
       force_quit = true;
     }
   else if (signum == SIGCHLD)
     {
-      printf ("Signal %d received, waitpid.\n", signum);
+      if (IS_DEBUG (SIGNAL))
+        printf ("SIGCHLD received, waitpid.\n");
       waitpid (-1, NULL, WNOHANG);
     }
 }

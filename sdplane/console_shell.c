@@ -98,6 +98,7 @@ console_shell (void *arg)
   shell_set_terminal (shell, 0, 1);
   shell_set_prompt (shell, "console> ");
   get_winsize (shell);
+  shell->pager = false;
 
   INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
 
