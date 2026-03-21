@@ -295,39 +295,39 @@ CLI_COMMAND2 (show_port_statistics,
   bool bytes = false;
   struct rte_eth_stats *stats, *stats_array;
 
-  /* default is to show "pps" */
+  /* default is to show "total" */
   packets = true;
-  stats_array = stats_per_sec;
+  stats_array = stats_current;
 
   if (argc > 3)
     {
-  if (! strcmp (argv[3], "pps"))
-    {
-      packets = true;
-      stats_array = stats_per_sec;
-    }
-  else if (! strcmp (argv[3], "total"))
-    {
-      packets = true;
-      stats_array = stats_current;
-    }
-  else if (! strcmp (argv[3], "bps"))
-    {
-      packets = false;
-      stats_array = stats_per_sec;
-    }
-  else if (! strcmp (argv[3], "Bps"))
-    {
-      packets = false;
-      bytes = true;
-      stats_array = stats_per_sec;
-    }
-  else if (! strcmp (argv[3], "total-bytes"))
-    {
-      packets = false;
-      bytes = true;
-      stats_array = stats_current;
-    }
+      if (! strcmp (argv[3], "pps"))
+        {
+          packets = true;
+          stats_array = stats_per_sec;
+        }
+      else if (! strcmp (argv[3], "total"))
+        {
+          packets = true;
+          stats_array = stats_current;
+        }
+      else if (! strcmp (argv[3], "bps"))
+        {
+          packets = false;
+          stats_array = stats_per_sec;
+        }
+      else if (! strcmp (argv[3], "Bps"))
+        {
+          packets = false;
+          bytes = true;
+          stats_array = stats_per_sec;
+        }
+      else if (! strcmp (argv[3], "total-bytes"))
+        {
+          packets = false;
+          bytes = true;
+          stats_array = stats_current;
+        }
     }
 
   /* 100Gbps: 148.8Mpps = 148,800,000 1Tbps: 1.488Gpps = 1,488,000,000: 13 */
