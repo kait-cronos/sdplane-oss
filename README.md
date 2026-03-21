@@ -1,197 +1,130 @@
+<div align="center">
+<img src="../sdplane-logo.png" alt="sdplane-oss Logo" width="160">
+</div>
 
-# sdplane-dev (Soft Data Plane)
+# sdplane-oss (ソフトデータプレーン)
 
-A high-performance open-source software router built on
-DPDK (Data Plane Development Kit), designed for
-software-defined networking applications.
+DPDKスレッドの動作を対話的に制御できるShellと、DPDKスレッド実行環境（sd-plane）で構成された「DPDK-dock開発環境」
 
-**Language:** **English** | [Japanese](README.ja.md)
+**Language:** [English](README.en.md) | **日本語**
 
-## Features
+## 特徴
 
-- **High-Performance Packet Processing**:
-  Leverages DPDK for zero-copy, user-space packet processing
-- **Layer 2/3 Forwarding**:
-  Integrated L2 and L3 forwarding with ACL, LPM, and FIB support
-- **Packet Generation**:
-  Built-in packet generator for testing and benchmarking
-- **Network Virtualization**:
-  TAP interface support and VLAN switching capabilities
-- **CLI Management**:
-  Interactive command-line interface for configuration and monitoring
-- **Multi-threading**:
-  Cooperative threading model with per-core workers
+- **高性能パケット処理**：
+  DPDKを活用したゼロコピー、ユーザー空間パケット処理
+- **レイヤー2/3フォワーディング**：
+  ACL、LPM、FIBサポートを統合したL2・L3フォワーディング
+- **パケット生成**：
+  テストとベンチマーク用の内蔵パケットジェネレーター
+- **ネットワーク仮想化**：
+  TAPインターフェースサポートとVLANスイッチング機能
+- **CLI管理**：
+  設定と監視のためのインタラクティブコマンドラインインターフェース
+- **マルチスレッド**：
+  コア別ワーカーによる協調スレッドモデル
 
-### Architecture
-- **Main Application**: Core router logic and initialization
-- **DPDK Modules**: L2/L3 forwarding and packet generation
-- **CLI System**: Command-line interface with completion and help
-- **Threading**: lthread-based cooperative multitasking
-- **Virtualization**: TAP interfaces and virtual switching
+### アーキテクチャ
+- **メインアプリケーション**：コアルーターロジックと初期化
+- **DPDKモジュール**：L2/L3フォワーディングとパケット生成
+- **CLIシステム**：補完とヘルプ機能付きコマンドラインインターフェース
+- **スレッド**：lthreadベースの協調マルチタスク
+- **仮想化**：TAPインターフェースと仮想スイッチング
 
-## Quick Start by Debian Package
+## サポートシステム
 
+### ソフトウェア要件
+- **OS**：
+  Ubuntu 24.04 LTS（現在サポート中）
+- **NIC**：
+  [ドライバー](https://doc.dpdk.org/guides/nics/) | [サポートNIC](https://core.dpdk.org/supported/)
+- **メモリ**：
+  ヒュージページサポートが必要
+- **CPU**：
+  マルチコアプロセッサ推奨
 
-## Build from Source
+### 対象ハードウェアプラットフォーム
 
-### System Requirements
-- **OS**:
-  Ubuntu Linux (currently supported)
-- **NICs**:
-  4 network interfaces (virtio-net supported for virtual environments)
-- **Memory**:
-  Hugepage support required
-- **CPU**:
-  Multi-core processor recommended
+本プロジェクトは以下でテスト済みです：
+- **Topton (N305/N100)**：10G NIC搭載ミニPC (tested)
+- **Partaker (J3160)**：1G NIC搭載ミニPC (tested)
+- **Intel汎用PC**：Intel x520 / Mellanox ConnectX5搭載
+- **その他のCPU**：AMD、ARM CPU等でも動作するはずです。
 
-## Hardware Platforms
+## 始めるには
 
-The project has been tested on:
-- **Topton**: Mini-PC with 10G NICs
-- **Wiretap**: Mini-PC with 1G NICs
+インストール、設定、実行までの手順は[始めるには](getting-started.ja.md)を参照してください。
 
+## Tips
 
-### Prerequisite Ubuntu Packages
-```bash
-sudo apt install build-essential cmake \
-                 autotools-dev autoconf automake libtool pkg-config
-```
+設定・運用に関するヒント集は[Tips](tips.ja.md)を参照してください。
 
-### Optional Ubuntu Packages
-```bash
-sudo apt install etckeeper tig bridge-utils \
-                 iptables-persistent fail2ban dmidecode screen ripgrep
-```
+## ユーザーガイド（マニュアル）
 
-### Dependencies
-- **DPDK**: Data Plane Development Kit
-- **libsdplane-dev**: [kait-cronos/libsdplane-dev](https://github.com/kait-cronos/libsdplane-dev) (build and install separately)
-- **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (DPDK-based cooperative threading)
-- **liburcu-qsbr**: Userspace RCU library
-- **libpcap**: Packet capture library
+詳細なユーザーガイドとコマンドリファレンスは以下をご覧ください：
 
-### 1. Install Dependencies
+- [ユーザーガイド](manual/ja/README.md) - 全機能の概要とコマンド分類
 
-First, install and build the required libraries:
-```bash
-# Install libsdplane-dev (build from source)
-git clone https://github.com/kait-cronos/libsdplane-dev
-cd libsdplane-dev
-# Follow build instructions in that repository
+**シナリオガイド:**
+- [L2リピーターアプリケーション](manual/ja/l2-repeater-application.md) - MACラーニングによるシンプルなL2パケット転送
+- [拡張リピーターアプリケーション](manual/ja/enhanced-repeater-application.md) - TAPインターフェース付きVLAN対応スイッチング
+- [パケットジェネレーターアプリケーション](manual/ja/packet-generator-application.md) - 高性能トラフィック生成とテスト
+- [スイッチを使う](manual/ja/scenario-switch.md) - VLANベースのL2スイッチングを構成する
+- [ルータを設定する：静的経路のみ](manual/ja/scenario-static-router.md) - 静的経路によるIPルーターを構成する
 
-# Install lthread
-git clone https://github.com/yasuhironet/lthread
-cd lthread
-# Follow build instructions in that repository
-```
+**管理・設定ガイド:**
+- [ポート管理・統計](manual/ja/port-management.md) - DPDKポートの管理と統計情報
+- [ワーカー・lcore管理・スレッド情報](manual/ja/worker-lcore-thread-management.md) - ワーカースレッド、lcore、スレッド情報の管理
+- [デバッグ・ログ](manual/ja/debug-logging.md) - デバッグとログ機能
+- [VTY・シェル管理](manual/ja/vty-shell.md) - VTYとシェルの管理
+- [システム情報・監視](manual/ja/system-monitoring.md) - システム情報と監視機能
+- [RIB・ルーティング](manual/ja/routing.md) - RIBとルーティング機能
+- [キュー設定](manual/ja/queue-configuration.md) - キューの設定と管理
+- [パケット生成](manual/ja/packet-generation.md) - PKTGENを使用したパケット生成
+- [TAPインターフェース](manual/ja/tap-interface.md) - TAPインターフェースの管理
+- [lthread管理](manual/ja/lthread-management.md) - lthreadの管理
+- [デバイス管理](manual/ja/device-management.md) - デバイスとドライバーの管理
+- [拡張リピーター](manual/ja/enhanced-repeater.md) - 仮想スイッチング、VLAN処理、TAPインターフェース
+- [rte-flow](manual/ja/rte-flow.md) - ハードウェアフロー分類の設定
 
-### 2. Build sdplane-dev
+**コマンド一覧:**
+- [全コマンド一覧（アルファベット順）](manual/ja/command-list.md) - 全112コマンドの索引
 
-```bash
-# Clone the repository
-git clone https://github.com/kait-cronos/sdplane-dev
-cd sdplane-dev
+## 開発者ガイド
 
-# Generate build files
-./autogen.sh
+### 統合ガイド
 
-# Configure and build
-mkdir build
-cd build
-CFLAGS="-g -O0" sh ../configure
-make
-```
+- [DPDKアプリケーション統合ガイド](manual/ja/dpdk-integration-guide.md) - DPDK-dock方式でDPDKアプリケーションをsdplaneに統合する方法
 
-### 3. Run the Software Router
+### ドキュメント
 
-```bash
-# Run in foreground
-sudo ./sdplane/sdplane
-  or
-# Run in background, when you installed the dpkg.
-sudo systemctl start sdplane
+- [技術プレゼンテーション/2024-11-22-sdn-onsen-yasu.pdf)](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf)（日本語）
+- [技術プレゼンテーション/20250822_ENOG87_ohara.pdf](https://enog.jp/wordpress/wp-content/uploads/2025/08/20250822_ENOG87_ohara.pdf)（日本語）
 
-# connect to CLI
-telnet localhost 9882
-```
-
-## Configuration
-
-### System Configuration
-- **Hugepages**: Configure system hugepages for DPDK
-- **Network**: Use netplan for network interface configuration
-- **Firewall**: Configure iptables rules as needed
-
-### Configuration Files
-
-#### OS Setup Configuration (`etc/`)
-- `etc/sdplane.conf.sample`: Main configuration template
-- `etc/sdplane.service`: systemd service file
-- `etc/modules-load.d/`: Kernel module loading configuration
-
-#### Application Configuration (`example-config/`)
-- `example-config/sdplane-pktgen.conf`: Packet generator configuration
-- `example-config/sdplane-topton.conf`: Topton hardware configuration
-- `example-config/sdplane_l2_repeater.conf`: L2 repeater configuration
-- `example-config/sdplane_l2fwd.conf`: L2 forwarding configuration
-- `example-config/sdplane_l3fwd-lpm.conf`: L3 forwarding with LPM configuration
-- `example-config/sdplane-nettlp.conf`: NetTLP configuration
-
-## User's Guide (Manual)
-
-Comprehensive user guides and command references are available:
-
-- [User Guide](doc/manual/README.md) - Complete overview and command classification
-- [Port Management & Statistics](doc/manual/port-management.md) - DPDK port management and statistics
-- [Worker & lcore Management](doc/manual/worker-management.md) - Worker threads and lcore management
-- [Debug & Logging](doc/manual/debug-logging.md) - Debug and logging functions
-- [VTY & Shell Management](doc/manual/vty-shell.md) - VTY and shell management
-- [System Information & Monitoring](doc/manual/system-monitoring.md) - System information and monitoring
-- [RIB & Routing](doc/manual/routing.md) - RIB and routing functions
-- [Queue Configuration](doc/manual/queue-configuration.md) - Queue configuration and management
-- [Packet Generation](doc/manual/packet-generation.md) - Packet generation using PKTGEN
-- [Thread Information](doc/manual/thread-information.md) - Thread information and monitoring
-- [TAP Interface](doc/manual/tap-interface.md) - TAP interface management
-- [NetTLP](doc/manual/nettlp.md) - Network TLP functions
-- [lthread Management](doc/manual/lthread-management.md) - lthread management
-- [Device Management](doc/manual/device-management.md) - Device and driver management
-
-## Developer's Guide
-
-### Documentation
-
-- [Topton Installation Guide](doc/install-memo-topton.txt) - For 10G NIC systems
-- [General Installation Guide](doc/install-memo.txt) - For 1G NIC systems
-- [NetTLP Configuration Guide](doc/nettlp-memo.txt) - NetTLP setup instructions
-- [Technical Presentation](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf) (Japanese)
-
-### Code Style
-The project follows GNU coding standards. Use the provided scripts to check and format code:
+### コードスタイル
+本プロジェクトはGNU コーディング標準に従います。提供されたスクリプトを使用してコードの確認とフォーマットを行ってください：
 
 ```bash
-# Check formatting
+# フォーマットの確認
 ./style/check_gnu_style.sh check
 
-# Auto-format code
+# フォーマットの差分表示
+./style/check_gnu_style.sh diff
+
+# コードの自動フォーマット
 ./style/check_gnu_style.sh update
 ```
 
-## How to debug DPDK library
+## ライセンス
 
-```bash
-vi config/rte_config.h
-#define RTE_LIBRTE_MBUF_DEBUG 1
+本プロジェクトはGNU General Public License v3.0の下でライセンスされています。詳細については[LICENSE](../LICENSE)ファイルをご覧ください。
 
-meson setup build
-meson configure build -Dbuildtype=debug
-```
+## お問い合わせ
 
-## License
+ご質問、問題、貢献については、こちらまでご連絡ください：**sdplane [at] nwlab.org**
 
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0-only).
-See the [COPYING](COPYING) file for the full license text.
+## 評価用機器の購入
 
-## Author
+評価用機器には追加機能やソフトウェアの修正が含まれる場合があります。詳細については販売ページをご覧ください：
 
-Yasuhiro Ohara (yasu1976@gmail.com)
+**[https://www.rca.co.jp/sdplane/](https://www.rca.co.jp/sdplane/)**
 
