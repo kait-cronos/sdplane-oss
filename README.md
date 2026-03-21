@@ -4,6 +4,15 @@
 
 # sdplane-oss (ソフトデータプレーン)
 
+> [!WARNING]
+> このリポジトリは履歴が上書きされています。既にクローン済みの場合は、改めて `git clone` してください。
+> ```
+> git clone https://github.com/kait-cronos/sdplane-oss.git
+> ```
+
+> [!NOTE]
+> ドキュメントへのリンクは [kait-cronos/sdplane-doc](https://github.com/kait-cronos/sdplane-doc) リポジトリを参照します。
+
 DPDKスレッドの動作を対話的に制御できるShellと、DPDKスレッド実行環境（sd-plane）で構成された「DPDK-dock開発環境」
 
 **Language:** [English](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/README.en.md) | **日本語**
