@@ -26,12 +26,16 @@
 /debian/sdplane
 
 *.o
-*.o
 .deps
 .dirstamp
 Makefile.in
 Makefile
 !tests/Makefile
+*.lo
+*.la
+.libs
+libtool
+ltmain.sh
 
 /aclocal.m4
 /autom4te.cache
