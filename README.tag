@@ -4,4 +4,5 @@ sdplane-dev: v0.1.3
 sdplane-oss: v0.1.4
 sdplane-gdp: v0.1.5
 sdplane-vvf: v0.1.6
+sdplane-oss: v0.1.7
 
