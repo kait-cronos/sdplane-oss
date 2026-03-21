@@ -1,5 +1,5 @@
 <div align="center">
-<img src="../sdplane-logo.png" alt="sdplane-oss Logo" width="160">
+<img src="sdplane-logo.png" alt="sdplane-oss Logo" width="160">
 </div>
 
 # sdplane-oss (ソフトデータプレーン)
