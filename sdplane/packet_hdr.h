@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2023-2026 Yasuhiro Ohara
+
 #ifndef __PACKET_HDR_H__
 #define __PACKET_HDR_H__
 

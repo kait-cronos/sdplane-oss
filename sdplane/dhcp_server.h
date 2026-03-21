@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2023-2026 Yasuhiro Ohara
+
 #ifndef __DHCP_SERVER_H__
 #define __DHCP_SERVER_H__
 

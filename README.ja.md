@@ -175,7 +175,8 @@ telnet localhost 9882
 
 ## ライセンス
 
-本プロジェクトはオープンソースです。ライセンスの詳細についてはLICENSEファイルをご覧ください。
+本プロジェクトは GNU General Public License v3.0 (GPL-3.0-only) の下でライセンスされています。
+ライセンス全文は [COPYING](COPYING) ファイルをご覧ください。
 
 ## 作者
 

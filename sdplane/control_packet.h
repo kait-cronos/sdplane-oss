@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2023-2026 Yasuhiro Ohara
+
 #include <rte_ether.h>
 #include <rte_ip.h>
 #include <rte_mbuf.h>

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2023-2026 Yasuhiro Ohara
+
 #ifndef __RIB_MANAGER_H__
 #define __RIB_MANAGER_H__
 

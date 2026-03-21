@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2023-2026 Yasuhiro Ohara
+
 #ifndef __SOFT_DPLANE_H__
 #define __SOFT_DPLANE_H__
 

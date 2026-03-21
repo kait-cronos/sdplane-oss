@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2023-2026 Yasuhiro Ohara
+
 #ifndef __DEBUG_CATEGORY_H__
 #define __DEBUG_CATEGORY_H__
 

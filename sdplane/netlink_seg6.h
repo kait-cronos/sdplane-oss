@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2023-2026 Yasuhiro Ohara
+
 #ifndef __NETLINK_SEG6_H__
 #define __NETLINK_SEG6_H__
 

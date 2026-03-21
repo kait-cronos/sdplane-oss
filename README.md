@@ -188,7 +188,8 @@ meson configure build -Dbuildtype=debug
 
 ## License
 
-See the LICENSE file for license details.
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0-only).
+See the [COPYING](COPYING) file for the full license text.
 
 ## Author
 
