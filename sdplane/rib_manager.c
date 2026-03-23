@@ -545,21 +545,14 @@ route_table_lookup_id (int table_id, int family)
 static inline __attribute__ ((always_inline)) int
 route_table_alloc_slot (int table_id, int family)
 {
-  int i;
+  int tree_idx = (family == AF_INET) ? 0 : 1; // IPv4=0, IPv6=1
 
-  for (i = 0; i < ROUTE_TREE_SIZE; i++)
-    {
-      if (rib_tree_master[i] == NULL)
-        {
-          rib_tree_master[i] = rib_new (rib_tree_master[i]);
-          if (! rib_tree_master[i])
-            return -1;
-          rib_tree_master[i]->family = family;
-          rib_tree_master[i]->table_id = table_id;
-          return i;
-        }
-    }
-  return -1;
+  rib_tree_master[tree_idx] = rib_new (rib_tree_master[tree_idx]);
+  if (! rib_tree_master[tree_idx])
+    return -1;
+  rib_tree_master[tree_idx]->family = family;
+  rib_tree_master[tree_idx]->table_id = table_id;
+  return tree_idx;
 }
 
 /*
