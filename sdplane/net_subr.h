@@ -17,6 +17,22 @@
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
+static inline __attribute__ ((always_inline)) struct router_if *
+router_if_lookup_by_ifindex (struct rib_info *rib_info, int ifindex)
+{
+  if (! rib_info || ifindex <= 0)
+    return NULL;
+
+  for (int i = 0; i < rib_info->vswitch_size; i++)
+    {
+      struct router_if *rif = &rib_info->vswitch[i].router_if;
+      if (rif->ifindex == ifindex)
+        return rif;
+    }
+
+  return NULL;
+}
+
 /* _thread_tx_flush() flushes the queue'ed packets
    in tx_buffer_per_q[] onto the NIC. */
 static inline __attribute__ ((always_inline)) void
@@ -464,6 +480,28 @@ _forwarding (struct rte_mbuf *m,
           ROUTER,
           "m: %p directly connected route, using dst IP for ARP lookup:%s",
           m, lookup_ip_str);
+    }
+
+  if (fib_node->table_id == RT_TABLE_LOCAL)
+    {
+      struct router_if *target_rif;
+      target_rif = router_if_lookup_by_ifindex (rib->rib_info, oif);
+      if (! target_rif)
+        target_rif = &vswitch->router_if;
+
+      if (target_rif && target_rif->sockfd >= 0 && target_rif->ring_up)
+        {
+          DEBUG_NEW (ROUTER,
+                     "m: %p local route (table %u) -> router_if %s (ifindex=%d)",
+                     m, fib_node->table_id, target_rif->tap_name,
+                     target_rif->ifindex);
+          _send_router_if_ring (m, rx_portid, rx_queueid, target_rif);
+          return;
+        }
+
+      DEBUG_NEW (ROUTER,
+                 "m: %p local route (table %u) but router_if unavailable (ifindex=%d)",
+                 m, fib_node->table_id, oif);
     }
 
   DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s",
