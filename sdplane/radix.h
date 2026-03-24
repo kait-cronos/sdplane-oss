@@ -1,6 +1,8 @@
 #ifndef RADIX_H
 #define RADIX_H
 
+#include <stdint.h>
+
 #include "fib.h"
 #include "rib.h"
 
@@ -19,6 +21,7 @@ struct route_entry
 {
   struct route_dst_info dst;
   int sdplane_nh_id;
+  uint32_t table_id;
 };
 
 struct rib_node

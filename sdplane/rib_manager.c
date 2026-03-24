@@ -535,8 +535,7 @@ route_table_lookup_id (int table_id, int family)
     {
       if (rib_tree_master[i] == NULL)
         continue;
-      if (rib_tree_master[i]->family == family &&
-          rib_tree_master[i]->table_id == table_id)
+      if (rib_tree_master[i]->family == family)
         return i;
     }
   return -1;
@@ -547,10 +546,14 @@ route_table_alloc_slot (int table_id, int family)
 {
   int tree_idx = (family == AF_INET) ? 0 : 1; // IPv4=0, IPv6=1
 
-  rib_tree_master[tree_idx] = rib_new (rib_tree_master[tree_idx]);
   if (! rib_tree_master[tree_idx])
-    return -1;
-  rib_tree_master[tree_idx]->family = family;
+    {
+      rib_tree_master[tree_idx] = rib_new (NULL);
+      if (! rib_tree_master[tree_idx])
+        return -1;
+      rib_tree_master[tree_idx]->family = family;
+    }
+
   rib_tree_master[tree_idx]->table_id = table_id;
   return tree_idx;
 }
@@ -1572,6 +1575,7 @@ rib_manager_process_message (void *msgp)
               &msg_route_entry->dst,
               sizeof (struct route_dst_info));
       route_entry.sdplane_nh_id = sdplane_nh_id;
+            route_entry.table_id = msg_route_entry->table_id;
 
       /* register route entry to RIB */
       if (rib_route_add (rib_tree_master[i],
