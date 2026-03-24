@@ -487,18 +487,24 @@ CLI_COMMAND2 (show_fib_ip_route,
   fprintf (shell->terminal, "%-30s  %-20s%s",
            "Destination", "Nexthop", shell->NL);
 
+  bool found = false;
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
-      /* main table only for test */
-      if (rib->rib_info->fib_tree[i]->table_id == 254 &&
-          rib->rib_info->fib_tree[i]->family == show_arg.family)
-        {
-          fprintf (shell->terminal, "fib_tree[%d]:%p%s",
-                   i, rib->rib_info->fib_tree[i], shell->NL);
-          fib_traverse (rib->rib_info->fib_tree[i], fib_show_route,
-                        &show_arg);
-          break;
-        }
+      struct fib_tree *fib_tree = rib->rib_info->fib_tree[i];
+      if (! fib_tree || fib_tree->family != show_arg.family)
+        continue;
+
+      fprintf (shell->terminal, "fib_tree[%d] (table %u):%p%s",
+               i, fib_tree->table_id, fib_tree, shell->NL);
+      fib_traverse (fib_tree, fib_show_route, &show_arg);
+      found = true;
+    }
+
+  if (! found)
+    {
+      const char *family_str = (show_arg.family == AF_INET) ? "IPv4" : "IPv6";
+      fprintf (shell->terminal, "no %s fib routes%s",
+               family_str, shell->NL);
     }
 
   return 0;
@@ -532,20 +538,24 @@ CLI_COMMAND2 (show_rib_ip_route,
   fprintf (shell->terminal, "%-30s  %-30s  Interface%s",
            "Destination", "Nexthop", shell->NL);
 
+  bool found = false;
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
-      if (! rib_tree_master[i])
+      struct rib_tree *rib_tree = rib_tree_master[i];
+      if (! rib_tree || rib_tree->family != show_arg.family)
         continue;
-      /* main table only for test */
-      if (rib_tree_master[i]->table_id == 254 &&
-          rib_tree_master[i]->family == show_arg.family)
-        {
-          fprintf (shell->terminal, "rib_tree_master[%d]:%p%s",
-                   i, rib_tree_master[i], shell->NL);
-          rib_traverse (rib_tree_master[i], rib_show_route,
-                        &show_arg);
-          break;
-        }
+
+      fprintf (shell->terminal, "rib_tree_master[%d] (table %u):%p%s",
+               i, rib_tree->table_id, rib_tree, shell->NL);
+      rib_traverse (rib_tree, rib_show_route, &show_arg);
+      found = true;
+    }
+
+  if (! found)
+    {
+      const char *family_str = (show_arg.family == AF_INET) ? "IPv4" : "IPv6";
+      fprintf (shell->terminal, "no %s rib routes%s",
+               family_str, shell->NL);
     }
 
   return 0;
