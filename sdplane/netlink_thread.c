@@ -581,11 +581,9 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
   const char *action_type;
 
   /* accept both main and local routing tables. */
-  if (rtm->rtm_table != RT_TABLE_MAIN &&
-      rtm->rtm_table != RT_TABLE_LOCAL)
+  if (rtm->rtm_table != RT_TABLE_MAIN && rtm->rtm_table != RT_TABLE_LOCAL)
     {
-      DEBUG_SDPLANE_LOG (NETLINK,
-                         "%s: skip unsupported route table: %u",
+      DEBUG_SDPLANE_LOG (NETLINK, "%s: skip unsupported route table: %u",
                          nlsock->name, rtm->rtm_table);
       return -1;
     }

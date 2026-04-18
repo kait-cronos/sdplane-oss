@@ -130,9 +130,8 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
       if (! n->leaf && exists)
         {
           for (i = 0; i < BRANCH_SZ; i++)
-            n->child[i] =
-                _add (n->child[i], key, keylen, sdplane_nh_id, table_id,
-                      cur_plen + K, success);
+            n->child[i] = _add (n->child[i], key, keylen, sdplane_nh_id,
+                                table_id, cur_plen + K, success);
           return n;
         }
       /* 葉ノードの場合 */
@@ -146,8 +145,8 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
               n->sdplane_nh_id = sdplane_nh_id;
               n->table_id = table_id;
               DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
-                                 "update leaf keylen=%d cur_plen=%d nh_id=%d",
-                                 keylen, cur_plen, n->sdplane_nh_id);
+                             "set leaf keylen=%d cur_plen=%d nh_id=%d", keylen,
+                             cur_plen, n->sdplane_nh_id);
             }
           *success = 0;
           return n;
@@ -161,8 +160,8 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
           n->sdplane_nh_id = sdplane_nh_id;
           n->table_id = table_id;
           DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
-                             "set leaf keylen=%d cur_plen=%d nh_id=%d",
-                             keylen, cur_plen, n->sdplane_nh_id);
+                             "set leaf keylen=%d cur_plen=%d nh_id=%d", keylen,
+                             cur_plen, n->sdplane_nh_id);
           *success = 0;
           return n;
         }
@@ -226,11 +225,10 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
           if (i >= first && i < first + count)
             {
               /* この範囲には新しいノードを登録 */
-              DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
-                                 "adding to child[%d] (in range)", i);
-              n->child[i] =
-                  _add (n->child[i], key, keylen, sdplane_nh_id, table_id,
-                        cur_plen + K, success);
+              DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding to child[%d] (in range)",
+                                 i);
+              n->child[i] = _add (n->child[i], key, keylen, sdplane_nh_id,
+                                  table_id, cur_plen + K, success);
             }
         }
       /* 現在のノードはもはや葉ノードではない */
