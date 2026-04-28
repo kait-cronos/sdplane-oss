@@ -140,6 +140,20 @@ struct fdb_entry
   time_t last_seen;
 };
 
+
+
+struct srv6_local_sid_entry {
+  struct in6_addr sid;
+  uint32_t action;
+  int oif;
+  union {
+    struct in6_addr nh6;
+    struct in_addr nh4;
+    uint32_t table_id;
+  } param;
+};
+
+
 #define APPLI_SLOT_SIZE 32
 struct application_slot_entry
 {
@@ -169,7 +183,7 @@ struct rib_info
   struct nexthop nexthop;
   struct fib_tree *fib_tree[ROUTE_TREE_SIZE];
 #define MAX_SRV6_LOCAL_SID_ADDR_NUM 16
-  struct in6_addr srv6_local_sid_addr[MAX_SRV6_LOCAL_SID_ADDR_NUM];
+  struct srv6_local_sid_entry srv6_local_sid[MAX_SRV6_LOCAL_SID_ADDR_NUM];
   uint8_t srv6_local_sid_addr_num;
 } __rte_cache_aligned;
 

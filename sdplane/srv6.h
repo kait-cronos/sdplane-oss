@@ -83,7 +83,7 @@ _process_srv6_packet (struct rte_mbuf *m,
 static inline __attribute__ ((always_inline)) bool
 _process_srv6_packet_multi_sids (struct rte_mbuf *m,
                       struct rte_ipv6_hdr *ipv6,
-                      struct in6_addr *local_end_sid,
+                      struct srv6_local_sid_entry *srv6_local_sid,
                       int num_sids)
 {
   bool modified = false;
@@ -138,7 +138,7 @@ _process_srv6_packet_multi_sids (struct rte_mbuf *m,
   int match = 0;
   for (i = 0; i < num_sids; i++)
     {
-      if (! memcmp (dst_addr, &local_end_sid[i], 16))
+      if (! memcmp (dst_addr, &srv6_local_sid[i].sid, 16))
         match++;
     }
   if (match == 0)

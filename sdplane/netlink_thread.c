@@ -551,6 +551,89 @@ netlink_parse_seg6local (struct rtattr *rta, struct seg6local_param *param)
 #endif
 }
 
+static int
+netlink_read_rtattr_encap (struct rtattr **rtns,
+                           const struct in6_addr *dst,
+                           uint16_t nlmsg_type)
+{
+  if (! rtns[RTA_ENCAP])
+    return 0;
+
+  uint16_t encap_type = *(uint16_t *) RTA_DATA (rtns[RTA_ENCAP_TYPE]);
+
+  if (encap_type == LWTUNNEL_ENCAP_SEG6)
+    {
+      struct seg6_param seg6_param;
+      memset (&seg6_param, 0, sizeof (seg6_param));
+      netlink_parse_seg6 (rtns[RTA_ENCAP], &seg6_param);
+      netlink_log_seg6 (&seg6_param);
+      return 0;
+      // TODO: support seg6 encap route entries.
+    }
+
+  if (encap_type == LWTUNNEL_ENCAP_SEG6_LOCAL)
+    {
+      struct seg6local_param seg6local_param;
+      memset (&seg6local_param, 0, sizeof (seg6local_param));
+      netlink_parse_seg6local (rtns[RTA_ENCAP], &seg6local_param);
+      netlink_log_seg6local (&seg6local_param);
+
+      struct internal_msg_srv6_local_sid msg_sid;
+      memset (&msg_sid, 0, sizeof (msg_sid));
+      memcpy (&msg_sid.srv6_local_sid_addr, dst, sizeof (struct in6_addr));
+      msg_sid.srv6_local_sid_addr_index = UINT8_MAX; /* auto-assign */
+      msg_sid.action = seg6local_param.action;
+      /* SEG6_LOCAL_OIF is often unset by iproute2; fall back to RTA_OIF. */
+      msg_sid.oif = seg6local_param.oif
+              ? seg6local_param.oif
+              : (rtns[RTA_OIF] ? *(int *) RTA_DATA (rtns[RTA_OIF]) : 0);
+      switch (seg6local_param.action)
+        {
+          case SEG6_LOCAL_ACTION_END_X:
+            memcpy (&msg_sid.param.nh6, &seg6local_param.nh6,
+                    sizeof (struct in6_addr));
+            break;
+          case SEG6_LOCAL_ACTION_END_DX2:
+            break;
+          case SEG6_LOCAL_ACTION_END_DX6:
+            memcpy (&msg_sid.param.nh6, &seg6local_param.nh6,
+                    sizeof (struct in6_addr));
+            break;
+          case SEG6_LOCAL_ACTION_END_DX4:
+            memcpy (&msg_sid.param.nh4, &seg6local_param.nh4,
+                    sizeof (struct in_addr));
+            break;
+          case SEG6_LOCAL_ACTION_END_T:
+          case SEG6_LOCAL_ACTION_END_DT4:
+          case SEG6_LOCAL_ACTION_END_DT6:
+          case SEG6_LOCAL_ACTION_END_DT46:
+            msg_sid.param.table_id = seg6local_param.table_id
+                                     ? seg6local_param.table_id
+                                     : seg6local_param.vrf_id;
+            break;
+          default:
+            DEBUG_NEW (NETLINK, "unsupported seg6local action: %u",
+                       seg6local_param.action);
+            break;
+        }
+
+      /* create and send internal message */
+      uint16_t msg_type = (nlmsg_type == RTM_NEWROUTE)
+                           ? INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD
+                           : INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL;
+      if (msg_queue_rib)
+        {
+          void *msgp = internal_msg_create (msg_type, &msg_sid,
+                                            sizeof (msg_sid));
+          if (msgp)
+            internal_msg_send_to (msg_queue_rib, msgp, NULL);
+        }
+      return 1; /* skip route entry */
+    }
+
+  return 0;
+}
+
 int
 netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
 {
@@ -696,24 +779,9 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
     }
 
   /* RTA_ENCAP: SRv6 tunnel encapsulation. */
-  if (rtns[RTA_ENCAP])
-    {
-      uint16_t encap_type = *(uint16_t *) RTA_DATA (rtns[RTA_ENCAP_TYPE]);
-      if (encap_type == LWTUNNEL_ENCAP_SEG6)
-        {
-          struct seg6_param seg6_param;
-          memset (&seg6_param, 0, sizeof (seg6_param));
-          netlink_parse_seg6 (rtns[RTA_ENCAP], &seg6_param);
-          netlink_log_seg6 (&seg6_param);
-        }
-      else if (encap_type == LWTUNNEL_ENCAP_SEG6_LOCAL)
-        {
-          struct seg6local_param seg6local_param;
-          memset (&seg6local_param, 0, sizeof (seg6local_param));
-          netlink_parse_seg6local (rtns[RTA_ENCAP], &seg6local_param);
-          netlink_log_seg6local (&seg6local_param);
-        }
-    }
+  if (netlink_read_rtattr_encap (rtns, &msg_route_entry.dst.dst_ip_addr.ipv6_addr,
+                                 h->nlmsg_type))
+    return 0;
 
   /* create and send internal message */
   if (h->nlmsg_type == RTM_NEWROUTE)

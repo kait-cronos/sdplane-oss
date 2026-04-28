@@ -559,6 +559,33 @@ route_table_alloc_slot (int table_id, int family)
 }
 
 /*
+ * SRv6
+ */
+
+static inline __attribute__ ((always_inline)) void
+srv6_local_sid_del (struct rib_info *rib_info,
+                    const struct in6_addr *sid)
+{
+  int i, num = rib_info->srv6_local_sid_addr_num;
+
+  for (i = 0; i < num; i++)
+    {
+      if (memcmp (&rib_info->srv6_local_sid[i].sid, sid, sizeof (*sid)) == 0)
+        {
+          int tail = num - 1;
+          if (i < tail)
+            memmove (&rib_info->srv6_local_sid[i],
+                     &rib_info->srv6_local_sid[i + 1],
+                     (tail - i) * sizeof (struct srv6_local_sid_entry));
+          memset (&rib_info->srv6_local_sid[tail], 0,
+                  sizeof (struct srv6_local_sid_entry));
+          rib_info->srv6_local_sid_addr_num--;
+          break;
+        }
+    }
+}
+
+/*
  * rib and rib_info
  */
 
@@ -1818,7 +1845,7 @@ rib_manager_process_message (void *msgp)
 
       break;
 
-    case INTERNAL_MSG_TYPE_SRV6_LOCAL_SID:
+    case INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD:
       {
         struct internal_msg_srv6_local_sid *msg_srv6_local_sid;
         char addr_str[64];
@@ -1831,14 +1858,21 @@ rib_manager_process_message (void *msgp)
                    addr_str, msg_srv6_local_sid->srv6_local_sid_addr_index);
         int num_sids = new->rib_info->srv6_local_sid_addr_num;
         int index = msg_srv6_local_sid->srv6_local_sid_addr_index;
+        /* UINT8_MAX means auto-assign */
+        if (index == UINT8_MAX)
+          index = num_sids;
         if (0 <= num_sids && num_sids < MAX_SRV6_LOCAL_SID_ADDR_NUM &&
             0 <= index && index <= num_sids)
           {
             DEBUG_NEW (RIB, "saving at local_sid_addr[%d/%d] success: addr: %s.",
                        index, num_sids, addr_str);
-            memcpy (&new->rib_info->srv6_local_sid_addr[index],
-                  &msg_srv6_local_sid->srv6_local_sid_addr,
-                  sizeof (struct in6_addr));
+            struct srv6_local_sid_entry *entry = &new->rib_info->srv6_local_sid[index];
+            memcpy (&entry->sid, &msg_srv6_local_sid->srv6_local_sid_addr,
+                    sizeof (struct in6_addr));
+            entry->action = msg_srv6_local_sid->action;
+            entry->oif = msg_srv6_local_sid->oif;
+            memcpy (&entry->param, &msg_srv6_local_sid->param,
+                    sizeof (entry->param));
             if (index == num_sids)
               new->rib_info->srv6_local_sid_addr_num++;
             DEBUG_NEW (RIB, "local_sid_addr_num: %d.",
@@ -1847,6 +1881,20 @@ rib_manager_process_message (void *msgp)
         else
           DEBUG_NEW (RIB, "saving at local_sid_addr[%d/%d] failed: addr: %s.",
                      index, num_sids, addr_str);
+        break;
+      }
+
+    case INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL:
+      {
+        struct internal_msg_srv6_local_sid *msg_srv6_local_sid;
+        char addr_str[64];
+        msg_srv6_local_sid =
+          (struct internal_msg_srv6_local_sid *) (msg_header + 1);
+        inet_ntop (AF_INET6, &msg_srv6_local_sid->srv6_local_sid_addr,
+                   addr_str, sizeof (addr_str));
+        DEBUG_NEW (RIB, "del local_sid_addr: %s.", addr_str);
+        srv6_local_sid_del (new->rib_info,
+                            &msg_srv6_local_sid->srv6_local_sid_addr);
         break;
       }
 
