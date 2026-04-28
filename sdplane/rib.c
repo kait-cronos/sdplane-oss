@@ -484,8 +484,8 @@ CLI_COMMAND2 (show_fib_ip_route,
   else if (! strcmp (argv[2], "ipv6"))
     show_arg.family = AF_INET6;
 
-  fprintf (shell->terminal, "%-30s  %-20s%s",
-           "Destination", "Nexthop", shell->NL);
+  fprintf (shell->terminal, "%-30s  %-20s  %-6s%s",
+           "Destination", "Nexthop", "Table", shell->NL);
 
   bool found = false;
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
@@ -535,8 +535,8 @@ CLI_COMMAND2 (show_rib_ip_route,
   else if (! strcmp (argv[2], "ipv6"))
     show_arg.family = AF_INET6;
 
-  fprintf (shell->terminal, "%-30s  %-30s  Interface%s",
-           "Destination", "Nexthop", shell->NL);
+  fprintf (shell->terminal, "%-30s  %-30s  %-6s  Interface%s",
+           "Destination", "Nexthop", "Table", shell->NL);
 
   bool found = false;
   for (i = 0; i < ROUTE_TREE_SIZE; i++)

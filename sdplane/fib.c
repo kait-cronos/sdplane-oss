@@ -369,13 +369,13 @@ fib_show_route (struct fib_node *n, void *arg)
                 nh_info->oif_name, nh_info->oif);
 
       if (family == AF_INET)
-        fprintf (shell->terminal, "    %-22s %-20s %-8d %-20s%s",
+        fprintf (shell->terminal, "    %-22s %-20s %-8d %-6u %-20s%s",
                  i == 0 ? dst_str : "", nexthop_str,
-                 sdplane_nh_id, if_str, shell->NL);
+                 sdplane_nh_id, n->table_id, if_str, shell->NL);
       else
-        fprintf (shell->terminal, "    %-47s %-45s %-8d %-20s%s",
+        fprintf (shell->terminal, "    %-47s %-45s %-8d %-6u %-20s%s",
                  i == 0 ? dst_str : "", nexthop_str,
-                 sdplane_nh_id, if_str, shell->NL);
+                 sdplane_nh_id, n->table_id, if_str, shell->NL);
     }
 
   return 0;

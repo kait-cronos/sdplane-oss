@@ -311,22 +311,22 @@ rib_show_route (struct rib_node *n, void *arg)
       if (family == AF_INET)
         {
           if (i == 0)
-            ret = fprintf (shell->terminal, "[%d] %-20s %-20s %-8d %-20s%s",
+            ret = fprintf (shell->terminal, "[%d] %-20s %-20s %-8d %-6u %-20s%s",
                            route_count, dst_str, nexthop_str,
-                           sdplane_nh_index, if_str, shell->NL);
+                           sdplane_nh_index, n->entry.table_id, if_str, shell->NL);
           else
-            ret = fprintf (shell->terminal, "    %-20s %-20s %-8s %-20s%s",
-                           "", nexthop_str, "", if_str, shell->NL);
+            ret = fprintf (shell->terminal, "    %-20s %-20s %-8s %-6s %-20s%s",
+                           "", nexthop_str, "", "", if_str, shell->NL);
         }
       else
         {
           if (i == 0)
-            ret = fprintf (shell->terminal, "[%d] %-45s %-45s %-8d %-20s%s",
+            ret = fprintf (shell->terminal, "[%d] %-45s %-45s %-8d %-6u %-20s%s",
                            route_count, dst_str, nexthop_str,
-                           sdplane_nh_index, if_str, shell->NL);
+                           sdplane_nh_index, n->entry.table_id, if_str, shell->NL);
           else
-            ret = fprintf (shell->terminal, "    %-45s %-45s %-8s %-20s%s",
-                           "", nexthop_str, "", if_str, shell->NL);
+            ret = fprintf (shell->terminal, "    %-45s %-45s %-8s %-6s %-20s%s",
+                           "", nexthop_str, "", "", if_str, shell->NL);
         }
 
       if (ret < 0)
