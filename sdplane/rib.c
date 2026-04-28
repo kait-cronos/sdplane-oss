@@ -494,7 +494,7 @@ CLI_COMMAND2 (show_fib_ip_route,
       if (! fib_tree || fib_tree->family != show_arg.family)
         continue;
 
-      fprintf (shell->terminal, "fib_tree[%d] (table %u):%p%s",
+      fprintf (shell->terminal, "fib_tree[%d] (table %d):%p%s",
                i, fib_tree->table_id, fib_tree, shell->NL);
       fib_traverse (fib_tree, fib_show_route, &show_arg);
       found = true;
@@ -545,7 +545,7 @@ CLI_COMMAND2 (show_rib_ip_route,
       if (! rib_tree || rib_tree->family != show_arg.family)
         continue;
 
-      fprintf (shell->terminal, "rib_tree_master[%d] (table %u):%p%s",
+      fprintf (shell->terminal, "rib_tree_master[%d] (table %d):%p%s",
                i, rib_tree->table_id, rib_tree, shell->NL);
       rib_traverse (rib_tree, rib_show_route, &show_arg);
       found = true;
