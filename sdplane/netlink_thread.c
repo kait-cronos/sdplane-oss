@@ -580,9 +580,13 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
   uint16_t msg_type;
   const char *action_type;
 
-  /* only the main routing table is supported. */
-  if (rtm->rtm_table != RT_TABLE_MAIN)
-    return -1;
+  /* accept both main and local routing tables. */
+  if (rtm->rtm_table != RT_TABLE_MAIN && rtm->rtm_table != RT_TABLE_LOCAL)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "%s: skip unsupported route table: %d",
+                         nlsock->name, rtm->rtm_table);
+      return -1;
+    }
   msg_route_entry.table_id = rtm->rtm_table;
   msg_route_entry.family = rtm->rtm_family;
   msg_route_entry.is_nhid = false;

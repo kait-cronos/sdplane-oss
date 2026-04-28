@@ -466,6 +466,28 @@ _forwarding (struct rte_mbuf *m,
           m, lookup_ip_str);
     }
 
+  if (fib_node->table_id == RT_TABLE_LOCAL)
+    {
+      struct router_if *target_rif;
+      target_rif = &vswitch->router_if;
+
+      if (target_rif && target_rif->sockfd >= 0 && target_rif->ring_up)
+        {
+          DEBUG_NEW (
+              ROUTER,
+              "m: %p local route (table %u) -> router_if %s (ifindex=%d)", m,
+              fib_node->table_id, target_rif->tap_name, target_rif->ifindex);
+          _send_router_if_ring (m, rx_portid, rx_queueid, target_rif);
+          return;
+        }
+
+      DEBUG_NEW (
+          ROUTER,
+          "m: %p local route (table %u) but router_if unavailable (ifindex=%d)",
+          m, fib_node->table_id, oif);
+      return;
+    }
+
   DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s",
              m, nexthop_str);
 

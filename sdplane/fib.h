@@ -22,6 +22,7 @@ struct fib_node
   } key_ip_addr;
   int keylen;
   int sdplane_nh_id;
+  uint32_t table_id;
   struct fib_node *child[BRANCH_SZ];
 };
 
@@ -37,7 +38,7 @@ void fib_free (struct fib_tree *t);
 
 /* IPv4/v6 */
 int fib_route_add (struct fib_tree *t, const uint8_t *key, int keylen,
-                   int sdplane_nh_id);
+                   int sdplane_nh_id, uint32_t table_id);
 struct fib_node *fib_route_lookup (struct fib_tree *t, const uint8_t *key);
 
 /* FIB traverse method */

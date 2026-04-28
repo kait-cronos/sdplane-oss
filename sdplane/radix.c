@@ -252,7 +252,9 @@ _add_to_fib (struct rib_node *n, void *arg)
   DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding route to fib: keylen=%d key=%s nh_id=%d",
                      n->entry.dst.plen, key_str, n->entry.sdplane_nh_id);
 
-  return fib_route_add (fib_tree, (uint8_t *)&n->entry.dst.dst_ip_addr, n->entry.dst.plen, n->entry.sdplane_nh_id);
+  return fib_route_add (fib_tree, (uint8_t *)&n->entry.dst.dst_ip_addr,
+                        n->entry.dst.plen, n->entry.sdplane_nh_id,
+                        n->entry.table_id);
 }
 
 /* rebuild FIB from RIB */
@@ -309,22 +311,22 @@ rib_show_route (struct rib_node *n, void *arg)
       if (family == AF_INET)
         {
           if (i == 0)
-            ret = fprintf (shell->terminal, "[%d] %-20s %-20s %-8d %-20s%s",
+            ret = fprintf (shell->terminal, "[%d] %-20s %-20s %-8d %-6u %-20s%s",
                            route_count, dst_str, nexthop_str,
-                           sdplane_nh_index, if_str, shell->NL);
+                           sdplane_nh_index, n->entry.table_id, if_str, shell->NL);
           else
-            ret = fprintf (shell->terminal, "    %-20s %-20s %-8s %-20s%s",
-                           "", nexthop_str, "", if_str, shell->NL);
+            ret = fprintf (shell->terminal, "    %-20s %-20s %-8s %-6s %-20s%s",
+                           "", nexthop_str, "", "", if_str, shell->NL);
         }
       else
         {
           if (i == 0)
-            ret = fprintf (shell->terminal, "[%d] %-45s %-45s %-8d %-20s%s",
+            ret = fprintf (shell->terminal, "[%d] %-45s %-45s %-8d %-6u %-20s%s",
                            route_count, dst_str, nexthop_str,
-                           sdplane_nh_index, if_str, shell->NL);
+                           sdplane_nh_index, n->entry.table_id, if_str, shell->NL);
           else
-            ret = fprintf (shell->terminal, "    %-45s %-45s %-8s %-20s%s",
-                           "", nexthop_str, "", if_str, shell->NL);
+            ret = fprintf (shell->terminal, "    %-45s %-45s %-8s %-6s %-20s%s",
+                           "", nexthop_str, "", "", if_str, shell->NL);
         }
 
       if (ret < 0)
