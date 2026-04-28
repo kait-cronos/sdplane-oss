@@ -5,12 +5,82 @@
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_log.h>
 
+#include <net/if.h>
+
 #include "sdplane.h"
 #include "rib.h"
 #include "rib_manager.h"
 #include "internal_message.h"
+#include "netlink_seg6.h"
 
 // clang-format off
+
+static const char *
+srv6_local_action_str (uint32_t action)
+{
+  switch (action)
+    {
+    case SEG6_LOCAL_ACTION_END:      return "End";
+    case SEG6_LOCAL_ACTION_END_X:    return "End.X";
+    case SEG6_LOCAL_ACTION_END_T:    return "End.T";
+    case SEG6_LOCAL_ACTION_END_DX2:  return "End.DX2";
+    case SEG6_LOCAL_ACTION_END_DX6:  return "End.DX6";
+    case SEG6_LOCAL_ACTION_END_DX4:  return "End.DX4";
+    case SEG6_LOCAL_ACTION_END_DT6:  return "End.DT6";
+    case SEG6_LOCAL_ACTION_END_DT4:  return "End.DT4";
+    case SEG6_LOCAL_ACTION_END_DT46: return "End.DT46";
+    case SEG6_LOCAL_ACTION_UNSPEC:   return "(unspec)";
+    default:                         return "Unknown";
+    }
+}
+
+static void
+srv6_local_sid_params_str (struct srv6_local_sid_entry *entry,
+                           char *buf, size_t buflen)
+{
+  switch (entry->action)
+    {
+      case SEG6_LOCAL_ACTION_END:
+        snprintf (buf, buflen, "-");
+        break;
+      case SEG6_LOCAL_ACTION_END_X:
+        {
+          char nh6[INET6_ADDRSTRLEN];
+          char oif_name[IF_NAMESIZE] = { 0 };
+          inet_ntop (AF_INET6, &entry->param.nh6, nh6, sizeof (nh6));
+          if_indextoname (entry->oif, oif_name);
+          snprintf (buf, buflen, "nh6 %s oif %s", nh6, oif_name);
+          break;
+        }
+      case SEG6_LOCAL_ACTION_END_DX4:
+        {
+          char nh4[INET_ADDRSTRLEN];
+          char oif_name[IF_NAMESIZE] = { 0 };
+          inet_ntop (AF_INET, &entry->param.nh4, nh4, sizeof (nh4));
+          if_indextoname (entry->oif, oif_name);
+          snprintf (buf, buflen, "nh4 %s oif %s", nh4, oif_name);
+          break;
+        }
+      case SEG6_LOCAL_ACTION_END_DX6:
+        {
+          char nh6[INET6_ADDRSTRLEN];
+          char oif_name[IF_NAMESIZE] = { 0 };
+          inet_ntop (AF_INET6, &entry->param.nh6, nh6, sizeof (nh6));
+          if_indextoname (entry->oif, oif_name);
+          snprintf (buf, buflen, "nh6 %s oif %s", nh6, oif_name);
+          break;
+        }
+      case SEG6_LOCAL_ACTION_END_T:
+      case SEG6_LOCAL_ACTION_END_DT4:
+      case SEG6_LOCAL_ACTION_END_DT6:
+      case SEG6_LOCAL_ACTION_END_DT46:
+        snprintf (buf, buflen, "table %u", entry->param.table_id);
+        break;
+      default:
+        snprintf (buf, buflen, "-");
+        break;
+    }
+}
 
 CLI_COMMAND2 (set_srv6_local_sid,
               "set srv6 local-sid <WORD> (|<0-15>)",
@@ -38,15 +108,46 @@ CLI_COMMAND2 (set_srv6_local_sid,
     index = rib->rib_info->srv6_local_sid_addr_num;
   inet_pton (AF_INET6, argv[3],
              &srv6_local_sid.srv6_local_sid_addr);
+  srv6_local_sid.action = SEG6_LOCAL_ACTION_END;
   srv6_local_sid.srv6_local_sid_addr_index = index;
 
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_SRV6_LOCAL_SID,
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD,
                               &srv6_local_sid, sizeof (srv6_local_sid));
   ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
   if (ret < 0)
     {
       return CMD_FAILURE;
     }
+
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (no_set_srv6_local_sid,
+              "no set srv6 local-sid <WORD>",
+              NO_HELP,
+              SET_HELP,
+              "set SRv6 information\n",
+              "delete SRv6 local-SID entry\n",
+              "specify SRv6 local-SID address to delete\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  void *msgp;
+  struct internal_msg_srv6_local_sid msg;
+
+  memset (&msg, 0, sizeof (msg));
+  if (inet_pton (AF_INET6, argv[4], &msg.srv6_local_sid_addr) != 1)
+    {
+      fprintf (shell->terminal, "Invalid IPv6 address: %s%s", argv[4], shell->NL);
+      return CMD_FAILURE;
+    }
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL,
+                              &msg, sizeof (msg));
+  ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
+  if (ret < 0)
+    return CMD_FAILURE;
 
   return CMD_SUCCESS;
 }
@@ -59,7 +160,6 @@ CLI_COMMAND2 (show_srv6_local_sid,
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
-  char addr_str[64];
 
   if (! rib || ! rib->rib_info)
     return CMD_SUCCESS;
@@ -67,13 +167,31 @@ CLI_COMMAND2 (show_srv6_local_sid,
   int i;
   int limit = rib->rib_info->srv6_local_sid_addr_num;
 
+  fprintf (shell->terminal, "SRv6 Local SID Table:%s", shell->NL);
+  fprintf (shell->terminal, "  Total: %d %s%s",
+           limit, limit == 1 ? "entry" : "entries", shell->NL);
+
+  if (limit == 0)
+    return CMD_SUCCESS;
+
+  fprintf (shell->terminal, "  %-44s %-10s %s%s",
+           "SID", "Behavior", "Parameters", shell->NL);
+  fprintf (shell->terminal,
+           "  -------------------------------------------"
+           " ---------- ---------------------------%s", shell->NL);
+
   for (i = 0; i < limit; i++)
     {
-  inet_ntop (AF_INET6, &rib->rib_info->srv6_local_sid_addr[i],
-             addr_str, sizeof (addr_str));
-  fprintf (shell->terminal,
-           "srv6 local-sid addr[%d/%d]: %s%s",
-           i, limit, addr_str, shell->NL);
+      struct srv6_local_sid_entry *entry = &rib->rib_info->srv6_local_sid[i];
+      char sid_str[INET6_ADDRSTRLEN];
+      char params_str[64];
+
+      inet_ntop (AF_INET6, &entry->sid, sid_str, sizeof (sid_str));
+      srv6_local_sid_params_str (entry, params_str, sizeof (params_str));
+
+      fprintf (shell->terminal, "  %-44s %-10s %s%s",
+               sid_str, srv6_local_action_str (entry->action),
+               params_str, shell->NL);
     }
 
   return CMD_SUCCESS;
@@ -83,5 +201,6 @@ void
 srv6_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, set_srv6_local_sid);
+  INSTALL_COMMAND2 (cmdset, no_set_srv6_local_sid);
   INSTALL_COMMAND2 (cmdset, show_srv6_local_sid);
 }
