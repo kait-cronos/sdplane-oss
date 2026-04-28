@@ -485,6 +485,7 @@ _forwarding (struct rte_mbuf *m,
           ROUTER,
           "m: %p local route (table %u) but router_if unavailable (ifindex=%d)",
           m, fib_node->table_id, oif);
+      return;
     }
 
   DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s",
