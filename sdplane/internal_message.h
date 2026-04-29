@@ -5,7 +5,6 @@
 #include <rte_ring.h>
 #include <rte_ethdev.h>
 #include <sdplane/shell.h>
-
 #include "queue_config.h"
 #include "radix.h"
 
@@ -48,7 +47,8 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_MAC_ADDR_DEL          29
 #define INTERNAL_MSG_TYPE_IP_ADDR_ADD           30
 #define INTERNAL_MSG_TYPE_IP_ADDR_DEL           31
-#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID        32
+#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD    32
+#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL    33
 
 struct internal_msg_eth_link
 {
@@ -168,6 +168,14 @@ struct internal_msg_srv6_local_sid
 {
   struct in6_addr srv6_local_sid_addr;
   uint8_t srv6_local_sid_addr_index;
+  uint32_t action;
+  int oif;
+  union
+    {
+      uint32_t table_id;
+      struct in6_addr nh6;
+      struct in_addr nh4;
+    } param;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);

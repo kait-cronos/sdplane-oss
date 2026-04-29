@@ -239,7 +239,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
                                    &rib->rib_info->srv6_local_sid_addr[0]);
 #else
   modified = _process_srv6_packet_multi_sids (m, ipv6,
-                                   rib->rib_info->srv6_local_sid_addr,
+                                   rib->rib_info->srv6_local_sid,
                                    rib->rib_info->srv6_local_sid_addr_num);
 #endif
   /* if the packet's destination is modified, avoid split-horizon. */
