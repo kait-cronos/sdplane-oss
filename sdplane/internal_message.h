@@ -68,6 +68,12 @@ struct internal_msg_txrx_desc
   uint16_t ntxq;
   uint16_t nb_rxd;
   uint16_t nb_txd;
+  uint64_t rx_offload_mask;
+  uint64_t rx_offload_value;
+  uint64_t tx_offload_mask;
+  uint64_t tx_offload_value;
+  uint64_t rss_hf_mask;
+  uint64_t rss_hf_value;
 };
 
 struct internal_msg_vswitch

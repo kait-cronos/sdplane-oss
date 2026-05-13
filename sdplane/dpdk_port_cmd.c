@@ -95,6 +95,104 @@ struct flag_name tx_offload_capa[] = {
   { "SEND_ON_TIMESTAMP", RTE_ETH_TX_OFFLOAD_SEND_ON_TIMESTAMP },
 };
 
+struct flag_name rss_hf_flags[] = {
+  { "IPV4", RTE_ETH_RSS_IPV4 },
+  { "FRAG_IPV4", RTE_ETH_RSS_FRAG_IPV4 },
+  { "NONFRAG_IPV4_TCP", RTE_ETH_RSS_NONFRAG_IPV4_TCP },
+  { "NONFRAG_IPV4_UDP", RTE_ETH_RSS_NONFRAG_IPV4_UDP },
+  { "NONFRAG_IPV4_SCTP", RTE_ETH_RSS_NONFRAG_IPV4_SCTP },
+  { "NONFRAG_IPV4_OTHER", RTE_ETH_RSS_NONFRAG_IPV4_OTHER },
+  { "IPV6", RTE_ETH_RSS_IPV6 },
+  { "FRAG_IPV6", RTE_ETH_RSS_FRAG_IPV6 },
+  { "NONFRAG_IPV6_TCP", RTE_ETH_RSS_NONFRAG_IPV6_TCP },
+  { "NONFRAG_IPV6_UDP", RTE_ETH_RSS_NONFRAG_IPV6_UDP },
+  { "NONFRAG_IPV6_SCTP", RTE_ETH_RSS_NONFRAG_IPV6_SCTP },
+  { "NONFRAG_IPV6_OTHER", RTE_ETH_RSS_NONFRAG_IPV6_OTHER },
+  { "L2_PAYLOAD", RTE_ETH_RSS_L2_PAYLOAD },
+};
+
+#define RX_OFFLOAD_CAPA_SIZE (sizeof (rx_offload_capa) / sizeof (struct flag_name))
+#define TX_OFFLOAD_CAPA_SIZE (sizeof (tx_offload_capa) / sizeof (struct flag_name))
+#define RSS_HF_FLAGS_SIZE (sizeof (rss_hf_flags) / sizeof (struct flag_name))
+
+static uint64_t
+offload_flags_mask_all (struct flag_name *flags, int flags_size)
+{
+  int i;
+  uint64_t all = 0;
+
+  for (i = 0; i < flags_size; i++)
+    all |= flags[i].val;
+  return all;
+}
+
+static int
+offload_flag_from_word (const char *word, struct flag_name *flags, int flags_size,
+                uint64_t *out)
+{
+  /* Support multiple names separated by '|' (e.g. "A|B|C"). */
+  if (strchr (word, '|'))
+    {
+      char buf[256];
+      char *saveptr = NULL;
+      char *tok;
+      uint64_t total = 0;
+
+      if (strlen (word) >= sizeof (buf))
+        return -1;
+      strcpy (buf, word);
+      tok = strtok_r (buf, "|", &saveptr);
+      while (tok)
+        {
+          /* trim spaces */
+          while (*tok && isspace ((unsigned char) *tok))
+            tok++;
+          char *end = tok + strlen (tok) - 1;
+          while (end > tok && isspace ((unsigned char) *end))
+            *end-- = '\0';
+
+          uint64_t sub;
+          if (offload_flag_from_word (tok, flags, flags_size, &sub) < 0)
+            return -1;
+          total |= sub;
+          tok = strtok_r (NULL, "|", &saveptr);
+        }
+      *out = total;
+      return 0;
+    }
+
+  {
+    int i;
+    char *endptr = NULL;
+    uint64_t mask;
+
+    if (! strcmp (word, "all"))
+      {
+        *out = offload_flags_mask_all (flags, flags_size);
+        return 0;
+      }
+
+    errno = 0;
+    mask = strtoull (word, &endptr, 0);
+    if (errno == 0 && endptr && *endptr == '\0')
+      {
+        *out = mask;
+        return 0;
+      }
+
+    for (i = 0; i < flags_size; i++)
+      {
+        if (! strcmp (word, flags[i].name))
+          {
+            *out = flags[i].val;
+            return 0;
+          }
+      }
+  }
+
+  return -1;
+}
+
 CLI_COMMAND2 (start_stop_port, "(start|stop|reset) port (|<0-16>|all)",
               START_HELP, STOP_HELP, RESET_HELP, PORT_HELP, PORT_NUMBER_HELP,
               PORT_ALL_HELP)
@@ -242,6 +340,13 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
           fprintf (t, "  rx_offload_capa: <%s>%s", rx_offload_str, shell->NL);
           fprintf (t, "  tx_offload_capa: <%s>%s", tx_offload_str, shell->NL);
 
+          char rss_hf_str[256];
+          memset (rss_hf_str, 0, sizeof (rss_hf_str));
+          snprintf_flags (rss_hf_str, sizeof (rss_hf_str),
+                          dev_info.flow_type_rss_offloads, rss_hf_flags, "|",
+                          RSS_HF_FLAGS_SIZE);
+          fprintf (t, "  rss_hf_capa: <%s>%s", rss_hf_str, shell->NL);
+
           char rx_conf_str[128];
           char tx_conf_str[128];
           memset (rx_conf_str, 0, sizeof (rx_conf_str));
@@ -258,6 +363,33 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
                    shell->NL);
           fprintf (t, "  default_txconf.offloads: <%s>%s", tx_conf_str,
                    shell->NL);
+
+          if (rib_tlocal && rib_tlocal->rib_info && port_id < MAX_ETH_PORTS)
+            {
+              struct port_conf *port_cfg;
+              char cfg_rx_offload[128];
+              char cfg_tx_offload[128];
+              char cfg_rss_hf[256];
+              port_cfg = &rib_tlocal->rib_info->port[port_id];
+              memset (cfg_rx_offload, 0, sizeof (cfg_rx_offload));
+              memset (cfg_tx_offload, 0, sizeof (cfg_tx_offload));
+              memset (cfg_rss_hf, 0, sizeof (cfg_rss_hf));
+              snprintf_flags (cfg_rx_offload, sizeof (cfg_rx_offload),
+                              port_cfg->rx_offloads, rx_offload_capa, "|",
+                              RX_OFFLOAD_CAPA_SIZE);
+              snprintf_flags (cfg_tx_offload, sizeof (cfg_tx_offload),
+                              port_cfg->tx_offloads, tx_offload_capa, "|",
+                              TX_OFFLOAD_CAPA_SIZE);
+              snprintf_flags (cfg_rss_hf, sizeof (cfg_rss_hf),
+                              port_cfg->rss_hf, rss_hf_flags, "|",
+                              RSS_HF_FLAGS_SIZE);
+              fprintf (t, "  configured_rx_offloads: <%s>%s", cfg_rx_offload,
+                       shell->NL);
+              fprintf (t, "  configured_tx_offloads: <%s>%s", cfg_tx_offload,
+                       shell->NL);
+              fprintf (t, "  configured_rss_hf: <%s>%s", cfg_rss_hf,
+                       shell->NL);
+            }
 
           int i;
           uint32_t ptypes[32];
@@ -920,6 +1052,187 @@ CLI_COMMAND2 (set_port_txrx_desc,
   return CMD_SUCCESS;
 }
 
+CLI_COMMAND2 (
+    set_port_offload,
+    "set port (<0-16>|all) offload (rx|tx) <WORD> (on|off)",
+    SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+    "set port offload\n",
+    "set rx offload\n",
+    "set tx offload\n",
+    "offload name or bitmask (e.g. IPV4_CKSUM, RSS_HASH, all)\n",
+    "enable this offload\n",
+    "disable this offload\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int port_spec = -1;
+  uint16_t port_id, nb_ports;
+  bool set_rx;
+  bool enabled;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  set_rx = (! strcmp (argv[4], "rx"));
+  enabled = (! strcmp (argv[6], "on"));
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      struct rte_eth_dev_info dev_info;
+      uint64_t mask;
+      uint64_t capa;
+      int ret;
+      struct internal_msg_txrx_desc txrx_desc;
+      struct internal_msg_header *msgp;
+
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      ret = rte_eth_dev_info_get (port_id, &dev_info);
+      if (ret != 0)
+        {
+          fprintf (shell->terminal,
+                   "rte_eth_dev_info_get(): port: %d failed: %s%s", port_id,
+                   strerror (-ret), shell->NL);
+          continue;
+        }
+
+      if (set_rx)
+        {
+          if (offload_flag_from_word (argv[5], rx_offload_capa, RX_OFFLOAD_CAPA_SIZE,
+                              &mask) < 0)
+            {
+              fprintf (shell->terminal,
+                       "port[%d]: unknown rx offload: %s%s",
+                       port_id, argv[5], shell->NL);
+              continue;
+            }
+          capa = dev_info.rx_offload_capa;
+        }
+      else
+        {
+          if (offload_flag_from_word (argv[5], tx_offload_capa, TX_OFFLOAD_CAPA_SIZE,
+                              &mask) < 0)
+            {
+              fprintf (shell->terminal,
+                       "port[%d]: unknown tx offload: %s%s",
+                       port_id, argv[5], shell->NL);
+              continue;
+            }
+          capa = dev_info.tx_offload_capa;
+        }
+
+      mask &= capa;
+      if (! mask)
+        {
+          fprintf (shell->terminal,
+                   "port[%d]: offload %s is not supported on this port.%s",
+                   port_id, argv[5], shell->NL);
+          continue;
+        }
+
+      memset (&txrx_desc, 0, sizeof (txrx_desc));
+      txrx_desc.portid = port_id;
+      if (set_rx)
+        {
+          txrx_desc.rx_offload_mask = mask;
+          txrx_desc.rx_offload_value = enabled ? mask : 0;
+        }
+      else
+        {
+          txrx_desc.tx_offload_mask = mask;
+          txrx_desc.tx_offload_value = enabled ? mask : 0;
+        }
+
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC, &txrx_desc,
+                                  sizeof (txrx_desc));
+      ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
+      if (ret < 0)
+        return CMD_FAILURE;
+
+      fprintf (shell->terminal,
+               "port[%d]: set offload %s %s queued.%s",
+               port_id, argv[5], argv[6], shell->NL);
+    }
+
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (set_port_rss,
+              "set port (<0-16>|all) rss <WORD> (on|off)",
+              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port rss hash fields\n",
+              "rss hash field name or bitmask (e.g. IPV4, NONFRAG_IPV4_TCP, all)\n",
+              "enable rss hash field\n",
+              "disable rss hash field\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int port_spec = -1;
+  uint16_t port_id, nb_ports;
+  bool enabled;
+
+  if (strcmp (argv[2], "all"))
+    port_spec = strtol (argv[2], NULL, 0);
+
+  enabled = (! strcmp (argv[5], "on"));
+
+  nb_ports = rte_eth_dev_count_avail ();
+  for (port_id = 0; port_id < nb_ports; port_id++)
+    {
+      struct rte_eth_dev_info dev_info;
+      uint64_t mask;
+      int ret;
+      struct internal_msg_txrx_desc txrx_desc;
+      struct internal_msg_header *msgp;
+
+      if (port_spec != -1 && port_spec != port_id)
+        continue;
+
+      ret = rte_eth_dev_info_get (port_id, &dev_info);
+      if (ret != 0)
+        {
+          fprintf (shell->terminal,
+                   "rte_eth_dev_info_get(): port: %d failed: %s%s", port_id,
+                   strerror (-ret), shell->NL);
+          continue;
+        }
+
+      if (offload_flag_from_word (argv[4], rss_hf_flags, RSS_HF_FLAGS_SIZE, &mask)
+          < 0)
+        {
+          fprintf (shell->terminal,
+                   "port[%d]: unknown rss hash field: %s%s",
+                   port_id, argv[4], shell->NL);
+          continue;
+        }
+
+      mask &= dev_info.flow_type_rss_offloads;
+      if (! mask)
+        {
+          fprintf (shell->terminal,
+                   "port[%d]: rss field %s is not supported on this port.%s",
+                   port_id, argv[4], shell->NL);
+          continue;
+        }
+
+      memset (&txrx_desc, 0, sizeof (txrx_desc));
+      txrx_desc.portid = port_id;
+      txrx_desc.rss_hf_mask = mask;
+      txrx_desc.rss_hf_value = enabled ? mask : 0;
+      msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC, &txrx_desc,
+                                  sizeof (txrx_desc));
+      ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
+      if (ret < 0)
+        return CMD_FAILURE;
+
+      fprintf (shell->terminal,
+               "port[%d]: set rss %s %s queued.%s",
+               port_id, argv[4], argv[5], shell->NL);
+    }
+
+  return CMD_SUCCESS;
+}
+
 CLI_COMMAND2 (set_port_mtu,
               "set port (<0-16>|all) mtu <0-16384>",
               SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
@@ -1085,6 +1398,8 @@ dpdk_port_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_port_dev_configure);
   INSTALL_COMMAND2 (cmdset, set_port_txrx_desc);
   INSTALL_COMMAND2 (cmdset, set_port_mtu);
+  INSTALL_COMMAND2 (cmdset, set_port_offload);
+  INSTALL_COMMAND2 (cmdset, set_port_rss);
   INSTALL_COMMAND2 (cmdset, set_port_nb_txrx_queue);
   INSTALL_COMMAND2 (cmdset, set_port_link_updown);
 }

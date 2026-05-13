@@ -725,9 +725,6 @@ rib_check (struct rib *new)
         }
     }
 
-  struct rte_eth_conf port_conf =
-    { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, },
-    };
   struct rte_eth_dev_info dev_info;
 
   int ntxq;
@@ -742,6 +739,20 @@ rib_check (struct rib *new)
       int nrxq;
       nrxq = port_nrxq[i];
       rte_eth_dev_info_get (i, &dev_info);
+
+      struct rte_eth_conf port_conf =
+        { .txmode = { .mq_mode = RTE_ETH_MQ_TX_NONE, },
+        };
+      struct port_conf *port_cfg = &new->rib_info->port[i];
+
+      if (port_cfg->rx_offloads_valid)
+        port_conf.rxmode.offloads = port_cfg->rx_offloads;
+      if (port_cfg->tx_offloads_valid)
+        port_conf.txmode.offloads = port_cfg->tx_offloads;
+
+      port_conf.rxmode.offloads &= dev_info.rx_offload_capa;
+      port_conf.txmode.offloads &= dev_info.tx_offload_capa;
+
       if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE)
         port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
       else
@@ -751,15 +762,34 @@ rib_check (struct rib *new)
           port_conf.intr_conf.lsc = 1;
         }
 
-      if (new->rib_info->port[i].nrxq)
+      if (port_cfg->nrxq)
         {
-          if (nrxq < new->rib_info->port[i].nrxq)
-            nrxq = new->rib_info->port[i].nrxq;
+          if (nrxq < port_cfg->nrxq)
+            nrxq = port_cfg->nrxq;
         }
-      if (new->rib_info->port[i].ntxq)
+      if (port_cfg->ntxq)
         {
-          if (ntxq < new->rib_info->port[i].ntxq)
-            ntxq = new->rib_info->port[i].ntxq;
+          if (ntxq < port_cfg->ntxq)
+            ntxq = port_cfg->ntxq;
+        }
+
+      if (port_cfg->rss_hf_valid)
+        {
+          uint64_t rss_hf;
+          rss_hf = port_cfg->rss_hf & dev_info.flow_type_rss_offloads;
+          if (rss_hf)
+            {
+              port_conf.rxmode.mq_mode = RTE_ETH_MQ_RX_RSS;
+              port_conf.rx_adv_conf.rss_conf.rss_hf = rss_hf;
+              if (dev_info.rx_offload_capa & RTE_ETH_RX_OFFLOAD_RSS_HASH)
+                port_conf.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_RSS_HASH;
+            }
+          else
+            {
+              port_conf.rxmode.mq_mode = RTE_ETH_MQ_RX_NONE;
+              port_conf.rx_adv_conf.rss_conf.rss_hf = 0;
+              port_conf.rxmode.offloads &= (~RTE_ETH_RX_OFFLOAD_RSS_HASH);
+            }
         }
 
       DEBUG_NEW (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d",
@@ -768,9 +798,9 @@ rib_check (struct rib *new)
       rte_eth_dev_stop (i);
       ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
 
-      if (new->rib_info->port[i].mtu)
+      if (port_cfg->mtu)
         {
-          uint16_t mtu = new->rib_info->port[i].mtu;
+          uint16_t mtu = port_cfg->mtu;
           DEBUG_NEW (RIB, "port[%d]: dev_set_mtu: %d", i, mtu);
           ret = rte_eth_dev_set_mtu (i, mtu);
           if (ret < 0)
@@ -778,11 +808,11 @@ rib_check (struct rib *new)
         }
 
       nb_rxd = RX_DESC_DEFAULT;
-      if (new->rib_info->port[i].nb_rxd)
-        nb_rxd = new->rib_info->port[i].nb_rxd;
+      if (port_cfg->nb_rxd)
+        nb_rxd = port_cfg->nb_rxd;
       nb_txd = TX_DESC_DEFAULT;
-      if (new->rib_info->port[i].nb_txd)
-        nb_txd = new->rib_info->port[i].nb_txd;
+      if (port_cfg->nb_txd)
+        nb_txd = port_cfg->nb_txd;
 
       rxq_conf = dev_info.default_rxconf;
       rxq_conf.offloads = port_conf.rxmode.offloads;
@@ -1204,6 +1234,38 @@ rib_manager_process_message (void *msgp)
             new->rib_info->port[portid].nb_txd = msg_txrx_desc->nb_txd;
             DEBUG_NEW (RIB, "set port: %d nb_txd: %d",
                        portid, msg_txrx_desc->nb_txd);
+          }
+        if (msg_txrx_desc->rx_offload_mask)
+          {
+            new->rib_info->port[portid].rx_offloads =
+                (new->rib_info->port[portid].rx_offloads &
+                 (~msg_txrx_desc->rx_offload_mask)) |
+                (msg_txrx_desc->rx_offload_value &
+                 msg_txrx_desc->rx_offload_mask);
+            new->rib_info->port[portid].rx_offloads_valid = true;
+            DEBUG_NEW (RIB, "set port: %d rx_offloads: 0x%" PRIx64, portid,
+                       new->rib_info->port[portid].rx_offloads);
+          }
+        if (msg_txrx_desc->tx_offload_mask)
+          {
+            new->rib_info->port[portid].tx_offloads =
+                (new->rib_info->port[portid].tx_offloads &
+                 (~msg_txrx_desc->tx_offload_mask)) |
+                (msg_txrx_desc->tx_offload_value &
+                 msg_txrx_desc->tx_offload_mask);
+            new->rib_info->port[portid].tx_offloads_valid = true;
+            DEBUG_NEW (RIB, "set port: %d tx_offloads: 0x%" PRIx64, portid,
+                       new->rib_info->port[portid].tx_offloads);
+          }
+        if (msg_txrx_desc->rss_hf_mask)
+          {
+            new->rib_info->port[portid].rss_hf =
+                (new->rib_info->port[portid].rss_hf &
+                 (~msg_txrx_desc->rss_hf_mask)) |
+                (msg_txrx_desc->rss_hf_value & msg_txrx_desc->rss_hf_mask);
+            new->rib_info->port[portid].rss_hf_valid = true;
+            DEBUG_NEW (RIB, "set port: %d rss_hf: 0x%" PRIx64, portid,
+                       new->rib_info->port[portid].rss_hf);
           }
 
         //if (msg_txrx_desc->nrxq || msg_txrx_desc->ntxq)
