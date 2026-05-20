@@ -81,6 +81,12 @@ struct port_conf
   uint16_t ntxq;
   uint16_t nb_rxd;
   uint16_t nb_txd;
+  uint64_t rx_offloads;
+  uint64_t tx_offloads;
+  uint64_t rss_hf;
+  bool rx_offloads_valid;
+  bool tx_offloads_valid;
+  bool rss_hf_valid;
   struct rte_eth_link link;
   struct rte_eth_dev_info dev_info;
   bool is_stopped;
