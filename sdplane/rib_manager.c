@@ -1170,9 +1170,11 @@ rib_manager_process_message (void *msgp)
         }
 
       /* for qconf change, we need strict rib_check(). */
-      set_stop_flag (old);
+      if (old)
+        set_stop_flag (old);
       ret = rib_check (new);
-      delete_stop_flag (old);
+      if (old)
+        delete_stop_flag (old);
 
       /* if rib_check() is not a pass */
       if (ret < 0)
@@ -1439,9 +1441,11 @@ rib_manager_process_message (void *msgp)
                            msg_router_if_set->vlan_id);
 
         // set router_if ring
-        set_stop_flag (old);
+        if (old)
+          set_stop_flag (old);
         ret = rib_check (new);
-        delete_stop_flag (old);
+        if (old)
+          delete_stop_flag (old);
 
         /* if rib_check() is not a pass */
         if (ret < 0)
