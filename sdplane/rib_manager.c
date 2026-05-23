@@ -819,10 +819,17 @@ rib_check (struct rib *new)
             }
         }
 
+      /* Mellanox NICs does not seem to allow to set a tx-queue without
+         a rx-queue. Setting nrxq: 0, ntxq: 1 fails (actually, crashes)
+         in DPDK 24.11.4. */
+      if (nrxq == 0)
+        continue;
+
       DEBUG_NEW (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d",
                  i, nrxq, ntxq);
 
       rte_eth_dev_stop (i);
+
       ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
 
       if (port_cfg->mtu)
@@ -1298,7 +1305,7 @@ rib_manager_process_message (void *msgp)
           }
 
         //if (msg_txrx_desc->nrxq || msg_txrx_desc->ntxq)
-        if (startup_config_completed)
+        //if (startup_config_completed)
           {
             if (old)
               set_stop_flag (old);
