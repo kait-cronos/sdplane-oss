@@ -214,11 +214,20 @@ CLI_COMMAND2 (start_stop_port, "(start|stop|reset) port (|<0-16>|all)",
       if (! all && port_spec != -1 && port_spec != port_id)
         continue;
       if (! strcmp (argv[0], "start"))
-        ret = rte_eth_dev_start (port_id);
+        {
+          ret = rte_eth_dev_start (port_id);
+          DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_dev_start().", port_id);
+        }
       else if (! strcmp (argv[0], "stop"))
-        ret = rte_eth_dev_stop (port_id);
+        {
+          ret = rte_eth_dev_stop (port_id);
+          DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_dev_stop().", port_id);
+        }
       else if (! strcmp (argv[0], "reset"))
-        ret = rte_eth_dev_reset (port_id);
+        {
+          ret = rte_eth_dev_reset (port_id);
+          DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_dev_reset().", port_id);
+        }
       printf ("rte_eth_dev_%s (): ret: %d port: %u\n", argv[0], ret, port_id);
     }
   return 0;
@@ -904,6 +913,8 @@ CLI_COMMAND2 (set_port_dev_configure,
         port_conf.intr_conf.lsc = 1;
       }
 
+      DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_dev_configure(): "
+                 "nrxq: %d ntxq: %d", port_id, nb_rx_queue, nb_tx_queue);
       ret = rte_eth_dev_configure (port_id, nb_rx_queue, nb_tx_queue,
                                    &port_conf);
       if (ret < 0)
@@ -926,6 +937,8 @@ CLI_COMMAND2 (set_port_dev_configure,
       rxq_conf.offloads = port_conf.rxmode.offloads;
       for (i = 0; i < nb_rx_queue; i++)
         {
+          DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_rx_queue_setup(): "
+                     "queue: %d nrxdesc: %d", port_id, i, nb_rxd);
           ret = rte_eth_rx_queue_setup (port_id, i, nb_rxd,
                                         rte_eth_dev_socket_id (port_id),
                                         &rxq_conf, l2fwd_pktmbuf_pool);
@@ -942,6 +955,8 @@ CLI_COMMAND2 (set_port_dev_configure,
       txq_conf.offloads = port_conf.txmode.offloads;
       for (i = 0; i < nb_tx_queue; i++)
         {
+          DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_tx_queue_setup(): "
+                     "queue: %d ntxdesc: %d", port_id, i, nb_txd);
           ret = rte_eth_tx_queue_setup (
               port_id, i, nb_txd, rte_eth_dev_socket_id (port_id), &txq_conf);
           if (ret < 0)
@@ -1016,6 +1031,8 @@ CLI_COMMAND2 (set_port_txrx_desc,
                "port: %d nb_rxd: %hu nb_txd: %hu%s",
                port_id, nb_rx_desc, nb_tx_desc, shell->NL);
 
+      DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_dev_adjust_nb_rx_tx_desc(): "
+                 "nrxdesc: %d ntxdesc: %d", port_id, nb_rxd, nb_txd);
       ret = rte_eth_dev_adjust_nb_rx_tx_desc (port_id,
                                               &nb_rx_desc, &nb_tx_desc);
       if (ret < 0)

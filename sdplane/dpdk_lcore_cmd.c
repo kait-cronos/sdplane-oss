@@ -476,6 +476,7 @@ CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command\n")
       return -1;
     }
   rte_eal_init_done = true;
+  DEBUG_NEW (RTE_ETHDEV, "rte_eal_init(): done.");
   return 0;
 }
 
@@ -503,6 +504,7 @@ CLI_COMMAND2 (rte_eal_init_argv_list,
       return -1;
     }
   rte_eal_init_done = true;
+  DEBUG_NEW (RTE_ETHDEV, "rte_eal_init(): done.");
   return 0;
 }
 

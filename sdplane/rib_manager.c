@@ -828,9 +828,13 @@ rib_check (struct rib *new)
       DEBUG_NEW (RIB, "port[%d]: dev_configure: nrxq: %d ntxq: %d",
                  i, nrxq, ntxq);
 
+      DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_dev_stop().", i);
       rte_eth_dev_stop (i);
 
       ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
+      DEBUG_NEW (RTE_ETHDEV, "rte_eth_dev_configure(): ret: %d "
+                 "on port[%d]: nrxq: %d ntxq: %d",
+                 ret, i, nrxq, ntxq);
 
       if (port_cfg->mtu)
         {
@@ -839,6 +843,9 @@ rib_check (struct rib *new)
           ret = rte_eth_dev_set_mtu (i, mtu);
           if (ret < 0)
             WARNING ("port[%d]: dev_set_mtu: %d failed: %d", i, mtu, ret);
+          DEBUG_NEW (RTE_ETHDEV, "rte_eth_dev_set_mtu(): ret: %d "
+                 "on port[%d]: mtu: %d",
+                 ret, i, mtu);
         }
 
       nb_rxd = RX_DESC_DEFAULT;
@@ -860,6 +867,9 @@ rib_check (struct rib *new)
                                         &rxq_conf, l2fwd_pktmbuf_pool);
           DEBUG_NEW (RIB, "port[%d]: rx_queue_setup: rxq: %d rxd: %d",
                      i, j, nb_rxd);
+          DEBUG_NEW (RTE_ETHDEV,
+                     "port[%d]: rx_queue_setup: rxq: %d rxd: %d ret: %d",
+                     i, j, nb_rxd, ret);
         }
 
       txq_conf = dev_info.default_txconf;
@@ -870,6 +880,9 @@ rib_check (struct rib *new)
           ret = rte_eth_tx_queue_setup (i, j, nb_txd, socket, &txq_conf);
           DEBUG_NEW (RIB, "port[%d]: tx_queue_setup: txq: %d txd: %d",
                      i, j, nb_txd);
+          DEBUG_NEW (RTE_ETHDEV,
+                     "port[%d]: tx_queue_setup: txq: %d txd: %d ret: %d",
+                     i, j, nb_txd, ret);
 
           if (! tx_buffer_per_q[i][j])
             {
@@ -882,6 +895,7 @@ rib_check (struct rib *new)
             }
         }
 
+      DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_dev_start().", i);
       rte_eth_dev_start (i);
     }
 
