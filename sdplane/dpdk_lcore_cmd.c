@@ -310,7 +310,10 @@ CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
   return 0;
 }
 
-CLI_COMMAND2 (set_mempool, "set mempool", SET_HELP, "mempool\n")
+CLI_COMMAND2 (set_mempool,
+              "set mempool (|<1-32768>)",
+              SET_HELP,
+              "mempool\n")
 {
   struct shell *shell = (struct shell *) context;
   unsigned int nb_lcores = 0;
@@ -327,6 +330,9 @@ CLI_COMMAND2 (set_mempool, "set mempool", SET_HELP, "mempool\n")
   nb_mbufs = RTE_MAX (nb_ports * (nb_rxd + nb_txd + MAX_PKT_BURST +
                                   nb_lcores * MEMPOOL_CACHE_SIZE),
                       8192U);
+  if (argc > 2)
+    nb_mbufs = strtoul (argv[2], 0, NULL);
+
   fprintf (shell->terminal, "nb_mbufs: %u%s", nb_mbufs, shell->NL);
 
   if (l2fwd_pktmbuf_pool != NULL)
