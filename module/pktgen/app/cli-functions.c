@@ -193,7 +193,7 @@ static const char *range_help[] = {
     CLI_HELP_PAUSE,
     NULL};
 
-static int
+int
 range_cmd(int argc, char **argv)
 {
     struct cli_map *m;
@@ -1051,7 +1051,7 @@ static const char *enable_help[] = {
     CLI_HELP_PAUSE,
     NULL};
 
-static int
+int
 en_dis_cmd(int argc, char **argv)
 {
     struct cli_map *m;
@@ -2015,7 +2015,7 @@ static const char *rate_help[] = {
     CLI_HELP_PAUSE,
     NULL};
 
-static int
+int
 rate_cmd(int argc, char **argv)
 {
     struct cli_map *m;

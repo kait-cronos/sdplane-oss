@@ -82,9 +82,11 @@ cli_help_foreach(void (*func)(void *arg, const char **h), void *arg)
 {
     struct help_node *n;
 
+#if 0
     TAILQ_FOREACH (n, &this_cli->help_nodes, next) {
         func(arg, n->help_data);
     }
+#endif
 }
 
 struct help_node *
@@ -92,10 +94,12 @@ cli_help_find_group(const char *group)
 {
     struct help_node *n;
 
+#if 0
     TAILQ_FOREACH (n, &this_cli->help_nodes, next) {
         if (!strcmp(group, n->group))
             return n;
     }
+#endif
 
     return NULL;
 }
