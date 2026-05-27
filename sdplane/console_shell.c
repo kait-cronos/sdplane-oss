@@ -70,9 +70,8 @@ CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
   /* don't shell_close(): this closes stdout. */
   // shell_close (shell);
 
-  int nb_lcores = rte_lcore_count ();
   int lcore_id;
-  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
+  RTE_LCORE_FOREACH(lcore_id)
     stop_lcore (shell, lcore_id);
   return 0;
 }

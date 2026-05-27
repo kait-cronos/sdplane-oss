@@ -265,8 +265,8 @@ CLI_COMMAND2 (start_stop_worker,
   else
     lcore_spec = strtol (argv[3], NULL, 0);
 
-  nb_lcores = rte_lcore_count ();
-  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
+ 
+  RTE_LCORE_FOREACH(lcore_id)
     {
       if (lcore_spec != -1 && lcore_spec != lcore_id)
         continue;
@@ -287,16 +287,14 @@ CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
 {
   struct shell *shell = (struct shell *) context;
   unsigned int lcore_id;
-  uint32_t nb_lcores;
   unsigned int main_lcore_id;
   char *state;
   char flags[16];
   char lcore_name[16];
-  nb_lcores = rte_lcore_count ();
   main_lcore_id = rte_get_main_lcore ();
   fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s", "lcore", "flags", "state",
            "func_name", shell->NL);
-  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
+  RTE_LCORE_FOREACH(lcore_id)
     {
       snprintf (flags, sizeof (flags), "%s%s",
                 (rte_lcore_is_enabled (lcore_id) ? "enabled" : "disabled"),
@@ -477,6 +475,17 @@ CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command\n")
     }
   rte_eal_init_done = true;
   DEBUG_NEW (RTE_ETHDEV, "rte_eal_init(): done.");
+
+  int current_lcore = rte_lcore_id();
+  if(lthread_core != current_lcore)
+    {
+      DEBUG_NEW (WARNING, "lthread lcore changed: %d -> %d.",
+                 lthread_core, current_lcore);
+      fprintf (shell->terminal,
+               "lthread lcore changed: core[%d] -> core[%d]%s",
+               lthread_core, current_lcore, shell->NL);
+      lthread_core = current_lcore;
+    }
   return 0;
 }
 
