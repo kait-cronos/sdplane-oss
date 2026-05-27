@@ -177,7 +177,6 @@ struct rib_info
   uint8_t vswitch_size;
   uint8_t vswitch_link_size;
   uint8_t port_size;
-  uint8_t lcore_size;
   uint8_t application_slot_size;
   struct vswitch_conf vswitch[MAX_VSWITCH];
   struct vswitch_link vswitch_link[MAX_VSWITCH_LINK];
