@@ -680,7 +680,7 @@ rib_check (struct rib *new)
 
   /* check port's #rxq/#txq */
   int max_lcore = 0;
-  for (lcore = 0; lcore < new->rib_info->lcore_size; lcore++)
+  RTE_LCORE_FOREACH(lcore)
     {
       lcore_qconf = &new->rib_info->lcore_qconf[lcore];
       for (i = 0; i < lcore_qconf->nrxq; i++)
@@ -1007,9 +1007,6 @@ update_port_status (struct rib *new)
       new->rib_info->port[port_id].dpdk_port_id = port_id;
     }
 
-  uint16_t lcore_size;
-  lcore_size = rte_lcore_count ();
-  new->rib_info->lcore_size = lcore_size;
 }
 
 void
@@ -1169,10 +1166,7 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_QCONF:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_qconf: %p.", msgp);
       msg_qconf = (struct internal_msg_qconf *) (msg_header + 1);
-      uint16_t lcore_size;
-      lcore_size = rte_lcore_count ();
-      new->rib_info->lcore_size = lcore_size;
-      for (i = 0; i < lcore_size; i++)
+      RTE_LCORE_FOREACH(i)
         {
           if (msg_qconf->qconf[i].nrxq)
             {
