@@ -1418,6 +1418,14 @@ rib_manager_process_message (void *msgp)
         msg_vswitch_port_set =
             (struct internal_msg_vswitch_port *) (msg_header + 1);
 
+        DEBUG_NEW (TMP, "msg_vswitch_port_set: %p "
+                   "vswitch_id: %d port_id: %d tag: %d",
+                   msgp,
+                   msg_vswitch_port_set->vswitch_id,
+                   msg_vswitch_port_set->port_id,
+                   msg_vswitch_port_set->tag_id
+                   );
+
         vswitch =
             vswitch_lookup (new->rib_info, msg_vswitch_port_set->vswitch_id);
         if (! vswitch)
@@ -1436,6 +1444,10 @@ rib_manager_process_message (void *msgp)
                                msg_vswitch_port_set->tag_id);
             break;
           }
+
+        DEBUG_NEW (TMP, "msg_vswitch_port_set: %p "
+                   "vswitch: %p port: %p link: %p",
+                   msgp, vswitch, port, link);
 
         if (! msg_vswitch_port_set->is_tagged)
           {

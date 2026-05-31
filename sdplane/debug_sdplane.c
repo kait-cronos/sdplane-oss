@@ -62,6 +62,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_SIGNAL, "signal" },
   { DEBUG_SDPLANE_NEXTHOP, "nexthop" },
   { DEBUG_SDPLANE_RTE_ETHDEV, "rte-ethdev" },
+  { DEBUG_SDPLANE_TMP, "tmp-target" },
 };
 
 struct command_header debug_sdplane_cmd;
