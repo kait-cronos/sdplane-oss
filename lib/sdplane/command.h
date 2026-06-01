@@ -213,6 +213,24 @@ void command_config_write (struct vector *config, FILE *fp);
 #define NCLI23(n, s, h1, h2, ...) NCLI22 (n, s, LIST (h1, h2), __VA_ARGS__)
 #define NCLI24(n, s, h1, h2, ...) NCLI23 (n, s, LIST (h1, h2), __VA_ARGS__)
 
+#define NCLI25(n, s, h1, h2, ...) NCLI24 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI26(n, s, h1, h2, ...) NCLI25 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI27(n, s, h1, h2, ...) NCLI26 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI28(n, s, h1, h2, ...) NCLI27 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI29(n, s, h1, h2, ...) NCLI28 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI30(n, s, h1, h2, ...) NCLI29 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI31(n, s, h1, h2, ...) NCLI30 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI32(n, s, h1, h2, ...) NCLI31 (n, s, LIST (h1, h2), __VA_ARGS__)
+
+#define NCLI33(n, s, h1, h2, ...) NCLI32 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI34(n, s, h1, h2, ...) NCLI33 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI35(n, s, h1, h2, ...) NCLI34 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI36(n, s, h1, h2, ...) NCLI35 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI37(n, s, h1, h2, ...) NCLI36 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI38(n, s, h1, h2, ...) NCLI37 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI39(n, s, h1, h2, ...) NCLI38 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI40(n, s, h1, h2, ...) NCLI39 (n, s, LIST (h1, h2), __VA_ARGS__)
+
 /* CLI_COMMAND2() computes the number of args, 'X',
    and calls NCLI'X' */
 #define ZCMDSH_VARARG_COMMAND(...)  \
