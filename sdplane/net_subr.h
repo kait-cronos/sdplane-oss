@@ -137,7 +137,6 @@ _send_router_if_ring (struct rte_mbuf *m,
     }
 }
 
-
 static inline __attribute__ ((always_inline)) void
 _send_link (struct rte_mbuf *m,
             unsigned rx_portid, unsigned rx_queueid,
@@ -149,6 +148,11 @@ _send_link (struct rte_mbuf *m,
   uint16_t nb_ports;
   int sent;
   struct rte_mbuf *c;
+
+#if 0
+  DEBUG_NEW (ROUTER, "m: %p rxport: %d rxqueue: %d txport: %d txqueue: %d",
+             m, rx_portid, rx_queueid, tx_portid, tx_queueid);
+#endif
 
   nb_ports = rte_eth_dev_count_avail ();
 
@@ -168,9 +172,14 @@ _send_link (struct rte_mbuf *m,
                  tx_portid);
       return;
     }
+
   buffer = tx_buffer_per_q[tx_portid][tx_queueid];
   if (! buffer)
-    return;
+    {
+      DEBUG_NEW (ROUTER, "m: %p port[%d]: no buffer",
+                 m, tx_portid);
+      return;
+    }
 
   /* copy the packet */
   c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
@@ -240,7 +249,15 @@ _send_link (struct rte_mbuf *m,
 
   sent = rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, c);
   if (sent)
-    port_statistics[tx_portid].tx += sent;
+    {
+      port_statistics[tx_portid].tx += sent;
+#if 0
+      DEBUG_NEW (ROUTER, "m: %p successfully sent: port: %d queue: %u",
+                 m, tx_portid, tx_queueid);
+#endif
+    }
+  else
+      DEBUG_NEW (ROUTER, "m: %p port[%d]: send failed", m, tx_portid);
 }
 
 static inline __attribute__ ((always_inline)) int
@@ -323,8 +340,7 @@ _flooding (struct rte_mbuf *m,
            struct vswitch_conf *vswitch)
 {
   unsigned tx_queueid = lcore_id;
-  DEBUG_NEW (ROUTER,
-             "m: %p flooding to VLAN %u",
+  DEBUG_NEW (ROUTER, "m: %p flooding to VLAN %u",
              m, vswitch->vswitch_id);
 
   /* flood to all ports in the same vswitch */
@@ -336,18 +352,22 @@ _flooding (struct rte_mbuf *m,
 
       /* skip if the tx_port is stopped */
       if (unlikely (rib->rib_info->port[tx_portid].is_stopped))
-        continue;
+        {
+          DEBUG_NEW (ROUTER, "m: %p skipping stopped port: %d",
+                     m, tx_portid);
+          continue;
+        }
 
       /* send to DPDK ports according to the vswitch_link */
       _send_link (m, rx_portid, rx_queueid, rx_link,
                   tx_portid, tx_queueid, link);
     }
 
-    /* Flooding is also required for router_if */
-    struct router_if *rif = &vswitch->router_if;
-    if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID
-        && rif->sockfd >= 0 && rif->ring_up)
-      _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+  /* Flooding is also required for router_if */
+  struct router_if *rif = &vswitch->router_if;
+  if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID
+      && rif->sockfd >= 0 && rif->ring_up)
+    _send_router_if_ring (m, rx_portid, rx_queueid, rif);
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -360,15 +380,10 @@ _switching (struct rte_mbuf *m,
   /* for ARP replies from tap, we need L2 switching based on dst MAC */
 
   assert (vswitch);
-  DEBUG_NEW (ROUTER,
-             "m: %p packet from rx_port: %d rx_queue: %d "
-             "L2 switching: vswitch[%d]",
-             m, rx_portid, rx_queueid, vswitch->vswitch_id);
 
   if (vswitch->is_deleted)
     {
-      DEBUG_NEW (ROUTER,
-                 "vswitch[%d]: is deleted.",
+      DEBUG_NEW (ROUTER, "vswitch[%d]: is deleted.",
                  vswitch->vswitch_id);
       return;
     }
@@ -377,6 +392,7 @@ _switching (struct rte_mbuf *m,
   if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
+      DEBUG_NEW (ROUTER, "m: %p L2 switching: ether broadcast/multicast, flooding", m);
       _flooding (m, rx_portid, rx_queueid, rx_link, vswitch);
       return;
     }
@@ -407,7 +423,7 @@ _switching (struct rte_mbuf *m,
         }
     }
 
-  DEBUG_NEW (ROUTER, "m: %p L2 switching: dst MAC unknown, flooding", m);
+  DEBUG_NEW (ROUTER, "m: %p L2 switching: dst MAC not learned, flooding", m);
   _flooding (m, rx_portid, rx_queueid, rx_link, vswitch);
 
   return;
@@ -417,17 +433,28 @@ static inline __attribute__ ((always_inline)) void
 _forwarding (struct rte_mbuf *m,
              unsigned rx_portid, unsigned rx_queueid,
              struct rte_ether_hdr *eth, struct rte_ipv4_hdr *ipv4,
-             struct rte_ipv6_hdr *ipv6, struct vswitch_conf *vswitch,
-             struct vswitch_link *vswitch_link)
+             struct rte_ipv6_hdr *ipv6, struct vswitch_conf *rx_vswitch,
+             struct vswitch_link *rx_link)
 {
   struct nh_info *nh_info;
   struct neigh_entry *neigh_entry;
-  struct rte_ether_addr *dst_mac;
+  struct rte_ether_addr *dst_mac, *src_mac;
   struct fib_node *fib_node;
   uint8_t dst_ip[16] = { 0 };
   int i;
   struct vswitch_link *tx_link = NULL;
   int dst_port = -1, neigh_table_type;
+
+  char dest[64];
+  if (IS_DEBUG (ROUTING_LOOKUP))
+    {
+      if (ipv4)
+        inet_ntop (AF_INET, &ipv4->dst_addr, dest, sizeof (dest));
+      else
+        inet_ntop (AF_INET6, IPV6_ADDR_BYTES (ipv6->dst_addr),
+                   dest, sizeof (dest));
+      //DEBUG_LOG_MSG ("m: %p routing-lookup: dest: %s", m, dest);
+    }
 
   if (ipv4)
     memcpy (dst_ip, &ipv4->dst_addr, sizeof (ipv4->dst_addr));
@@ -439,9 +466,13 @@ _forwarding (struct rte_mbuf *m,
   fib_node = fib_route_lookup (rib->rib_info->fib_tree[tree_idx], dst_ip);
   if (! fib_node)
     {
-      DEBUG_NEW (ROUTER, "m: %p FIB lookup failed, drop", m);
+      DEBUG_NEW (ROUTING_LOOKUP,
+                 "m: %p routing-lookup: dest: %s FIB not found. drop.",
+                 m, dest);
+#if 0
       if (IS_DEBUG (ROUTER))
         log_packet (m, rx_portid, rx_queueid);
+#endif
       return;
     }
 
@@ -455,46 +486,52 @@ _forwarding (struct rte_mbuf *m,
   family = nh_info->family;
   oif = nh_info->oif;
   inet_ntop (family, &nh_info->gw, nexthop_str, sizeof (nexthop_str));
+
+  DEBUG_NEW (ROUTING_LOOKUP,
+             "m: %p: routing-lookup: dest: %s nexthop: %s oif: %d",
+             m, dest, nexthop_str, oif);
+  DEBUG_NEW (ROUTER, "m: %p route found: nexthop: %s",
+             m, nexthop_str);
+
   memcpy (lookup_ip, &nh_info->gw, sizeof (lookup_ip));
+  inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
+
   if (nh_info->type == NEXTHOP_TYPE_CONNECTED)
     {
       memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
       inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
-      DEBUG_NEW (
-          ROUTER,
-          "m: %p directly connected route, using dst IP for ARP lookup:%s",
-          m, lookup_ip_str);
+      DEBUG_NEW (ROUTER, "m: %p directly connected route. "
+                 "using dst IP for neighbor lookup: %s",
+                 m, lookup_ip_str);
     }
 
   if (fib_node->table_id == RT_TABLE_LOCAL)
     {
       struct router_if *target_rif;
-      target_rif = &vswitch->router_if;
+      target_rif = &rx_vswitch->router_if;
 
       if (target_rif && target_rif->sockfd >= 0 && target_rif->ring_up)
         {
-          DEBUG_NEW (
-              ROUTER,
-              "m: %p local route (table %u) -> router_if %s (ifindex=%d)", m,
-              fib_node->table_id, target_rif->tap_name, target_rif->ifindex);
+          DEBUG_NEW (ROUTER, "m: %p local route (table %u). "
+                     "sending to router_if %s (ifindex=%d)",
+                     m, fib_node->table_id, target_rif->tap_name,
+                     target_rif->ifindex);
           _send_router_if_ring (m, rx_portid, rx_queueid, target_rif);
-          return;
         }
-
-      DEBUG_NEW (
-          ROUTER,
-          "m: %p local route (table %u) but router_if unavailable (ifindex=%d)",
-          m, fib_node->table_id, oif);
+      else
+        {
+          DEBUG_NEW (ROUTER, "m: %p local route (table %u). "
+                     "but router_if unavailable (ifindex=%d)",
+                     m, fib_node->table_id, oif);
+        }
       return;
     }
-
-  DEBUG_NEW (ROUTER, "m: %p route found: nexthop=%s",
-             m, nexthop_str);
 
   /* neighbor table lookup */
   neigh_table_type = AF_TO_NEIGH_TABLE (family);
   neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
                         neigh_table_type, lookup_ip, &neigh_entry);
+
   if (! neigh_entry || rte_is_zero_ether_addr(&neigh_entry->mac_addr))
     {
       /* ARP/ND resolution */
@@ -554,11 +591,12 @@ _forwarding (struct rte_mbuf *m,
 
   char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
   rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str), dst_mac);
-  DEBUG_NEW (ROUTER, "m: %p neighbor lookup succeeded: MAC=%s",
-                     m, neigh_mac_str);
+  DEBUG_NEW (ROUTER, "m: %p neighbor lookup succeeded: "
+             "neighbour: %s lladdr: %s",
+             m, lookup_ip_str, neigh_mac_str);
 
-  /* search tx vswitch_link */
-  struct vswitch_conf *target_vswitch = NULL;
+  /* search the target vswitch */
+  struct vswitch_conf *tx_vswitch = NULL;
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
@@ -568,17 +606,39 @@ _forwarding (struct rte_mbuf *m,
 
       if (vs->router_if.ifindex == oif)
         {
-          target_vswitch = vs;
+          tx_vswitch = vs;
           break;
         }
     }
 
-  if (! target_vswitch)
+  if (! tx_vswitch)
     {
-      DEBUG_NEW (ROUTER, "m: %p vswitch not found for oif %d", m, oif);
+      DEBUG_NEW (ROUTER, "m: %p vswitch for oif %d: not found.", m, oif);
       return;
     }
 
+  /* rewrite L2/L3 header */
+  if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID)
+    {
+      if (ipv4)
+        {
+          ipv4->time_to_live--;
+          ipv4->hdr_checksum = 0;
+          ipv4->hdr_checksum = rte_ipv4_cksum (ipv4);
+        }
+      else if (ipv6)
+        ipv6->hop_limits--;
+
+      src_mac = &tx_vswitch->router_if.mac_addr;
+      rte_ether_addr_copy (src_mac, &eth->src_addr);
+      rte_ether_addr_copy (dst_mac, &eth->dst_addr);
+    }
+
+  DEBUG_NEW (ROUTER, "m: %p L2 switching for oif %d in vswitch[%d](vlan%d)",
+             m, oif, tx_vswitch->vswitch_id, tx_vswitch->vlan_id);
+  _switching (m, rx_portid, rx_queueid, NULL, tx_vswitch, eth);
+
+#if 0
   dst_port = fdb_lookup_entry (rib->rib_info, dst_mac, target_vswitch->vlan_id);
   if (dst_port < 0)
     {
@@ -612,29 +672,13 @@ _forwarding (struct rte_mbuf *m,
       return;
     }
 
-  /* rewrite L2/L3 header */
-  if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID)
-    {
-      if (ipv4)
-        {
-          ipv4->time_to_live--;
-          ipv4->hdr_checksum = 0;
-          ipv4->hdr_checksum = rte_ipv4_cksum (ipv4);
-        }
-      else if (ipv6)
-        ipv6->hop_limits--;
-
-      rte_ether_addr_copy (&target_vswitch->router_if.mac_addr,
-                           &eth->src_addr);
-      rte_ether_addr_copy (dst_mac, &eth->dst_addr);
-    }
-
   DEBUG_NEW (ROUTER, "m: %p forwarding to port %d via link %d",
                      m, dst_port, tx_link->vswitch_link_id);
 
   unsigned tx_queueid = lcore_id;
   _send_link (m, rx_portid, rx_queueid, vswitch_link,
               dst_port, tx_queueid, tx_link);
+#endif
 }
 
 static inline __attribute__ ((always_inline)) bool
