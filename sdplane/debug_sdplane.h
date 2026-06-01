@@ -49,6 +49,7 @@
 #define DEBUG_SDPLANE_NEXTHOP            (1ULL << 42)
 #define DEBUG_SDPLANE_RTE_ETHDEV         (1ULL << 43)
 #define DEBUG_SDPLANE_TMP                (1ULL << 44)
+#define DEBUG_SDPLANE_INTERFACE          (1ULL << 45)
 
 #define DEBUG_DOMAIN_OF_LTHREAD            SDPLANE
 #define DEBUG_DOMAIN_OF_CONSOLE            SDPLANE
@@ -94,6 +95,7 @@
 #define DEBUG_DOMAIN_OF_NEXTHOP            SDPLANE
 #define DEBUG_DOMAIN_OF_RTE_ETHDEV         SDPLANE
 #define DEBUG_DOMAIN_OF_TMP                SDPLANE
+#define DEBUG_DOMAIN_OF_INTERFACE          SDPLANE
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)

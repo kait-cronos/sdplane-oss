@@ -30,9 +30,13 @@
 
 #include "netlink_hook.h"
 
+#include "rib.h"
+
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 static __thread uint64_t loop_counter = 0;
+
+struct rib *rib = NULL;
 
 struct netlink_sock
 {
@@ -635,6 +639,28 @@ netlink_read_rtattr_encap (struct rtattr **rtns,
 }
 
 int
+netlink_oif_filter (int ifindex)
+{
+  if (! rib || ! rib->rib_info)
+    {
+      DEBUG_NEW (INTERFACE, "skip to check ifindex(%d): null rib.",
+                 ifindex);
+      return 0;
+    }
+
+  int i;
+  struct vswitch_conf *vswitch;
+  for (i = 0; i < rib->rib_info->vswitch_size; i++)
+    {
+      vswitch = &rib->rib_info->vswitch[i];
+      if (ifindex != 0 && vswitch->router_if.ifindex == ifindex)
+        return 1;
+    }
+
+  return 0;
+}
+
+int
 netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
 {
   if (h->nlmsg_len < NLMSG_LENGTH (sizeof (struct rtmsg)))
@@ -743,6 +769,9 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
         }
     }
 
+  int ifindex = 0;
+  char ifname[IF_NAMESIZE] = { 0 };
+
   /* RTA_GATEWAY / RTA_OIF: single nexthop. */
   if (rtns[RTA_GATEWAY] || rtns[RTA_OIF])
     {
@@ -767,8 +796,20 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
           member->info.type = NEXTHOP_TYPE_CONNECTED;
         }
 
-      member->info.oif = rtns[RTA_OIF] ? *(int *) RTA_DATA (rtns[RTA_OIF]) : 0;
-      if_indextoname (member->info.oif, member->info.oif_name);
+      ifindex = rtns[RTA_OIF] ? *(int *) RTA_DATA (rtns[RTA_OIF]) : 0;
+      if_indextoname (ifindex, ifname);
+
+      member->info.oif = ifindex;
+      memcpy (member->info.oif_name, ifname, IF_NAMESIZE);
+    }
+
+  int ret;
+  ret = netlink_oif_filter (ifindex);
+  if (ret == 0)
+    {
+      DEBUG_NEW (INTERFACE, "ifname: %s ifindex: %d out of domain.",
+                 ifname, ifindex);
+      return -1;
     }
 
   /* RTA_NH_ID: route references a kernel nexthop object by ID. */
@@ -825,7 +866,7 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
-  int ret = internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  ret = internal_msg_send_to (msg_queue_rib, msgp, NULL);
   if (ret < 0)
     {
       WARNING ("send imsg to msg_queue_rib (%p) failed.",
@@ -1224,6 +1265,8 @@ netlink_read (struct netlink_sock *nlsock)
 
   while (1)
     {
+      rib = rcu_dereference (rcu_global_ptr_rib);
+
       ret = recvmsg (nlsock->sockfd, &msg, flags);
       if (ret < 0)
         {
@@ -1432,6 +1475,11 @@ netlink_thread (void *arg)
     }                                                                         \
   while (0)
 
+
+    {
+      //urcu_qsbr_read_lock ();
+      rib = rcu_dereference (rcu_global_ptr_rib);
+
   NETLINK_REQUEST_CMD (AF_PACKET, RTM_GETLINK, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
@@ -1453,17 +1501,25 @@ netlink_thread (void *arg)
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETNEIGH, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
+      //urcu_qsbr_read_unlock ();
+      urcu_qsbr_quiescent_state ();
+    }
+
   while (! force_quit && ! force_stop[lthread_core])
     {
       if (IS_LTHREAD ())
         lthread_sleep (0); // yield.
       // DEBUG_SDPLANE_LOG (NETLINK, "%s: schedule.", __func__);
 
+      //urcu_qsbr_read_lock ();
+      rib = rcu_dereference (rcu_global_ptr_rib);
+
       netlink_read (&netlink_cmd);
       netlink_read (&netlink_kernel);
 
       netlink_hook_exec ();
 
+      //urcu_qsbr_read_unlock ();
       urcu_qsbr_quiescent_state ();
       loop_counter++;
     }
