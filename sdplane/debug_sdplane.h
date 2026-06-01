@@ -93,12 +93,9 @@
 #define DEBUG_DOMAIN_OF_NETLINK_HOOK       SDPLANE
 #define DEBUG_DOMAIN_OF_SIGNAL             SDPLANE
 #define DEBUG_DOMAIN_OF_NEXTHOP            SDPLANE
-<<<<<<< HEAD
 #define DEBUG_DOMAIN_OF_RTE_ETHDEV         SDPLANE
 #define DEBUG_DOMAIN_OF_TMP                SDPLANE
-=======
 #define DEBUG_DOMAIN_OF_INTERFACE          SDPLANE
->>>>>>> 714fb38 (filter out the route destined to Linux I/F.)
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)
