@@ -64,6 +64,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_RTE_ETHDEV, "rte-ethdev" },
   { DEBUG_SDPLANE_TMP, "tmp-target" },
   { DEBUG_SDPLANE_INTERFACE, "interface" },
+  { DEBUG_SDPLANE_ROUTING_LOOKUP, "routing-lookup" },
 };
 
 struct command_header debug_sdplane_cmd;
