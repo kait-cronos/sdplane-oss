@@ -206,15 +206,24 @@ l3_tap_handler_handle_packet_down ()
               pkt = rte_pktmbuf_mtod (m, char *);
               memcpy (pkt, data, size);
 
-              rte_ring_enqueue (vswitch->router_if.ring_dn, m);
-              DEBUG_NEW (TAPHANDLER,
-                         "vswitch[%d]: packet: sockfd %d -> ring_dn %d",
-                         vswitch_id,
-                         vswitch->router_if.sockfd,
-                         vswitch->router_if.tap_ring_id);
-
               if (IS_DEBUG (PACKET))
                 log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
+
+              /* after a successful enqueue, m is owned by the consumer
+                 (router lcore) and must not be touched here. */
+              if (rte_ring_enqueue (vswitch->router_if.ring_dn, m) != 0)
+                {
+                  DEBUG_NEW (TAPHANDLER,
+                             "vswitch[%d]: ring_dn full, drop packet",
+                             vswitch_id);
+                  rte_pktmbuf_free (m);
+                }
+              else
+                DEBUG_NEW (TAPHANDLER,
+                           "vswitch[%d]: packet: sockfd %d -> ring_dn %d",
+                           vswitch_id,
+                           vswitch->router_if.sockfd,
+                           vswitch->router_if.tap_ring_id);
             }
 	  else
               WARNING ("rte_pktmbuf_alloc() failed: ring_dn: drop %d bytes",

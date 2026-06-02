@@ -382,15 +382,23 @@ tap_handler_handle_packet_down ()
           // mp = pktmbuf_pool[vswport->dpdk_port_id][socket];
           mp = l2fwd_pktmbuf_pool;
           m = rte_pktmbuf_alloc (mp);
+          if (! m)
+            {
+              WARNING ("rte_pktmbuf_alloc() failed: drop %d bytes", ret);
+              continue;
+            }
           rte_pktmbuf_append (m, ret);
           pkt = rte_pktmbuf_mtod (m, char *);
           memcpy (pkt, data, ret);
 
           ring = ring_dn[vswport->dpdk_port_id][vswport->dpdk_queue_id];
-          rte_ring_enqueue (ring, m);
           DEBUG_SDPLANE_LOG (
               TAPHANDLER, "packet: sockfd %d -> ring_dn[%d][%d]",
               vswport->sockfd, vswport->dpdk_port_id, vswport->dpdk_queue_id);
+          /* after a successful enqueue, m is owned by the consumer and
+             must not be touched here. */
+          if (rte_ring_enqueue (ring, m) != 0)
+            rte_pktmbuf_free (m);
         }
     }
 }
