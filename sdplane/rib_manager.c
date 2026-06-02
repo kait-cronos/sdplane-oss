@@ -1186,6 +1186,7 @@ rib_manager_process_message (void *msgp)
       if (FLAG_CHECK (retflag, RIB_RETFLAG_RETURN_IMMEDIATELY))
         {
           rib_delete (new);
+          /* msgp is already freed inside rib_manager_process_port_get(). */
           return;
         }
       break;
