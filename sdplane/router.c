@@ -34,6 +34,8 @@
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
+int router_mode = 0; /* the normal/default mode. */
+
 #include "net_subr.h"
 
 static inline __attribute__ ((always_inline)) void
@@ -52,6 +54,12 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   struct rte_ipv4_hdr *ipv4 = NULL;
   struct rte_ipv6_hdr *ipv6 = NULL;
   struct rte_icmp_hdr *icmp = NULL;
+
+  if (router_mode == 1) /* process_rx_packet: the beginning. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
 
   eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
   eth_type = rte_be_to_cpu_16 (eth->ether_type);
@@ -234,6 +242,12 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (_verify_packet (m, ipv4, ipv6) != 0)
     {
       DEBUG_NEW (ROUTER, "m: %p failed verify", m);
+      return;
+    }
+
+  if (router_mode == 2) /* process_rx_packet: just before the forwarding. */
+    {
+      _debug_manual_send (m);
       return;
     }
 

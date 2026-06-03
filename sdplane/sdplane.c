@@ -164,6 +164,68 @@ CLI_COMMAND2 (show_mempool, "show mempool", SHOW_HELP, "show mempool.\n")
   return 0;
 }
 
+#if 0
+$ rg router_mode net_subr.h router.c
+router.c
+37:int router_mode = 0; /* the normal/default mode. */
+58:  if (router_mode == 1) /* process_rx_packet: the beginning. */
+248:  if (router_mode == 2) /* process_rx_packet: just before the forwarding. */
+
+net_subr.h
+140:extern int router_mode;
+361:  if (router_mode == 11) /* flooding: the beginning. */
+387:  if (router_mode == 12) /* flooding: after sending all ports, before router-if. */
+399:  if (router_mode == 13) /* flooding: after sending router-if. */
+433:  if (router_mode == 8) /* switching: just before the fdb-lookup */
+444:  if (router_mode == 9) /* switching: right after the fdb-lookup */
+471:  if (router_mode == 10) /* switching: just before the flooding */
+515:  if (router_mode == 3) /* forwarding: just before the routing-lookup. */
+536:  if (router_mode == 4) /* forwarding: right after the routing-lookup. */
+593:  if (router_mode == 5) /* forwarding: just before the neighbor-lookup. */
+604:  if (router_mode == 6) /* forwarding: right after the neighbor-lookup. */
+712:  if (router_mode == 7) /* forwarding: just before the switching. */
+#endif
+
+extern int router_mode;
+
+CLI_COMMAND2 (set_router_mode,
+              "set router mode (0|1|2|3|4|5|6|7|8|9|10|11|12|13|<14-24>)",
+              SET_HELP,
+              "set router mode.\n",
+              "set router mode.\n",
+              "the normal/default mode.\n",
+              "process_rx_packet: the beginning.\n",
+              "process_rx_packet: just before the forwarding.\n",
+              "forwarding: just before the routing-lookup.\n",
+              "forwarding: right after the routing-lookup.\n",
+              "forwarding: just before the neighbor-lookup.\n",
+              "forwarding: right after the neighbor-lookup.\n",
+              "forwarding: just before the switching.\n",
+              "switching: just before the fdb-lookup\n",
+              "switching: right after the fdb-lookup\n",
+              "switching: just before the flooding\n",
+              "flooding: the beginning.\n",
+              "flooding: after sending all ports, before router-if.\n",
+              "flooding: after sending router-if.\n",
+              "set router mode.\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  router_mode = strtol (argv[3], NULL, 0);
+  return 0;
+}
+
+CLI_COMMAND2 (show_router_mode,
+              "show router mode",
+              SHOW_HELP,
+              "show router mode.\n",
+              "show router mode.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  fprintf (shell->terminal, "router-mode: %d%s", router_mode, shell->NL);
+  return 0;
+}
+
 void
 shell_read_response_port_get (struct shell *shell,
                               struct internal_msg_header *imsghdr)
@@ -283,6 +345,9 @@ sdplane_cmd_init (struct command_set *cmdset)
   rte_flow_cmd_init (cmdset);
 
   srv6_cmd_init (cmdset);
+
+  INSTALL_COMMAND2 (cmdset, set_router_mode);
+  INSTALL_COMMAND2 (cmdset, show_router_mode);
 }
 
 void
