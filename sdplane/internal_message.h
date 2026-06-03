@@ -1,6 +1,7 @@
 #ifndef __INTERNAL_MESSAGE_H__
 #define __INTERNAL_MESSAGE_H__
 
+#include <linux/seg6.h>
 #include <stdint.h>
 #include <rte_ring.h>
 #include <rte_ethdev.h>
@@ -49,6 +50,7 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_IP_ADDR_DEL           31
 #define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD    32
 #define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL    33
+#define INTERNAL_MSG_TYPE_SRV6_ENCAP_SRH_ADD    34
 
 struct internal_msg_eth_link
 {
@@ -182,6 +184,14 @@ struct internal_msg_srv6_local_sid
       struct in6_addr nh6;
       struct in_addr nh4;
     } param;
+};
+
+struct internal_msg_srv6_encap_sid
+{
+  struct internal_msg_route_entry route;
+  uint8_t srv6_encap_sid_entry_index;
+  uint32_t action;
+  struct ipv6_sr_hdr hdr[];
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);

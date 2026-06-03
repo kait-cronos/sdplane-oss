@@ -1,5 +1,7 @@
 #include "include.h"
 
+#include <assert.h>
+#include <linux/seg6_iptunnel.h>
 #include <lthread.h>
 
 /* for sdplane debug log */
@@ -556,8 +558,7 @@ netlink_parse_seg6local (struct rtattr *rta, struct seg6local_param *param)
 }
 
 static int
-netlink_read_rtattr_encap (struct rtattr **rtns,
-                           const struct in6_addr *dst,
+netlink_read_rtattr_encap (struct internal_msg_route_entry* route,struct rtattr **rtns,
                            uint16_t nlmsg_type)
 {
   if (! rtns[RTA_ENCAP])
@@ -571,8 +572,17 @@ netlink_read_rtattr_encap (struct rtattr **rtns,
       memset (&seg6_param, 0, sizeof (seg6_param));
       netlink_parse_seg6 (rtns[RTA_ENCAP], &seg6_param);
       netlink_log_seg6 (&seg6_param);
-      return 0;
-      // TODO: support seg6 encap route entries.
+
+      int segment_count = seg6_param.seg6_tuninfo->srh->first_segment + 1;
+
+      void* msgp = internal_msg_create(INTERNAL_MSG_TYPE_SRV6_ENCAP_SRH_ADD, seg6_param.seg6_tuninfo, sizeof(struct internal_msg_srv6_encap_sid) + sizeof(struct ipv6_sr_hdr) + 16 * segment_count);
+      struct internal_msg_srv6_encap_sid* encap = internal_msg_body(msgp);
+      encap->route = *route;
+      encap->action = seg6_param.seg6_tuninfo->mode;
+      memcpy(encap->hdr,seg6_param.seg6_tuninfo->srh,sizeof(struct ipv6_sr_hdr) + 16 * segment_count);
+      if (msgp)
+            internal_msg_send_to (msg_queue_rib, msgp, NULL);
+      return 1;
     }
 
   if (encap_type == LWTUNNEL_ENCAP_SEG6_LOCAL)
@@ -584,7 +594,7 @@ netlink_read_rtattr_encap (struct rtattr **rtns,
 
       struct internal_msg_srv6_local_sid msg_sid;
       memset (&msg_sid, 0, sizeof (msg_sid));
-      memcpy (&msg_sid.srv6_local_sid_addr, dst, sizeof (struct in6_addr));
+      msg_sid.srv6_local_sid_addr = msg_sid.srv6_local_sid_addr;
       msg_sid.srv6_local_sid_addr_index = UINT8_MAX; /* auto-assign */
       msg_sid.action = seg6local_param.action;
       /* SEG6_LOCAL_OIF is often unset by iproute2; fall back to RTA_OIF. */
@@ -820,8 +830,7 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
     }
 
   /* RTA_ENCAP: SRv6 tunnel encapsulation. */
-  if (netlink_read_rtattr_encap (rtns, &msg_route_entry.dst.dst_ip_addr.ipv6_addr,
-                                 h->nlmsg_type))
+  if (netlink_read_rtattr_encap (&msg_route_entry,rtns,h->nlmsg_type))
     return 0;
 
   /* create and send internal message */

@@ -56,3 +56,6 @@ Makefile
 /tests/build
 /tests/logs
 compile_commands.json
+ltmain.sh
+.cache
+.vscode

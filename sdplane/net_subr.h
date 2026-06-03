@@ -474,6 +474,8 @@ _switching (struct rte_mbuf *m,
   return;
 }
 
+
+
 static inline __attribute__ ((always_inline)) void
 _forwarding (struct rte_mbuf *m,
              unsigned rx_portid, unsigned rx_queueid,
@@ -564,6 +566,10 @@ _forwarding (struct rte_mbuf *m,
       DEBUG_NEW (ROUTER, "m: %p directly connected route. "
                  "using dst IP for neighbor lookup: %s",
                  m, lookup_ip_str);
+    }
+  else if (nh_info->type == NEXTHOP_TYPE_ENCAP) 
+    {
+      
     }
 
   if (fib_node->table_id == RT_TABLE_LOCAL)

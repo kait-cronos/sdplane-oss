@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/wait.h>
-
 #include <lthread.h>
 
 #include <rte_common.h>

@@ -1,6 +1,8 @@
 #ifndef __RIB_H__
 #define __RIB_H__
 
+#include <linux/seg6.h>
+#include <netinet/in.h>
 #define MAX_TAP_IF              8
 #define MAX_ROUTER_IF           8
 #define MAX_VSWITCH_PORTS       16
@@ -148,16 +150,6 @@ struct fdb_entry
 
 
 
-struct srv6_local_sid_entry {
-  struct in6_addr sid;
-  uint32_t action;
-  int oif;
-  union {
-    struct in6_addr nh6;
-    struct in_addr nh4;
-    uint32_t table_id;
-  } param;
-};
 
 
 #define APPLI_SLOT_SIZE 32
@@ -190,6 +182,9 @@ struct rib_info
 #define MAX_SRV6_LOCAL_SID_ADDR_NUM 16
   struct srv6_local_sid_entry srv6_local_sid[MAX_SRV6_LOCAL_SID_ADDR_NUM];
   uint8_t srv6_local_sid_addr_num;
+#define MAX_SRV6_ENCAP_SID_ENTRY_NUM 16
+  struct srv6_encap_sid_entry srv6_encap_sid[MAX_SRV6_ENCAP_SID_ENTRY_NUM];
+  uint8_t srv6_encap_sid_entry_num;
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);
