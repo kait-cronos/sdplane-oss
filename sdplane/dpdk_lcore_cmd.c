@@ -477,7 +477,7 @@ CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command\n")
   DEBUG_NEW (RTE_ETHDEV, "rte_eal_init(): done.");
 
   int current_lcore = rte_lcore_id();
-  if(lthread_core != current_lcore)
+  if (lthread_core != current_lcore)
     {
       DEBUG_NEW (WARNING, "lthread lcore changed: %d -> %d.",
                  lthread_core, current_lcore);
