@@ -137,6 +137,21 @@ _send_router_if_ring (struct rte_mbuf *m,
     }
 }
 
+extern int router_mode;
+static inline __attribute__ ((always_inline)) void
+_debug_manual_send (struct rte_mbuf *m)
+{
+  unsigned tx_portid = 1;
+  unsigned tx_queueid;
+  struct rte_eth_dev_tx_buffer *buffer;
+  struct rte_mbuf *c;
+  tx_queueid = rte_lcore_id ();
+  buffer = tx_buffer_per_q[tx_portid][tx_queueid];
+  c = rte_pktmbuf_copy (m, m->pool, 0, UINT32_MAX);
+  if (c)
+    rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, c);
+}
+
 static inline __attribute__ ((always_inline)) void
 _send_link (struct rte_mbuf *m,
             unsigned rx_portid, unsigned rx_queueid,
@@ -343,6 +358,12 @@ _flooding (struct rte_mbuf *m,
   DEBUG_NEW (ROUTER, "m: %p flooding to VLAN %u",
              m, vswitch->vswitch_id);
 
+  if (router_mode == 11) /* flooding: the beginning. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
   /* flood to all ports in the same vswitch */
   for (int i = 0; i < vswitch->vswitch_port_size; i++)
     {
@@ -363,11 +384,23 @@ _flooding (struct rte_mbuf *m,
                   tx_portid, tx_queueid, link);
     }
 
+  if (router_mode == 12) /* flooding: after sending all ports, before router-if. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
   /* Flooding is also required for router_if */
   struct router_if *rif = &vswitch->router_if;
   if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID
       && rif->sockfd >= 0 && rif->ring_up)
     _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+
+  if (router_mode == 13) /* flooding: after sending router-if. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -397,10 +430,22 @@ _switching (struct rte_mbuf *m,
       return;
     }
 
+  if (router_mode == 8) /* switching: just before the fdb-lookup */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
   /* L2 switching: lookup dst MAC in FDB */
   int dst_port = -1;
   dst_port =
       fdb_lookup_entry (rib->rib_info, &eth->dst_addr, vswitch->vlan_id);
+
+  if (router_mode == 9) /* switching: right after the fdb-lookup */
+    {
+      _debug_manual_send (m);
+      return;
+    }
 
   /* search for the destination MAC in FDB */
   if (dst_port >= 0)
@@ -421,6 +466,12 @@ _switching (struct rte_mbuf *m,
               return;
             }
         }
+    }
+
+  if (router_mode == 10) /* switching: just before the flooding */
+    {
+      _debug_manual_send (m);
+      return;
     }
 
   DEBUG_NEW (ROUTER, "m: %p L2 switching: dst MAC not learned, flooding", m);
@@ -461,6 +512,12 @@ _forwarding (struct rte_mbuf *m,
   else if (ipv6)
     memcpy (dst_ip, IPV6_ADDR_BYTES (ipv6->dst_addr), RTE_IPV6_ADDR_SIZE);
 
+  if (router_mode == 3) /* forwarding: just before the routing-lookup. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
   /* FIB lookup */
   int tree_idx = (ipv4) ? 0 : 1; // IPv4=0, IPv6=1
   fib_node = fib_route_lookup (rib->rib_info->fib_tree[tree_idx], dst_ip);
@@ -473,6 +530,12 @@ _forwarding (struct rte_mbuf *m,
       if (IS_DEBUG (ROUTER))
         log_packet (m, rx_portid, rx_queueid);
 #endif
+      return;
+    }
+
+  if (router_mode == 4) /* forwarding: right after the routing-lookup. */
+    {
+      _debug_manual_send (m);
       return;
     }
 
@@ -527,10 +590,22 @@ _forwarding (struct rte_mbuf *m,
       return;
     }
 
+  if (router_mode == 5) /* forwarding: just before the neighbor-lookup. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
   /* neighbor table lookup */
   neigh_table_type = AF_TO_NEIGH_TABLE (family);
   neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
                         neigh_table_type, lookup_ip, &neigh_entry);
+
+  if (router_mode == 6) /* forwarding: right after the neighbor-lookup. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
 
   if (! neigh_entry || rte_is_zero_ether_addr(&neigh_entry->mac_addr))
     {
@@ -634,51 +709,15 @@ _forwarding (struct rte_mbuf *m,
       rte_ether_addr_copy (dst_mac, &eth->dst_addr);
     }
 
+  if (router_mode == 7) /* forwarding: just before the switching. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
   DEBUG_NEW (ROUTER, "m: %p L2 switching for oif %d in vswitch[%d](vlan%d)",
              m, oif, tx_vswitch->vswitch_id, tx_vswitch->vlan_id);
   _switching (m, rx_portid, rx_queueid, NULL, tx_vswitch, eth);
-
-#if 0
-  dst_port = fdb_lookup_entry (rib->rib_info, dst_mac, target_vswitch->vlan_id);
-  if (dst_port < 0)
-    {
-      DEBUG_NEW (ROUTER, "m: %p FDB lookup failed, drop", m);
-      return;
-    }
-
-  for (i = 0; i < target_vswitch->vswitch_port_size; i++)
-    {
-      uint16_t link_id = target_vswitch->vswitch_link_id[i];
-      struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
-
-      if (link->port_id == dst_port)
-        {
-          tx_link = link;
-          break;
-        }
-    }
-
-  if (! tx_link)
-    {
-      DEBUG_NEW (ROUTER, "m: %p FDB lookup failed, send to router_if",
-                         m);
-      return;
-    }
-
-  /* check if tx_port is stopped */
-  if (unlikely (rib->rib_info->port[dst_port].is_stopped))
-    {
-      DEBUG_NEW (ROUTER, "m: %p tx_port %d is stopped", m, dst_port);
-      return;
-    }
-
-  DEBUG_NEW (ROUTER, "m: %p forwarding to port %d via link %d",
-                     m, dst_port, tx_link->vswitch_link_id);
-
-  unsigned tx_queueid = lcore_id;
-  _send_link (m, rx_portid, rx_queueid, vswitch_link,
-              dst_port, tx_queueid, tx_link);
-#endif
 }
 
 static inline __attribute__ ((always_inline)) bool
