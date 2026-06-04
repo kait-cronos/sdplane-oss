@@ -299,6 +299,30 @@ CLI_COMMAND2 (show_rib_capture_if,
   return 0;
 }
 
+CLI_COMMAND2 (set_fdb_entry,
+              "set fdb port <0-8> vlan <0-4096> lladdr <WORD>",
+              SET_HELP,
+              "set fdb entry\n",
+              "set fdb entry port\n",
+              "set fdb entry port\n",
+              "set fdb entry vlan\n",
+              "set fdb entry vlan\n",
+              "set fdb entry lladdr\n",
+              "set fdb entry lladdr\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_fdb_entry fdb_entry_add;
+  struct internal_msg_header *msgp;
+
+  rte_ether_unformat_addr (argv[7], &fdb_entry_add.mac_addr);
+  fdb_entry_add.port = strtol (argv[3], NULL, 0);
+  fdb_entry_add.vlan_id = strtol (argv[5], NULL, 0);
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_FDB_ENTRY_ADD, &fdb_entry_add,
+                              sizeof (fdb_entry_add));
+  shell_rib_send_message (msgp, shell);
+}
+
 CLI_COMMAND2 (show_fdb,
               "show fdb",
               SHOW_HELP,
@@ -946,6 +970,7 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib_vswitch_link);
   INSTALL_COMMAND2 (cmdset, show_rib_router_if);
   INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
+  INSTALL_COMMAND2 (cmdset, set_fdb_entry);
   INSTALL_COMMAND2 (cmdset, show_fdb);
   INSTALL_COMMAND2 (cmdset, show_neighbor);
   INSTALL_COMMAND2 (cmdset, show_vswitch);

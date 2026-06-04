@@ -165,31 +165,30 @@ CLI_COMMAND2 (show_mempool, "show mempool", SHOW_HELP, "show mempool.\n")
 }
 
 #if 0
-$ rg router_mode net_subr.h router.c
+$ rg router_mode router.c net_subr.h
 router.c
-37:int router_mode = 0; /* the normal/default mode. */
+37:volatile int router_mode = 0; /* the normal/default mode. */
 58:  if (router_mode == 1) /* process_rx_packet: the beginning. */
 248:  if (router_mode == 2) /* process_rx_packet: just before the forwarding. */
 
 net_subr.h
-140:extern int router_mode;
+140:extern volatile int router_mode;
 361:  if (router_mode == 11) /* flooding: the beginning. */
-387:  if (router_mode == 12) /* flooding: after sending all ports, before router-if. */
-399:  if (router_mode == 13) /* flooding: after sending router-if. */
-433:  if (router_mode == 8) /* switching: just before the fdb-lookup */
-444:  if (router_mode == 9) /* switching: right after the fdb-lookup */
-471:  if (router_mode == 10) /* switching: just before the flooding */
-515:  if (router_mode == 3) /* forwarding: just before the routing-lookup. */
-536:  if (router_mode == 4) /* forwarding: right after the routing-lookup. */
-593:  if (router_mode == 5) /* forwarding: just before the neighbor-lookup. */
-604:  if (router_mode == 6) /* forwarding: right after the neighbor-lookup. */
-712:  if (router_mode == 7) /* forwarding: just before the switching. */
+387:  if (router_mode == 12) /* flooding: after sending all ports, without sending router-if. */
+427:  if (router_mode == 8) /* switching: just before the fdb-lookup */
+438:  if (router_mode == 9) /* switching: right after the fdb-lookup */
+465:  if (router_mode == 10) /* switching: just before the flooding */
+509:  if (router_mode == 3) /* forwarding: just before the routing-lookup. */
+530:  if (router_mode == 4) /* forwarding: right after the routing-lookup. */
+591:  if (router_mode == 5) /* forwarding: just before the neighbor-lookup. */
+602:  if (router_mode == 6) /* forwarding: right after the neighbor-lookup. */
+711:  if (router_mode == 7) /* forwarding: just before the switching. */
 #endif
 
-extern int router_mode;
+extern volatile int router_mode;
 
 CLI_COMMAND2 (set_router_mode,
-              "set router mode (0|1|2|3|4|5|6|7|8|9|10|11|12|13|<14-24>)",
+              "set router mode (0|1|2|3|4|5|6|7|8|9|10|11|12)",
               SET_HELP,
               "set router mode.\n",
               "set router mode.\n",
@@ -205,9 +204,7 @@ CLI_COMMAND2 (set_router_mode,
               "switching: right after the fdb-lookup\n",
               "switching: just before the flooding\n",
               "flooding: the beginning.\n",
-              "flooding: after sending all ports, before router-if.\n",
-              "flooding: after sending router-if.\n",
-              "set router mode.\n"
+              "flooding: after sending all ports, without sending router-if.\n"
               )
 {
   struct shell *shell = (struct shell *) context;
