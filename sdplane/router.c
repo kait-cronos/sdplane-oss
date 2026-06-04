@@ -34,7 +34,7 @@
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
-int router_mode = 0; /* the normal/default mode. */
+volatile int router_mode = 0; /* the normal/default mode. */
 
 #include "net_subr.h"
 

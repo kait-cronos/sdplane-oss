@@ -137,7 +137,7 @@ _send_router_if_ring (struct rte_mbuf *m,
     }
 }
 
-extern int router_mode;
+extern volatile int router_mode;
 static inline __attribute__ ((always_inline)) void
 _debug_manual_send (struct rte_mbuf *m)
 {
@@ -384,9 +384,9 @@ _flooding (struct rte_mbuf *m,
                   tx_portid, tx_queueid, link);
     }
 
-  if (router_mode == 12) /* flooding: after sending all ports, before router-if. */
+  if (router_mode == 12) /* flooding: after sending all ports, without sending router-if. */
     {
-      _debug_manual_send (m);
+      //_debug_manual_send (m);
       return;
     }
 
@@ -395,12 +395,6 @@ _flooding (struct rte_mbuf *m,
   if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID
       && rif->sockfd >= 0 && rif->ring_up)
     _send_router_if_ring (m, rx_portid, rx_queueid, rif);
-
-  if (router_mode == 13) /* flooding: after sending router-if. */
-    {
-      _debug_manual_send (m);
-      return;
-    }
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -548,7 +542,9 @@ _forwarding (struct rte_mbuf *m,
   nh_info = nexthop_get_info_by_index (rib->rib_info, fib_node->sdplane_nh_id);
   family = nh_info->family;
   oif = nh_info->oif;
-  inet_ntop (family, &nh_info->gw, nexthop_str, sizeof (nexthop_str));
+
+  if (IS_DEBUG (ROUTING_LOOKUP) || IS_DEBUG (ROUTER))
+    inet_ntop (family, &nh_info->gw, nexthop_str, sizeof (nexthop_str));
 
   DEBUG_NEW (ROUTING_LOOKUP,
              "m: %p: routing-lookup: dest: %s nexthop: %s oif: %d",
@@ -557,12 +553,14 @@ _forwarding (struct rte_mbuf *m,
              m, nexthop_str);
 
   memcpy (lookup_ip, &nh_info->gw, sizeof (lookup_ip));
-  inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
+  if (IS_DEBUG (ROUTER))
+    inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
 
   if (nh_info->type == NEXTHOP_TYPE_CONNECTED)
     {
       memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
-      inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
+      if (IS_DEBUG (ROUTER))
+        inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
       DEBUG_NEW (ROUTER, "m: %p directly connected route. "
                  "using dst IP for neighbor lookup: %s",
                  m, lookup_ip_str);
@@ -665,7 +663,8 @@ _forwarding (struct rte_mbuf *m,
   dst_mac = &neigh_entry->mac_addr;
 
   char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
-  rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str), dst_mac);
+  if (IS_DEBUG (ROUTER))
+    rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str), dst_mac);
   DEBUG_NEW (ROUTER, "m: %p neighbor lookup succeeded: "
              "neighbour: %s lladdr: %s",
              m, lookup_ip_str, neigh_mac_str);

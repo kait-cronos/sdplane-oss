@@ -64,26 +64,6 @@ capture_if_delete (struct rib_info *rib_info, uint16_t vswitch_id);
  * common
  */
 
-static inline __attribute__ ((always_inline)) uint32_t
-jenkins_hash (uint8_t *key, int key_len)
-{
-  int i;
-  uint32_t hash = 0;
-
-  hash = 0;
-  for (i = 0; i < key_len; i++)
-    {
-      hash += key[i];
-      hash += hash << 10;
-      hash ^= hash >> 6;
-    }
-  hash += hash << 3;
-  hash ^= hash >> 11;
-  hash += hash << 15;
-
-  return hash;
-}
-
 /*
  * vswitch
  */
@@ -401,21 +381,6 @@ port_qconf_compare (const void *a, const void *b)
  * fdb
  */
 
-static inline __attribute__ ((always_inline)) uint32_t
-fdb_jenkins_hash (const struct rte_ether_addr *mac_addr, uint16_t vlan_id)
-{
-  uint8_t data[RTE_ETHER_ADDR_LEN + sizeof (uint16_t)];
-
-  // Copy MAC address
-  memcpy (data, mac_addr->addr_bytes, RTE_ETHER_ADDR_LEN);
-
-  // Copy VLAN ID in network byte order for consistent hashing
-  uint16_t vlan_be = rte_cpu_to_be_16 (vlan_id);
-  memcpy (data + RTE_ETHER_ADDR_LEN, &vlan_be, sizeof (uint16_t));
-
-  return jenkins_hash (data, sizeof (data)) & FDB_HASH_MASK;
-}
-
 static inline __attribute__ ((always_inline)) int
 fdb_add_entry (struct rib_info *rib_info,
                const struct rte_ether_addr *mac_addr, uint16_t vlan_id,
@@ -435,7 +400,7 @@ fdb_add_entry (struct rib_info *rib_info,
           rib_info->fdb[offset].port = port;
           rib_info->fdb[offset].last_seen = current_time;
           rib_info->fdb[offset].state = FDB_STATE_ACTIVE;
-          DEBUG_SDPLANE_LOG (FDB, "updated fdb[%u]: port %d", offset, port);
+          DEBUG_NEW (FDB, "updated fdb[%u]: port %d", offset, port);
           return offset;
         }
 
@@ -444,7 +409,7 @@ fdb_add_entry (struct rib_info *rib_info,
         offset = 0;
       if (offset == hash)
         {
-          DEBUG_SDPLANE_LOG (FDB, "fdb table is full.");
+          DEBUG_NEW (FDB, "fdb table is full.");
           return -1;
         }
     }
@@ -457,11 +422,12 @@ fdb_add_entry (struct rib_info *rib_info,
 
   char mac_str[32];
   rte_ether_format_addr (mac_str, sizeof (mac_str), mac_addr);
-  DEBUG_SDPLANE_LOG (FDB, "added fdb[%u]: %s vlan:%u port:%d", offset, mac_str,
-                     vlan_id, port);
+  DEBUG_NEW (FDB, "added fdb[%u]: %s vlan:%u port:%d",
+             offset, mac_str, vlan_id, port);
   return offset;
 }
 
+#if 0
 int
 fdb_lookup_entry (const struct rib_info *rib_info,
                   const struct rte_ether_addr *mac_addr, uint16_t vlan_id)
@@ -471,10 +437,13 @@ fdb_lookup_entry (const struct rib_info *rib_info,
   hash = fdb_jenkins_hash (mac_addr, vlan_id);
   offset = hash;
 
-  char mac_str[32];
-  rte_ether_format_addr (mac_str, sizeof (mac_str), mac_addr);
-  DEBUG_NEW (FDB, "fdb_lookup: %s vlan: %u offset: %u.",
-             mac_str, vlan_id, offset);
+  if (IS_DEBUG (FDB))
+    {
+      char mac_str[32];
+      rte_ether_format_addr (mac_str, sizeof (mac_str), mac_addr);
+      DEBUG_LOG_MSG ("fdb_lookup: %s vlan: %u offset: %u.",
+                     mac_str, vlan_id, offset);
+    }
 
   //while (rib_info->fdb[offset].state != FDB_STATE_NONE)
   while (1)
@@ -501,6 +470,7 @@ fdb_lookup_entry (const struct rib_info *rib_info,
   DEBUG_SDPLANE_LOG (FDB, "lookup missed");
   return -1;
 }
+#endif
 
 static inline __attribute__ ((always_inline)) void
 fdb_aging_process (struct rib_info *rib_info, time_t max_age)
