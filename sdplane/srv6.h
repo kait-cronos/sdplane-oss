@@ -9,6 +9,7 @@
 #endif
 #include "rte_override.h"
 #include "debug_sdplane.h"
+#include "nexthop.h"
 
 static inline __attribute__ ((always_inline)) bool
 _process_srv6_packet (struct rte_mbuf *m,
@@ -83,8 +84,7 @@ _process_srv6_packet (struct rte_mbuf *m,
 static inline __attribute__ ((always_inline)) bool
 _process_srv6_packet_multi_sids (struct rte_mbuf *m,
                       struct rte_ipv6_hdr *ipv6,
-                      struct srv6_local_sid_entry *srv6_local_sid,
-                      int num_sids)
+                      struct srv6_local_sid_entry *srv6_local_sid)
 {
   bool modified = false;
 
@@ -133,19 +133,6 @@ _process_srv6_packet_multi_sids (struct rte_mbuf *m,
   dst_addr = (void *) &ipv6->dst_addr.a;
 #endif
 
-  /* if the IPv6 destination is not our local End SID, return */
-  int i;
-  int match = 0;
-  for (i = 0; i < num_sids; i++)
-    {
-      if (! memcmp (dst_addr, &srv6_local_sid[i].sid, 16))
-        match++;
-    }
-  if (match == 0)
-    {
-      DEBUG_NEW (ROUTER, "m: %p: local_end_sid mismatch with any sids", m);
-      return modified;
-    }
 
   srh->segments_left --;
 

@@ -7,12 +7,14 @@
 #include <linux/rtnetlink.h>
 
 #include "internal_message.h"
+#include "nexthop.h"
 #include "packet_gen.h"
 #include "neigh_manager.h"
 #include "rib_manager.h"
 #include "packet_hdr.h"
 #include "log_packet.h"
 #include "control_packet.h"
+#include "srv6.h"
 
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
@@ -492,6 +494,7 @@ _forwarding (struct rte_mbuf *m,
   struct vswitch_link *tx_link = NULL;
   int dst_port = -1, neigh_table_type;
 
+RETRY:
   char dest[64];
   if (IS_DEBUG (ROUTING_LOOKUP))
     {
@@ -567,9 +570,22 @@ _forwarding (struct rte_mbuf *m,
                  "using dst IP for neighbor lookup: %s",
                  m, lookup_ip_str);
     }
-  else if (nh_info->type == NEXTHOP_TYPE_ENCAP) 
+  else if (nh_info->type == NEXTHOP_TYPE_SRV6_END) 
     {
-      
+      if (! _process_srv6_packet_multi_sids(m, ipv6,
+                            &nh_info->srv6_local_sid))
+        {
+          DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 packet", m);
+          return;
+        }
+      rx_link = NULL; // to avoid split-horizon check
+      goto RETRY; // because alwasys_inline function cannot call itself recursively, we use goto to retry FIB lookup after processing SRv6 header.
+    }
+  else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
+    {
+      DEBUG_NEW (ROUTER, "m: %p unsupported nexthop type %d, drop",
+                 m, nh_info->type);
+      return;
     }
 
   if (fib_node->table_id == RT_TABLE_LOCAL)

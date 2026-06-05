@@ -172,27 +172,6 @@ struct internal_msg_ip_addr
     } ip_addr;
 };
 
-struct internal_msg_srv6_local_sid
-{
-  struct in6_addr srv6_local_sid_addr;
-  uint8_t srv6_local_sid_addr_index;
-  uint32_t action;
-  int oif;
-  union
-    {
-      uint32_t table_id;
-      struct in6_addr nh6;
-      struct in_addr nh4;
-    } param;
-};
-
-struct internal_msg_srv6_encap_sid
-{
-  struct internal_msg_route_entry route;
-  uint8_t srv6_encap_sid_entry_index;
-  uint32_t action;
-  struct ipv6_sr_hdr hdr[];
-};
 
 void *internal_msg_body (struct internal_msg_header *msgp);
 

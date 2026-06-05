@@ -10,9 +10,35 @@
 #include "jhash.h"
 #include "hash_table.h"
 #include "internal_message.h"
+#include "nexthop.h"
 
 /* global hash table: mapping for kernel_nh_id to sdplane_nh_id. */
 struct hash_table nh_ht;
+
+int _srv6_format_local_sid (const struct srv6_local_sid_entry *local_sid, char *buf, size_t buf_size)
+{
+  char sid_str[INET6_ADDRSTRLEN];
+  inet_ntop (AF_INET6, &local_sid->local_sid, sid_str, sizeof (sid_str));
+  return snprintf (buf, buf_size, "SID=%s action=%u oif=%d", sid_str,
+            local_sid->action, local_sid->oif);
+
+}
+
+int _srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid, char *buf, size_t buf_size)
+{
+  int len = 0, i;
+  len += snprintf (buf + len, buf_size - len, "action=%u segs=", encap_sid->action);
+  for (i = 0; i < encap_sid->segment_list_size; i++)
+    {
+      char sid_str[INET6_ADDRSTRLEN];
+      inet_ntop (AF_INET6, &encap_sid->sids[i], sid_str, sizeof (sid_str));
+      len += snprintf (buf + len, buf_size - len, "%s", sid_str);
+      if (i != encap_sid->segment_list_size - 1)
+        len += snprintf (buf + len, buf_size - len, ",");
+    }
+  return len;
+}
+
 
 char *
 nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
@@ -32,6 +58,16 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
   if (nh->nhcnt == 1 && nh->members[0].kernel_nh_id == 0)
     {
       const struct nh_info *info = &nh->members[0].info;
+      if(info->type == NEXTHOP_TYPE_SRV6_END)
+        {  
+          _srv6_format_local_sid (&info->srv6_local_sid, buf, buf_size);
+          return buf;
+        }
+      if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
+        {
+          _srv6_format_encap_sid (&info->srv6_encap_sid, buf, buf_size);
+          return buf;
+        }
       inet_ntop (info->family, &info->gw, nh_str, sizeof (nh_str));
       snprintf (buf, buf_size, "%s(oif=%d)", nh_str, info->oif);
       return buf;
@@ -51,6 +87,22 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
       else
         {
           const struct nh_info *info = &nh->members[i].info;
+          if (info->type == NEXTHOP_TYPE_SRV6_END)
+            {
+              char local_sid_str[256];
+              _srv6_format_local_sid (&info->srv6_local_sid, local_sid_str, sizeof (local_sid_str));
+              len += snprintf (buf + len, buf_size - len, "%s(w=%u)%s",
+                               local_sid_str, nh->members[i].weight, sep);
+              continue;
+            }
+          if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
+            {
+              char encap_sid_str[512];
+              _srv6_format_encap_sid (&info->srv6_encap_sid, encap_sid_str, sizeof (encap_sid_str));
+              len += snprintf (buf + len, buf_size - len, "%s(w=%u)%s",
+                               encap_sid_str, nh->members[i].weight, sep);
+              continue;
+            }
           inet_ntop (info->family, &info->gw, nh_str, sizeof (nh_str));
           len += snprintf (buf + len, buf_size - len, "%s(oif=%d,w=%u)%s",
                            nh_str, info->oif, nh->members[i].weight, sep);
@@ -224,6 +276,43 @@ nexthop_cleanup (void)
   hash_table_destroy (&nh_ht);
 }
 
+static int _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
+{
+  if (a->type != b->type || a->family != b->family) 
+    return 0;
+  if (a->type == NEXTHOP_TYPE_CONNECTED)
+    return a->oif == b->oif;
+  else if (a->type == NEXTHOP_TYPE_GATEWAY)
+    return a->oif == b->oif && memcmp(&a->gw, &b->gw, sizeof (a->gw)) == 0;
+  else if (a->type == NEXTHOP_TYPE_SRV6_HEAD)
+    {
+      if (a->srv6_encap_sid.action != b->srv6_encap_sid.action)
+        return 0;
+      if (a->srv6_encap_sid.segment_list_size == 0 || b->srv6_encap_sid.segment_list_size == 0)
+        return a->srv6_encap_sid.segment_list_size == b->srv6_encap_sid.segment_list_size; // both 0 or both non-0
+      if (a->srv6_encap_sid.segment_list_size != b->srv6_encap_sid.segment_list_size)
+        return 0;
+      for (int i = 0; i < a->srv6_encap_sid.segment_list_size; i++)
+        {
+          if (memcmp(&a->srv6_encap_sid.sids[i], &b->srv6_encap_sid.sids[i], sizeof(struct in6_addr)) != 0)
+            return 0;
+        }
+      return 1;
+    }
+  else if (a->type == NEXTHOP_TYPE_SRV6_END)
+    {
+      if (a->srv6_local_sid.action != b->srv6_local_sid.action)
+        return 0;
+      if (a->srv6_local_sid.param.table_id != b->srv6_local_sid.param.table_id)
+        return 0;
+      if (a->srv6_local_sid.param.table_id != 0) // If it's a table lookup, compare table_id
+        return 1;
+      // Otherwise, compare the local SID address
+      return memcmp(&a->srv6_local_sid.local_sid, &b->srv6_local_sid.local_sid, sizeof(struct in6_addr)) == 0;
+    }
+  return 1;
+}
+
 static int
 _info_find (struct nexthop *nexthop, const struct nh_info *src)
 {
@@ -233,9 +322,7 @@ _info_find (struct nexthop *nexthop, const struct nh_info *src)
       const struct nh_info *p = &nexthop->info_pool[i];
       if (p->refcnt <= 0)
         continue;
-      if (p->family == src->family &&
-          memcmp (&p->gw, &src->gw, sizeof (p->gw)) == 0 &&
-          p->oif == src->oif)
+      if (_nh_info_equal (p, src))
         return i;
     }
   return -1;
@@ -277,7 +364,9 @@ _info_release (struct nexthop *nexthop, int idx)
 
   info->refcnt--;
   if (info->refcnt <= 0)
-    memset (info, 0, sizeof (*info));
+    {
+      memset (info, 0, sizeof (*info));
+    }
 }
 
 static int

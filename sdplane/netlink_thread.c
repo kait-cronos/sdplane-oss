@@ -575,13 +575,22 @@ netlink_read_rtattr_encap (struct internal_msg_route_entry* route,struct rtattr 
 
       int segment_count = seg6_param.seg6_tuninfo->srh->first_segment + 1;
 
-      void* msgp = internal_msg_create(INTERNAL_MSG_TYPE_SRV6_ENCAP_SRH_ADD, seg6_param.seg6_tuninfo, sizeof(struct internal_msg_srv6_encap_sid) + sizeof(struct ipv6_sr_hdr) + 16 * segment_count);
-      struct internal_msg_srv6_encap_sid* encap = internal_msg_body(msgp);
-      encap->route = *route;
-      encap->action = seg6_param.seg6_tuninfo->mode;
-      memcpy(encap->hdr,seg6_param.seg6_tuninfo->srh,sizeof(struct ipv6_sr_hdr) + 16 * segment_count);
-      if (msgp)
-            internal_msg_send_to (msg_queue_rib, msgp, NULL);
+      if (segment_count > MAX_SEGMENT_LIST_SIZE)
+        {
+          DEBUG_NEW (NETLINK, "too many segments: %d > %d", segment_count,
+                     MAX_SEGMENT_LIST_SIZE);
+          return 0;
+        }
+
+      for(int i = 0;i< route->nh.nhcnt;i++)
+       {
+        route->nh.members[i].info.type = NEXTHOP_TYPE_SRV6_HEAD;
+        route->nh.members[i].info.srv6_encap_sid.action = seg6_param.seg6_tuninfo->mode;
+        route->nh.members[i].info.srv6_encap_sid.segment_list_size = segment_count;
+        memcpy(route->nh.members[i].info.srv6_encap_sid.sids, 
+          seg6_param.seg6_tuninfo->srh->segments, 
+            sizeof(struct in6_addr) * segment_count);
+       }
       return 1;
     }
 
@@ -592,10 +601,9 @@ netlink_read_rtattr_encap (struct internal_msg_route_entry* route,struct rtattr 
       netlink_parse_seg6local (rtns[RTA_ENCAP], &seg6local_param);
       netlink_log_seg6local (&seg6local_param);
 
-      struct internal_msg_srv6_local_sid msg_sid;
+      struct srv6_local_sid_entry msg_sid;
       memset (&msg_sid, 0, sizeof (msg_sid));
-      msg_sid.srv6_local_sid_addr = msg_sid.srv6_local_sid_addr;
-      msg_sid.srv6_local_sid_addr_index = UINT8_MAX; /* auto-assign */
+      msg_sid.local_sid = route->dst.dst_ip_addr.ipv6_addr;
       msg_sid.action = seg6local_param.action;
       /* SEG6_LOCAL_OIF is often unset by iproute2; fall back to RTA_OIF. */
       msg_sid.oif = seg6local_param.oif
@@ -603,6 +611,8 @@ netlink_read_rtattr_encap (struct internal_msg_route_entry* route,struct rtattr 
               : (rtns[RTA_OIF] ? *(int *) RTA_DATA (rtns[RTA_OIF]) : 0);
       switch (seg6local_param.action)
         {
+          case SEG6_LOCAL_ACTION_END:
+            break;
           case SEG6_LOCAL_ACTION_END_X:
             memcpy (&msg_sid.param.nh6, &seg6local_param.nh6,
                     sizeof (struct in6_addr));
@@ -631,17 +641,11 @@ netlink_read_rtattr_encap (struct internal_msg_route_entry* route,struct rtattr 
             break;
         }
 
-      /* create and send internal message */
-      uint16_t msg_type = (nlmsg_type == RTM_NEWROUTE)
-                           ? INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD
-                           : INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL;
-      if (msg_queue_rib)
-        {
-          void *msgp = internal_msg_create (msg_type, &msg_sid,
-                                            sizeof (msg_sid));
-          if (msgp)
-            internal_msg_send_to (msg_queue_rib, msgp, NULL);
-        }
+      for (int i = 0;i< route->nh.nhcnt;i++)
+       {
+        route->nh.members[i].info.type = NEXTHOP_TYPE_SRV6_END;
+        route->nh.members[i].info.srv6_local_sid = msg_sid;
+       }
       return 1; /* skip route entry */
     }
 
@@ -830,8 +834,8 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
     }
 
   /* RTA_ENCAP: SRv6 tunnel encapsulation. */
-  if (netlink_read_rtattr_encap (&msg_route_entry,rtns,h->nlmsg_type))
-    return 0;
+  netlink_read_rtattr_encap (&msg_route_entry,rtns,h->nlmsg_type);
+  
 
   /* create and send internal message */
   if (h->nlmsg_type == RTM_NEWROUTE)

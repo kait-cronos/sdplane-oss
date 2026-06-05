@@ -19,12 +19,13 @@ enum nexthop_type
 {
   NEXTHOP_TYPE_CONNECTED,
   NEXTHOP_TYPE_GATEWAY,
-  NEXTHOP_TYPE_SEG6_HEAD,
-  NEXTHOP_TYPE_SEG6_END,
+  NEXTHOP_TYPE_SRV6_HEAD,
+  NEXTHOP_TYPE_SRV6_END,
 };
 
-struct srv6_local_sid_entry {
-  struct in6_addr sid;
+struct srv6_local_sid_entry 
+{
+  struct in6_addr local_sid;
   uint32_t action;
   int oif;
   union {
@@ -34,22 +35,32 @@ struct srv6_local_sid_entry {
   } param;
 };
 
-struct srv6_encap_sid_entry {
-  struct in6_addr dst_addr;
+struct srv6_encap_sid_entry 
+{
   uint32_t action;
-  struct ipv6_sr_hdr* hdr;
+#define MAX_SEGMENT_LIST_SIZE 8
+  struct in6_addr sids[MAX_SEGMENT_LIST_SIZE];
+  int segment_list_size;
 };
 
 struct nh_info
 {
   int family;
   enum nexthop_type type;
-  union
+  union 
   {
-    struct in_addr ipv4_addr;
-    struct in6_addr ipv6_addr;
-  } gw;
-  uint32_t oif;
+    struct srv6_local_sid_entry srv6_local_sid;
+    struct srv6_encap_sid_entry srv6_encap_sid;
+    struct 
+    {
+      union
+      {
+        struct in_addr ipv4_addr;
+        struct in6_addr ipv6_addr;
+      } gw;
+      uint32_t oif;
+    };
+  };  
   char oif_name[IF_NAMESIZE];
   int refcnt; /* reference count from groups */
 };

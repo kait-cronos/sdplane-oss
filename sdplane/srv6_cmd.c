@@ -87,6 +87,7 @@ srv6_local_sid_params_str (struct srv6_local_sid_entry *entry,
     }
 }
 
+/*
 CLI_COMMAND2(set_srv6_encap_sid,"set srv6 encap <WORD> <WORD> (|<0-15>)",
               SET_HELP, 
               "set SRv6 information\n",
@@ -265,6 +266,7 @@ CLI_COMMAND2 (set_srv6_local_sid,
   return CMD_SUCCESS;
 }
 
+
 CLI_COMMAND2 (no_set_srv6_local_sid,
               "no set srv6 local-sid <WORD>",
               NO_HELP,
@@ -339,12 +341,12 @@ CLI_COMMAND2 (show_srv6_local_sid,
 
   return CMD_SUCCESS;
 }
-
+*/
 void
 srv6_cmd_init (struct command_set *cmdset)
 {
-  INSTALL_COMMAND2 (cmdset, set_srv6_local_sid);
-  INSTALL_COMMAND2 (cmdset, no_set_srv6_local_sid);
-  INSTALL_COMMAND2 (cmdset, show_srv6_local_sid);
-  INSTALL_COMMAND2(cmdset, set_srv6_encap_sid);
+  //INSTALL_COMMAND2 (cmdset, set_srv6_local_sid);
+  //INSTALL_COMMAND2 (cmdset, no_set_srv6_local_sid);
+  //INSTALL_COMMAND2 (cmdset, show_srv6_local_sid);
+  //INSTALL_COMMAND2(cmdset, set_srv6_encap_sid);
 }
