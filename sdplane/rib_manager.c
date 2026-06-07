@@ -1676,7 +1676,7 @@ rib_manager_process_message (void *msgp)
 
       /* register route entry to RIB */
       if (rib_route_add (rib_tree_master[i],
-                         &msg_route_entry->dst.dst_ip_addr,
+                         (uint8_t *) &msg_route_entry->dst.dst_ip_addr,
                          msg_route_entry->dst.plen,
                          &route_entry) > 0)
         {
@@ -1685,7 +1685,7 @@ rib_manager_process_message (void *msgp)
         }
 
       inet_ntop (msg_route_entry->dst.family,
-                 &msg_route_entry->dst.dst_ip_addr,
+                 (uint8_t *) &msg_route_entry->dst.dst_ip_addr,
                  dst_addr, sizeof (dst_addr));
       DEBUG_NEW (RIB, "route added: dst=%s/%d nexthop=%s",
                  dst_addr, msg_route_entry->dst.plen,
@@ -1718,14 +1718,14 @@ rib_manager_process_message (void *msgp)
       if (i >= 0)
         {
           if (rib_route_delete (rib_tree_master[i],
-                                &msg_route_entry->dst.dst_ip_addr,
+                                (uint8_t *) &msg_route_entry->dst.dst_ip_addr,
                                 msg_route_entry->dst.plen) != 0)
             {
               DEBUG_SDPLANE_LOG (RIB, "failed to delete route to RIB");
               break;
             }
           inet_ntop (msg_route_entry->family,
-                     &msg_route_entry->dst.dst_ip_addr,
+                     (uint8_t *) &msg_route_entry->dst.dst_ip_addr,
                      dst_addr, sizeof (dst_addr));
           DEBUG_SDPLANE_LOG (RIB, "route deleted: dst=%s/%d",
                              dst_addr, msg_route_entry->dst.plen);
