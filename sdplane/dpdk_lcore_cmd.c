@@ -331,7 +331,7 @@ CLI_COMMAND2 (set_mempool,
                                   nb_lcores * MEMPOOL_CACHE_SIZE),
                       8192U);
   if (argc > 2)
-    nb_mbufs = strtoul (argv[2], 0, NULL);
+    nb_mbufs = strtoul (argv[2], NULL, 0);
 
   fprintf (shell->terminal, "nb_mbufs: %u%s", nb_mbufs, shell->NL);
 
