@@ -140,7 +140,7 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
           /* より長いプレフィックスの場合に更新 */
           if (keylen > n->keylen)
             {
-              memcpy (&n->key_ip_addr, key, sizeof (n->key_ip_addr));
+              memcpy ((uint8_t *) &n->key_ip_addr, key, sizeof (n->key_ip_addr));
               n->keylen = keylen;
               n->sdplane_nh_id = sdplane_nh_id;
               n->table_id = table_id;
@@ -154,7 +154,7 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
       /* 新規葉ノードとして登録 */
       else
         {
-          memcpy (&n->key_ip_addr, key, sizeof (n->key_ip_addr));
+          memcpy ((uint8_t *) &n->key_ip_addr, key, sizeof (n->key_ip_addr));
           n->leaf = 1;
           n->keylen = keylen;
           n->sdplane_nh_id = sdplane_nh_id;
@@ -219,7 +219,7 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
                   "copying parent to child[%d] (out of range, parent keylen=%d)",
                   i, n->keylen);
               n->child[i] =
-                  _add (n->child[i], &n->key_ip_addr, n->keylen,
+                  _add (n->child[i], (uint8_t *) &n->key_ip_addr, n->keylen,
                         n->sdplane_nh_id, n->table_id, cur_plen + K, success);
             }
           if (i >= first && i < first + count)
@@ -344,7 +344,7 @@ fib_show_route (struct fib_node *n, void *arg)
   char nexthop_str[INET6_ADDRSTRLEN];
   char if_str[IF_NAMESIZE + 12];
 
-  inet_ntop (family, &n->key_ip_addr, prefix_str, sizeof (prefix_str));
+  inet_ntop (family, (uint8_t *) &n->key_ip_addr, prefix_str, sizeof (prefix_str));
   snprintf (dst_str, sizeof (dst_str), "%s/%d", prefix_str, n->keylen);
 
   struct nh_group *nh_grp = &rib_info->nexthop.groups[sdplane_nh_id];
