@@ -193,79 +193,72 @@ pci_bus_number_spec (char *spec)
   return (! strcmp (spec, "<XXXX:XX:XX.X>"));
 }
 
-int
-pci_bus_number_match (char *spec, char *word)
-{
-  size_t len = strlen (word);
+int pci_bus_number_match(char *spec, char *word) {
+  size_t len = strlen(word);
   size_t i;
   int colons = 0, dots = 0;
   char buf[32];
   char *p, *tok_domain, *tok_bus, *tok_dev, *tok_func;
 
-  if (len == 0 || len >= sizeof (buf))
+  if (len == 0 || len >= sizeof(buf))
     return 0;
 
-  for (i = 0; i < len; i++)
-    {
-      if (word[i] == ':')
-        colons++;
-      else if (word[i] == '.')
-        dots++;
-      else if (! isxdigit (word[i]))
-        return 0;
-    }
+  for (i = 0; i < len; i++) {
+    if (word[i] == ':')
+      colons++;
+    else if (word[i] == '.')
+      dots++;
+    else if (!isxdigit(word[i]))
+      return 0;
+  }
 
   if ((colons != 1 && colons != 2) || dots != 1)
     return 0;
 
-  snprintf (buf, sizeof (buf), "%s", word);
+  snprintf(buf, sizeof(buf), "%s", word);
 
   p = buf;
-  tok_domain = colons == 2 ? strsep (&p, ":") : NULL;
-  tok_bus = strsep (&p, ":");
-  tok_dev = strsep (&p, ".");
+  tok_domain = colons == 2 ? strsep(&p, ":") : NULL;
+  tok_bus = strsep(&p, ":");
+  tok_dev = strsep(&p, ".");
   tok_func = p;
 
-  if ((tok_domain && (*tok_domain == '\0' || strlen (tok_domain) > 4))
-      || ! tok_bus || *tok_bus == '\0' || strlen (tok_bus) > 2
-      || ! tok_dev || *tok_dev == '\0' || strlen (tok_dev) > 2
-      || ! tok_func || *tok_func == '\0' || strlen (tok_func) > 1)
+  if ((tok_domain && (*tok_domain == '\0' || strlen(tok_domain) > 4)) || !tok_bus || *tok_bus == '\0' || strlen(tok_bus) > 2 || !tok_dev || *tok_dev == '\0' || strlen(tok_dev) > 2 || !tok_func ||
+      *tok_func == '\0' || strlen(tok_func) > 1)
     return 0;
 
   return 1;
 }
 
-int
-pci_bus_number_normalize (char *word, char *out, size_t outlen)
-{
-  size_t i, len = strlen (word);
+int pci_bus_number_normalize(char *word, char *out, size_t outlen) {
+  size_t i, len = strlen(word);
   int colons = 0;
   char buf[32];
   char *p, *tok_domain, *tok_bus, *tok_dev, *tok_func;
   unsigned long domain, bus, dev, func;
 
-  if (! pci_bus_number_match ("<XXXX:XX:XX.X>", word))
+  if (!pci_bus_number_match("<XXXX:XX:XX.X>", word))
     return 0;
 
   for (i = 0; i < len; i++)
     if (word[i] == ':')
       colons++;
 
-  snprintf (buf, sizeof (buf), "%s", word);
+  snprintf(buf, sizeof(buf), "%s", word);
 
   p = buf;
-  tok_domain = colons == 2 ? strsep (&p, ":") : NULL;
-  tok_bus = strsep (&p, ":");
-  tok_dev = strsep (&p, ".");
+  tok_domain = colons == 2 ? strsep(&p, ":") : NULL;
+  tok_bus = strsep(&p, ":");
+  tok_dev = strsep(&p, ".");
   tok_func = p;
 
-  domain = tok_domain ? strtoul (tok_domain, NULL, 16) : 0;
-  bus = strtoul (tok_bus, NULL, 16);
-  dev = strtoul (tok_dev, NULL, 16);
-  func = strtoul (tok_func, NULL, 16);
+  domain = tok_domain ? strtoul(tok_domain, NULL, 16) : 0;
+  bus = strtoul(tok_bus, NULL, 16);
+  dev = strtoul(tok_dev, NULL, 16);
+  func = strtoul(tok_func, NULL, 16);
 
   if (out && outlen > 0)
-    snprintf (out, outlen, "%04lx:%02lx:%02lx.%lx", domain, bus, dev, func);
+    snprintf(out, outlen, "%04lx:%02lx:%02lx.%lx", domain, bus, dev, func);
 
   return 1;
 }
