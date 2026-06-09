@@ -572,24 +572,26 @@ RETRY:
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_END) 
     {
-      if (! _process_srv6_packet_multi_sids(m, ipv6,
+      if (! _process_srv6_packet_multi_sids (m, ipv6,
                             &nh_info->srv6_local_sid))
         {
           DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 packet", m);
           return;
         }
       rx_link = NULL; // to avoid split-horizon check
-      goto RETRY; // because alwasys_inline function cannot call itself recursively, we use goto to retry FIB lookup after processing SRv6 header.
+      goto RETRY; // because alwasys_inline function cannot call itself recursively,
+                  // we use goto to retry FIB lookup after processing SRv6 header.
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
-      if (! _process_encapsulate_srv6_packet(m, &eth, &ipv6, &nh_info->srv6_encap_sid,&rib->rib_info->srv6_tunnel_src_addr, rx_portid, rx_queueid))
+      if (! _process_encapsulate_srv6_packet (m, &eth, &ipv6, &nh_info->srv6_encap_sid,&rib->rib_info->srv6_tunnel_src_addr, rx_portid, rx_queueid))
         {
           DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 encapsulation", m);
           return;
         }
       rx_link = NULL; // to avoid split-horizon check
-      goto RETRY; // because alwasys_inline function cannot call itself recursively, we use goto to retry FIB lookup after processing SRv6 header.
+      goto RETRY; // because alwasys_inline function cannot call itself recursively,
+                  // we use goto to retry FIB lookup after processing SRv6 header.
     }
 
   if (fib_node->table_id == RT_TABLE_LOCAL)
