@@ -21,6 +21,7 @@
 /* for netlink */
 #include <asm/types.h>
 #include <linux/netlink.h>
+#include <linux/genetlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/nexthop.h>
 #include <sys/socket.h>
@@ -29,7 +30,7 @@
 
 /* for SRv6 */
 #include "netlink_seg6.h"
-
+#include <linux/seg6_genl.h>
 #include "netlink_hook.h"
 
 #include "rib.h"
@@ -153,6 +154,55 @@ netlink_request (int family, int type, struct netlink_sock *nlsock)
     }
 
   return 0;
+}
+
+
+static int resolve_genl_family(int family, int type, struct netlink_sock *nlsock) {
+    char buf[8192];
+    struct nlmsghdr *nlh = (struct nlmsghdr *)buf;
+    struct genlmsghdr *ghdr;
+    struct nlattr *nla;
+    int len;
+
+    memset(buf, 0, sizeof(buf));
+    nlh->nlmsg_len = NLMSG_LENGTH(GENL_HDRLEN);
+    nlh->nlmsg_type = GENL_ID_CTRL; // コントロールファミリーID固定（16）
+    nlh->nlmsg_flags = NLM_F_REQUEST;
+    nlh->nlmsg_seq = 1;
+
+    ghdr = (struct genlmsghdr *)NLMSG_DATA(nlh);
+    ghdr->cmd = CTRL_CMD_GETFAMILY;
+    ghdr->version = 1;
+
+    nla = (struct nlattr *)((char *)ghdr + GENL_HDRLEN);
+    nla->nla_type = CTRL_ATTR_FAMILY_NAME;
+    nla->nla_len = RTA_LENGTH(strlen(SEG6_GENL_NAME) + 1);
+    strcpy((char *)RTA_DATA(nla), SEG6_GENL_NAME);
+    
+    nlh->nlmsg_len += NLMSG_ALIGN(nla->nla_len);
+
+    // 2. カーネルに送信
+    if (send(nlsock->sockfd, nlh, nlh->nlmsg_len, 0) < 0) return -1;
+
+    // 3. カーネルからの応答を受信
+    len = recv(nlsock->sockfd, buf, sizeof(buf), 0);
+    if (len < 0) return -1;
+
+    // 4. 受信パケットをパースしてIDを取り出す
+    nlh = (struct nlmsghdr *)buf;
+    if (nlh->nlmsg_type == NLMSG_ERROR) return -1;
+
+    ghdr = (struct genlmsghdr *)NLMSG_DATA(nlh);
+    int rem = nlh->nlmsg_len - NLMSG_LENGTH(GENL_HDRLEN);
+    nla = (struct nlattr *)((char *)ghdr + GENL_HDRLEN);
+
+    while (nla < (struct nlattr *)((char *)nlh + nlh->nlmsg_len)) {
+        if (nla->nla_type == CTRL_ATTR_FAMILY_ID) {
+            return *((uint16_t *)&((uint8_t *)(nla) + NLA_HDRLEN)[0]);
+        }
+        nla = nla + NLMSG_ALIGN(nla->nla_len); // 次の属性へ
+    }
+    return -1;
 }
 
 static inline const char *

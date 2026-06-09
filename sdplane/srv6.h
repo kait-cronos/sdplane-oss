@@ -1,7 +1,13 @@
 #ifndef __SRV6_H__
 #define __SRV6_H__
 
+#include "log_packet.h"
+#include <netinet/in.h>
+#include <rte_byteorder.h>
+#include <rte_ether.h>
+#include <rte_mbuf.h>
 #include <rte_version.h>
+#include <string.h>
 #if RTE_VERSION < RTE_VERSION_NUM(24, 0, 0, 0)
   #include <rte_ip.h>
 #else
@@ -143,6 +149,63 @@ _process_srv6_packet_multi_sids (struct rte_mbuf *m,
              m, srh->segments_left);
   modified = true;
   return modified;
+}
+
+static inline __attribute__ ((always_inline)) bool
+_process_encapsulate_srv6_packet (struct rte_mbuf *m,
+                      struct rte_ether_hdr** original_ether_hdr,
+                      struct rte_ipv6_hdr **original_ipv6_hdr,  
+                      struct srv6_encap_sid_entry *srv6_encap_sid,
+                      struct in6_addr* src_addr,int src_port,int src_queue)
+{
+  /* encapsulate with SRv6 */
+  uint32_t outer_header_size = sizeof (struct rte_ipv6_hdr) +
+                              sizeof (struct rte_ipv6_routing_ext) +
+                              srv6_encap_sid->segment_list_size * sizeof(struct in6_addr);
+
+
+  DEBUG_NEW(ROUTER, "m: %p: encapsulating with SRv6, original pkt len"
+             " %d, outer header size %d, segment list size %d, original ipv6 hdr packet len %d", 
+             m, rte_pktmbuf_pkt_len(m), outer_header_size, srv6_encap_sid->segment_list_size,
+            (*original_ipv6_hdr)->payload_len);
+  // because the original may have some headers between ether_hdr and ipv6_hdr, 
+  // we need to prepend the same size of header space for new_ether_hdr, 
+  // and copy the header content before ipv6_hdr to the new_ether_hdr.
+  // TODO: support ipv4
+  size_t original_pre_ipv6_size = (uint8_t *) *original_ipv6_hdr - (uint8_t *) *original_ether_hdr;
+  struct rte_ether_hdr* new_ether_hdr =  rte_pktmbuf_prepend(m, outer_header_size);
+  if(!new_ether_hdr) {
+    DEBUG_NEW (ROUTER, "m: %p: failed to prepend for encapsulate", m);
+    return false;
+  }
+  memmove(new_ether_hdr, *original_ether_hdr, original_pre_ipv6_size);
+  struct rte_ipv6_hdr* new_ipv6_hdr = 
+          (struct rte_ipv6_hdr *) ((uint8_t *) new_ether_hdr + original_pre_ipv6_size);
+  // version 6, traffic class and flow label are set to 0
+  new_ipv6_hdr->vtc_flow = rte_cpu_to_be_32(6 << 28); 
+  new_ipv6_hdr->payload_len = rte_cpu_to_be_16(rte_pktmbuf_pkt_len(m) - 
+                            original_pre_ipv6_size - sizeof(struct rte_ipv6_hdr));
+  new_ipv6_hdr->proto = IPPROTO_ROUTING;
+  new_ipv6_hdr->hop_limits = 64; // TODO: configurable hop limit
+  rte_memcpy(&new_ipv6_hdr->src_addr, src_addr, 16);
+  struct rte_ipv6_routing_ext* new_srh = (struct rte_ipv6_routing_ext *) (new_ipv6_hdr + 1);
+  new_srh->type = RTE_IPV6_SRCRT_TYPE_4;
+  new_srh->hdr_len = srv6_encap_sid->segment_list_size * 2;
+  new_srh->segments_left = srv6_encap_sid->segment_list_size - 1;
+  new_srh->last_entry = srv6_encap_sid->segment_list_size - 1;
+  new_srh->next_hdr = IPPROTO_IPV6;
+  new_srh->tag = 0; // TODO: configurable tag
+  new_srh->flag = 0; // TODO: configurable flag
+  rte_memcpy(&new_ipv6_hdr->dst_addr, &srv6_encap_sid->sids[srv6_encap_sid->segment_list_size - 1], 16);
+  rte_memcpy(new_srh + 1, srv6_encap_sid->sids, srv6_encap_sid->segment_list_size * 16);
+  *original_ether_hdr = new_ether_hdr;
+  *original_ipv6_hdr = new_ipv6_hdr;
+  if(IS_DEBUG(ROUTER)) {
+    DEBUG_NEW (ROUTER, "m: %p: encapsulated with new outer IPv6 and SRH encaped packet len %d", m, rte_pktmbuf_pkt_len(m));
+    log_packet(m, src_port, src_queue);
+  }
+
+  return true;
 }
 
 #endif /*__SRV6_H__*/

@@ -1900,7 +1900,14 @@ rib_manager_process_message (void *msgp)
 
       break;
 
-
+    
+    case INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET: 
+        new->rib_info->srv6_tunnel_src_addr = ((struct internal_msg_srv6_encap_src *) internal_msg_body(msgp))->src_addr;
+        inet_ntop (AF_INET6, &msg_ip_addr->ip_addr.ipv6_addr, ip_str_add,
+            sizeof (ip_str_add));
+        DEBUG_SDPLANE_LOG (RIB, "recv msg_srv6_encap_src_set: %p, set srv6_encap_src: %s",
+                           msgp, ip_str_add);
+        break;
     default:
       DEBUG_SDPLANE_LOG (RIB, "recv msg unknown: %p.", msgp);
       break;

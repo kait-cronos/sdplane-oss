@@ -583,9 +583,13 @@ RETRY:
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
-      DEBUG_NEW (ROUTER, "m: %p unsupported nexthop type %d, drop",
-                 m, nh_info->type);
-      return;
+      if (! _process_encapsulate_srv6_packet(m, &eth, &ipv6, &nh_info->srv6_encap_sid,&rib->rib_info->srv6_tunnel_src_addr, rx_portid, rx_queueid))
+        {
+          DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 encapsulation", m);
+          return;
+        }
+      rx_link = NULL; // to avoid split-horizon check
+      goto RETRY; // because alwasys_inline function cannot call itself recursively, we use goto to retry FIB lookup after processing SRv6 header.
     }
 
   if (fib_node->table_id == RT_TABLE_LOCAL)

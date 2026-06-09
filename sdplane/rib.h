@@ -179,12 +179,7 @@ struct rib_info
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
   struct nexthop nexthop;
   struct fib_tree *fib_tree[ROUTE_TREE_SIZE];
-#define MAX_SRV6_LOCAL_SID_ADDR_NUM 16
-  struct srv6_local_sid_entry srv6_local_sid[MAX_SRV6_LOCAL_SID_ADDR_NUM];
-  uint8_t srv6_local_sid_addr_num;
-#define MAX_SRV6_ENCAP_SID_ENTRY_NUM 16
-  struct srv6_encap_sid_entry srv6_encap_sid[MAX_SRV6_ENCAP_SID_ENTRY_NUM];
-  uint8_t srv6_encap_sid_entry_num;
+  struct in6_addr srv6_tunnel_src_addr; // used as source address for SRv6 encapsulation
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);
