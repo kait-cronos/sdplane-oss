@@ -723,7 +723,7 @@ _forwarding (struct rte_mbuf *m,
   _switching (m, rx_portid, rx_queueid, NULL, tx_vswitch, eth);
 }
 
-static inline __attribute__ ((always_inline)) void
+static void
 _srv6_forwarding (struct rte_mbuf *m,
              unsigned rx_portid, unsigned rx_queueid,
              struct rte_ether_hdr *eth, struct rte_ipv4_hdr *ipv4,
@@ -739,7 +739,6 @@ _srv6_forwarding (struct rte_mbuf *m,
   struct vswitch_link *tx_link = NULL;
   int dst_port = -1, neigh_table_type;
 
-RETRY:
   char dest[64];
   if (IS_DEBUG (ROUTING_LOOKUP))
     {
@@ -824,8 +823,7 @@ RETRY:
           return;
         }
       rx_link = NULL; // to avoid split-horizon check
-      goto RETRY; // because alwasys_inline function cannot call itself recursively,
-                  // we use goto to retry FIB lookup after processing SRv6 header.
+      return _srv6_forwarding (m, rx_portid, rx_ququeid, eth, ipv4, ipv6, rx_vswitch, rx_link);
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
@@ -835,8 +833,7 @@ RETRY:
           return;
         }
       rx_link = NULL; // to avoid split-horizon check
-      goto RETRY; // because alwasys_inline function cannot call itself recursively,
-                  // we use goto to retry FIB lookup after processing SRv6 header.
+      return _srv6_forwarding (m, rx_portid, rx_ququeid, eth, ipv4, ipv6, rx_vswitch, rx_link);
     }
 
   if (fib_node->table_id == RT_TABLE_LOCAL)
