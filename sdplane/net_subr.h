@@ -823,7 +823,8 @@ _srv6_forwarding (struct rte_mbuf *m,
           return;
         }
       rx_link = NULL; // to avoid split-horizon check
-      return _srv6_forwarding (m, rx_portid, rx_ququeid, eth, ipv4, ipv6, rx_vswitch, rx_link);
+      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch, rx_link);
+      return;
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
@@ -833,7 +834,8 @@ _srv6_forwarding (struct rte_mbuf *m,
           return;
         }
       rx_link = NULL; // to avoid split-horizon check
-      return _srv6_forwarding (m, rx_portid, rx_ququeid, eth, ipv4, ipv6, rx_vswitch, rx_link);
+      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch, rx_link);
+      return;
     }
 
   if (fib_node->table_id == RT_TABLE_LOCAL)
