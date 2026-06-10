@@ -28,6 +28,7 @@
 
 int router (__rte_unused void *dummy);
 int srv6_router (__rte_unused void *dummy);
+int srv6_encap_router (__rte_unused void *dummy);
 
 #include "thread_info.h"
 
@@ -105,7 +106,7 @@ CLI_COMMAND2 (set_worker,
     "(|none|l2fwd|l3fwd|l3fwd-lpm"
     "|tap-handler|l3-tap-handler"
     "|l2-repeater|vlan-switch|enhanced-repeater|l2-switch"
-    "|router|srv6-router"
+    "|router|srv6-router|srv6-encap-router"
     "|nettlp-thread"
 #ifdef ENABLE_PKTGEN
     "|pktgen"
@@ -128,6 +129,7 @@ CLI_COMMAND2 (set_worker,
     "set lcore to launch l2-switch\n"
     "set lcore to launch router\n"
     "set lcore to launch srv6-router\n"
+    "set lcore to launch srv6-encap-router\n"
     "set lcore to launch nettlp-thread\n"
 #ifdef ENABLE_PKTGEN
     "set lcore to launch pktgen\n"
@@ -165,6 +167,8 @@ CLI_COMMAND2 (set_worker,
     func = router;
   else if (! strcmp (argv[4], "srv6-router"))
     func = srv6_router;
+  else if (! strcmp (argv[4], "srv6-encap-router"))
+    func = srv6_encap_router;
 #ifdef ENABLE_PKTGEN
   else if (! strcmp (argv[4], "pktgen"))
     func = pktgen_launch_one_lcore;
@@ -210,6 +214,8 @@ CLI_COMMAND2 (set_worker,
     func_name = "router";
   else if (func == srv6_router)
     func_name = "srv6-router";
+  else if (func == srv6_encap_router)
+    func_name = "srv6-encap-router";
 #ifdef ENABLE_PKTGEN
   else if (func == pktgen_launch_one_lcore)
     func_name = "pktgen";
