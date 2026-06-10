@@ -1,5 +1,8 @@
 .DS_Store
 
+/libsdplane-dev/
+/lthread/
+
 /sdplane/sdplane
 /sdplane/sdplane_version.c
 
