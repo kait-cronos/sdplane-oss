@@ -197,6 +197,26 @@ nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info)
                        info->oif_name, info->oif, family_str,
                        grp->members[j].weight, shell->NL);
             }
+          else if (info->type == NEXTHOP_TYPE_SRV6_END)
+            {
+              char local_sid_str[256];
+              _srv6_format_local_sid (&info->srv6_local_sid, local_sid_str,
+                                      sizeof (local_sid_str));
+              fprintf (shell->terminal,
+                       "        is SRv6 local SID, %s, %s, weight %u%s",
+                       local_sid_str, family_str,
+                       grp->members[j].weight, shell->NL);
+            }
+          else if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
+            {
+              char encap_sid_str[512];
+              _srv6_format_encap_sid (&info->srv6_encap_sid, encap_sid_str,
+                                      sizeof (encap_sid_str));
+              fprintf (shell->terminal,
+                       "        is SRv6 encap SID, %s, %s, weight %u%s",
+                       encap_sid_str, family_str,
+                       grp->members[j].weight, shell->NL);
+            }
           else
             {
               memset (nh_str, 0, sizeof (nh_str));
@@ -234,7 +254,11 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
 
       const char *family_str = (info->family == AF_INET6) ? "IPv6" : "IPv4";
       const char *type_str =
-        (info->type == NEXTHOP_TYPE_CONNECTED) ? "connected" : "gateway";
+        (info->type == NEXTHOP_TYPE_CONNECTED) ? "connected" 
+        : (info->type == NEXTHOP_TYPE_GATEWAY) ? "gateway"
+        : (info->type == NEXTHOP_TYPE_SRV6_END) ? "srv6-end"
+        : (info->type == NEXTHOP_TYPE_SRV6_HEAD) ? "srv6-head"
+        : "unknown";
 
       if (info->type == NEXTHOP_TYPE_CONNECTED)
         {
@@ -242,12 +266,36 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
                    i, info->refcnt, family_str, type_str, "-",
                    info->oif_name, info->oif, shell->NL);
         }
-      else
+      else if (info->type == NEXTHOP_TYPE_SRV6_END)
+        {
+          char local_sid_str[256];
+          _srv6_format_local_sid (&info->srv6_local_sid, local_sid_str,
+                                  sizeof (local_sid_str));
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
+                   i, info->refcnt, family_str, "srv6-end", local_sid_str,
+                   info->oif_name, info->oif, shell->NL);
+        }
+      else if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
+        {
+          char encap_sid_str[512];
+          _srv6_format_encap_sid (&info->srv6_encap_sid, encap_sid_str,
+                                  sizeof (encap_sid_str));
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
+                   i, info->refcnt, family_str, "srv6-head", encap_sid_str,
+                   info->oif_name, info->oif, shell->NL);
+        }
+      else if (info->type == NEXTHOP_TYPE_GATEWAY)
         {
           memset (gw_str, 0, sizeof (gw_str));
           inet_ntop (info->family, &info->gw, gw_str, sizeof (gw_str));
           fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
                    i, info->refcnt, family_str, type_str, gw_str,
+                   info->oif_name, info->oif, shell->NL);
+        }
+      else
+        {
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
+                   i, info->refcnt, family_str, type_str, "unknown",
                    info->oif_name, info->oif, shell->NL);
         }
     }
