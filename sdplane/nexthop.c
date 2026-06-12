@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <linux/seg6_local.h>
+#include <linux/seg6_iptunnel.h>
+
 #include "debug_sdplane.h"
 
 #include "jhash.h"
@@ -14,14 +17,94 @@
 /* global hash table: mapping for kernel_nh_id to sdplane_nh_id. */
 struct hash_table nh_ht;
 
+static const char *
+_srv6_local_action_str (uint32_t action)
+{
+  switch (action)
+    {
+    case SEG6_LOCAL_ACTION_UNSPEC:
+      return "Unspec";
+    case SEG6_LOCAL_ACTION_END:
+      return "End";
+    case SEG6_LOCAL_ACTION_END_X:
+      return "End.X";
+    case SEG6_LOCAL_ACTION_END_T:
+      return "End.T";
+    case SEG6_LOCAL_ACTION_END_DX2:
+      return "End.DX2";
+    case SEG6_LOCAL_ACTION_END_DX6:
+      return "End.DX6";
+    case SEG6_LOCAL_ACTION_END_DX4:
+      return "End.DX4";
+    case SEG6_LOCAL_ACTION_END_DT6:
+      return "End.DT6";
+    case SEG6_LOCAL_ACTION_END_DT4:
+      return "End.DT4";
+    case SEG6_LOCAL_ACTION_END_DT46:
+      return "End.DT46";
+    default:
+      return "Unknown";
+    }
+}
+
+static const char *
+_srv6_encap_mode_str (uint32_t mode)
+{
+  switch (mode)
+    {
+    case SEG6_IPTUN_MODE_INLINE:
+      return "H.Insert";
+    case SEG6_IPTUN_MODE_ENCAP:
+      return "H.Encaps";
+    case SEG6_IPTUN_MODE_L2ENCAP:
+      return "H.Encaps.L2";
+    case SEG6_IPTUN_MODE_ENCAP_RED:
+      return "H.Encaps.Red";
+    case SEG6_IPTUN_MODE_L2ENCAP_RED:
+      return "H.Encaps.L2.Red";
+    default:
+      return "Unknown";
+    }
+}
+
 int
 _srv6_format_local_sid (const struct srv6_local_sid_entry *local_sid,
                         char *buf, size_t buf_size)
 {
   char sid_str[INET6_ADDRSTRLEN];
+  char param_str[INET6_ADDRSTRLEN];
+  int len;
+
   inet_ntop (AF_INET6, &local_sid->sid, sid_str, sizeof (sid_str));
-  return snprintf (buf, buf_size, "SID=%s action=%u oif=%d", sid_str,
-            local_sid->action, local_sid->oif);
+  len = snprintf (buf, buf_size, "SID=%s action=%s oif=%d", sid_str,
+                  _srv6_local_action_str (local_sid->action),
+                  local_sid->oif);
+
+  switch (local_sid->action)
+    {
+    case SEG6_LOCAL_ACTION_END_X:
+    case SEG6_LOCAL_ACTION_END_DX6:
+      inet_ntop (AF_INET6, &local_sid->param.nh6,
+                 param_str, sizeof (param_str));
+      len += snprintf (buf + len, buf_size - len, " nh6=%s", param_str);
+      break;
+    case SEG6_LOCAL_ACTION_END_DX4:
+      inet_ntop (AF_INET, &local_sid->param.nh4,
+                 param_str, sizeof (param_str));
+      len += snprintf (buf + len, buf_size - len, " nh4=%s", param_str);
+      break;
+    case SEG6_LOCAL_ACTION_END_T:
+    case SEG6_LOCAL_ACTION_END_DT4:
+    case SEG6_LOCAL_ACTION_END_DT6:
+    case SEG6_LOCAL_ACTION_END_DT46:
+      len += snprintf (buf + len, buf_size - len, " table=%u",
+                       local_sid->param.table_id);
+      break;
+    default:
+      break;
+    }
+
+  return len;
 }
 
 int
@@ -29,14 +112,15 @@ _srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid,
                         char *buf, size_t buf_size)
 {
   int len = 0, i;
-  len += snprintf (buf + len, buf_size - len, "action=%u segs=",
-                   encap_sid->action);
-  for (i = 0; i < encap_sid->segment_list_size; i++)
+  len += snprintf (buf + len, buf_size - len, "action=%s segs=",
+                   _srv6_encap_mode_str (encap_sid->action));
+  /* sids[] is in SRH order; print in path order like netlink_log_seg6. */
+  for (i = encap_sid->segment_list_size - 1; i >= 0; i--)
     {
       char sid_str[INET6_ADDRSTRLEN];
       inet_ntop (AF_INET6, &encap_sid->sids[i], sid_str, sizeof (sid_str));
       len += snprintf (buf + len, buf_size - len, "%s", sid_str);
-      if (i != encap_sid->segment_list_size - 1)
+      if (i != 0)
         len += snprintf (buf + len, buf_size - len, ",");
     }
   return len;
