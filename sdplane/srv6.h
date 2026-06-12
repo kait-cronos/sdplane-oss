@@ -2,12 +2,7 @@
 #define __SRV6_H__
 
 #include "log_packet.h"
-#include <netinet/in.h>
-#include <rte_byteorder.h>
-#include <rte_ether.h>
-#include <rte_mbuf.h>
 #include <rte_version.h>
-#include <string.h>
 #if RTE_VERSION < RTE_VERSION_NUM(24, 0, 0, 0)
   #include <rte_ip.h>
 #else

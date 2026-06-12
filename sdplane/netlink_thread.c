@@ -1,7 +1,5 @@
 #include "include.h"
 
-#include <assert.h>
-#include <linux/seg6_iptunnel.h>
 #include <lthread.h>
 
 /* for sdplane debug log */
@@ -22,7 +20,6 @@
 /* for netlink */
 #include <asm/types.h>
 #include <linux/netlink.h>
-#include <linux/genetlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/nexthop.h>
 #include <sys/socket.h>
@@ -31,7 +28,6 @@
 
 /* for SRv6 */
 #include "netlink_seg6.h"
-#include <linux/seg6_genl.h>
 
 #include "netlink_hook.h"
 

@@ -10,7 +10,6 @@
 #include "jhash.h"
 #include "hash_table.h"
 #include "internal_message.h"
-#include "nexthop.h"
 
 /* global hash table: mapping for kernel_nh_id to sdplane_nh_id. */
 struct hash_table nh_ht;

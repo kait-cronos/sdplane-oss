@@ -7,7 +7,6 @@
 #include <linux/rtnetlink.h>
 
 #include "internal_message.h"
-#include "nexthop.h"
 #include "packet_gen.h"
 #include "neigh_manager.h"
 #include "rib_manager.h"

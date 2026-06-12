@@ -1,8 +1,6 @@
 #ifndef __RIB_H__
 #define __RIB_H__
 
-#include <linux/seg6.h>
-#include <netinet/in.h>
 #define MAX_TAP_IF              8
 #define MAX_ROUTER_IF           8
 #define MAX_VSWITCH_PORTS       16
