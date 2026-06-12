@@ -32,6 +32,7 @@
 /* for SRv6 */
 #include "netlink_seg6.h"
 #include <linux/seg6_genl.h>
+
 #include "netlink_hook.h"
 
 #include "rib.h"
@@ -156,8 +157,6 @@ netlink_request (int family, int type, struct netlink_sock *nlsock)
 
   return 0;
 }
-
-
 
 static inline const char *
 netlink_nlmsg_str (uint16_t nlmsg_type)
@@ -563,7 +562,8 @@ netlink_parse_seg6local (struct rtattr *rta, struct seg6local_param *param)
 
 // return 1 if the route entry should be skipped, 0 otherwise
 static int
-netlink_read_rtattr_encap (struct internal_msg_route_entry* route,struct rtattr **rtns,
+netlink_read_rtattr_encap (struct internal_msg_route_entry* route,
+                           struct rtattr **rtns,
                            uint16_t nlmsg_type)
 {
   if (! rtns[RTA_ENCAP])
@@ -598,8 +598,8 @@ netlink_read_rtattr_encap (struct internal_msg_route_entry* route,struct rtattr 
         route->nh.members[i].info.type = NEXTHOP_TYPE_SRV6_HEAD;
         route->nh.members[i].info.srv6_encap_sid.action = seg6_param.seg6_tuninfo->mode;
         route->nh.members[i].info.srv6_encap_sid.segment_list_size = segment_count;
-        memcpy(route->nh.members[i].info.srv6_encap_sid.sids, 
-          seg6_param.seg6_tuninfo->srh->segments, 
+        memcpy(route->nh.members[i].info.srv6_encap_sid.sids,
+          seg6_param.seg6_tuninfo->srh->segments,
             sizeof(struct in6_addr) * segment_count);
        }
       return 0;
@@ -873,10 +873,8 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
     }
 
   /* RTA_ENCAP: SRv6 tunnel encapsulation. */
-  if (netlink_read_rtattr_encap (&msg_route_entry,rtns,h->nlmsg_type))
-    {
-      return 0; // route entry is processed as seg6local, skip further processing.
-    }
+  if (netlink_read_rtattr_encap (&msg_route_entry, rtns, h->nlmsg_type))
+    return 0;
 
   /* create and send internal message */
   if (h->nlmsg_type == RTM_NEWROUTE)

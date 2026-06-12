@@ -101,7 +101,7 @@ CLI_COMMAND2 (show_rib,
 
   // show lcore informartion
   fprintf (shell->terminal, "lcores: %s", shell->NL);
-  RTE_LCORE_FOREACH(i)
+  RTE_LCORE_FOREACH (i)
     {
       struct lcore_qconf *qconf = &rib->rib_info->lcore_qconf[i];
 

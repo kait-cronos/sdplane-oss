@@ -271,8 +271,7 @@ CLI_COMMAND2 (start_stop_worker,
   else
     lcore_spec = strtol (argv[3], NULL, 0);
 
- 
-  RTE_LCORE_FOREACH(lcore_id)
+  RTE_LCORE_FOREACH (lcore_id)
     {
       if (lcore_spec != -1 && lcore_spec != lcore_id)
         continue;
@@ -300,7 +299,7 @@ CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
   main_lcore_id = rte_get_main_lcore ();
   fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s", "lcore", "flags", "state",
            "func_name", shell->NL);
-  RTE_LCORE_FOREACH(lcore_id)
+  RTE_LCORE_FOREACH (lcore_id)
     {
       snprintf (flags, sizeof (flags), "%s%s",
                 (rte_lcore_is_enabled (lcore_id) ? "enabled" : "disabled"),

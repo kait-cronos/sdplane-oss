@@ -59,7 +59,7 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
     {
       const struct nh_info *info = &nh->members[0].info;
       if(info->type == NEXTHOP_TYPE_SRV6_END)
-        {  
+        {
           _srv6_format_local_sid (&info->srv6_local_sid, buf, buf_size);
           return buf;
         }
@@ -278,7 +278,7 @@ nexthop_cleanup (void)
 
 static int _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
 {
-  if (a->type != b->type || a->family != b->family) 
+  if (a->type != b->type || a->family != b->family)
     return 0;
   if (a->type == NEXTHOP_TYPE_CONNECTED)
     return a->oif == b->oif;

@@ -814,7 +814,7 @@ _srv6_forwarding (struct rte_mbuf *m,
                  "using dst IP for neighbor lookup: %s",
                  m, lookup_ip_str);
     }
-  else if (nh_info->type == NEXTHOP_TYPE_SRV6_END) 
+  else if (nh_info->type == NEXTHOP_TYPE_SRV6_END)
     {
       if (! _process_srv6_end_packet (m, ipv6,
                             &nh_info->srv6_local_sid))
@@ -828,7 +828,8 @@ _srv6_forwarding (struct rte_mbuf *m,
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
-      if (! _process_encapsulate_srv6_packet (m, &eth, &ipv6, &nh_info->srv6_encap_sid,&rib->rib_info->srv6_tunnel_src_addr, rx_portid, rx_queueid))
+      if (! _process_encapsulate_srv6_packet (m, &eth, &ipv4, &ipv6,
+             &nh_info->srv6_encap_sid,&rib->rib_info->srv6_tunnel_src_addr, rx_portid, rx_queueid))
         {
           DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 encapsulation", m);
           return;

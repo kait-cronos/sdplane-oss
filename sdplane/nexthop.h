@@ -23,7 +23,7 @@ enum nexthop_type
   NEXTHOP_TYPE_SRV6_END,
 };
 
-struct srv6_local_sid_entry 
+struct srv6_local_sid_entry
 {
   struct in6_addr sid;
   uint32_t action;
@@ -36,7 +36,7 @@ struct srv6_local_sid_entry
   int8_t local_sid_addr_index; // index in rib_info->srv6_local_sid[] or -1 if not stored in rib_info->srv6_local_sid[]
 };
 
-struct srv6_encap_sid_entry 
+struct srv6_encap_sid_entry
 {
   uint32_t action;
 #define MAX_SEGMENT_LIST_SIZE 8
@@ -48,11 +48,11 @@ struct nh_info
 {
   int family;
   enum nexthop_type type;
-  union 
+  union
   {
     struct srv6_local_sid_entry srv6_local_sid;
     struct srv6_encap_sid_entry srv6_encap_sid;
-    struct 
+    struct
     {
       union
       {
@@ -61,7 +61,7 @@ struct nh_info
       } gw;
       uint32_t oif;
     };
-  };  
+  };
   char oif_name[IF_NAMESIZE];
   int refcnt; /* reference count from groups */
 };

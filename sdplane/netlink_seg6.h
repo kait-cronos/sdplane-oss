@@ -10,7 +10,6 @@
 
 struct seg6_param
 {
-  struct in6_addr dst_addr;
   struct seg6_iptunnel_encap *seg6_tuninfo;
 };
 
