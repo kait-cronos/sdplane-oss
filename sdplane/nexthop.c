@@ -222,8 +222,8 @@ nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info)
               memset (nh_str, 0, sizeof (nh_str));
               inet_ntop (info->family, &info->gw, nh_str, sizeof (nh_str));
               fprintf (shell->terminal,
-                       "        via %s, %s, %s, weight %u%s",
-                       nh_str, info->oif_name, family_str,
+                       "        via %s, %s (%u), %s, weight %u%s",
+                       nh_str, info->oif_name, info->oif, family_str,
                        grp->members[j].weight, shell->NL);
             }
         }
@@ -271,18 +271,18 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
           char local_sid_str[256];
           _srv6_format_local_sid (&info->srv6_local_sid, local_sid_str,
                                   sizeof (local_sid_str));
-          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s%s",
                    i, info->refcnt, family_str, "srv6-end", local_sid_str,
-                   info->oif_name, info->oif, shell->NL);
+                   info->oif_name, shell->NL);
         }
       else if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
         {
           char encap_sid_str[512];
           _srv6_format_encap_sid (&info->srv6_encap_sid, encap_sid_str,
                                   sizeof (encap_sid_str));
-          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s%s",
                    i, info->refcnt, family_str, "srv6-head", encap_sid_str,
-                   info->oif_name, info->oif, shell->NL);
+                   info->oif_name, shell->NL);
         }
       else if (info->type == NEXTHOP_TYPE_GATEWAY)
         {
