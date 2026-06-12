@@ -222,8 +222,8 @@ nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info)
               memset (nh_str, 0, sizeof (nh_str));
               inet_ntop (info->family, &info->gw, nh_str, sizeof (nh_str));
               fprintf (shell->terminal,
-                       "        via %s, %s (%u), %s, weight %u%s",
-                       nh_str, info->oif_name, info->oif, family_str,
+                       "        via %s, %s, %s, weight %u%s",
+                       nh_str, info->oif_name, family_str,
                        grp->members[j].weight, shell->NL);
             }
         }
