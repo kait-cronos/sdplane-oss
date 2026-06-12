@@ -290,7 +290,6 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       return;
     }
 
-  //_process_srv6_packet (m, ipv6, &rib->rib_info->srv6_local_sid_addr);
   _srv6_forwarding (m,
                ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
                eth, ipv4, ipv6,

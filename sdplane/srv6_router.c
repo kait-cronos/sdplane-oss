@@ -279,7 +279,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
              "m: %p received on port: %d queue: %d",
              m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
 
-#if 1
+#if 0
   /* check if this is a non-IP packet or multicast or broadcast */
   if ((! ipv4 && ! ipv6) ||
       rte_is_multicast_ether_addr (&eth->dst_addr) ||
