@@ -76,9 +76,9 @@ _srv6_format_local_sid (const struct srv6_local_sid_entry *local_sid,
   int len;
 
   inet_ntop (AF_INET6, &local_sid->sid, sid_str, sizeof (sid_str));
-  len = snprintf (buf, buf_size, "SID=%s action=%s oif=%d", sid_str,
+  len = snprintf (buf, buf_size, "action=%s SID=%s oif=%d",
                   _srv6_local_action_str (local_sid->action),
-                  local_sid->oif);
+                  sid_str, local_sid->oif);
 
   switch (local_sid->action)
     {
