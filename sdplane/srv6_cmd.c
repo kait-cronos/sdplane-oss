@@ -1,25 +1,17 @@
 #include "include.h"
 
-#include <linux/seg6.h>
-#include <linux/seg6_iptunnel.h>
-#include <linux/seg6_local.h>
-#include <netinet/in.h>
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_log.h>
 
 #include <net/if.h>
-#include <stdint.h>
-#include <sys/socket.h>
 
-#include "nexthop.h"
 #include "sdplane.h"
 #include "rib.h"
 #include "rib_manager.h"
 #include "internal_message.h"
 #include "netlink_seg6.h"
-#include "srv6.h"
 
 // clang-format off
 
@@ -229,8 +221,17 @@ CLI_COMMAND2 (set_srv6_encap_local_sid,
               SET_HELP,
               "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
+              "set SRv6 encap local-SID information\n",
               "specify SRv6 encap local-SID address\n",
-              "specify SRv6 encap local-SID behavior\n"
+              "End behavior\n",
+              "End.X behavior\n",
+              "End.T behavior\n",
+              "End.DX2 behavior\n",
+              "End.DX6 behavior\n",
+              "End.DX4 behavior\n",
+              "End.DT6 behavior\n",
+              "End.DT4 behavior\n",
+              "End.DT46 behavior\n"
               )
 {
   struct shell *shell = (struct shell *) context;
@@ -510,7 +511,8 @@ CLI_COMMAND2 (set_srv6_encap_head,
               "set SRv6 encap head-end route\n",
               "specify destination prefix (e.g. 2001:db8::/64)\n",
               "specify SRv6 segments in path order (comma-separated)\n",
-              "specify SRv6 encap action (default: H.Encaps)\n"
+              "encapsulate with H.Encaps (default)\n",
+              "insert SRH with H.Insert (not supported yet)\n"
               )
 {
   struct shell *shell = (struct shell *) context;
@@ -549,7 +551,8 @@ CLI_COMMAND2 (no_set_srv6_encap_head,
               "delete SRv6 encap head-end route\n",
               "specify destination prefix (e.g. 2001:db8::/64)\n",
               "specify SRv6 segments in path order (comma-separated)\n",
-              "specify SRv6 encap action (default: H.Encaps)\n"
+              "encapsulate with H.Encaps (default)\n",
+              "insert SRH with H.Insert (not supported yet)\n"
               )
 {
   struct shell *shell = (struct shell *) context;
