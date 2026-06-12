@@ -816,7 +816,7 @@ _srv6_forwarding (struct rte_mbuf *m,
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_END) 
     {
-      if (! _process_srv6_packet_multi_sids (m, ipv6,
+      if (! _process_srv6_end_packet (m, ipv6,
                             &nh_info->srv6_local_sid))
         {
           DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 packet", m);

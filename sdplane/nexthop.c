@@ -18,7 +18,7 @@ struct hash_table nh_ht;
 int _srv6_format_local_sid (const struct srv6_local_sid_entry *local_sid, char *buf, size_t buf_size)
 {
   char sid_str[INET6_ADDRSTRLEN];
-  inet_ntop (AF_INET6, &local_sid->local_sid, sid_str, sizeof (sid_str));
+  inet_ntop (AF_INET6, &local_sid->sid, sid_str, sizeof (sid_str));
   return snprintf (buf, buf_size, "SID=%s action=%u oif=%d", sid_str,
             local_sid->action, local_sid->oif);
 
@@ -308,7 +308,7 @@ static int _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
       if (a->srv6_local_sid.param.table_id != 0) // If it's a table lookup, compare table_id
         return 1;
       // Otherwise, compare the local SID address
-      return memcmp(&a->srv6_local_sid.local_sid, &b->srv6_local_sid.local_sid, sizeof(struct in6_addr)) == 0;
+      return memcmp(&a->srv6_local_sid.sid, &b->srv6_local_sid.sid, sizeof(struct in6_addr)) == 0;
     }
   return 1;
 }
@@ -364,9 +364,7 @@ _info_release (struct nexthop *nexthop, int idx)
 
   info->refcnt--;
   if (info->refcnt <= 0)
-    {
-      memset (info, 0, sizeof (*info));
-    }
+    memset (info, 0, sizeof (*info));
 }
 
 static int

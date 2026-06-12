@@ -25,7 +25,7 @@ enum nexthop_type
 
 struct srv6_local_sid_entry 
 {
-  struct in6_addr local_sid;
+  struct in6_addr sid;
   uint32_t action;
   int oif;
   union {
@@ -33,6 +33,7 @@ struct srv6_local_sid_entry
     struct in_addr nh4;
     uint32_t table_id;
   } param;
+  int8_t local_sid_addr_index; // index in rib_info->srv6_local_sid[] or -1 if not stored in rib_info->srv6_local_sid[]
 };
 
 struct srv6_encap_sid_entry 

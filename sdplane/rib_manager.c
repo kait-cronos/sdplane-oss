@@ -528,6 +528,32 @@ route_table_alloc_slot (int table_id, int family)
   return tree_idx;
 }
 
+/*
+ * SRv6
+ */
+
+static inline __attribute__ ((always_inline)) void
+srv6_local_sid_del (struct rib_info *rib_info,
+                    const struct in6_addr *sid)
+{
+  int i, num = rib_info->srv6_local_sid_addr_num;
+
+  for (i = 0; i < num; i++)
+    {
+      if (memcmp (&rib_info->srv6_local_sid[i].sid, sid, sizeof (*sid)) == 0)
+        {
+          int tail = num - 1;
+          if (i < tail)
+            memmove (&rib_info->srv6_local_sid[i],
+                     &rib_info->srv6_local_sid[i + 1],
+                     (tail - i) * sizeof (struct srv6_local_sid_entry));
+          memset (&rib_info->srv6_local_sid[tail], 0,
+                  sizeof (struct srv6_local_sid_entry));
+          rib_info->srv6_local_sid_addr_num--;
+          break;
+        }
+    }
+}
 
 /*
  * rib and rib_info
@@ -1082,79 +1108,13 @@ rib_manager_process_port_get (struct internal_msg_header *imsghdr)
   return retflag;
 }
 
-int process_add_route_message(struct rib* new,struct internal_msg_route_entry* msg_route_entry) 
-{
-  struct route_entry route_entry;
-  int sdplane_nh_id = 0;
-  int i;
-
-  /* buffer for debug log */
-  char dst_addr[64] = {0};
-  char gw_addr[512] = {0};
-
-  /* register nexthop entry to rib_info->nexthop */
-  sdplane_nh_id = nexthop_add_entry (new->rib_info, &msg_route_entry->nh);
-  if (sdplane_nh_id < 0)
-    return 0;
-  nexthop_increment_refcnt (new->rib_info, sdplane_nh_id);
-
-  /* search for existing RIB tree with matching family and table_id */
-  i = route_table_lookup_id (msg_route_entry->table_id,
-                              msg_route_entry->family);
-  if (i < 0)
-    {
-      /* if not found, search for empty slot and create new table */
-      i = route_table_alloc_slot (msg_route_entry->table_id,
-                                  msg_route_entry->family);
-      if (i < 0)
-        {
-          DEBUG_SDPLANE_LOG (RIB, "failed to create route table");
-          return 0;
-        }
-    }
-
-  /* create route entry */
-  memset (&route_entry, 0, sizeof (struct route_entry));
-  memcpy (&route_entry.dst,
-          &msg_route_entry->dst,
-          sizeof (struct route_dst_info));
-  route_entry.sdplane_nh_id = sdplane_nh_id;
-        route_entry.table_id = msg_route_entry->table_id;
-
-  /* register route entry to RIB */
-  if (rib_route_add (rib_tree_master[i],
-                      &msg_route_entry->dst.dst_ip_addr,
-                      msg_route_entry->dst.plen,
-                      &route_entry) > 0)
-    {
-      DEBUG_SDPLANE_LOG (RIB, "failed to add route to RIB");
-      return 0;
-    }
-
-  inet_ntop (msg_route_entry->dst.family,
-              &msg_route_entry->dst.dst_ip_addr,
-              dst_addr, sizeof (dst_addr));
-  DEBUG_NEW (RIB, "route added: dst=%s/%d nexthop=%s",
-              dst_addr, msg_route_entry->dst.plen,
-              nexthop_format (&msg_route_entry->nh, gw_addr,
-              sizeof (gw_addr)));
-  
-  return 1;
-}
-
 void
 rib_manager_process_message (void *msgp)
 {
   int ret;
   int i, j;
   //DEBUG_SDPLANE_LOG (RIB, "msg: %p.", msgp);
-  struct route_entry route_entry;
-  int sdplane_nh_id = 0;
 
-
-  /* buffer for debug log */
-  char dst_addr[64] = {0};
-  char gw_addr[512] = {0};
   struct rib *new, *old;
 
   /* retrieve old */
@@ -1672,10 +1632,59 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
       DEBUG_SDPLANE_LOG (RIB, "recv msg_route_entry_add: %p.", msgp);
       msg_route_entry = (struct internal_msg_route_entry *) (msg_header + 1);
-      if (! process_add_route_message(new, msg_route_entry)) 
+      struct route_entry route_entry;
+      int sdplane_nh_id = 0;
+
+      /* buffer for debug log */
+      char dst_addr[64] = {0};
+      char gw_addr[512] = {0};
+
+      /* register nexthop entry to rib_info->nexthop */
+      sdplane_nh_id = nexthop_add_entry (new->rib_info, &msg_route_entry->nh);
+      if (sdplane_nh_id < 0)
+        break;
+      nexthop_increment_refcnt (new->rib_info, sdplane_nh_id);
+
+      /* search for existing RIB tree with matching family and table_id */
+      i = route_table_lookup_id (msg_route_entry->table_id,
+                                 msg_route_entry->family);
+      if (i < 0)
         {
-          return;
+          /* if not found, search for empty slot and create new table */
+          i = route_table_alloc_slot (msg_route_entry->table_id,
+                                      msg_route_entry->family);
+          if (i < 0)
+            {
+              DEBUG_SDPLANE_LOG (RIB, "failed to create route table");
+              break;
+            }
         }
+
+      /* create route entry */
+      memset (&route_entry, 0, sizeof (struct route_entry));
+      memcpy (&route_entry.dst,
+              &msg_route_entry->dst,
+              sizeof (struct route_dst_info));
+      route_entry.sdplane_nh_id = sdplane_nh_id;
+            route_entry.table_id = msg_route_entry->table_id;
+
+      /* register route entry to RIB */
+      if (rib_route_add (rib_tree_master[i],
+                         (uint8_t *) &msg_route_entry->dst.dst_ip_addr,
+                         msg_route_entry->dst.plen,
+                         &route_entry) > 0)
+        {
+          DEBUG_SDPLANE_LOG (RIB, "failed to add route to RIB");
+          break;
+        }
+
+      inet_ntop (msg_route_entry->dst.family,
+                 (uint8_t *) &msg_route_entry->dst.dst_ip_addr,
+                 dst_addr, sizeof (dst_addr));
+      DEBUG_NEW (RIB, "route added: dst=%s/%d nexthop=%s",
+                 dst_addr, msg_route_entry->dst.plen,
+                 nexthop_format (&msg_route_entry->nh, gw_addr,
+                 sizeof (gw_addr)));
       break;
 
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL:
@@ -1900,14 +1909,71 @@ rib_manager_process_message (void *msgp)
 
       break;
 
-    
-    case INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET: 
-        new->rib_info->srv6_tunnel_src_addr = ((struct internal_msg_srv6_encap_src *) internal_msg_body(msgp))->src_addr;
-        inet_ntop (AF_INET6, &msg_ip_addr->ip_addr.ipv6_addr, ip_str_add,
-            sizeof (ip_str_add));
-        DEBUG_SDPLANE_LOG (RIB, "recv msg_srv6_encap_src_set: %p, set srv6_encap_src: %s",
-                           msgp, ip_str_add);
+    case INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD:
+      {
+        struct internal_msg_srv6_local_sid *msg_srv6_local_sid;
+        char addr_str[64];
+        DEBUG_NEW (RIB, "recv msg_srv6_local_sid: %p.", msgp);
+        msg_srv6_local_sid =
+          (struct internal_msg_srv6_local_sid *) (msg_header + 1);
+        inet_ntop (AF_INET6, &msg_srv6_local_sid->srv6_local_sid_addr,
+                   addr_str, sizeof (addr_str));
+        DEBUG_NEW (RIB, "recv msg_srv6_local_sid: addr: %s index: %d.",
+                   addr_str, msg_srv6_local_sid->srv6_local_sid_addr_index);
+        int num_sids = new->rib_info->srv6_local_sid_addr_num;
+        int index = msg_srv6_local_sid->srv6_local_sid_addr_index;
+        /* UINT8_MAX means auto-assign */
+        if (index == UINT8_MAX)
+          index = num_sids;
+        if (0 <= num_sids && num_sids < MAX_SRV6_LOCAL_SID_ADDR_NUM &&
+            0 <= index && index <= num_sids)
+          {
+            DEBUG_NEW (RIB, "saving at local_sid_addr[%d/%d] success: addr: %s.",
+                       index, num_sids, addr_str);
+            struct srv6_local_sid_entry *entry = &new->rib_info->srv6_local_sid[index];
+            memcpy (&entry->sid, &msg_srv6_local_sid->srv6_local_sid_addr,
+                    sizeof (struct in6_addr));
+            entry->action = msg_srv6_local_sid->action;
+            entry->oif = msg_srv6_local_sid->oif;
+            memcpy (&entry->param, &msg_srv6_local_sid->param,
+                    sizeof (entry->param));
+            if (index == num_sids)
+              new->rib_info->srv6_local_sid_addr_num++;
+            DEBUG_NEW (RIB, "local_sid_addr_num: %d.",
+                       new->rib_info->srv6_local_sid_addr_num);
+          }
+        else
+          DEBUG_NEW (RIB, "saving at local_sid_addr[%d/%d] failed: addr: %s.",
+                     index, num_sids, addr_str);
         break;
+      }
+
+    case INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL:
+      {
+        struct internal_msg_srv6_local_sid *msg_srv6_local_sid;
+        char addr_str[64];
+        msg_srv6_local_sid =
+          (struct internal_msg_srv6_local_sid *) (msg_header + 1);
+        inet_ntop (AF_INET6, &msg_srv6_local_sid->srv6_local_sid_addr,
+                   addr_str, sizeof (addr_str));
+        DEBUG_NEW (RIB, "del local_sid_addr: %s.", addr_str);
+        srv6_local_sid_del (new->rib_info,
+                            &msg_srv6_local_sid->srv6_local_sid_addr);
+        break;
+      }
+
+    case INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET:
+      {
+        struct internal_msg_srv6_encap_src *msg_encap_src;
+        char src_str[INET6_ADDRSTRLEN];
+        msg_encap_src = (struct internal_msg_srv6_encap_src *) (msg_header + 1);
+        new->rib_info->srv6_tunnel_src_addr = msg_encap_src->src_addr;
+        inet_ntop (AF_INET6, &msg_encap_src->src_addr, src_str,
+                   sizeof (src_str));
+        DEBUG_SDPLANE_LOG (RIB, "recv msg_srv6_encap_src_set: %p, set srv6_encap_src: %s",
+                           msgp, src_str);
+        break;
+      }
     default:
       DEBUG_SDPLANE_LOG (RIB, "recv msg unknown: %p.", msgp);
       break;
