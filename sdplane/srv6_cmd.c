@@ -1,4 +1,5 @@
 #include "include.h"
+
 #include <linux/seg6.h>
 #include <linux/seg6_iptunnel.h>
 #include <linux/seg6_local.h>
@@ -204,13 +205,13 @@ CLI_COMMAND2 (show_srv6_local_sid,
   return CMD_SUCCESS;
 }
 
-
 bool enable_srv6_encap_mode = false;
 
 CLI_COMMAND2 (set_srv6_encap_enable,
               "set srv6 encap enable",
               SET_HELP,
               "set SRv6 information\n",
+              "set SRv6 encapsulation information\n",
               "enable SRv6 encapsulation mode\n"
               )
 {
@@ -223,7 +224,8 @@ CLI_COMMAND2 (set_srv6_encap_enable,
 
 CLI_COMMAND2 (set_srv6_encap_local_sid,
               "set srv6 encap local-sid <WORD> "
-              "(|End|End.X|End.T|End.DX2|End.DX6|End.DX4|End.DT6|End.DT4|End.DT46)",
+              "(|End|End.X|End.T|End.DX2|End.DX6|End.DX4"
+              "|End.DT6|End.DT4|End.DT46)",
               SET_HELP,
               "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
@@ -251,7 +253,8 @@ CLI_COMMAND2 (set_srv6_encap_local_sid,
   if(inet_pton (AF_INET6, argv[3],
              &tmp_addr) <= 0)
     {
-      fprintf (shell->terminal, "Invalid IPv6 address: %s%s", argv[3], shell->NL);
+      fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
+               argv[3], shell->NL);
       return CMD_FAILURE;
     }
 
@@ -259,7 +262,8 @@ CLI_COMMAND2 (set_srv6_encap_local_sid,
     action = SEG6_LOCAL_ACTION_END;
   else
     {
-      fprintf (shell->terminal, "Unsupported SRv6 local-SID behavior: %s%s", argv[4], shell->NL);
+      fprintf (shell->terminal, "Unsupported SRv6 local-SID behavior: %s%s",
+               argv[4], shell->NL);
       return CMD_FAILURE;
     }
 
@@ -290,7 +294,6 @@ CLI_COMMAND2 (set_srv6_encap_local_sid,
   return CMD_SUCCESS;
 }
 
-
 CLI_COMMAND2 (no_set_srv6_encap_local_sid,
               "no set srv6 encap local-sid <WORD>",
               NO_HELP,
@@ -318,7 +321,8 @@ CLI_COMMAND2 (no_set_srv6_encap_local_sid,
 
   if (inet_pton (AF_INET6, argv[4], &tmp_addr) != 1)
     {
-      fprintf (shell->terminal, "Invalid IPv6 address: %s%s", argv[4], shell->NL);
+      fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
+               argv[4], shell->NL);
       return CMD_FAILURE;
     }
 
@@ -344,7 +348,6 @@ CLI_COMMAND2 (no_set_srv6_encap_local_sid,
 
   return CMD_SUCCESS;
 }
-
 
 CLI_COMMAND2(set_srv6_encap_src,"set srv6 encap src <WORD>",
               SET_HELP,

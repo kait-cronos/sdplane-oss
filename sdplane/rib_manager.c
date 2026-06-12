@@ -1970,7 +1970,9 @@ rib_manager_process_message (void *msgp)
         new->rib_info->srv6_tunnel_src_addr = msg_encap_src->src_addr;
         inet_ntop (AF_INET6, &msg_encap_src->src_addr, src_str,
                    sizeof (src_str));
-        DEBUG_SDPLANE_LOG (RIB, "recv msg_srv6_encap_src_set: %p, set srv6_encap_src: %s",
+        DEBUG_SDPLANE_LOG (RIB,
+                           "recv msg_srv6_encap_src_set: %p,"
+                           " set srv6_encap_src: %s",
                            msgp, src_str);
         break;
       }

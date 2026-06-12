@@ -154,7 +154,6 @@ _process_srv6_packet_multi_sids (struct rte_mbuf *m,
       return modified;
     }
 
-
   srh->segments_left --;
 
   struct in6_addr* sid_list = (struct in6_addr *)(srh + 1);
@@ -165,7 +164,6 @@ _process_srv6_packet_multi_sids (struct rte_mbuf *m,
   modified = true;
   return modified;
 }
-
 
 static inline __attribute__ ((always_inline)) bool
 _process_srv6_end_packet (struct rte_mbuf *m,
@@ -241,8 +239,8 @@ _process_encapsulate_srv6_packet (struct rte_mbuf *m,
   /* encapsulate with SRv6 */
   uint32_t outer_header_size = sizeof (struct rte_ipv6_hdr) +
                               sizeof (struct rte_ipv6_routing_ext) +
-                              srv6_encap_sid->segment_list_size * sizeof(struct in6_addr);
-
+                              srv6_encap_sid->segment_list_size *
+                              sizeof(struct in6_addr);
 
   DEBUG_NEW (ROUTER, "m: %p: encapsulating with SRv6, original pkt len"
              " %d, outer header size %d, segment list size %d,"
@@ -269,10 +267,12 @@ _process_encapsulate_srv6_packet (struct rte_mbuf *m,
     }
   else
     {
-      DEBUG_NEW (ROUTER, "m: %p: no ipv4 or ipv6 header found for encapsulate", m);
+      DEBUG_NEW (ROUTER,
+                 "m: %p: no ipv4 or ipv6 header found for encapsulate", m);
       return false;
     }
-  struct rte_ether_hdr* new_ether_hdr =  rte_pktmbuf_prepend (m, outer_header_size);
+  struct rte_ether_hdr* new_ether_hdr =
+    rte_pktmbuf_prepend (m, outer_header_size);
   if (!new_ether_hdr)
     {
       DEBUG_NEW (ROUTER, "m: %p: failed to prepend for encapsulate", m);
@@ -280,15 +280,18 @@ _process_encapsulate_srv6_packet (struct rte_mbuf *m,
     }
   memmove (new_ether_hdr, *original_ether_hdr, original_pre_ip_hdr_size);
   struct rte_ipv6_hdr* new_ipv6_hdr =
-          (struct rte_ipv6_hdr *) ((uint8_t *) new_ether_hdr + original_pre_ip_hdr_size);
+          (struct rte_ipv6_hdr *) ((uint8_t *) new_ether_hdr +
+                                   original_pre_ip_hdr_size);
   // version 6, traffic class and flow label are set to 0
   new_ipv6_hdr->vtc_flow = rte_cpu_to_be_32(6 << 28);
   new_ipv6_hdr->payload_len = rte_cpu_to_be_16(rte_pktmbuf_pkt_len(m) -
-                            original_pre_ip_hdr_size - sizeof(struct rte_ipv6_hdr));
+                            original_pre_ip_hdr_size -
+                            sizeof(struct rte_ipv6_hdr));
   new_ipv6_hdr->proto = IPPROTO_ROUTING;
   new_ipv6_hdr->hop_limits = 64; // TODO: configurable hop limit
   rte_memcpy (&new_ipv6_hdr->src_addr, src_addr, 16);
-  struct rte_ipv6_routing_ext* new_srh = (struct rte_ipv6_routing_ext *) (new_ipv6_hdr + 1);
+  struct rte_ipv6_routing_ext* new_srh =
+    (struct rte_ipv6_routing_ext *) (new_ipv6_hdr + 1);
   new_srh->type = RTE_IPV6_SRCRT_TYPE_4;
   new_srh->hdr_len = srv6_encap_sid->segment_list_size * 2;
   new_srh->segments_left = srv6_encap_sid->segment_list_size - 1;

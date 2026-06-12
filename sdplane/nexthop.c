@@ -15,19 +15,23 @@
 /* global hash table: mapping for kernel_nh_id to sdplane_nh_id. */
 struct hash_table nh_ht;
 
-int _srv6_format_local_sid (const struct srv6_local_sid_entry *local_sid, char *buf, size_t buf_size)
+int
+_srv6_format_local_sid (const struct srv6_local_sid_entry *local_sid,
+                        char *buf, size_t buf_size)
 {
   char sid_str[INET6_ADDRSTRLEN];
   inet_ntop (AF_INET6, &local_sid->sid, sid_str, sizeof (sid_str));
   return snprintf (buf, buf_size, "SID=%s action=%u oif=%d", sid_str,
             local_sid->action, local_sid->oif);
-
 }
 
-int _srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid, char *buf, size_t buf_size)
+int
+_srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid,
+                        char *buf, size_t buf_size)
 {
   int len = 0, i;
-  len += snprintf (buf + len, buf_size - len, "action=%u segs=", encap_sid->action);
+  len += snprintf (buf + len, buf_size - len, "action=%u segs=",
+                   encap_sid->action);
   for (i = 0; i < encap_sid->segment_list_size; i++)
     {
       char sid_str[INET6_ADDRSTRLEN];
@@ -38,7 +42,6 @@ int _srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid, char *
     }
   return len;
 }
-
 
 char *
 nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
@@ -90,7 +93,8 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
           if (info->type == NEXTHOP_TYPE_SRV6_END)
             {
               char local_sid_str[256];
-              _srv6_format_local_sid (&info->srv6_local_sid, local_sid_str, sizeof (local_sid_str));
+              _srv6_format_local_sid (&info->srv6_local_sid, local_sid_str,
+                                      sizeof (local_sid_str));
               len += snprintf (buf + len, buf_size - len, "%s(w=%u)%s",
                                local_sid_str, nh->members[i].weight, sep);
               continue;
@@ -98,7 +102,8 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
           if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
             {
               char encap_sid_str[512];
-              _srv6_format_encap_sid (&info->srv6_encap_sid, encap_sid_str, sizeof (encap_sid_str));
+              _srv6_format_encap_sid (&info->srv6_encap_sid, encap_sid_str,
+                                      sizeof (encap_sid_str));
               len += snprintf (buf + len, buf_size - len, "%s(w=%u)%s",
                                encap_sid_str, nh->members[i].weight, sep);
               continue;
@@ -288,13 +293,17 @@ static int _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
     {
       if (a->srv6_encap_sid.action != b->srv6_encap_sid.action)
         return 0;
-      if (a->srv6_encap_sid.segment_list_size == 0 || b->srv6_encap_sid.segment_list_size == 0)
-        return a->srv6_encap_sid.segment_list_size == b->srv6_encap_sid.segment_list_size; // both 0 or both non-0
-      if (a->srv6_encap_sid.segment_list_size != b->srv6_encap_sid.segment_list_size)
+      if (a->srv6_encap_sid.segment_list_size == 0 ||
+          b->srv6_encap_sid.segment_list_size == 0)
+        return a->srv6_encap_sid.segment_list_size ==
+               b->srv6_encap_sid.segment_list_size; // both 0 or both non-0
+      if (a->srv6_encap_sid.segment_list_size !=
+          b->srv6_encap_sid.segment_list_size)
         return 0;
       for (int i = 0; i < a->srv6_encap_sid.segment_list_size; i++)
         {
-          if (memcmp(&a->srv6_encap_sid.sids[i], &b->srv6_encap_sid.sids[i], sizeof(struct in6_addr)) != 0)
+          if (memcmp (&a->srv6_encap_sid.sids[i], &b->srv6_encap_sid.sids[i],
+                      sizeof (struct in6_addr)) != 0)
             return 0;
         }
       return 1;
@@ -305,10 +314,12 @@ static int _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
         return 0;
       if (a->srv6_local_sid.param.table_id != b->srv6_local_sid.param.table_id)
         return 0;
-      if (a->srv6_local_sid.param.table_id != 0) // If it's a table lookup, compare table_id
+      // If it's a table lookup, compare table_id
+      if (a->srv6_local_sid.param.table_id != 0)
         return 1;
       // Otherwise, compare the local SID address
-      return memcmp(&a->srv6_local_sid.sid, &b->srv6_local_sid.sid, sizeof(struct in6_addr)) == 0;
+      return memcmp (&a->srv6_local_sid.sid, &b->srv6_local_sid.sid,
+                     sizeof (struct in6_addr)) == 0;
     }
   return 1;
 }

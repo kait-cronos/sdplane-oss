@@ -483,7 +483,9 @@ CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command\n")
   int current_lcore = rte_lcore_id();
   if(lthread_core != current_lcore)
     {
-      fprintf(shell->terminal,"lthread lcore changed: core[%d] -> core[%d]%s",lthread_core,current_lcore,shell->NL);
+      fprintf (shell->terminal,
+               "lthread lcore changed: core[%d] -> core[%d]%s",
+               lthread_core, current_lcore, shell->NL);
       lthread_core = current_lcore;
     }
   return 0;

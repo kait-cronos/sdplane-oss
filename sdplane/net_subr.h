@@ -476,8 +476,6 @@ _switching (struct rte_mbuf *m,
   return;
 }
 
-
-
 static inline __attribute__ ((always_inline)) void
 _forwarding (struct rte_mbuf *m,
              unsigned rx_portid, unsigned rx_queueid,
@@ -823,19 +821,23 @@ _srv6_forwarding (struct rte_mbuf *m,
           return;
         }
       rx_link = NULL; // to avoid split-horizon check
-      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch, rx_link);
+      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6,
+                        rx_vswitch, rx_link);
       return;
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
       if (! _process_encapsulate_srv6_packet (m, &eth, &ipv4, &ipv6,
-             &nh_info->srv6_encap_sid,&rib->rib_info->srv6_tunnel_src_addr, rx_portid, rx_queueid))
+                            &nh_info->srv6_encap_sid,
+                            &rib->rib_info->srv6_tunnel_src_addr,
+                            rx_portid, rx_queueid))
         {
           DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 encapsulation", m);
           return;
         }
       rx_link = NULL; // to avoid split-horizon check
-      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch, rx_link);
+      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6,
+                        rx_vswitch, rx_link);
       return;
     }
 
@@ -896,9 +898,11 @@ _srv6_forwarding (struct rte_mbuf *m,
               if (arp_pkt)
                 {
                   char dst_ip_str[INET_ADDRSTRLEN];
-                  inet_ntop (AF_INET, lookup_ip, dst_ip_str, sizeof (dst_ip_str));
+                  inet_ntop (AF_INET, lookup_ip, dst_ip_str,
+                             sizeof (dst_ip_str));
                   DEBUG_NEW (ROUTER,
-                             "m: %p send ARP request: target_ip: %s, flooding to vswitch[%d]",
+                             "m: %p send ARP request: target_ip: %s,"
+                             " flooding to vswitch[%d]",
                              arp_pkt, dst_ip_str, vs->vswitch_id);
 
                   _flooding (arp_pkt, ROUTER_IF_RX_SELF_PORT_ID,
@@ -917,9 +921,11 @@ _srv6_forwarding (struct rte_mbuf *m,
               if (ns_pkt)
                 {
                   char dst_ip_str[INET6_ADDRSTRLEN];
-                  inet_ntop (AF_INET6, lookup_ip, dst_ip_str, sizeof (dst_ip_str));
+                  inet_ntop (AF_INET6, lookup_ip, dst_ip_str,
+                             sizeof (dst_ip_str));
                   DEBUG_NEW (ROUTER,
-                             "m: %p send NS: %p, target_ip: %s, flooding to vswitch[%d]",
+                             "m: %p send NS: %p, target_ip: %s,"
+                             " flooding to vswitch[%d]",
                              m, ns_pkt, dst_ip_str, vs->vswitch_id);
                   _flooding (ns_pkt, ROUTER_IF_RX_SELF_PORT_ID,
                              ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs);

@@ -219,7 +219,10 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   /* 4. check if l3_forwarding */
   if (! rte_is_same_ether_addr (&eth->dst_addr, &rif->mac_addr))
     {
-      DEBUG_NEW (ROUTER, "L2 switching" " %02x:%02x:%02x:%02x:%02x:%02x != %02x:%02x:%02x:%02x:%02x:%02x",
+      DEBUG_NEW (ROUTER,
+                 "L2 switching"
+                 " %02x:%02x:%02x:%02x:%02x:%02x"
+                 " != %02x:%02x:%02x:%02x:%02x:%02x",
                  eth->dst_addr.addr_bytes[0], eth->dst_addr.addr_bytes[1],
                  eth->dst_addr.addr_bytes[2], eth->dst_addr.addr_bytes[3],
                  eth->dst_addr.addr_bytes[4], eth->dst_addr.addr_bytes[5],

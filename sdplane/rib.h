@@ -182,7 +182,7 @@ struct rib_info
 #define MAX_SRV6_LOCAL_SID_ADDR_NUM 16
   struct srv6_local_sid_entry srv6_local_sid[MAX_SRV6_LOCAL_SID_ADDR_NUM];
   uint8_t srv6_local_sid_addr_num;
-  struct in6_addr srv6_tunnel_src_addr; // used as source address for SRv6 encapsulation
+  struct in6_addr srv6_tunnel_src_addr;
 } __rte_cache_aligned;
 
 EXTERN_COMMAND (show_rib);

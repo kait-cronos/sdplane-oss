@@ -596,8 +596,10 @@ netlink_read_rtattr_encap (struct internal_msg_route_entry* route,
       for(int i = 0;i< route->nh.nhcnt;i++)
        {
         route->nh.members[i].info.type = NEXTHOP_TYPE_SRV6_HEAD;
-        route->nh.members[i].info.srv6_encap_sid.action = seg6_param.seg6_tuninfo->mode;
-        route->nh.members[i].info.srv6_encap_sid.segment_list_size = segment_count;
+        route->nh.members[i].info.srv6_encap_sid.action =
+          seg6_param.seg6_tuninfo->mode;
+        route->nh.members[i].info.srv6_encap_sid.segment_list_size =
+          segment_count;
         memcpy(route->nh.members[i].info.srv6_encap_sid.sids,
           seg6_param.seg6_tuninfo->srh->segments,
             sizeof(struct in6_addr) * segment_count);
