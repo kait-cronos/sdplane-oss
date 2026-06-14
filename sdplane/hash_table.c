@@ -108,3 +108,23 @@ hash_table_lookup (const struct hash_table *ht, const void *key)
     }
   return NULL;
 }
+
+void
+hash_table_foreach (struct hash_table *ht,
+                    void (*callback) (void *key, void *value, void *arg),
+                    void *arg)
+{
+  int i;
+  struct ht_node *cur, *next;
+
+  for (i = 0; i < ht->size; i++)
+    {
+      cur = ht->buckets[i];
+      while (cur)
+        {
+          next = cur->next;
+          callback (cur->key, cur->value, arg);
+          cur = next;
+        }
+    }
+}
