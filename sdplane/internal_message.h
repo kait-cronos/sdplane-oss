@@ -34,24 +34,25 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_ROUTER_IF_NO_SET      16
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET     17
 #define INTERNAL_MSG_TYPE_FDB_ENTRY_ADD         18
-#define INTERNAL_MSG_TYPE_APPLICATION_SLOT      19
-#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       20
-#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21
-#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_ADD     22
-#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_DEL     23
-#define INTERNAL_MSG_TYPE_PORT_GET_REQUEST      24
-#define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     25
-#define INTERNAL_MSG_TYPE_CMD_SUCCESS           26
-#define INTERNAL_MSG_TYPE_CMD_ERROR             27
-#define INTERNAL_MSG_TYPE_MAC_ADDR_ADD          28
-#define INTERNAL_MSG_TYPE_MAC_ADDR_DEL          29
-#define INTERNAL_MSG_TYPE_IP_ADDR_ADD           30
-#define INTERNAL_MSG_TYPE_IP_ADDR_DEL           31
-#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD    32
-#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL    33
-#define INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET    34
+#define INTERNAL_MSG_TYPE_FDB_AGING             19
+#define INTERNAL_MSG_TYPE_APPLICATION_SLOT      20
+#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       21
+#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       22
+#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_ADD     23
+#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_DEL     24
+#define INTERNAL_MSG_TYPE_PORT_GET_REQUEST      25
+#define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     26
+#define INTERNAL_MSG_TYPE_CMD_SUCCESS           27
+#define INTERNAL_MSG_TYPE_CMD_ERROR             28
+#define INTERNAL_MSG_TYPE_MAC_ADDR_ADD          29
+#define INTERNAL_MSG_TYPE_MAC_ADDR_DEL          30
+#define INTERNAL_MSG_TYPE_IP_ADDR_ADD           31
+#define INTERNAL_MSG_TYPE_IP_ADDR_DEL           32
+#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD    33
+#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL    34
+#define INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET    35
 
-struct internal_msg_eth_link
+    struct internal_msg_eth_link
 {
   struct rte_eth_link link[RTE_MAX_ETHPORTS];
 };
@@ -111,6 +112,11 @@ struct internal_msg_fdb_entry
   struct rte_ether_addr mac_addr;
   uint16_t vlan_id;
   uint16_t port;
+};
+
+struct internal_msg_fdb_aging
+{
+  uint32_t aging_time; /* seconds */
 };
 
 struct internal_msg_nh_member

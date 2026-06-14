@@ -18,6 +18,7 @@
 
 #include "rib_manager.h"
 #include "neigh_manager.h"
+#include "fdb.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "internal_message.h"
@@ -331,26 +332,11 @@ CLI_COMMAND2 (show_fdb,
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
-  int i, count = 0;
-  char mac_str[32];
 
   fprintf (shell->terminal, "fdb:%s", shell->NL);
-  for (i = 0; i < FDB_SIZE; i++)
-    {
-      if (rib->rib_info->fdb[i].state != FDB_STATE_NONE)
-        {
-          rte_ether_format_addr (mac_str, sizeof (mac_str),
-                                 &rib->rib_info->fdb[i].l2addr);
-          fprintf (shell->terminal,
-                   "  fdb[%d]: %s vlan:%u port:%d last_seen:%lu%s",
-                   i, mac_str, rib->rib_info->fdb[i].vlan_id,
-                   rib->rib_info->fdb[i].port,
-                   rib->rib_info->fdb[i].last_seen, shell->NL);
-          count++;
-        }
-    }
-  fprintf (shell->terminal, "total fdb entries: %d/%d%s", count, FDB_SIZE,
-           shell->NL);
+  hash_table_foreach (&rib->rib_info->fdb_table, show_fdb_entry_callback, shell);
+  fprintf (shell->terminal, "total fdb entries: %d%s",
+           rib->rib_info->fdb_table.count, shell->NL);
   return 0;
 }
 

@@ -9,11 +9,9 @@
 #define MAX_VLAN_PER_PORT       8
 #define MAX_ETH_PORTS           8
 #define MAX_NEIGHBOR_ENTRY_SIZE 1024
-#define FDB_SIZE                1024
-#define FDB_HASH_MASK           0x3FF
-#define FDB_STATE_NONE          0
-#define FDB_STATE_ACTIVE        1
+#define FDB_HASH_BUCKETS        1024
 #define FDB_AGING_TIME_DEFAULT  7200 /* Default aging time: 2 hours */
+#define FDB_AGING_INTERVAL      60   /* aging scan interval in seconds */
 #define ROUTE_TREE_SIZE         2
 #define K                       2
 #define BRANCH_SZ               (1 << K)
@@ -142,7 +140,6 @@ struct fdb_entry
   struct rte_ether_addr l2addr;
   int port;
   uint16_t vlan_id;
-  uint8_t state;
   time_t last_seen;
 };
 
@@ -166,6 +163,7 @@ struct application_slot_entry
 };
 
 #include "nexthop.h"
+#include "hash_table.h"
 
 struct rib_info
 {
@@ -180,7 +178,7 @@ struct rib_info
   struct port_conf port[MAX_ETH_PORTS];
   struct lcore_qconf lcore_qconf[RTE_MAX_LCORE];
   struct neigh_table neigh_tables[NEIGH_NR_TABLES];
-  struct fdb_entry fdb[FDB_SIZE];
+  struct hash_table fdb_table;
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
   struct nexthop nexthop;
   struct fib_tree *fib_tree[ROUTE_TREE_SIZE];

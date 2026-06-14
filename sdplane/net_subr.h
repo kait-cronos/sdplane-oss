@@ -10,6 +10,7 @@
 #include "packet_gen.h"
 #include "neigh_manager.h"
 #include "rib_manager.h"
+#include "fdb.h"
 #include "packet_hdr.h"
 #include "log_packet.h"
 #include "control_packet.h"
