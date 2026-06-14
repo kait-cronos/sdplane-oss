@@ -146,8 +146,6 @@ struct fdb_entry
   time_t last_seen;
 };
 
-
-
 struct srv6_local_sid_entry {
   struct in6_addr sid;
   uint32_t action;
@@ -158,7 +156,6 @@ struct srv6_local_sid_entry {
     uint32_t table_id;
   } param;
 };
-
 
 #define APPLI_SLOT_SIZE 32
 struct application_slot_entry
