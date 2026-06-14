@@ -61,10 +61,6 @@ static inline __attribute__ ((always_inline)) int
 capture_if_delete (struct rib_info *rib_info, uint16_t vswitch_id);
 
 /*
- * common
- */
-
-/*
  * vswitch
  */
 
