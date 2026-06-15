@@ -720,12 +720,14 @@ _forwarding (struct rte_mbuf *m,
   _switching (m, rx_portid, rx_queueid, NULL, tx_vswitch, eth);
 }
 
+#define SRV6_MAX_RECURSION 4
 static void
 _srv6_forwarding (struct rte_mbuf *m,
              unsigned rx_portid, unsigned rx_queueid,
              struct rte_ether_hdr *eth, struct rte_ipv4_hdr *ipv4,
              struct rte_ipv6_hdr *ipv6, struct vswitch_conf *rx_vswitch,
-             struct vswitch_link *rx_link)
+             struct vswitch_link *rx_link,
+             int recursion_count)
 {
   struct nh_info *nh_info;
   struct neigh_entry *neigh_entry;
@@ -813,6 +815,11 @@ _srv6_forwarding (struct rte_mbuf *m,
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_END)
     {
+      if (recursion_count >= SRV6_MAX_RECURSION)
+        {
+          DEBUG_NEW (ROUTER, "m: %p SRv6 recursion limit reached", m);
+          return;
+        }
       if (! _process_srv6_end_packet (m, ipv6,
                             &nh_info->srv6_local_sid))
         {
@@ -821,11 +828,16 @@ _srv6_forwarding (struct rte_mbuf *m,
         }
       rx_link = NULL; // to avoid split-horizon check
       _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6,
-                        rx_vswitch, rx_link);
+                        rx_vswitch, rx_link, recursion_count + 1);
       return;
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
+      if (recursion_count >= SRV6_MAX_RECURSION)
+        {
+          DEBUG_NEW (ROUTER, "m: %p SRv6 recursion limit reached", m);
+          return;
+        }
       if (! _process_encapsulate_srv6_packet (m, &eth, &ipv4, &ipv6,
                             &nh_info->srv6_encap_sid,
                             &rib->rib_info->srv6_tunnel_src_addr,
@@ -836,7 +848,7 @@ _srv6_forwarding (struct rte_mbuf *m,
         }
       rx_link = NULL; // to avoid split-horizon check
       _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6,
-                        rx_vswitch, rx_link);
+                        rx_vswitch, rx_link, recursion_count + 1);
       return;
     }
 
