@@ -27,13 +27,15 @@ struct srv6_local_sid_entry
 {
   struct in6_addr sid;
   uint32_t action;
-  int oif;
+  // TODO: remove if srv6-router compatible mode is removed
+  int oif; 
   union {
     struct in6_addr nh6;
     struct in_addr nh4;
     uint32_t table_id;
   } param;
-  uint8_t local_sid_addr_index;
+  // TODO: remove if srv6-router compatible mode is removed
+  uint8_t local_sid_addr_index; 
 };
 
 struct srv6_encap_sid_entry
@@ -59,9 +61,9 @@ struct nh_info
         struct in_addr ipv4_addr;
         struct in6_addr ipv6_addr;
       } gw;
-      uint32_t oif;
     };
   };
+  uint32_t oif;
   char oif_name[IF_NAMESIZE];
   int refcnt; /* reference count from groups */
 };

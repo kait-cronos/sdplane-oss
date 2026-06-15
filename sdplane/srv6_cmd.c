@@ -252,7 +252,7 @@ CLI_COMMAND2 (set_srv6_encap_local_sid,
     }
 
   if(inet_pton (AF_INET6, argv[3],
-             &tmp_addr) <= 0)
+             &tmp_addr) != 0)
     {
       fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
                argv[3], shell->NL);
@@ -366,7 +366,7 @@ CLI_COMMAND2(set_srv6_encap_src,"set srv6 encap src <WORD>",
   char* addr_ptr = argv[4];
   struct in6_addr tmp_addr;
 
-  if(inet_pton (AF_INET6,addr_ptr,&tmp_addr) <= 0)
+  if(inet_pton (AF_INET6,addr_ptr,&tmp_addr) != 1)
     {
       fprintf (shell->terminal,"Invalid IPv6 address: %s%s", addr_ptr,
                shell->NL);
@@ -483,7 +483,7 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
 
   memset (route, 0, sizeof (*route));
   route->family = AF_INET6;
-  route->table_id = 0;
+  route->table_id = RT_TABLE_MAIN;
   route->dst.family = AF_INET6;
   route->dst.dst_ip_addr.ipv6_addr = dst_addr;
   route->dst.plen = plen;
@@ -491,6 +491,7 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
   route->nh.nhcnt = 1;
   route->nh.members[0].info.family = AF_INET6;
   route->nh.members[0].info.type = NEXTHOP_TYPE_SRV6_HEAD;
+  route->nh.members[0].info.oif = 0; 
   route->nh.members[0].info.srv6_encap_sid.action = SEG6_IPTUN_MODE_ENCAP;
   route->nh.members[0].info.srv6_encap_sid.segment_list_size = segment_count;
   /* sids[] is in SRH order: sids[segment_count - 1] is the first segment
