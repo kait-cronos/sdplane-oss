@@ -27,7 +27,6 @@ struct srv6_local_sid_entry
 {
   struct in6_addr sid;
   uint32_t action;
-  // TODO: remove if srv6-router compatible mode is removed
   int oif; 
   union {
     struct in6_addr nh6;

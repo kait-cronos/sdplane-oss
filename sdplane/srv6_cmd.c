@@ -5,6 +5,7 @@
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_log.h>
 
+#include <linux/rtnetlink.h>
 #include <net/if.h>
 
 #include "sdplane.h"
@@ -583,6 +584,129 @@ CLI_COMMAND2 (no_set_srv6_encap_head,
   return CMD_SUCCESS;
 }
 
+int
+_srv6_format_local_sid (const struct srv6_local_sid_entry *local_sid,
+                        char *buf, size_t buf_size);
+
+int
+_srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid,
+                        char *buf, size_t buf_size);
+
+static int
+rib_show_srv6_route (struct rib_node *n, void *arg)
+{
+  struct show_route_arg *show_arg = (struct show_route_arg *) arg;
+  struct rib_info *rib_info = show_arg->rib_info;
+  struct shell *shell = show_arg->shell;
+  int family = show_arg->family;
+  int sdplane_nh_index = n->entry.sdplane_nh_id;
+  int  i, ret;
+  char prefix_str[INET6_ADDRSTRLEN];
+  char dst_str[INET6_ADDRSTRLEN + 5];
+  char nexthop_str[INET6_ADDRSTRLEN];
+  char if_str[IF_NAMESIZE + 12];
+  char buffer[512];
+
+  inet_ntop (family, &n->entry.dst.dst_ip_addr,
+             prefix_str, sizeof (prefix_str));
+  snprintf (dst_str, sizeof (dst_str), "%s/%d",
+            prefix_str, n->entry.dst.plen);
+
+  struct nh_group *nh_grp = &rib_info->nexthop.groups[sdplane_nh_index];
+
+  if (nh_grp->nhcnt <= 0)
+    return 0;
+
+  for (i = 0; i < nh_grp->nhcnt; i++)
+    {
+      int nh_idx = nh_grp->members[i].info_index;
+      if (nh_idx < 0)
+        continue;
+      const struct nh_info *nh_info = &rib_info->nexthop.info_pool[nh_idx];
+
+      if (nh_info->type != NEXTHOP_TYPE_SRV6_HEAD && nh_info->type != NEXTHOP_TYPE_SRV6_END)
+        continue;
+
+      if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
+        {
+          snprintf (nexthop_str, sizeof (nexthop_str), "srv6-head");
+          ret = _srv6_format_encap_sid (&nh_info->srv6_encap_sid,
+                                       buffer, sizeof (buffer));
+        }
+      else if (nh_info->type == NEXTHOP_TYPE_SRV6_END)
+        {
+          snprintf (nexthop_str, sizeof (nexthop_str), "srv6-end");
+          ret = _srv6_format_local_sid (&nh_info->srv6_local_sid,
+                                       buffer, sizeof (buffer));
+        }
+      else
+        snprintf (nexthop_str, sizeof (nexthop_str), "unknown");
+
+      fprintf (shell->terminal, "  Destination: %s, Nexthop Type: %s, Details: %s%s",
+               dst_str, nexthop_str, ret != 0 ? buffer : "format error", shell->NL);
+
+    }
+  return 0;
+}
+
+CLI_COMMAND2 (show_srv6_encap,
+              "show srv6 encap",
+              SHOW_HELP,
+              "show SRv6 information\n",
+              "show SRv6 encapsulation information\n"
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  struct show_route_arg show_arg;
+  show_arg.family = AF_INET6;
+
+  if (! enable_srv6_encap_mode)
+    {
+      fprintf (shell->terminal,
+        "SRv6 encapsulation mode is not enabled. "
+              "Please enable it first with 'set srv6 encap enable'.%s",
+               shell->NL);
+      return CMD_FAILURE;
+    }
+
+  if (! rib || ! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no routing information%s", shell->NL);
+      return 0;
+    }
+
+  show_arg.rib_info = rib->rib_info;
+  show_arg.shell = shell;
+
+  int i;
+  fprintf (shell->terminal, "SRv6 Encap Routes:%s",
+           shell->NL);
+
+  bool found = false;
+  for (i = 0; i < ROUTE_TREE_SIZE; i++)
+    {
+      struct rib_tree *rib_tree = rib_tree_master[i];
+      if (! rib_tree)
+        continue;
+
+      fprintf (shell->terminal, "rib_tree_master[%d] (table %d):%p%s",
+               i, rib_tree->table_id, rib_tree, shell->NL);
+      rib_traverse (rib_tree, rib_show_srv6_route, &show_arg);
+      found = true;
+    }
+
+  if (! found)
+    {
+      const char *family_str = (show_arg.family == AF_INET) ? "IPv4" : "IPv6";
+      fprintf (shell->terminal, "no %s rib SRv6 routes%s",
+               family_str, shell->NL);
+    }
+
+  return CMD_SUCCESS;
+}
+
+
 void
 srv6_cmd_init (struct command_set *cmdset)
 {
@@ -596,4 +720,5 @@ srv6_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, no_set_srv6_encap_head);
   INSTALL_COMMAND2 (cmdset, set_srv6_encap_src);
   INSTALL_COMMAND2 (cmdset, show_srv6_encap_src);
+  INSTALL_COMMAND2 (cmdset, show_srv6_encap);
 }
