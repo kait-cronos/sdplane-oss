@@ -247,7 +247,6 @@ _process_encapsulate_srv6_packet (struct rte_mbuf *m,
   // because the original may have some headers between ether_hdr and ipv6_hdr,
   // we need to prepend the same size of header space for new_ether_hdr,
   // and copy the header content before ipv6_hdr to the new_ether_hdr.
-  // TODO: support ipv4
   size_t original_pre_ip_hdr_size;
   if (*original_ipv4_hdr)
     {
