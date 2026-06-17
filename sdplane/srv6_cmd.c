@@ -252,20 +252,20 @@ CLI_COMMAND2 (set_srv6_encap_local_sid,
       return CMD_FAILURE;
     }
 
-  if(inet_pton (AF_INET6, argv[3],
-             &tmp_addr) != 0)
+  if(inet_pton (AF_INET6, argv[4],
+             &tmp_addr) != 1)
     {
       fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
-               argv[3], shell->NL);
+               argv[4], shell->NL);
       return CMD_FAILURE;
     }
 
-  if (argc > 4 && strcmp (argv[4], "End") == 0)
+  if (argc > 5 && strcmp (argv[5], "End") == 0)
     action = SEG6_LOCAL_ACTION_END;
   else
     {
       fprintf (shell->terminal, "Unsupported SRv6 local-SID behavior: %s%s",
-               argv[4], shell->NL);
+               argv[5], shell->NL);
       return CMD_FAILURE;
     }
 
@@ -321,7 +321,7 @@ CLI_COMMAND2 (no_set_srv6_encap_local_sid,
       return CMD_FAILURE;
     }
 
-  if (inet_pton (AF_INET6, argv[4], &tmp_addr) != 1)
+  if (inet_pton (AF_INET6, argv[5], &tmp_addr) != 1)
     {
       fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
                argv[4], shell->NL);
