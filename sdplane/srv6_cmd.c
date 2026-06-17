@@ -241,7 +241,7 @@ CLI_COMMAND2 (set_srv6_encap_local_sid,
   struct rib *rib = rib_tlocal;
   struct in6_addr tmp_addr;
   struct internal_msg_route_entry* srv6_local_sid;
-  int action;
+  int action = SEG6_LOCAL_ACTION_END;
 
   if (! enable_srv6_encap_mode)
     {
@@ -260,13 +260,17 @@ CLI_COMMAND2 (set_srv6_encap_local_sid,
       return CMD_FAILURE;
     }
 
-  if (argc > 5 && strcmp (argv[5], "End") == 0)
-    action = SEG6_LOCAL_ACTION_END;
-  else
+  if (argc > 5)
     {
-      fprintf (shell->terminal, "Unsupported SRv6 local-SID behavior: %s%s",
-               argv[5], shell->NL);
-      return CMD_FAILURE;
+      if (strcmp (argv[5], "End") == 0)
+        action = SEG6_LOCAL_ACTION_END;
+      else
+        {
+          fprintf (shell->terminal, 
+            "Unsupported SRv6 local-SID behavior: %s%s",
+                  argv[5], shell->NL);
+          return CMD_FAILURE;
+        }
     }
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
