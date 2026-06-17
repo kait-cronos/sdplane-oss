@@ -45,7 +45,7 @@ pktgen init argv-list 2
 
 ### pktgen_do - Execute PKTGEN Commands
 ```
-pktgen do (start|stop) (<0-7>|all)
+pktgen do (start|stop) port (<0-7>|all)
 ```
 
 Start or stop packet generation.
@@ -61,16 +61,16 @@ Start or stop packet generation.
 **Examples:**
 ```bash
 # Start packet generation on port 0
-pktgen do start 0
+pktgen do start port 0
 
 # Start packet generation on all ports
-pktgen do start all
+pktgen do start port all
 
 # Stop packet generation on port 1
-pktgen do stop 1
+pktgen do stop port 1
 
 # Stop packet generation on all ports
-pktgen do stop all
+pktgen do stop port all
 ```
 
 ## PKTGEN Overview
@@ -113,7 +113,7 @@ start worker lcore 1
 
 4. **Start Packet Generation**
 ```bash
-pktgen do start 0
+pktgen do start port 0
 ```
 
 ### Configuration Parameters
@@ -140,25 +140,25 @@ set worker lcore 1 pktgen
 start worker lcore 1
 
 # Start packet generation
-pktgen do start 0
+pktgen do start port 0
 
 # Check status
 show pktgen
 
 # Stop packet generation
-pktgen do stop 0
+pktgen do stop port 0
 ```
 
 ### Multi-port Generation
 ```bash
 # Start on multiple ports
-pktgen do start all
+pktgen do start port all
 
 # Check status
 show pktgen
 
 # Stop on multiple ports
-pktgen do stop all
+pktgen do stop port all
 ```
 
 ## Monitoring and Statistics
@@ -208,7 +208,7 @@ show port
 ### When Packet Generation Does Not Stop
 1. Explicitly stop
 ```bash
-pktgen do stop all
+pktgen do stop port all
 ```
 
 2. Restart worker
