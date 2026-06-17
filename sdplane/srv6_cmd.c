@@ -649,11 +649,12 @@ rib_show_srv6_route (struct rib_node *n, void *arg)
   return 0;
 }
 
-CLI_COMMAND2 (show_srv6_encap,
-              "show srv6 encap",
+CLI_COMMAND2 (show_srv6_encap_route,
+              "show srv6 encap route",
               SHOW_HELP,
               "show SRv6 information\n",
-              "show SRv6 encapsulation information\n"
+              "show SRv6 encapsulation information\n",
+              "show SRv6 encapsulation routes\n"
              )
 {
   struct shell *shell = (struct shell *) context;
@@ -720,5 +721,5 @@ srv6_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, no_set_srv6_encap_head);
   INSTALL_COMMAND2 (cmdset, set_srv6_encap_src);
   INSTALL_COMMAND2 (cmdset, show_srv6_encap_src);
-  INSTALL_COMMAND2 (cmdset, show_srv6_encap);
+  INSTALL_COMMAND2 (cmdset, show_srv6_encap_route);
 }
