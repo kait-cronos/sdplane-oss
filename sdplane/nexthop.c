@@ -424,10 +424,6 @@ static int _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
     {
       if (a->srv6_encap_sid.action != b->srv6_encap_sid.action)
         return 0;
-      if (a->srv6_encap_sid.segment_list_size == 0 ||
-          b->srv6_encap_sid.segment_list_size == 0)
-        return a->srv6_encap_sid.segment_list_size ==
-               b->srv6_encap_sid.segment_list_size; // both 0 or both non-0
       if (a->srv6_encap_sid.segment_list_size !=
           b->srv6_encap_sid.segment_list_size)
         return 0;
@@ -443,12 +439,6 @@ static int _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
     {
       if (a->srv6_local_sid.action != b->srv6_local_sid.action)
         return 0;
-      if (a->srv6_local_sid.param.table_id != b->srv6_local_sid.param.table_id)
-        return 0;
-      // If it's a table lookup, compare table_id
-      if (a->srv6_local_sid.param.table_id != 0)
-        return 1;
-      // Otherwise, compare the local SID address
       return memcmp (&a->srv6_local_sid.sid, &b->srv6_local_sid.sid,
                      sizeof (struct in6_addr)) == 0;
     }
