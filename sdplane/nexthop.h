@@ -40,7 +40,7 @@ struct srv6_local_sid_entry
 struct srv6_encap_sid_entry
 {
   uint32_t action;
-#define MAX_SEGMENT_LIST_SIZE 8
+#define MAX_SEGMENT_LIST_SIZE 6
   struct in6_addr sids[MAX_SEGMENT_LIST_SIZE];
   int segment_list_size;
 };

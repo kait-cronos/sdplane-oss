@@ -239,11 +239,14 @@ _process_encapsulate_srv6_packet (struct rte_mbuf *m,
 
   DEBUG_NEW (ROUTER, "m: %p: encapsulating with SRv6, original pkt len"
              " %d, outer header size %d, segment list size %d,"
-             " original ipv6 hdr packet len %d",
+             " original %s hdr packet len %d",
              m, rte_pktmbuf_pkt_len (m), outer_header_size,
              srv6_encap_sid->segment_list_size,
-       (*original_ipv4_hdr) ? (*original_ipv4_hdr)->total_length :
-       (*original_ipv6_hdr) ? (*original_ipv6_hdr)->payload_len : 0);
+             (*original_ipv4_hdr) ? "IPv4" : "IPv6",
+       (*original_ipv4_hdr) ? 
+        rte_be_to_cpu_16 ((*original_ipv4_hdr)->total_length) :
+       (*original_ipv6_hdr) ? 
+        rte_be_to_cpu_16 ((*original_ipv6_hdr)->payload_len) : 0);
   // because the original may have some headers between ether_hdr and ipv6_hdr,
   // we need to prepend the same size of header space for new_ether_hdr,
   // and copy the header content before ipv6_hdr to the new_ether_hdr.
@@ -273,6 +276,7 @@ _process_encapsulate_srv6_packet (struct rte_mbuf *m,
       return false;
     }
   memmove (new_ether_hdr, *original_ether_hdr, original_pre_ip_hdr_size);
+  new_ether_hdr->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
   struct rte_ipv6_hdr* new_ipv6_hdr =
           (struct rte_ipv6_hdr *) ((uint8_t *) new_ether_hdr +
                                    original_pre_ip_hdr_size);
@@ -290,7 +294,7 @@ _process_encapsulate_srv6_packet (struct rte_mbuf *m,
   new_srh->hdr_len = srv6_encap_sid->segment_list_size * 2;
   new_srh->segments_left = srv6_encap_sid->segment_list_size - 1;
   new_srh->last_entry = srv6_encap_sid->segment_list_size - 1;
-  new_srh->next_hdr = IPPROTO_IPV6;
+  new_srh->next_hdr = (*original_ipv4_hdr) ? 4: 41; // IPv4: 4, IPv6: 41
   new_srh->tag = 0; // TODO: configurable tag
   new_srh->flag = 0; // TODO: configurable flag
   rte_memcpy (&new_ipv6_hdr->dst_addr,
