@@ -560,7 +560,7 @@ CLI_COMMAND2 (pktgen_do_rate_size,
 }
 
 CLI_COMMAND2 (pktgen_do_set_enable,
-              "pktgen do set port (<0-7>|all) (range|rate|vlan) (enable|disable)",
+              "pktgen do set port (<0-7>|all) (range|rate|vlan|qinq) (enable|disable)",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -570,6 +570,7 @@ CLI_COMMAND2 (pktgen_do_set_enable,
               "set packet range.\n",
               "set packet rate.\n",
               "set vlan.\n",
+              "set Q-in-Q.\n",
               "set to enable.\n",
               "set to disable.\n")
 {
@@ -578,7 +579,7 @@ CLI_COMMAND2 (pktgen_do_set_enable,
   char *pktgen_argv[16];
   pktgen_argv[0] = argv[6]; //enable/disable
   pktgen_argv[1] = argv[4]; //port
-  pktgen_argv[2] = argv[5]; //(range|rate|vlan)
+  pktgen_argv[2] = argv[5]; //(range|rate|vlan|qinq)
   pktgen_argc = 3;
   ret = en_dis_cmd (pktgen_argc, pktgen_argv);
   if (ret < 0)
