@@ -197,7 +197,7 @@ CLI_COMMAND2 (show_srv6_local_sid,
   return CMD_SUCCESS;
 }
 
-CLI_COMMAND2(set_srv6_encap_src,"set srv6 encap src <WORD>",
+CLI_COMMAND2 (set_srv6_encap_src,"set srv6 encap src <WORD>",
               SET_HELP,
               "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
@@ -234,7 +234,7 @@ CLI_COMMAND2(set_srv6_encap_src,"set srv6 encap src <WORD>",
   return CMD_SUCCESS;
 }
 
-CLI_COMMAND2(show_srv6_encap_src,"show srv6 encap src",
+CLI_COMMAND2 (show_srv6_encap_src,"show srv6 encap src",
               SHOW_HELP,
               "show SRv6 information\n",
               "show SRv6 encapsulation information\n",
