@@ -252,7 +252,6 @@ CLI_COMMAND2 (show_srv6_encap_src,"show srv6 encap src",
 
   inet_ntop (AF_INET6, &rib->rib_info->srv6_tunnel_src_addr,
           ip_str, sizeof (ip_str));
-          ip_str, sizeof (ip_str));
   fprintf (shell->terminal,
     "SRv6 encapsulation source address: %s%s", ip_str, shell->NL);
   return CMD_SUCCESS;
