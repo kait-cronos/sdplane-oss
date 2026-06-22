@@ -15,6 +15,9 @@
 
 // clang-format off
 
+bool enable_srv6_encap_mode = false;
+bool srv6_encap_mode_worker_already_started = false;
+
 static const char *
 srv6_local_action_str (uint32_t action)
 {
