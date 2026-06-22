@@ -213,7 +213,7 @@ CLI_COMMAND2 (set_srv6_encap_src,"set srv6 encap src <WORD>",
   char* addr_ptr = argv[4];
   struct in6_addr tmp_addr;
 
-  if(inet_pton (AF_INET6,addr_ptr,&tmp_addr) != 1)
+  if (inet_pton (AF_INET6,addr_ptr,&tmp_addr) != 1)
     {
       fprintf (shell->terminal,"Invalid IPv6 address: %s%s", addr_ptr,
                shell->NL);
