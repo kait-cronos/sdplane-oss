@@ -49,6 +49,7 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_IP_ADDR_DEL           31
 #define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD    32
 #define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL    33
+#define INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET    34
 
 struct internal_msg_eth_link
 {
@@ -182,6 +183,11 @@ struct internal_msg_srv6_local_sid
       struct in6_addr nh6;
       struct in_addr nh4;
     } param;
+};
+
+struct internal_msg_srv6_encap_src
+{
+  struct in6_addr src_addr;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);
