@@ -243,7 +243,15 @@ CLI_COMMAND2 (show_srv6_encap_src,"show srv6 encap src",
 {
   struct shell *shell = (struct shell *) context;
   char ip_str[INET6_ADDRSTRLEN];
-  inet_ntop (AF_INET6, &rib_tlocal->rib_info->srv6_tunnel_src_addr,
+  struct rib *rib = rib_tlocal;
+  if (! rib || ! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no routing information%s", shell->NL);
+      return 0;
+    }
+
+  inet_ntop (AF_INET6, &rib->rib_info->srv6_tunnel_src_addr,
+          ip_str, sizeof (ip_str));
           ip_str, sizeof (ip_str));
   fprintf (shell->terminal,
     "SRv6 encapsulation source address: %s%s", ip_str, shell->NL);
