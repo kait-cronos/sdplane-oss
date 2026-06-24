@@ -361,6 +361,8 @@ fib_show_route (struct fib_node *n, void *arg)
 
       if (nh_info->type == NEXTHOP_TYPE_CONNECTED)
         snprintf (nexthop_str, sizeof (nexthop_str), "connected");
+      else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
+        snprintf (nexthop_str, sizeof (nexthop_str), "srv6-head");
       else
         inet_ntop (nh_info->family, &nh_info->gw,
                    nexthop_str, sizeof (nexthop_str));
