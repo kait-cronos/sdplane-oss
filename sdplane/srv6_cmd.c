@@ -99,6 +99,22 @@ CLI_COMMAND2 (set_srv6_local_sid,
 
   memset (&srv6_local_sid, 0, sizeof (srv6_local_sid));
 
+  if (inet_pton (AF_INET6, argv[3], &srv6_local_sid.srv6_local_sid_addr) != 1)
+    {
+      fprintf (shell->terminal, "Invalid IPv6 address: %s%s", argv[3],
+               shell->NL);
+      return CMD_FAILURE;
+    }
+
+  if (rib && rib->rib_info &&
+      srv6_local_sid_find (rib->rib_info,
+                           &srv6_local_sid.srv6_local_sid_addr) >= 0)
+    {
+      fprintf (shell->terminal, "SRv6 local-SID already exists: %s%s",
+               argv[3], shell->NL);
+      return CMD_FAILURE;
+    }
+
   int index;
   if (argc > 4)
     index = strtol (argv[4], NULL, 0);
@@ -106,8 +122,6 @@ CLI_COMMAND2 (set_srv6_local_sid,
     index = 0;
   else
     index = rib->rib_info->srv6_local_sid_addr_num;
-  inet_pton (AF_INET6, argv[3],
-             &srv6_local_sid.srv6_local_sid_addr);
   srv6_local_sid.action = SEG6_LOCAL_ACTION_END;
   srv6_local_sid.srv6_local_sid_addr_index = index;
 
