@@ -532,6 +532,22 @@ route_table_alloc_slot (int table_id, int family)
  * SRv6
  */
 
+int
+srv6_local_sid_find (struct rib_info *rib_info, const struct in6_addr *sid)
+{
+  int i;
+
+  if (! rib_info || ! sid)
+    return -1;
+
+  for (i = 0; i < rib_info->srv6_local_sid_addr_num; i++)
+    {
+      if (memcmp (&rib_info->srv6_local_sid[i].sid, sid, sizeof (*sid)) == 0)
+        return i;
+    }
+  return -1;
+}
+
 static inline __attribute__ ((always_inline)) void
 srv6_local_sid_del (struct rib_info *rib_info,
                     const struct in6_addr *sid)
@@ -1928,8 +1944,12 @@ rib_manager_process_message (void *msgp)
                    addr_str, msg_srv6_local_sid->srv6_local_sid_addr_index);
         int num_sids = new->rib_info->srv6_local_sid_addr_num;
         int index = msg_srv6_local_sid->srv6_local_sid_addr_index;
+        int existing_idx = srv6_local_sid_find (new->rib_info,
+                                                &msg_srv6_local_sid->srv6_local_sid_addr);
+        if (existing_idx >= 0)
+          index = existing_idx;
         /* UINT8_MAX means auto-assign */
-        if (index == UINT8_MAX)
+        else if (index == UINT8_MAX)
           index = num_sids;
         if (0 <= num_sids && num_sids < MAX_SRV6_LOCAL_SID_ADDR_NUM &&
             0 <= index && index <= num_sids)

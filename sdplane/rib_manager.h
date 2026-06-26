@@ -128,6 +128,8 @@ int fdb_lookup_entry (const struct rib_info *rib_info,
                       const struct rte_ether_addr *mac_addr, uint16_t vlan_id);
 #endif
 
+int srv6_local_sid_find (struct rib_info *rib_info, const struct in6_addr *sid);
+
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
