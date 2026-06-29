@@ -41,8 +41,9 @@ _srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid,
                         char *buf, size_t buf_size)
 {
   int len = 0, i;
-  len += snprintf (buf + len, buf_size - len, "action=%s segs=",
-                   _srv6_encap_mode_str (encap_sid->action));
+  len +=
+      snprintf (buf + len, buf_size - len,
+                "action=%s segs=", _srv6_encap_mode_str (encap_sid->action));
   /* sids[] is in SRH order; print in path order like netlink_log_seg6. */
   for (i = encap_sid->segment_list_size - 1; i >= 0; i--)
     {
@@ -203,8 +204,8 @@ nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info)
                                       sizeof (encap_sid_str));
               fprintf (shell->terminal,
                        "        is SRv6 encap SID, %s, %s, weight %u%s",
-                       encap_sid_str, family_str,
-                       grp->members[j].weight, shell->NL);
+                       encap_sid_str, family_str, grp->members[j].weight,
+                       shell->NL);
             }
           else
             {
@@ -243,10 +244,10 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
 
       const char *family_str = (info->family == AF_INET6) ? "IPv6" : "IPv4";
       const char *type_str =
-        (info->type == NEXTHOP_TYPE_CONNECTED) ? "connected"
-        : (info->type == NEXTHOP_TYPE_GATEWAY) ? "gateway"
-        : (info->type == NEXTHOP_TYPE_SRV6_HEAD) ? "srv6-head"
-        : "unknown";
+          (info->type == NEXTHOP_TYPE_CONNECTED)   ? "connected"
+          : (info->type == NEXTHOP_TYPE_GATEWAY)   ? "gateway"
+          : (info->type == NEXTHOP_TYPE_SRV6_HEAD) ? "srv6-head"
+                                                   : "unknown";
 
       if (info->type == NEXTHOP_TYPE_CONNECTED)
         {
@@ -259,8 +260,8 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
           char encap_sid_str[512];
           _srv6_format_encap_sid (&info->gw.srv6_encap_sid, encap_sid_str,
                                   sizeof (encap_sid_str));
-          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s%s",
-                   i, info->refcnt, family_str, "srv6-head", encap_sid_str,
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s%s", i,
+                   info->refcnt, family_str, "srv6-head", encap_sid_str,
                    info->oif_name, shell->NL);
         }
       else if (info->type == NEXTHOP_TYPE_GATEWAY)
@@ -273,8 +274,8 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
         }
       else
         {
-          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
-                   i, info->refcnt, family_str, type_str, "unknown",
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s", i,
+                   info->refcnt, family_str, type_str, "unknown",
                    info->oif_name, info->oif, shell->NL);
         }
     }
@@ -307,14 +308,15 @@ nexthop_cleanup (void)
   hash_table_destroy (&nh_ht);
 }
 
-static int _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
+static int
+_nh_info_equal (const struct nh_info *a, const struct nh_info *b)
 {
   if (a->type != b->type || a->family != b->family)
     return 0;
   if (a->type == NEXTHOP_TYPE_CONNECTED)
     return a->oif == b->oif;
   else if (a->type == NEXTHOP_TYPE_GATEWAY)
-    return a->oif == b->oif && memcmp(&a->gw, &b->gw, sizeof (a->gw)) == 0;
+    return a->oif == b->oif && memcmp (&a->gw, &b->gw, sizeof (a->gw)) == 0;
   else if (a->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
       if (a->gw.srv6_encap_sid.action != b->gw.srv6_encap_sid.action)
