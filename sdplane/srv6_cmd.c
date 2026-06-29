@@ -201,9 +201,8 @@ CLI_COMMAND2 (set_srv6_encap_src,"set srv6 encap src <WORD>",
               SET_HELP,
               "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
-             "set SRv6 encapsulation source address\n",
-             "specify SRv6 encapsulation source address\n"
-             )
+              "set SRv6 encapsulation source address\n",
+              "specify SRv6 encapsulation source address\n")
 {
   struct shell *shell = (struct shell *) context;
   int ret;
@@ -238,8 +237,7 @@ CLI_COMMAND2 (show_srv6_encap_src,"show srv6 encap src",
               SHOW_HELP,
               "show SRv6 information\n",
               "show SRv6 encapsulation information\n",
-              "show SRv6 encapsulation source address\n"
-             )
+              "show SRv6 encapsulation source address\n")
 {
   struct shell *shell = (struct shell *) context;
   char ip_str[INET6_ADDRSTRLEN];
