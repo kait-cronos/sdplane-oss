@@ -223,7 +223,7 @@ CLI_COMMAND2 (set_srv6_encap_src,"set srv6 encap src <WORD>",
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET, NULL,
                 sizeof (struct internal_msg_srv6_encap_src));
   srv6_encap_src = internal_msg_body (msgp);
-  memcpy(&srv6_encap_src->src_addr, &tmp_addr, sizeof(struct in6_addr));
+  memcpy (&srv6_encap_src->src_addr, &tmp_addr, sizeof (struct in6_addr));
 
   ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
   if (ret < 0)
