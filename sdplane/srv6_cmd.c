@@ -209,7 +209,7 @@ CLI_COMMAND2 (set_srv6_encap_src,"set srv6 encap src <WORD>",
   void *msgp;
   struct internal_msg_srv6_encap_src* srv6_encap_src;
   struct rib *rib = rib_tlocal;
-  char* addr_ptr = argv[4];
+  char *addr_ptr = argv[4];
   struct in6_addr tmp_addr;
 
   if (inet_pton (AF_INET6,addr_ptr,&tmp_addr) != 1)
