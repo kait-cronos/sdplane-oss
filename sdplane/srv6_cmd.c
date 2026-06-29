@@ -207,7 +207,7 @@ CLI_COMMAND2 (set_srv6_encap_src,"set srv6 encap src <WORD>",
   struct shell *shell = (struct shell *) context;
   int ret;
   void *msgp;
-  struct internal_msg_srv6_encap_src* srv6_encap_src;
+  struct internal_msg_srv6_encap_src *srv6_encap_src;
   struct rib *rib = rib_tlocal;
   char *addr_ptr = argv[4];
   struct in6_addr tmp_addr;
