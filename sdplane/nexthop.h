@@ -24,9 +24,9 @@ enum nexthop_type
 
 struct srv6_encap_sid_entry
 {
-  uint8_t action;
 #define MAX_SEGMENT_LIST_SIZE 6
   struct in6_addr sids[MAX_SEGMENT_LIST_SIZE];
+  uint8_t action;
   uint8_t segment_list_size;
 };
 
