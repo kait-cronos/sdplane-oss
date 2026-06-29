@@ -161,6 +161,9 @@ main (int argc, char **argv)
   signal (SIGTERM, signal_handler);
   signal (SIGHUP, signal_handler);
   signal (SIGCHLD, signal_handler);
+  /* A VTY/console client disconnecting must not kill the whole process:
+     ignore SIGPIPE so a write to a closed socket returns EPIPE instead. */
+  signal (SIGPIPE, SIG_IGN);
 
   /* Preserve name of myself. */
   char *progname, *p;
