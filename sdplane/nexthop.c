@@ -75,7 +75,7 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
       const struct nh_info *info = &nh->members[0].info;
       if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
         {
-          _srv6_format_encap_sid (&info->srv6_encap_sid, buf, buf_size);
+          _srv6_format_encap_sid (&info->gw.srv6_encap_sid, buf, buf_size);
           return buf;
         }
       inet_ntop (info->family, &info->gw, nh_str, sizeof (nh_str));
@@ -100,7 +100,7 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
           if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
             {
               char encap_sid_str[512];
-              _srv6_format_encap_sid (&info->srv6_encap_sid, encap_sid_str,
+              _srv6_format_encap_sid (&info->gw.srv6_encap_sid, encap_sid_str,
                                       sizeof (encap_sid_str));
               len += snprintf (buf + len, buf_size - len, "%s(w=%u)%s",
                                encap_sid_str, nh->members[i].weight, sep);
@@ -199,7 +199,7 @@ nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info)
           else if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
             {
               char encap_sid_str[512];
-              _srv6_format_encap_sid (&info->srv6_encap_sid, encap_sid_str,
+              _srv6_format_encap_sid (&info->gw.srv6_encap_sid, encap_sid_str,
                                       sizeof (encap_sid_str));
               fprintf (shell->terminal,
                        "        is SRv6 encap SID, %s, %s, weight %u%s",
@@ -257,7 +257,7 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
       else if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
         {
           char encap_sid_str[512];
-          _srv6_format_encap_sid (&info->srv6_encap_sid, encap_sid_str,
+          _srv6_format_encap_sid (&info->gw.srv6_encap_sid, encap_sid_str,
                                   sizeof (encap_sid_str));
           fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s%s",
                    i, info->refcnt, family_str, "srv6-head", encap_sid_str,
@@ -317,14 +317,15 @@ static int _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
     return a->oif == b->oif && memcmp(&a->gw, &b->gw, sizeof (a->gw)) == 0;
   else if (a->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
-      if (a->srv6_encap_sid.action != b->srv6_encap_sid.action)
+      if (a->gw.srv6_encap_sid.action != b->gw.srv6_encap_sid.action)
         return 0;
-      if (a->srv6_encap_sid.segment_list_size !=
-          b->srv6_encap_sid.segment_list_size)
+      if (a->gw.srv6_encap_sid.segment_list_size !=
+          b->gw.srv6_encap_sid.segment_list_size)
         return 0;
-      for (int i = 0; i < a->srv6_encap_sid.segment_list_size; i++)
+      for (int i = 0; i < a->gw.srv6_encap_sid.segment_list_size; i++)
         {
-          if (memcmp (&a->srv6_encap_sid.sids[i], &b->srv6_encap_sid.sids[i],
+          if (memcmp (&a->gw.srv6_encap_sid.sids[i],
+                      &b->gw.srv6_encap_sid.sids[i],
                       sizeof (struct in6_addr)) != 0)
             return 0;
         }

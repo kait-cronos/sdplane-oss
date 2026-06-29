@@ -24,10 +24,10 @@ enum nexthop_type
 
 struct srv6_encap_sid_entry
 {
-  uint32_t action;
+  uint8_t action;
 #define MAX_SEGMENT_LIST_SIZE 6
   struct in6_addr sids[MAX_SEGMENT_LIST_SIZE];
-  int segment_list_size;
+  uint8_t segment_list_size;
 };
 
 struct nh_info
@@ -37,15 +37,9 @@ struct nh_info
   union
   {
     struct srv6_encap_sid_entry srv6_encap_sid;
-    struct
-    {
-      union
-      {
-        struct in_addr ipv4_addr;
-        struct in6_addr ipv6_addr;
-      } gw;
-    };
-  };
+    struct in_addr ipv4_addr;
+    struct in6_addr ipv6_addr;
+  } gw;
   uint32_t oif;
   char oif_name[IF_NAMESIZE];
   int refcnt; /* reference count from groups */
