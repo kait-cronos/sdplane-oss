@@ -211,10 +211,70 @@ CLI_COMMAND2 (show_srv6_local_sid,
   return CMD_SUCCESS;
 }
 
+CLI_COMMAND2 (set_srv6_encap_src,"set srv6 encap src <WORD>",
+              SET_HELP,
+              "set SRv6 information\n",
+              "set SRv6 encapsulation information\n",
+              "set SRv6 encapsulation source address\n",
+              "specify SRv6 encapsulation source address\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  void *msgp;
+  struct internal_msg_srv6_encap_src *srv6_encap_src;
+  struct rib *rib = rib_tlocal;
+  char *addr_ptr = argv[4];
+  struct in6_addr tmp_addr;
+
+  if (inet_pton (AF_INET6,addr_ptr,&tmp_addr) != 1)
+    {
+      fprintf (shell->terminal,"Invalid IPv6 address: %s%s", addr_ptr,
+               shell->NL);
+      return CMD_FAILURE;
+    }
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET, NULL,
+                sizeof (struct internal_msg_srv6_encap_src));
+  srv6_encap_src = internal_msg_body (msgp);
+  memcpy (&srv6_encap_src->src_addr, &tmp_addr, sizeof (struct in6_addr));
+
+  ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
+  if (ret < 0)
+    {
+      return CMD_FAILURE;
+    }
+
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (show_srv6_encap_src,"show srv6 encap src",
+              SHOW_HELP,
+              "show SRv6 information\n",
+              "show SRv6 encapsulation information\n",
+              "show SRv6 encapsulation source address\n")
+{
+  struct shell *shell = (struct shell *) context;
+  char ip_str[INET6_ADDRSTRLEN];
+  struct rib *rib = rib_tlocal;
+  if (! rib || ! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no routing information%s", shell->NL);
+      return 0;
+    }
+
+  inet_ntop (AF_INET6, &rib->rib_info->srv6_tunnel_src_addr,
+          ip_str, sizeof (ip_str));
+  fprintf (shell->terminal,
+    "SRv6 encapsulation source address: %s%s", ip_str, shell->NL);
+  return CMD_SUCCESS;
+}
+
 void
 srv6_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, set_srv6_local_sid);
   INSTALL_COMMAND2 (cmdset, no_set_srv6_local_sid);
   INSTALL_COMMAND2 (cmdset, show_srv6_local_sid);
+  INSTALL_COMMAND2 (cmdset, set_srv6_encap_src);
+  INSTALL_COMMAND2 (cmdset, show_srv6_encap_src);
 }

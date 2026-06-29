@@ -1988,6 +1988,20 @@ rib_manager_process_message (void *msgp)
         break;
       }
 
+    case INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET:
+      {
+        struct internal_msg_srv6_encap_src *msg_encap_src;
+        char src_str[INET6_ADDRSTRLEN];
+        msg_encap_src = (struct internal_msg_srv6_encap_src *) (msg_header + 1);
+        new->rib_info->srv6_tunnel_src_addr = msg_encap_src->src_addr;
+        inet_ntop (AF_INET6, &msg_encap_src->src_addr, src_str,
+                   sizeof (src_str));
+        DEBUG_SDPLANE_LOG (RIB,
+                           "recv msg_srv6_encap_src_set: %p,"
+                           " set srv6_encap_src: %s",
+                           msgp, src_str);
+        break;
+      }
     default:
       DEBUG_SDPLANE_LOG (RIB, "recv msg unknown: %p.", msgp);
       break;
