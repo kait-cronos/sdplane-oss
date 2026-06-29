@@ -366,12 +366,13 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
   route->nh.members[0].info.family = AF_INET6;
   route->nh.members[0].info.type = NEXTHOP_TYPE_SRV6_HEAD;
   route->nh.members[0].info.oif = 0;
-  route->nh.members[0].info.srv6_encap_sid.action = SEG6_IPTUN_MODE_ENCAP;
-  route->nh.members[0].info.srv6_encap_sid.segment_list_size = segment_count;
+  route->nh.members[0].info.gw.srv6_encap_sid.action = SEG6_IPTUN_MODE_ENCAP;
+  route->nh.members[0].info.gw.srv6_encap_sid.segment_list_size =
+      segment_count;
   /* sids[] is in SRH order: sids[segment_count - 1] is the first segment
    * and becomes the outer destination address. */
   for (i = 0; i < segment_count; i++)
-    route->nh.members[0].info.srv6_encap_sid.sids[segment_count - 1 - i] =
+    route->nh.members[0].info.gw.srv6_encap_sid.sids[segment_count - 1 - i] =
         segments[i];
   route->nh.members[0].weight = 1;
 
