@@ -276,6 +276,8 @@ CLI_COMMAND2 (show_srv6_encap_src,
 
 // clang-format on
 
+bool srv6_encap_mode_worker_already_started = false;
+
 /*
  * Parse arguments shared by "set srv6 encap head" and
  * "no set srv6 encap head" into a route entry message body.
