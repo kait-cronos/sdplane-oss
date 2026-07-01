@@ -545,7 +545,7 @@ _forwarding (struct rte_mbuf *m,
 
   nh_info = nexthop_get_info_by_index (rib->rib_info, fib_node->sdplane_nh_id);
 
-  if (! nh_info)
+  if (unlikely (! nh_info))
     {
       DEBUG_NEW (ROUTING_LOOKUP,
                  "m: %p routing-lookup: dest: %s nexthop not found. drop.", m,
@@ -553,7 +553,7 @@ _forwarding (struct rte_mbuf *m,
       return;
     }
 
-  if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
+  if (unlikely (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD))
     {
       DEBUG_NEW (ROUTING_LOOKUP,
                  "m: %p routing-lookup: dest: %s nexthop is SRv6 encap, "
