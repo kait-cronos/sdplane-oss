@@ -11,6 +11,7 @@
 #include "sdplane.h"
 #include "rib.h"
 #include "rib_manager.h"
+#include "fib.h"
 #include "internal_message.h"
 #include "netlink_seg6.h"
 
@@ -433,6 +434,81 @@ CLI_COMMAND2 (no_set_srv6_encap_head,
   return CMD_SUCCESS;
 }
 
+int _srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid,
+                            char *buf, size_t buf_size);
+
+static int
+rib_show_srv6_route (struct rib_node *n, void *arg)
+{
+  struct show_route_arg *show_arg = (struct show_route_arg *) arg;
+  struct rib_info *rib_info = show_arg->rib_info;
+  struct shell *shell = show_arg->shell;
+  int family = show_arg->family;
+  int sdplane_nh_index = n->entry.sdplane_nh_id;
+  int i, ret;
+  char prefix_str[INET6_ADDRSTRLEN];
+  char dst_str[INET6_ADDRSTRLEN + 5];
+  char buffer[512];
+
+  inet_ntop (family, &n->entry.dst.dst_ip_addr, prefix_str,
+             sizeof (prefix_str));
+  snprintf (dst_str, sizeof (dst_str), "%s/%d", prefix_str, n->entry.dst.plen);
+
+  struct nh_group *nh_grp = &rib_info->nexthop.groups[sdplane_nh_index];
+  if (nh_grp->nhcnt <= 0)
+    return 0;
+
+  for (i = 0; i < nh_grp->nhcnt; i++)
+    {
+      int nh_idx = nh_grp->members[i].info_index;
+      if (nh_idx < 0)
+        continue;
+      const struct nh_info *nh_info = &rib_info->nexthop.info_pool[nh_idx];
+
+      if (nh_info->type != NEXTHOP_TYPE_SRV6_HEAD)
+        continue;
+
+      ret = _srv6_format_encap_sid (&nh_info->gw.srv6_encap_sid, buffer,
+                                    sizeof (buffer));
+      fprintf (shell->terminal,
+               "  Destination: %s, Nexthop Type: %s, Details: %s%s", dst_str,
+               "srv6-head", ret != 0 ? buffer : "format error", shell->NL);
+    }
+  return 0;
+}
+
+CLI_COMMAND2 (show_srv6_encap_route, "show srv6 encap route", SHOW_HELP,
+              "show SRv6 information\n",
+              "show SRv6 encapsulation information\n",
+              "show SRv6 encapsulation routes\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  struct show_route_arg show_arg;
+  int i;
+
+  if (! rib || ! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no routing information%s", shell->NL);
+      return 0;
+    }
+
+  show_arg.rib_info = rib->rib_info;
+  show_arg.shell = shell;
+
+  fprintf (shell->terminal, "SRv6 Encap Routes:%s", shell->NL);
+  for (i = 0; i < ROUTE_TREE_SIZE; i++)
+    {
+      struct rib_tree *rib_tree = rib_tree_master[i];
+      if (! rib_tree)
+        continue;
+      show_arg.family = rib_tree->family;
+      rib_traverse (rib_tree, rib_show_srv6_route, &show_arg);
+    }
+
+  return CMD_SUCCESS;
+}
+
 void
 srv6_cmd_init (struct command_set *cmdset)
 {
@@ -443,4 +519,5 @@ srv6_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_srv6_encap_src);
   INSTALL_COMMAND2 (cmdset, set_srv6_encap_head);
   INSTALL_COMMAND2 (cmdset, no_set_srv6_encap_head);
+  INSTALL_COMMAND2 (cmdset, show_srv6_encap_route);
 }
