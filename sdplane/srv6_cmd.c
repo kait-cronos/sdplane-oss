@@ -275,8 +275,6 @@ CLI_COMMAND2 (show_srv6_encap_src,
 
 // clang-format on
 
-bool enable_srv6_encap_mode = false;
-
 /*
  * Parse arguments shared by "set srv6 encap head" and
  * "no set srv6 encap head" into a route entry message body.
@@ -394,15 +392,6 @@ CLI_COMMAND2 (set_srv6_encap_head,
   void *msgp;
   struct internal_msg_route_entry route;
 
-  if (! enable_srv6_encap_mode)
-    {
-      fprintf (shell->terminal,
-               "SRv6 encapsulation mode is not enabled. "
-               "Please enable it first with 'set srv6 encap enable'.%s",
-               shell->NL);
-      return CMD_FAILURE;
-    }
-
   if (srv6_encap_head_parse_route (shell, argv[4], argv[5],
                                    argc > 6 ? argv[6] : NULL, &route) < 0)
     return CMD_FAILURE;
@@ -430,15 +419,6 @@ CLI_COMMAND2 (no_set_srv6_encap_head,
   int ret;
   void *msgp;
   struct internal_msg_route_entry route;
-
-  if (! enable_srv6_encap_mode)
-    {
-      fprintf (shell->terminal,
-               "SRv6 encapsulation mode is not enabled. "
-               "Please enable it first with 'set srv6 encap enable'.%s",
-               shell->NL);
-      return CMD_FAILURE;
-    }
 
   if (srv6_encap_head_parse_route (shell, argv[5], argv[6],
                                    argc > 7 ? argv[7] : NULL, &route) < 0)

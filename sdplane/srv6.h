@@ -158,6 +158,4 @@ _process_srv6_packet_multi_sids (struct rte_mbuf *m,
   return modified;
 }
 
-extern bool enable_srv6_encap_mode;
-
 #endif /*__SRV6_H__*/
