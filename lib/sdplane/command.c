@@ -923,7 +923,9 @@ command_matched_nodes (int argc, char **argv, char *command_line,
           break;
         }
 
-      argv[i] = command_replace (match, word);
+      /* update the word if unique and not empty word */
+      if (strlen (word) > 0)
+        argv[i] = command_replace (match, word);
 
       parent = match;
     }
