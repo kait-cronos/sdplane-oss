@@ -71,7 +71,7 @@ CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
   // shell_close (shell);
 
   int lcore_id;
-  RTE_LCORE_FOREACH(lcore_id)
+  RTE_LCORE_FOREACH (lcore_id)
     stop_lcore (shell, lcore_id);
   return 0;
 }
