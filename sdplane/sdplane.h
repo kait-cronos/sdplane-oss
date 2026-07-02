@@ -78,6 +78,7 @@ extern struct vswitch vswitch0;
 
 void start_lcore (struct shell *shell, int lcore_id);
 void stop_lcore (struct shell *shell, int lcore_id);
+void update_lthread_core (struct shell *shell);
 
 EXTERN_COMMAND (set_worker);
 EXTERN_COMMAND (start_stop_worker);

@@ -51,6 +51,13 @@ int pktgen_launch_one_lcore(void *arg __rte_unused);
 void
 start_lcore (struct shell *shell, int lcore_id)
 {
+  if (! rte_eal_init_done)
+    {
+      fprintf (shell->terminal,
+               "rte_eal_init() is not done: "
+               "can't start worker on lcore: %d\n", lcore_id);
+      return;
+    }
   fprintf (shell->terminal, "starting worker on lcore: %d\n", lcore_id);
   if (lcore_workers[lcore_id].func == NULL)
     {
@@ -94,6 +101,40 @@ stop_lcore (struct shell *shell, int lcore_id)
       rte_eal_wait_lcore (lcore_id);
       fprintf (shell->terminal, "stopped worker on lcore: %d\n", lcore_id);
     }
+}
+
+/* rte_eal_init() makes the calling thread the DPDK main lcore
+   (the lowest lcore in the coremask, unless --main-lcore is given).
+   the lthread environment runs on that thread, so lthread_core
+   must follow.  the lthread_main marker in lcore_workers[] must
+   also move so that set/start/stop worker keep protecting the
+   lthread lcore. */
+void
+update_lthread_core (struct shell *shell)
+{
+  unsigned int current_lcore;
+
+  current_lcore = rte_lcore_id ();
+  if (current_lcore == LCORE_ID_ANY)
+    return;
+  if (lthread_core == (int) current_lcore)
+    return;
+
+  DEBUG_NEW (WARNING, "lthread lcore changed: %d -> %d.",
+             lthread_core, current_lcore);
+  fprintf (shell->terminal,
+           "lthread lcore changed: core[%d] -> core[%d]%s",
+           lthread_core, current_lcore, shell->NL);
+
+  if (lcore_workers[lthread_core].func == lthread_main)
+    {
+      lcore_workers[current_lcore] = lcore_workers[lthread_core];
+      lcore_workers[lthread_core].func = NULL;
+      lcore_workers[lthread_core].arg = NULL;
+      lcore_workers[lthread_core].func_name = NULL;
+    }
+
+  lthread_core = current_lcore;
 }
 
 int dhcp_server (__rte_unused void *dummy);
@@ -253,7 +294,6 @@ CLI_COMMAND2 (start_stop_worker,
               LCORE_NUMBER_HELP, LCORE_ALL_HELP)
 {
   struct shell *shell = (struct shell *) context;
-  uint32_t nb_lcores;
   unsigned int lcore_id;
   unsigned int lcore_spec = -1;
 
@@ -266,6 +306,15 @@ CLI_COMMAND2 (start_stop_worker,
     }
   else
     lcore_spec = strtol (argv[3], NULL, 0);
+
+  /* before rte_eal_init(), RTE_LCORE_FOREACH() would iterate
+     all RTE_MAX_LCORE lcores because the lcore roles are not
+     initialized yet. */
+  if (! rte_eal_init_done)
+    {
+      fprintf (shell->terminal, "rte_eal_init() is not done.%s", shell->NL);
+      return 0;
+    }
 
   RTE_LCORE_FOREACH (lcore_id)
     {
@@ -295,9 +344,15 @@ CLI_COMMAND2 (show_worker,
   char flags[16];
   char lcore_name[16];
 
+  if (! rte_eal_init_done)
+    {
+      fprintf (shell->terminal, "rte_eal_init() is not done.%s", shell->NL);
+      return 0;
+    }
+
   main_lcore_id = rte_get_main_lcore ();
-  fprintf (shell->terminal, "main: %d lthread: %d",
-           main_lcore_id, lthread_core);
+  fprintf (shell->terminal, "main: %d lthread: %d%s",
+           main_lcore_id, lthread_core, shell->NL);
 
   fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s",
            "lcore", "flags", "state", "func_name", shell->NL);
@@ -310,7 +365,10 @@ CLI_COMMAND2 (show_worker,
           (rte_eal_get_lcore_state (lcore_id) == RUNNING ? "running" : "wait");
       snprintf (lcore_name, sizeof (lcore_name), "lcore[%d]", lcore_id);
       fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s", lcore_name, flags,
-               state, lcore_workers[lcore_id].func_name, shell->NL);
+               state,
+               (lcore_workers[lcore_id].func_name
+                ? lcore_workers[lcore_id].func_name : "none"),
+               shell->NL);
     }
   return 0;
 }
@@ -482,17 +540,7 @@ CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command\n")
     }
   rte_eal_init_done = true;
   DEBUG_NEW (RTE_ETHDEV, "rte_eal_init(): done.");
-
-  int current_lcore = rte_lcore_id();
-  if (lthread_core != current_lcore)
-    {
-      DEBUG_NEW (WARNING, "lthread lcore changed: %d -> %d.",
-                 lthread_core, current_lcore);
-      fprintf (shell->terminal,
-               "lthread lcore changed: core[%d] -> core[%d]%s",
-               lthread_core, current_lcore, shell->NL);
-      lthread_core = current_lcore;
-    }
+  update_lthread_core (shell);
   return 0;
 }
 
@@ -521,6 +569,7 @@ CLI_COMMAND2 (rte_eal_init_argv_list,
     }
   rte_eal_init_done = true;
   DEBUG_NEW (RTE_ETHDEV, "rte_eal_init(): done.");
+  update_lthread_core (shell);
   return 0;
 }
 
