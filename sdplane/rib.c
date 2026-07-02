@@ -321,6 +321,7 @@ CLI_COMMAND2 (set_fdb_entry,
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_FDB_ENTRY_ADD, &fdb_entry_add,
                               sizeof (fdb_entry_add));
   shell_rib_send_message (msgp, shell);
+  return CMD_SUCCESS;
 }
 
 CLI_COMMAND2 (show_fdb,

@@ -135,6 +135,13 @@ update_lthread_core (struct shell *shell)
     }
 
   lthread_core = current_lcore;
+
+  lthread_t *lt = NULL;
+  int thread_id;
+  thread_id = thread_lookup (lthread_main);
+  if (thread_id >= 0)
+    thread_update (thread_id, lthread_core, lt, (lthread_func) lthread_main,
+                   "lthread_main", NULL);
 }
 
 int dhcp_server (__rte_unused void *dummy);
