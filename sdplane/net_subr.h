@@ -514,7 +514,10 @@ _forwarding (struct rte_mbuf *m,
 
   /* FIB lookup */
   int tree_idx = (ipv4) ? 0 : 1; // IPv4=0, IPv6=1
-  fib_node = fib_route_lookup (rib->rib_info->fib_tree[tree_idx], dst_ip);
+  struct fib_tree *t = rib->rib_info->fib_tree[tree_idx];
+  if (! t)
+    return;
+  fib_node = fib_route_lookup (t, dst_ip);
   if (! fib_node)
     {
       DEBUG_NEW (ROUTING_LOOKUP,
