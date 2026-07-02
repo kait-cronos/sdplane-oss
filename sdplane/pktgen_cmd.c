@@ -114,6 +114,7 @@ CLI_COMMAND2 (pktgen_init,
               "specify argv-list\n",
               "specify argv-list number\n")
 {
+  struct shell *shell = (struct shell *) context;
   int index;
   index = strtol (argv[3], NULL, 0);
 
@@ -124,6 +125,7 @@ CLI_COMMAND2 (pktgen_init,
   _pktgen_main_init (*argcp, argvp);
   pthread_mutex_unlock (&argv_list_mutex);
   rte_eal_init_done = true;
+  update_lthread_core (shell);
   return 0;
 }
 

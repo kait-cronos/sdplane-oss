@@ -251,10 +251,6 @@ lthread_main (__rte_unused void *dummy)
   debug_zcmdsh_cmd_init ();
   command_shell_init ();
 
-  lthread_create (&lt, (lthread_func) vty_server, NULL);
-  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
-  lthread_detach2 (lt);
-
   ret = startup_config (NULL);
   if (ret < 0)
     {
@@ -267,6 +263,10 @@ lthread_main (__rte_unused void *dummy)
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   thread_id =
       thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
+
+  lthread_create (&lt, (lthread_func) vty_server, NULL);
+  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
+  lthread_detach2 (lt);
 
   lthread_sleep (0);
   if (! ring_resp)
