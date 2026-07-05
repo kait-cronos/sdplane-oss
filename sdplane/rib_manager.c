@@ -1621,12 +1621,15 @@ rib_manager_process_message (void *msgp)
         }
       else
         {
-          sdplane_nh_id = nexthop_del_entry (new->rib_info,
-                                             &msg_route_entry->nh);
+          sdplane_nh_id =
+              nexthop_find_entry (new->rib_info, &msg_route_entry->nh);
         }
-      nexthop_decrement_refcnt (new->rib_info, sdplane_nh_id);
       if (sdplane_nh_id < 0)
         break;
+
+      /* Drop this route's reference; a LEGACY group is freed only
+       * when the last referencing route goes away. */
+      nexthop_decrement_refcnt (new->rib_info, sdplane_nh_id);
 
       /* search for existing RIB tree with matching family and table_id */
       i = route_table_lookup_id (msg_route_entry->table_id,
