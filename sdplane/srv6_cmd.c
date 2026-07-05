@@ -289,8 +289,11 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
   char prefix_str[INET6_ADDRSTRLEN + 8];
   char segments_str[MAX_SEGMENT_LIST_SIZE * (INET6_ADDRSTRLEN + 1)];
   char *plen_str, *seg_ptr, *comma;
-  struct in6_addr dst_addr;
+  struct in6_addr dst_addr6;
+  struct in_addr dst_addr4;
   struct in6_addr segments[MAX_SEGMENT_LIST_SIZE];
+  int dst_af = AF_INET6;
+  int max_plen = 128;
   int segment_count = 0;
   int plen = 128;
   int i;
@@ -303,25 +306,41 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
       return -1;
     }
 
-  /* destination prefix: ADDR or ADDR/PLEN (default /128) */
+  /* destination prefix: ADDR or ADDR/PLEN. the address family is
+   * auto-detected (IPv4 defaults to /32, IPv6 to /128). the SID list
+   * stays IPv6 regardless of the destination family. */
   snprintf (prefix_str, sizeof (prefix_str), "%s", prefix_arg);
   plen_str = strchr (prefix_str, '/');
   if (plen_str)
+    *plen_str++ = '\0';
+
+  if (inet_pton (AF_INET, prefix_str, &dst_addr4) == 1)
     {
-      *plen_str++ = '\0';
+      dst_af = AF_INET;
+      max_plen = 32;
+    }
+  else if (inet_pton (AF_INET6, prefix_str, &dst_addr6) == 1)
+    {
+      dst_af = AF_INET6;
+      max_plen = 128;
+    }
+  else
+    {
+      fprintf (shell->terminal, "Invalid IP address: %s%s", prefix_str,
+               shell->NL);
+      return -1;
+    }
+
+  plen = max_plen;
+  if (plen_str)
+    {
       plen = strtol (plen_str, NULL, 10);
-      if (plen < 0 || plen > 128)
+      if (plen < 0 || plen > max_plen)
         {
           fprintf (shell->terminal, "Invalid prefix length: %s%s", plen_str,
                    shell->NL);
           return -1;
         }
-    }
-  if (inet_pton (AF_INET6, prefix_str, &dst_addr) != 1)
-    {
-      fprintf (shell->terminal, "Invalid IPv6 address: %s%s", prefix_str,
-               shell->NL);
-      return -1;
     }
 
   /* comma-separated segment list, given in path order */
@@ -355,10 +374,13 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
     }
 
   memset (route, 0, sizeof (*route));
-  route->family = AF_INET6;
+  route->family = dst_af;
   route->table_id = RT_TABLE_MAIN;
-  route->dst.family = AF_INET6;
-  route->dst.dst_ip_addr.ipv6_addr = dst_addr;
+  route->dst.family = dst_af;
+  if (dst_af == AF_INET)
+    route->dst.dst_ip_addr.ipv4_addr = dst_addr4;
+  else
+    route->dst.dst_ip_addr.ipv6_addr = dst_addr6;
   route->dst.plen = plen;
   route->is_nhid = false;
   route->nh.nhcnt = 1;
