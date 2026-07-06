@@ -443,7 +443,7 @@ static void _group_release (struct nexthop *nexthop, int slot);
  * AI-generated function - Claude Code 2026-07-05
  * Purpose: refcnt-aware group release. A group shared by multiple
  *          routes must survive until the last reference is dropped.
- * Human review: pending
+ * Human review: reviewed
  */
 static void
 _group_unref (struct nexthop *nexthop, int slot)

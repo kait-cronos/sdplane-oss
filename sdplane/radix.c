@@ -148,7 +148,11 @@ _delete (struct rib_node *n, const uint8_t *key, int keylen, int depth,
          int *success)
 {
   if (! n)
-    return NULL;
+    {
+      /* the key does not exist in the tree */
+      *success = -1;
+      return NULL;
+    }
 
   if (depth == keylen)
     {
