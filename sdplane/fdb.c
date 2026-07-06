@@ -7,13 +7,6 @@
 
 volatile time_t fdb_now = 0;
 
-static uint32_t
-fdb_hash (const void *key)
-{
-  uint64_t k = (uint64_t) (uintptr_t) key;
-  return jhash ((const int32_t *) &k, (int) (sizeof (k) / 4), JHASH_SEED);
-}
-
 static int
 fdb_eq_key (const void *a, const void *b)
 {
