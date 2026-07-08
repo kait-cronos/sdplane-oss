@@ -334,8 +334,12 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
   plen = max_plen;
   if (plen_str)
     {
-      plen = strtol (plen_str, NULL, 10);
-      if (plen < 0 || plen > max_plen)
+      char *plen_end;
+      plen = strtol (plen_str, &plen_end, 10);
+      /* reject empty ("addr/") and non-numeric ("addr/abc") prefix
+       * lengths: strtol would otherwise coerce them to 0. */
+      if (*plen_str == '\0' || *plen_end != '\0' || plen < 0 ||
+          plen > max_plen)
         {
           fprintf (shell->terminal, "Invalid prefix length: %s%s", plen_str,
                    shell->NL);
