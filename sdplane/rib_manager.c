@@ -21,6 +21,7 @@
 
 #include "debug_sdplane.h"
 #include "rib_manager.h"
+#include "fdb.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "tap.h"
@@ -59,10 +60,6 @@ static inline __attribute__ ((always_inline)) int
 router_if_delete (struct rib_info *rib_info, uint16_t vswitch_id);
 static inline __attribute__ ((always_inline)) int
 capture_if_delete (struct rib_info *rib_info, uint16_t vswitch_id);
-
-/*
- * common
- */
 
 /*
  * vswitch
@@ -378,76 +375,6 @@ port_qconf_compare (const void *a, const void *b)
 }
 
 /*
- * fdb
- */
-
-static inline __attribute__ ((always_inline)) int
-fdb_add_entry (struct rib_info *rib_info,
-               const struct rte_ether_addr *mac_addr, uint16_t vlan_id,
-               int port)
-{
-  uint32_t hash, offset;
-  time_t current_time = time (NULL);
-
-  hash = fdb_jenkins_hash (mac_addr, vlan_id);
-  offset = hash;
-
-  while (rib_info->fdb[offset].state != FDB_STATE_NONE)
-    {
-      if (rte_is_same_ether_addr (&rib_info->fdb[offset].l2addr, mac_addr) &&
-          rib_info->fdb[offset].vlan_id == vlan_id)
-        {
-          rib_info->fdb[offset].port = port;
-          rib_info->fdb[offset].last_seen = current_time;
-          rib_info->fdb[offset].state = FDB_STATE_ACTIVE;
-          DEBUG_NEW (FDB, "updated fdb[%u]: port %d", offset, port);
-          return offset;
-        }
-
-      ++offset;
-      if (offset >= FDB_SIZE)
-        offset = 0;
-      if (offset == hash)
-        {
-          DEBUG_NEW (FDB, "fdb table is full.");
-          return -1;
-        }
-    }
-
-  rib_info->fdb[offset].l2addr = *mac_addr;
-  rib_info->fdb[offset].port = port;
-  rib_info->fdb[offset].vlan_id = vlan_id;
-  rib_info->fdb[offset].last_seen = current_time;
-  rib_info->fdb[offset].state = FDB_STATE_ACTIVE;
-
-  char mac_str[32];
-  rte_ether_format_addr (mac_str, sizeof (mac_str), mac_addr);
-  DEBUG_NEW (FDB, "added fdb[%u]: %s vlan:%u port:%d",
-             offset, mac_str, vlan_id, port);
-  return offset;
-}
-
-static inline __attribute__ ((always_inline)) void
-fdb_aging_process (struct rib_info *rib_info, time_t max_age)
-{
-  int i;
-  time_t current_time = time (NULL);
-
-  for (i = 0; i < FDB_SIZE; i++)
-    {
-      if (rib_info->fdb[i].state == FDB_STATE_ACTIVE &&
-          current_time - rib_info->fdb[i].last_seen > max_age)
-        {
-          char mac_str[32];
-          rte_ether_format_addr (mac_str, sizeof (mac_str),
-                                 &rib_info->fdb[i].l2addr);
-          DEBUG_NEW (FDB, "aged out fdb[%d]: %s", i, mac_str);
-          rib_info->fdb[i].state = FDB_STATE_NONE;
-        }
-    }
-}
-
-/*
  * route_table
  */
 
@@ -546,12 +473,23 @@ rib_info_create (struct rib_info *old)
       memset (new, 0, sizeof (struct rib_info));
       for (i = 0; i < ROUTE_TREE_SIZE; i++)
         new->fib_tree[i] = fib_new (NULL);
+      if (fdb_table_init (&new->fdb_table) < 0)
+        {
+          free (new);
+          return NULL;
+        }
     }
   else
     {
       memcpy (new, old, sizeof (struct rib_info));
       for (i = 0; i < ROUTE_TREE_SIZE; i++)
         new->fib_tree[i] = fib_new (NULL);
+      /* deep-copy the FDB table */
+      if (fdb_table_copy (&new->fdb_table, &old->fdb_table) < 0)
+        {
+          free (new);
+          return NULL;
+        }
     }
 
   new->ver++;
@@ -572,6 +510,8 @@ rib_info_delete (struct rib_info *old)
           fib_free (old->fib_tree[i]);
         }
     }
+  /* free FDB values and bucket array */
+  fdb_table_destroy (&old->fdb_table);
   free (old);
 }
 
@@ -1583,6 +1523,19 @@ rib_manager_process_message (void *msgp)
         break;
       }
 
+    case INTERNAL_MSG_TYPE_FDB_AGING:
+      {
+        DEBUG_SDPLANE_LOG (RIB, "recv msg_fdb_aging: %p.", msgp);
+        struct internal_msg_fdb_aging *msg_fdb_aging;
+        int aged;
+
+        msg_fdb_aging = (struct internal_msg_fdb_aging *) (msg_header + 1);
+
+        aged = fdb_aging_process (new->rib_info, msg_fdb_aging->aging_time);
+        DEBUG_SDPLANE_LOG (FDB, "fdb aging: %d entries aged out", aged);
+        break;
+      }
+
     case INTERNAL_MSG_TYPE_APPLICATION_SLOT:
       {
         struct application_slot_entry *msg_appli_slot;
@@ -2059,7 +2012,7 @@ rib_manager (void *arg)
         }
 #endif
 
-      /* fdb aging process - run every 60 seconds */
+      /* fdb aging process - run every FDB_AGING_INTERVAL seconds */
       time_t current_time = time (NULL);
       struct rib *current_rib = NULL;
 #if HAVE_LIBURCU_QSBR
@@ -2071,12 +2024,22 @@ rib_manager (void *arg)
         }
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      if (current_time - last_fdb_aging_time >= 60 && current_rib &&
-          current_rib->rib_info)
+      if (current_time - last_fdb_aging_time >= FDB_AGING_INTERVAL
+          && current_rib && current_rib->rib_info)
         {
-          fdb_aging_process (current_rib->rib_info, FDB_AGING_TIME_DEFAULT);
-          DEBUG_NEW (FDB, "fdb aging process executed");
           last_fdb_aging_time = current_time;
+          /* Skip the expensive copy-on-write when there is nothing to age out. */
+          if (fdb_count_expired (current_rib->rib_info, FDB_AGING_TIME_DEFAULT) > 0)
+            {
+              /* Run aging through the normal RIB-update path. */
+              struct internal_msg_fdb_aging fdb_aging_payload
+                  = {.aging_time = FDB_AGING_TIME_DEFAULT};
+              struct internal_msg_header *msgp
+                  = internal_msg_create (INTERNAL_MSG_TYPE_FDB_AGING,
+                                         &fdb_aging_payload, sizeof (fdb_aging_payload));
+              if (msgp)
+                rib_manager_process_message (msgp);
+            }
         }
 
 #if HAVE_LIBURCU_QSBR

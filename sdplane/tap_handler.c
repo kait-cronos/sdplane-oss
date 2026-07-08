@@ -296,7 +296,10 @@ tap_handler_handle_packet_up ()
             log_packet (m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
 
           uint16_t vlan_id = 0;
-          send_fdb_entry_add_msg (m, vlan_id);
+          /* learn only on FDB miss; sending per-packet floods RIB updates. */
+          if (rib && rib->rib_info &&
+              is_fdb_send_add (rib->rib_info, m, vlan_id))
+            send_fdb_entry_add_msg (m, vlan_id);
           tap_handler_write_peek (m);
           tap_handler_write_port_all (m);
 
@@ -490,6 +493,8 @@ tap_handler (__rte_unused void *dummy)
           vswitch_port_update ();
           rib_ver = rib->rib_info->ver;
         }
+
+      fdb_now = time (NULL);
 
       tap_handler_handle_packet_up ();
       tap_handler_handle_packet_down ();
