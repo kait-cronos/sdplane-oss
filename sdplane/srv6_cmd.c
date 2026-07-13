@@ -351,8 +351,10 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
   if (snprintf (segments_str, sizeof (segments_str), "%s", segments_arg) >=
       (int) sizeof (segments_str))
     {
-      fprintf (shell->terminal, "Too many SRv6 segments (max: %d)%s",
-               MAX_SEGMENT_LIST_SIZE, shell->NL);
+      fprintf (
+          shell->terminal,
+          "comma-separated segment list exceeds the supported length: %zu%s",
+          sizeof (segments_str) - 1, shell->NL);
       return -1;
     }
   seg_ptr = segments_str;
@@ -404,6 +406,31 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
   return 0;
 }
 
+/*
+ * Shared body for "set" / "no set srv6 encap head": parse the arguments
+ * into a route entry and dispatch it to the RIB. msg_type selects add
+ * (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD) vs delete (..._DEL).
+ */
+static int
+srv6_encap_head_send (struct shell *shell, char *prefix_arg,
+                      char *segments_arg, char *action_arg, uint16_t msg_type)
+{
+  struct internal_msg_route_entry route;
+  void *msgp;
+  int ret;
+
+  ret = srv6_encap_head_parse_route (shell, prefix_arg, segments_arg,
+                                     action_arg, &route);
+  if (ret < 0)
+    return CMD_FAILURE;
+
+  msgp = internal_msg_create (msg_type, &route, sizeof (route));
+  if (internal_msg_send_to (msg_queue_rib, msgp, shell) < 0)
+    return CMD_FAILURE;
+
+  return CMD_SUCCESS;
+}
+
 CLI_COMMAND2 (set_srv6_encap_head,
               "set srv6 encap head <WORD> <WORD> (|H.Encaps|H.Insert)",
               SET_HELP, "set SRv6 information\n",
@@ -415,21 +442,10 @@ CLI_COMMAND2 (set_srv6_encap_head,
               "insert SRH with H.Insert (not supported yet)\n")
 {
   struct shell *shell = (struct shell *) context;
-  int ret;
-  void *msgp;
-  struct internal_msg_route_entry route;
 
-  if (srv6_encap_head_parse_route (shell, argv[4], argv[5],
-                                   argc > 6 ? argv[6] : NULL, &route) < 0)
-    return CMD_FAILURE;
-
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD, &route,
-                              sizeof (route));
-  ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
-  if (ret < 0)
-    return CMD_FAILURE;
-
-  return CMD_SUCCESS;
+  return srv6_encap_head_send (shell, argv[4], argv[5],
+                               (argc > 6 ? argv[6] : NULL),
+                               INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD);
 }
 
 CLI_COMMAND2 (no_set_srv6_encap_head,
@@ -443,21 +459,10 @@ CLI_COMMAND2 (no_set_srv6_encap_head,
               "insert SRH with H.Insert (not supported yet)\n")
 {
   struct shell *shell = (struct shell *) context;
-  int ret;
-  void *msgp;
-  struct internal_msg_route_entry route;
 
-  if (srv6_encap_head_parse_route (shell, argv[5], argv[6],
-                                   argc > 7 ? argv[7] : NULL, &route) < 0)
-    return CMD_FAILURE;
-
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL, &route,
-                              sizeof (route));
-  ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
-  if (ret < 0)
-    return CMD_FAILURE;
-
-  return CMD_SUCCESS;
+  return srv6_encap_head_send (shell, argv[5], argv[6],
+                               (argc > 7 ? argv[7] : NULL),
+                               INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL);
 }
 
 int _srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid,
