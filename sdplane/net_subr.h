@@ -553,11 +553,11 @@ _forwarding (struct rte_mbuf *m,
       return;
     }
 
-  if (unlikely (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD))
+  if (unlikely (nh_info->type != NEXTHOP_TYPE_CONNECTED &&
+                nh_info->type != NEXTHOP_TYPE_GATEWAY))
     {
       DEBUG_NEW (ROUTING_LOOKUP,
-                 "m: %p routing-lookup: dest: %s nexthop is SRv6 encap, "
-                 "not supported in _forwarding. drop.",
+                 "m: %p routing-lookup: dest: %s nexthop is not CONNECTED or GATEWAY on _forwarding, drop.",
                  m, dest);
       return;
     }
