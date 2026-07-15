@@ -165,9 +165,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     log_packet (m, rx_portid, rx_queueid);
 
   /* 2. send to capture_if */
-  struct capture_if *cif = &vswitch->capture_if;
-  if (cif->sockfd >= 0 && cif->ring_up)
-    _send_ring (m, rx_portid, rx_queueid, cif->ring_up);
+  _send_capture_if_ring (m, rx_portid, rx_queueid, vswitch);
 
   struct router_if *rif = &vswitch->router_if;
 
