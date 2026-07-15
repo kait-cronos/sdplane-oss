@@ -443,7 +443,7 @@ CLI_COMMAND2 (set_srv6_encap_head,
 {
   struct shell *shell = (struct shell *) context;
   int msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD;
-  if (! strcmp (argv[1], "no"))
+  if (! strcmp (argv[0], "no"))
     {
       msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL;
       argc--;
