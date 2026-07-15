@@ -432,7 +432,7 @@ srv6_encap_head_send (struct shell *shell, char *prefix_arg,
 }
 
 CLI_COMMAND2 (set_srv6_encap_head,
-              "set srv6 encap head <WORD> <WORD> (|H.Encaps|H.Insert)",
+              "(|no) set srv6 encap head <WORD> <WORD> (|H.Encaps|H.Insert)",
               SET_HELP, "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
               "set SRv6 encap head-end route\n",
@@ -442,27 +442,16 @@ CLI_COMMAND2 (set_srv6_encap_head,
               "insert SRH with H.Insert (not supported yet)\n")
 {
   struct shell *shell = (struct shell *) context;
+  int msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD;
+  if (! strcmp (argv[1], "no"))
+    {
+      msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL;
+      argc--;
+      argv++;
+    }
 
   return srv6_encap_head_send (shell, argv[4], argv[5],
-                               (argc > 6 ? argv[6] : NULL),
-                               INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD);
-}
-
-CLI_COMMAND2 (no_set_srv6_encap_head,
-              "no set srv6 encap head <WORD> <WORD> (|H.Encaps|H.Insert)",
-              NO_HELP, SET_HELP, "set SRv6 information\n",
-              "set SRv6 encapsulation information\n",
-              "delete SRv6 encap head-end route\n",
-              "specify destination prefix (e.g. 2001:db8::/64)\n",
-              "specify SRv6 segments in path order (comma-separated)\n",
-              "encapsulate with H.Encaps (default)\n",
-              "insert SRH with H.Insert (not supported yet)\n")
-{
-  struct shell *shell = (struct shell *) context;
-
-  return srv6_encap_head_send (shell, argv[5], argv[6],
-                               (argc > 7 ? argv[7] : NULL),
-                               INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL);
+                               (argc > 6 ? argv[6] : NULL), msg_type);
 }
 
 int _srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid,
@@ -549,6 +538,5 @@ srv6_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_srv6_encap_src);
   INSTALL_COMMAND2 (cmdset, show_srv6_encap_src);
   INSTALL_COMMAND2 (cmdset, set_srv6_encap_head);
-  INSTALL_COMMAND2 (cmdset, no_set_srv6_encap_head);
   INSTALL_COMMAND2 (cmdset, show_srv6_encap_route);
 }
