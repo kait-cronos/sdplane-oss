@@ -433,7 +433,7 @@ srv6_encap_head_send (struct shell *shell, char *prefix_arg,
 
 CLI_COMMAND2 (set_srv6_encap_head,
               "(|no) set srv6 encap head <WORD> <WORD> (|H.Encaps|H.Insert)",
-              SET_HELP, "set SRv6 information\n",
+              NO_HELP, SET_HELP, "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
               "set SRv6 encap head-end route\n",
               "specify destination prefix (e.g. 2001:db8::/64)\n",
