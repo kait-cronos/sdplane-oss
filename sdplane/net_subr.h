@@ -138,6 +138,17 @@ _send_router_if_ring (struct rte_mbuf *m,
     }
 }
 
+static inline __attribute__ ((always_inline)) void
+_send_capture_if_ring (struct rte_mbuf *m,
+                       unsigned portid, unsigned queueid,
+                       struct vswitch_conf *vswitch)
+{
+  struct capture_if *cif = &vswitch->capture_if;
+
+  if (cif->sockfd >= 0 && cif->ring_up)
+    _send_ring (m, portid, queueid, cif->ring_up);
+}
+
 extern volatile int router_mode;
 static inline __attribute__ ((always_inline)) void
 _debug_manual_send (struct rte_mbuf *m)
@@ -158,7 +169,8 @@ _send_link (struct rte_mbuf *m,
             unsigned rx_portid, unsigned rx_queueid,
             struct vswitch_link *rx_link,
             unsigned tx_portid, unsigned tx_queueid,
-            struct vswitch_link *tx_link)
+            struct vswitch_link *tx_link,
+            struct vswitch_conf *vswitch)
 {
   struct rte_eth_dev_tx_buffer *buffer;
   uint16_t nb_ports;
@@ -262,6 +274,9 @@ _send_link (struct rte_mbuf *m,
           vlan->vlan_tci = rte_cpu_to_be_16 (new_vlan_tci);
         }
     }
+
+  /* send to capture_if */
+  _send_capture_if_ring (c, tx_portid, tx_queueid, vswitch);
 
   sent = rte_eth_tx_buffer (tx_portid, tx_queueid, buffer, c);
   if (sent)
@@ -382,7 +397,7 @@ _flooding (struct rte_mbuf *m,
 
       /* send to DPDK ports according to the vswitch_link */
       _send_link (m, rx_portid, rx_queueid, rx_link,
-                  tx_portid, tx_queueid, link);
+                  tx_portid, tx_queueid, link, vswitch);
     }
 
   if (router_mode == 12) /* flooding: after sending all ports, without sending router-if. */
@@ -457,7 +472,7 @@ _switching (struct rte_mbuf *m,
                          "m: %p L2 switching to port %d via link %d",
                          m, dst_port, link_id);
               _send_link (m, rx_portid, rx_queueid, rx_link,
-                          dst_port, tx_queueid, link);
+                          dst_port, tx_queueid, link, vswitch);
               return;
             }
         }
