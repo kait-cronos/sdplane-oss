@@ -545,14 +545,6 @@ _forwarding (struct rte_mbuf *m,
 
   nh_info = nexthop_get_info_by_index (rib->rib_info, fib_node->sdplane_nh_id);
 
-  if (unlikely (! nh_info))
-    {
-      DEBUG_NEW (ROUTING_LOOKUP,
-                 "m: %p routing-lookup: dest: %s nexthop not found. drop.", m,
-                 dest);
-      return;
-    }
-
   if (unlikely (nh_info->type != NEXTHOP_TYPE_CONNECTED &&
                 nh_info->type != NEXTHOP_TYPE_GATEWAY))
     {
