@@ -273,6 +273,4 @@ _process_encapsulate_srv6_packet (struct rte_mbuf *m,
   return true;
 }
 
-extern bool srv6_encap_mode_worker_already_started;
-
 #endif /*__SRV6_H__*/

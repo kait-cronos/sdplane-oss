@@ -42,7 +42,6 @@ volatile bool startup_config_completed = false;
 struct lcore_worker lcore_workers[RTE_MAX_LCORE];
 
 extern int lthread_core;
-extern bool srv6_encap_mode_worker_already_started;
 
 int nettlp_thread (void *arg);
 int vlan_switch (void *arg);
