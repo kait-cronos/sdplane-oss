@@ -80,7 +80,6 @@ start_lcore (struct shell *shell, int lcore_id)
                      (lthread_func) lcore_workers[lcore_id].func,
                      lcore_workers[lcore_id].func_name, NULL);
 
-  srv6_encap_mode_worker_already_started = true;
   rte_eal_remote_launch (lcore_workers[lcore_id].func,
                          lcore_workers[lcore_id].arg, lcore_id);
   DEBUG_SDPLANE_LOG (THREAD, "started worker on lcore: %d.", lcore_id);
