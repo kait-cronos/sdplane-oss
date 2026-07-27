@@ -53,6 +53,12 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   struct rte_ipv6_hdr *ipv6 = NULL;
   struct rte_icmp_hdr *icmp = NULL;
 
+  if (router_mode == 1) /* process_rx_packet: the beginning. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
   eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
   eth_type = rte_be_to_cpu_16 (eth->ether_type);
 
@@ -165,9 +171,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     log_packet (m, rx_portid, rx_queueid);
 
   /* 2. send to capture_if */
-  struct capture_if *cif = &vswitch->capture_if;
-  if (cif->sockfd >= 0 && cif->ring_up)
-    _send_ring (m, rx_portid, rx_queueid, cif->ring_up);
+  _send_capture_if_ring (m, rx_portid, rx_queueid, vswitch);
 
   struct router_if *rif = &vswitch->router_if;
 
@@ -192,9 +196,11 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* check if destination MAC is multicast or broadcast */
+  bool is_mcast_bcast = false;
   if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
+      is_mcast_bcast = true;
       DEBUG_NEW (ROUTER, "m: %p mac_addr bcast/mcast: send to router_if",
                  m, eth_type);
       _send_router_if_ring (m, rx_portid, rx_queueid, rif);
@@ -202,16 +208,21 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* 3. check if control packet (ARP, ICMP, etc.) */
+  bool is_control = false;
   if (rif->sockfd >= 0 && rif->ring_up)
     {
-      bool is_control = _check_control_packet (m, vswitch, eth_type, eth,
-                                               vlan, ipv4, ipv6, icmp);
+      is_control = _check_control_packet (m, vswitch, eth_type, eth,
+                                          vlan, ipv4, ipv6, icmp);
       if (is_control)
         {
-          DEBUG_NEW (ROUTER,
-              "m: %p control packet (eth_type:0x%04x), send to router_if", m,
-              eth_type);
-          _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+          if (! is_mcast_bcast) //unicast
+            {
+              DEBUG_NEW (ROUTER,
+                  "m: %p control packet (eth_type:0x%04x), send to router_if", m,
+                  eth_type);
+              _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+            }
+
           return;
         }
     }
@@ -238,6 +249,12 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (_verify_packet (m, ipv4, ipv6) != 0)
     {
       DEBUG_NEW (ROUTER, "m: %p failed verify", m);
+      return;
+    }
+
+  if (router_mode == 2) /* process_rx_packet: just before the forwarding. */
+    {
+      _debug_manual_send (m);
       return;
     }
 
@@ -281,6 +298,9 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
   DEBUG_NEW (ROUTER,
              "m: %p received on port: %d queue: %d",
              m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
+
+  if (IS_DEBUG (ROUTER) || IS_DEBUG (PACKET))
+    log_packet (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
 
 #if 1
   /* check if this is a non-IP packet or multicast or broadcast */
