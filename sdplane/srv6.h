@@ -232,7 +232,17 @@ _process_encapsulate_srv6_packet (struct rte_mbuf *m,
       return false;
     }
   memmove (new_ether_hdr, *original_ether_hdr, original_pre_ip_hdr_size);
-  new_ether_hdr->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
+  // the L3 protocol type is held in the VLAN header if the packet is
+  // tagged.  overwriting ether_type would break the VLAN tag, and the
+  // tx side (_send_link) would no longer recognize the packet as tagged.
+  if (new_ether_hdr->ether_type == rte_cpu_to_be_16 (RTE_ETHER_TYPE_VLAN))
+    {
+      struct rte_vlan_hdr *new_vlan_hdr =
+          (struct rte_vlan_hdr *) (new_ether_hdr + 1);
+      new_vlan_hdr->eth_proto = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
+    }
+  else
+    new_ether_hdr->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
   struct rte_ipv6_hdr *new_ipv6_hdr =
       (struct rte_ipv6_hdr *) ((uint8_t *) new_ether_hdr +
                                original_pre_ip_hdr_size);
