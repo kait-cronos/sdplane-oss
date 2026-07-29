@@ -259,9 +259,8 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* 6. forwarding */
-  _srv6_forwarding (m, rx_portid, rx_queueid,
-               eth, ipv4, ipv6,
-               vswitch, vswitch_link,0);
+  _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, vswitch,
+                    vswitch_link, 0, false);
 
   return;
 }
@@ -313,10 +312,8 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       return;
     }
 
-  _srv6_forwarding (m,
-               ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-               eth, ipv4, ipv6,
-               vswitch, NULL, 0);
+  _srv6_forwarding (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
+                    eth, ipv4, ipv6, vswitch, NULL, 0, false);
 #else
   /* This is a packet sent from the Linux tap thru
      the packet_down(ring_dn).  I think it is safe to send it

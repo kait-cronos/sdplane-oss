@@ -751,11 +751,12 @@ _forwarding (struct rte_mbuf *m,
 }
 
 #define SRV6_MAX_RECURSION 4
-static void
+static inline void
 _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                   struct rte_ether_hdr *eth, struct rte_ipv4_hdr *ipv4,
                   struct rte_ipv6_hdr *ipv6, struct vswitch_conf *rx_vswitch,
-                  struct vswitch_link *rx_link, int recursion_count)
+                  struct vswitch_link *rx_link, int recursion_count,
+                  bool outer_is_fresh)
 {
   struct nh_info *nh_info;
   struct neigh_entry *neigh_entry;
@@ -840,7 +841,7 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
         }
       rx_link = NULL; // to avoid split-horizon check
       _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch,
-                        rx_link, recursion_count + 1);
+                        rx_link, recursion_count + 1, true);
       return;
     }
 
@@ -1002,14 +1003,21 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   /* rewrite L2/L3 header */
   if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID)
     {
-      if (ipv4)
+      /* outer_is_fresh means _process_encapsulate_srv6_packet() built
+         this outer header on the way in.  It already decremented the inner
+         header, and RFC 2473 has the encapsulating node set the outer Hop
+         Limit rather than spend one on it, so leave the outer alone. */
+      if (! outer_is_fresh)
         {
-          ipv4->time_to_live--;
-          ipv4->hdr_checksum = 0;
-          ipv4->hdr_checksum = rte_ipv4_cksum (ipv4);
+          if (ipv4)
+            {
+              ipv4->time_to_live--;
+              ipv4->hdr_checksum = 0;
+              ipv4->hdr_checksum = rte_ipv4_cksum (ipv4);
+            }
+          else if (ipv6)
+            ipv6->hop_limits--;
         }
-      else if (ipv6)
-        ipv6->hop_limits--;
 
       src_mac = &tx_vswitch->router_if.mac_addr;
       rte_ether_addr_copy (src_mac, &eth->src_addr);
