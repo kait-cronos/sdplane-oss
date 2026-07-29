@@ -408,6 +408,11 @@ pager_pipe_stages_start (struct shell *shell, int source_fd)
 
           execvp (stage->argv[0], stage->argv);
 
+          DEBUG_NEW (PAGER, "stage[%d]: execvp() failed: %s",
+                     i, strerror (errno));
+          DEBUG_NEW (PAGER, "stage[%d]: execvp(): argc: %d argv[0]: %s",
+                     i, stage->argc, stage->argv[0]);
+
           /* exec failed: fall back to a plain passthrough (like cat),
              so that the command output is not lost. */
           {
