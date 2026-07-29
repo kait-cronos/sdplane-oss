@@ -52,6 +52,7 @@ int pager_pipe_stage_unset (int index);
 /* the pager command itself (the last consumer on the pty).
    when unset, the built-in default (strace-wrapped less) is used.
    argv[] is deep-copied; the caller keeps the ownership. */
+extern char *pager_command_default[]; /* NULL-terminated */
 int pager_command_set (int cmd_argc, char **cmd_argv);
 int pager_command_unset (void);
 

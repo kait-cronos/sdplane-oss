@@ -190,12 +190,6 @@ DEFINE_COMMAND (show_history, "show history",
 #endif /*HAVE_PTY_H*/
 #include <signal.h>
 
-#define DEFAULT_PAGER_ARG0 "/usr/bin/less"
-#define DEFAULT_PAGER_ARG1 "-FX"
-#define DEFAULT_PAGER_ARG2 "+Gg"
-#define DEFAULT_PAGER \
-  (DEFAULT_PAGER_ARG0 " " DEFAULT_PAGER_ARG1 " " DEFAULT_PAGER_ARG2)
-
 /* pager pipe stages: filter commands (such as moreutils sponge)
    inserted between the command output and the pager, in the
    index order: command output -> stage[0] -> ... -> pager.
@@ -210,16 +204,15 @@ static struct pager_pipe_stage pager_pipe_stages[SHELL_PAGER_PIPE_MAX];
 
 /* the default pager command: the strace-wrapped less,
    kept from the previous behavior. */
-#define DEFAULT_PAGER_STRACE_LOG "/tmp/less.trace"
-static char *pager_command_default[] = {
-  "strace", "-o", DEFAULT_PAGER_STRACE_LOG,
-  DEFAULT_PAGER_ARG0, DEFAULT_PAGER_ARG1, DEFAULT_PAGER_ARG2,
+char *pager_command_default[] = {
+  "strace", "-o", "/tmp/less.trace",
+  "/usr/bin/less", "-FX",
   NULL
 };
 
 /* the pager command configured by 'set pager command <LINE>'.
    when unset (argc == 0), pager_command_default[] is used. */
-static struct pager_pipe_stage pager_command_stage;
+static struct pager_pipe_stage pager_command_config;
 
 static void
 pager_stage_clear (struct pager_pipe_stage *stage)
@@ -251,6 +244,56 @@ pager_stage_assign (struct pager_pipe_stage *stage, int stage_argc,
   stage->argc = stage_argc;
 
   return 0;
+}
+
+/* join the effective pager pipeline: the pipe stages and the pager
+   command (the configured one, or the default), connected with '|',
+   into buf[] as a single line, for popen()/display.
+   e.g. "sponge | strace -o /tmp/less.trace /usr/bin/less -FX".
+   returns buf (truncated when it does not fit). */
+static char *
+pager_command_line_join (char *buf, size_t size)
+{
+  char **pager_argv;
+  char *p = buf;
+  char *e = buf + size;
+  int nwrite;
+  int i, j;
+
+  buf[0] = '\0';
+
+  /* the pipe stages first: "stage0 | stage1 | ". */
+  for (i = 0; i < SHELL_PAGER_PIPE_MAX; i++)
+    {
+      struct pager_pipe_stage *stage = &pager_pipe_stages[i];
+      if (! stage->argc)
+        continue;
+      for (j = 0; j < stage->argc; j++)
+        {
+          nwrite = snprintf (p, e - p, (j == 0 ? "%s" : " %s"),
+                             stage->argv[j]);
+          if (nwrite < 0 || nwrite >= e - p)
+            return buf; /* truncated: give up appending. */
+          p += nwrite;
+        }
+      nwrite = snprintf (p, e - p, " | ");
+      if (nwrite < 0 || nwrite >= e - p)
+        return buf; /* truncated: give up appending. */
+      p += nwrite;
+    }
+
+  /* then the pager command. */
+  pager_argv = (pager_command_config.argc ? pager_command_config.argv
+                                          : pager_command_default);
+  for (i = 0; pager_argv[i]; i++)
+    {
+      nwrite = snprintf (p, e - p, (i == 0 ? "%s" : " %s"), pager_argv[i]);
+      if (nwrite < 0 || nwrite >= e - p)
+        return buf; /* truncated: give up appending. */
+      p += nwrite;
+    }
+
+  return buf;
 }
 
 /* split a command line into words. the words point into line[]:
@@ -299,13 +342,13 @@ pager_pipe_stage_unset (int index)
 int
 pager_command_set (int cmd_argc, char **cmd_argv)
 {
-  return pager_stage_assign (&pager_command_stage, cmd_argc, cmd_argv);
+  return pager_stage_assign (&pager_command_config, cmd_argc, cmd_argv);
 }
 
 int
 pager_command_unset (void)
 {
-  pager_stage_clear (&pager_command_stage);
+  pager_stage_clear (&pager_command_config);
   return 0;
 }
 
@@ -438,8 +481,10 @@ pager_start (struct shell *shell)
 
   if (! pager_fp)
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "default pager: %s", DEFAULT_PAGER);
-      pager_fp = popen (DEFAULT_PAGER, "w");
+      char pager_line[256];
+      pager_command_line_join (pager_line, sizeof (pager_line));
+      DEBUG_ZCMDSH_LOG (PAGER, "default pager: %s", pager_line);
+      pager_fp = popen (pager_line, "w");
     }
 
   if (! pager_fp)
@@ -544,7 +589,7 @@ pager_start (struct shell *shell)
 
       /* the pager command: the configured one, or the default. */
       char **pager_argv;
-      pager_argv = (pager_command_stage.argc ? pager_command_stage.argv
+      pager_argv = (pager_command_config.argc ? pager_command_config.argv
                                              : pager_command_default);
 
       DEBUG_NEW (PAGER, "execvp: %s%s", pager_argv[0],
@@ -1617,21 +1662,13 @@ CLI_COMMAND2 (show_pager_command,
               "pager command.\n")
 {
   struct shell *shell = (struct shell *) context;
-  int i;
+  char pager_line[256];
 
-  if (pager_command_stage.argc)
-    {
-      fprintf (shell->terminal, "pager command:");
-      for (i = 0; i < pager_command_stage.argc; i++)
-        fprintf (shell->terminal, " %s", pager_command_stage.argv[i]);
-    }
-  else
-    {
-      fprintf (shell->terminal, "pager command (default):");
-      for (i = 0; pager_command_default[i]; i++)
-        fprintf (shell->terminal, " %s", pager_command_default[i]);
-    }
-  fprintf (shell->terminal, "%s", shell->NL);
+  /* the whole pipeline: the pipe stages and the pager command. */
+  pager_command_line_join (pager_line, sizeof (pager_line));
+  fprintf (shell->terminal, "pager command%s: %s%s",
+           (pager_command_config.argc ? "" : " (default)"),
+           pager_line, shell->NL);
   return CMD_SUCCESS;
 }
 
@@ -1679,11 +1716,17 @@ CLI_COMMAND2 (show_shell,
               "shell information.\n")
 {
   struct shell *shell = (struct shell *) context;
+  char pager_line[256];
+
+  /* the effective pager pipeline (the pipe stages and the pager
+     command) for display. */
+  pager_command_line_join (pager_line, sizeof (pager_line));
+
   fprintf (shell->terminal, "shell winsize row: %d col: %d%s",
            shell->winsize.ws_row, shell->winsize.ws_col, shell->NL);
   fprintf (shell->terminal, "shell pager %d pager_command: %s%s",
            shell->pager,
-           shell->pager_command ? shell->pager_command : DEFAULT_PAGER,
+           shell->pager_command ? shell->pager_command : pager_line,
            shell->NL);
   return CMD_SUCCESS;
 }
