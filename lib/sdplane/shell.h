@@ -69,6 +69,12 @@ struct shell
   int pipefd[2];
   int pty_master;
   int pty_slave;
+
+#define SHELL_PAGER_PIPE_MAX 8
+  /* pids of the running pager pipe stages (filters such as sponge)
+     inserted between the command output and the pager. */
+  pid_t pager_pipe_pid[SHELL_PAGER_PIPE_MAX];
+  int pager_pipe_nstages;
 };
 
 #define SHELL_FLAG_ESCAPE      0x01

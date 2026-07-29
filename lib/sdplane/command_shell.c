@@ -196,6 +196,171 @@ DEFINE_COMMAND (show_history, "show history",
 #define DEFAULT_PAGER \
   (DEFAULT_PAGER_ARG0 " " DEFAULT_PAGER_ARG1 " " DEFAULT_PAGER_ARG2)
 
+/* pager pipe stages: filter commands (such as moreutils sponge)
+   inserted between the command output and the pager, in the
+   index order: command output -> stage[0] -> ... -> pager.
+   an unset stage (argc == 0) is skipped. */
+struct pager_pipe_stage
+{
+  int argc;
+  char *argv[PAGER_PIPE_ARGV_MAX + 1]; /* NULL-terminated for execvp(). */
+};
+
+static struct pager_pipe_stage pager_pipe_stages[SHELL_PAGER_PIPE_MAX];
+
+int
+pager_pipe_stage_set (int index, int stage_argc, char **stage_argv)
+{
+  struct pager_pipe_stage *stage;
+  int i;
+
+  if (index < 0 || index >= SHELL_PAGER_PIPE_MAX)
+    return -1;
+  if (stage_argc < 1 || stage_argc > PAGER_PIPE_ARGV_MAX)
+    return -1;
+
+  pager_pipe_stage_unset (index);
+
+  stage = &pager_pipe_stages[index];
+  for (i = 0; i < stage_argc; i++)
+    stage->argv[i] = strdup (stage_argv[i]);
+  stage->argv[stage_argc] = NULL;
+  stage->argc = stage_argc;
+
+  return 0;
+}
+
+int
+pager_pipe_stage_unset (int index)
+{
+  struct pager_pipe_stage *stage;
+  int i;
+
+  if (index < 0 || index >= SHELL_PAGER_PIPE_MAX)
+    return -1;
+
+  stage = &pager_pipe_stages[index];
+  for (i = 0; i < stage->argc; i++)
+    {
+      free (stage->argv[i]);
+      stage->argv[i] = NULL;
+    }
+  stage->argc = 0;
+
+  return 0;
+}
+
+/* fork the configured filter stages, connecting them with pipes:
+   source_fd -> stage[0] -> ... -> stage[N-1] -> (returned fd).
+   returns the read-end fd the pager should read from.
+   the forked pids are recorded in shell->pager_pipe_pid[]. */
+static int
+pager_pipe_stages_start (struct shell *shell, int source_fd)
+{
+  int ret;
+  int i;
+  int stagefd[2];
+  pid_t process_id;
+
+  shell->pager_pipe_nstages = 0;
+
+  for (i = 0; i < SHELL_PAGER_PIPE_MAX; i++)
+    {
+      struct pager_pipe_stage *stage = &pager_pipe_stages[i];
+
+      if (! stage->argc)
+        continue;
+
+      ret = pipe (stagefd);
+      if (ret < 0)
+        {
+          DEBUG_NEW (PAGER, "stage[%d]: pipe() failed: %s.",
+                     i, strerror (errno));
+          break;
+        }
+
+      process_id = fork ();
+      if (process_id < 0)
+        {
+          DEBUG_NEW (PAGER, "stage[%d]: fork() failed: %s.",
+                     i, strerror (errno));
+          close (stagefd[0]);
+          close (stagefd[1]);
+          break;
+        }
+      else if (process_id == 0)
+        {
+          /* stage child: source_fd -> argv[] -> stagefd[1]. */
+          close (stagefd[0]);
+          close (shell->pipefd[1]);
+          close (shell->pty_master);
+
+          dup2 (source_fd, 0);
+          close (source_fd);
+          dup2 (stagefd[1], 1);
+          close (stagefd[1]);
+
+          /* keep the error messages visible on the pager terminal. */
+          dup2 (shell->pty_slave, 2);
+          close (shell->pty_slave);
+
+          execvp (stage->argv[0], stage->argv);
+
+          /* exec failed: fall back to a plain passthrough (like cat),
+             so that the command output is not lost. */
+          {
+            char fbuf[1024];
+            int nread;
+            while ((nread = read (0, fbuf, sizeof (fbuf))) > 0)
+              if (write (1, fbuf, nread) < 0)
+                break;
+          }
+          _exit (127);
+        }
+
+      /* parent. */
+      DEBUG_NEW (PAGER, "stage[%d]: %s: pid: %d.",
+                 i, stage->argv[0], (int) process_id);
+      close (stagefd[1]);
+      close (source_fd);
+      source_fd = stagefd[0];
+      shell->pager_pipe_pid[shell->pager_pipe_nstages++] = process_id;
+    }
+
+  return source_fd;
+}
+
+/* reap the filter stage processes. called after the pager exited. */
+static void
+pager_pipe_stages_reap (struct shell *shell)
+{
+  int i;
+  int wstatus;
+  pid_t pid;
+
+  for (i = 0; i < shell->pager_pipe_nstages; i++)
+    {
+      pid = shell->pager_pipe_pid[i];
+      if (pid <= 0)
+        continue;
+
+      if (waitpid (pid, &wstatus, WNOHANG) == 0)
+        {
+          /* the stage may keep running (e.g. sponge feeding a
+             pager that the user has quit): terminate it. */
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: stage process %d: SIGTERM.",
+                            (int) pid);
+          kill (pid, SIGTERM);
+          waitpid (pid, &wstatus, 0);
+        }
+
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: stage process %d reaped.", (int) pid);
+      shell->pager_pipe_pid[i] = 0;
+    }
+
+  shell->pager_pipe_nstages = 0;
+}
+
 #define PAGER_USE_POPEN 0
 void
 pager_start (struct shell *shell)
@@ -266,14 +431,23 @@ pager_start (struct shell *shell)
                       shell->pipefd[0], shell->pipefd[1]);
 #endif
 
+  /* insert the configured filter stages (e.g. moreutils sponge)
+     between the command output and the pager. the pager reads
+     from source_fd: the last stage's output, or the command
+     output pipe itself when no stage is configured. */
+  int source_fd;
+  source_fd = pager_pipe_stages_start (shell, shell->pipefd[0]);
+
   process_id = fork ();
   if (process_id < 0)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "fork() failed: close pipefd and pty");
-      close (shell->pipefd[0]);
+      close (source_fd);
       close (shell->pipefd[1]);
       close (shell->pty_master);
       close (shell->pty_slave);
+      /* the stage processes (if any) exit on EOF: reap them. */
+      pager_pipe_stages_reap (shell);
       return;
     }
   else if (process_id == 0)
@@ -288,7 +462,7 @@ pager_start (struct shell *shell)
         DEBUG_NEW (PAGER, "setsid(): succeeded.");
 #endif
 
-      /* child */
+      /* child (pager) */
       close (shell->pipefd[1]);
       close (shell->pty_master);
 
@@ -353,7 +527,7 @@ pager_start (struct shell *shell)
         }
 #endif
 
-      dup2 (shell->pipefd[0], 0);
+      dup2 (source_fd, 0);
       dup2 (shell->pty_slave, 1);
       dup2 (shell->pty_slave, 2);
       stdin = fdopen (0, "r");
@@ -381,7 +555,7 @@ pager_start (struct shell *shell)
       shell->pager_pid = process_id;
 
       /* parent */
-      close (shell->pipefd[0]);
+      close (source_fd);
       close (shell->pty_slave);
 
       shell->pager_saved_terminal = shell->terminal;
@@ -493,7 +667,11 @@ pager_end (struct shell *shell)
       exit (-1);
     }
 
-  close (shell->pipefd[1]);
+  if (shell->pipefd[1] >= 0)
+    {
+      close (shell->pipefd[1]);
+      shell->pipefd[1] = -1;
+    }
 #endif
 
   if (shell->pager_saved_terminal)
@@ -596,6 +774,8 @@ pager_end (struct shell *shell)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d failed.", shell->pager_pid);
     }
+
+  pager_pipe_stages_reap (shell);
 #endif
 
   shell->is_paging = false;
@@ -723,7 +903,14 @@ shell_read_nowait_paging (struct shell *shell)
   int wstatus;
   int closed = 0;
 
-  close (shell->pipefd[1]);
+  /* send the EOF to the head of the pager pipe.
+     guard against the repeated calls from the main loop:
+     the fd number may be reused after the first close. */
+  if (shell->pipefd[1] >= 0)
+    {
+      close (shell->pipefd[1]);
+      shell->pipefd[1] = -1;
+    }
 
   if (shell->pager_saved_terminal)
     {
@@ -753,6 +940,8 @@ shell_read_nowait_paging (struct shell *shell)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d failed.", shell->pager_pid);
     }
+
+  pager_pipe_stages_reap (shell);
 
   shell->is_paging = false;
 
@@ -1287,6 +1476,93 @@ DEFINE_COMMAND (set_pager_default, "set pager default",
   return 0;
 }
 
+DEFINE_COMMAND (set_pager_pipe,
+                "set pager pipe <0-7> command <LINE>",
+                "set.\n"
+                "set pager.\n"
+                "set pager pipe stage.\n"
+                "specify pager pipe stage index.\n"
+                "set pager pipe stage command.\n"
+                "specify command and arguments (e.g. sponge).\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int index;
+  int ret;
+  char *line, *stringp, *word;
+  int stage_argc;
+  char *stage_argv[PAGER_PIPE_ARGV_MAX];
+
+  index = strtol (argv[3], NULL, 0);
+
+  /* argv[5] holds the rest of the line: split it into words. */
+  line = strdup (argv[5]);
+  stringp = line;
+  stage_argc = 0;
+  while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
+    {
+      if (*word == '\0')
+        continue;
+      if (stage_argc >= PAGER_PIPE_ARGV_MAX)
+        {
+          fprintf (shell->terminal, "too many arguments.%s", shell->NL);
+          free (line);
+          return CMD_FAILURE;
+        }
+      stage_argv[stage_argc++] = word;
+    }
+
+  ret = pager_pipe_stage_set (index, stage_argc, stage_argv);
+  free (line);
+
+  if (ret < 0)
+    {
+      fprintf (shell->terminal, "can't set pager pipe[%d].%s",
+               index, shell->NL);
+      return CMD_FAILURE;
+    }
+
+  fprintf (shell->terminal, "pager pipe[%d]: %s%s", index, argv[5], shell->NL);
+  return CMD_SUCCESS;
+}
+
+DEFINE_COMMAND (no_pager_pipe,
+                "no pager pipe <0-7>",
+                "negate command.\n"
+                "pager.\n"
+                "pager pipe stage.\n"
+                "specify pager pipe stage index.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int index;
+
+  index = strtol (argv[3], NULL, 0);
+  pager_pipe_stage_unset (index);
+  fprintf (shell->terminal, "pager pipe[%d]: unset.%s", index, shell->NL);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (show_pager_pipe,
+              "show pager pipe",
+              SHOW_HELP,
+              "pager information.\n",
+              "pager pipe stages.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i, j;
+
+  for (i = 0; i < SHELL_PAGER_PIPE_MAX; i++)
+    {
+      struct pager_pipe_stage *stage = &pager_pipe_stages[i];
+      if (! stage->argc)
+        continue;
+      fprintf (shell->terminal, "pager pipe[%d]:", i);
+      for (j = 0; j < stage->argc; j++)
+        fprintf (shell->terminal, " %s", stage->argv[j]);
+      fprintf (shell->terminal, "%s", shell->NL);
+    }
+  return CMD_SUCCESS;
+}
+
 CLI_COMMAND2 (show_shell,
               "show shell",
               SHOW_HELP,
@@ -1335,6 +1611,9 @@ default_install_command (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_pager);
   INSTALL_COMMAND2 (cmdset, set_pager_command);
   INSTALL_COMMAND2 (cmdset, set_pager_default);
+  INSTALL_COMMAND2 (cmdset, set_pager_pipe);
+  INSTALL_COMMAND2 (cmdset, no_pager_pipe);
+  INSTALL_COMMAND2 (cmdset, show_pager_pipe);
   INSTALL_COMMAND2 (cmdset, show_shell);
   INSTALL_COMMAND2 (cmdset, set_shell_winsize);
 
