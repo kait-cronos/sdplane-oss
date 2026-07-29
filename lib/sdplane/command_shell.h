@@ -41,6 +41,21 @@ void command_shell_install_default (struct shell *shell);
 int shell_pager_bridge (struct shell *shell);
 void shell_read_nowait_paging (struct shell *shell);
 
+/* pager pipe stages: filter commands (such as moreutils sponge)
+   inserted between the command output and the pager, in the
+   index order: command output -> stage[0] -> ... -> pager.
+   argv[] is deep-copied; the caller keeps the ownership. */
+#define PAGER_PIPE_ARGV_MAX 32
+int pager_pipe_stage_set (int index, int stage_argc, char **stage_argv);
+int pager_pipe_stage_unset (int index);
+
+/* the pager command itself (the last consumer on the pty).
+   when unset, the built-in default (strace-wrapped less) is used.
+   argv[] is deep-copied; the caller keeps the ownership. */
+extern char *pager_command_default[]; /* NULL-terminated */
+int pager_command_set (int cmd_argc, char **cmd_argv);
+int pager_command_unset (void);
+
 void command_shell_init ();
 void command_shell_finish ();
 
