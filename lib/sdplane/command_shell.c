@@ -208,20 +208,43 @@ struct pager_pipe_stage
 
 static struct pager_pipe_stage pager_pipe_stages[SHELL_PAGER_PIPE_MAX];
 
-int
-pager_pipe_stage_set (int index, int stage_argc, char **stage_argv)
+/* the default pager command: the strace-wrapped less,
+   kept from the previous behavior. */
+#define DEFAULT_PAGER_STRACE_LOG "/tmp/less.trace"
+static char *pager_command_default[] = {
+  "strace", "-o", DEFAULT_PAGER_STRACE_LOG,
+  DEFAULT_PAGER_ARG0, DEFAULT_PAGER_ARG1, DEFAULT_PAGER_ARG2,
+  NULL
+};
+
+/* the pager command configured by 'set pager command <LINE>'.
+   when unset (argc == 0), pager_command_default[] is used. */
+static struct pager_pipe_stage pager_command_stage;
+
+static void
+pager_stage_clear (struct pager_pipe_stage *stage)
 {
-  struct pager_pipe_stage *stage;
   int i;
 
-  if (index < 0 || index >= SHELL_PAGER_PIPE_MAX)
-    return -1;
+  for (i = 0; i < stage->argc; i++)
+    {
+      free (stage->argv[i]);
+      stage->argv[i] = NULL;
+    }
+  stage->argc = 0;
+}
+
+static int
+pager_stage_assign (struct pager_pipe_stage *stage, int stage_argc,
+                    char **stage_argv)
+{
+  int i;
+
   if (stage_argc < 1 || stage_argc > PAGER_PIPE_ARGV_MAX)
     return -1;
 
-  pager_pipe_stage_unset (index);
+  pager_stage_clear (stage);
 
-  stage = &pager_pipe_stages[index];
   for (i = 0; i < stage_argc; i++)
     stage->argv[i] = strdup (stage_argv[i]);
   stage->argv[stage_argc] = NULL;
@@ -230,23 +253,59 @@ pager_pipe_stage_set (int index, int stage_argc, char **stage_argv)
   return 0;
 }
 
-int
-pager_pipe_stage_unset (int index)
+/* split a command line into words. the words point into line[]:
+   the caller keeps the ownership of line[].
+   returns the number of words, or -1 when more than max words. */
+static int
+pager_command_line_split (char *line, char **words, int max)
 {
-  struct pager_pipe_stage *stage;
-  int i;
+  char *stringp = line;
+  char *word;
+  int nwords = 0;
 
+  while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
+    {
+      if (*word == '\0')
+        continue;
+      if (nwords >= max)
+        return -1;
+      words[nwords++] = word;
+    }
+
+  return nwords;
+}
+
+int
+pager_pipe_stage_set (int index, int stage_argc, char **stage_argv)
+{
   if (index < 0 || index >= SHELL_PAGER_PIPE_MAX)
     return -1;
 
-  stage = &pager_pipe_stages[index];
-  for (i = 0; i < stage->argc; i++)
-    {
-      free (stage->argv[i]);
-      stage->argv[i] = NULL;
-    }
-  stage->argc = 0;
+  return pager_stage_assign (&pager_pipe_stages[index],
+                             stage_argc, stage_argv);
+}
 
+int
+pager_pipe_stage_unset (int index)
+{
+  if (index < 0 || index >= SHELL_PAGER_PIPE_MAX)
+    return -1;
+
+  pager_stage_clear (&pager_pipe_stages[index]);
+
+  return 0;
+}
+
+int
+pager_command_set (int cmd_argc, char **cmd_argv)
+{
+  return pager_stage_assign (&pager_command_stage, cmd_argc, cmd_argv);
+}
+
+int
+pager_command_unset (void)
+{
+  pager_stage_clear (&pager_command_stage);
   return 0;
 }
 
@@ -483,15 +542,13 @@ pager_start (struct shell *shell)
       DEBUG_NEW (PAGER, "pty(slave): fd %d, %s.", shell->pty_slave,
                         ttyname (shell->pty_slave));
 
-      char *lessargs[4];
-      lessargs[0] = DEFAULT_PAGER_ARG0;
-      lessargs[1] = DEFAULT_PAGER_ARG1;
-      lessargs[2] = DEFAULT_PAGER_ARG2;
-      lessargs[3] = NULL;
-      char *path = lessargs[0];
+      /* the pager command: the configured one, or the default. */
+      char **pager_argv;
+      pager_argv = (pager_command_stage.argc ? pager_command_stage.argv
+                                             : pager_command_default);
 
-      DEBUG_NEW (PAGER, "execvp: %s %s %s",
-                 lessargs[0], lessargs[1], lessargs[2]);
+      DEBUG_NEW (PAGER, "execvp: %s%s", pager_argv[0],
+                 pager_argv[1] ? " ..." : "");
 
       ret = ioctl (shell->pty_slave, TIOCSCTTY, 0);
       if (ret < 0)
@@ -534,20 +591,13 @@ pager_start (struct shell *shell)
       stdout = fdopen (1, "w");
       stderr = fdopen (2, "r+");
 
-#define PAGER_STRACE 1
-#if PAGER_STRACE
-      execlp("strace", "strace", "-o", "/tmp/less.trace",
-             DEFAULT_PAGER_ARG0, DEFAULT_PAGER_ARG1, DEFAULT_PAGER_ARG2,
-             NULL);
-#else
-      ret = execvp (path, lessargs);
+      ret = execvp (pager_argv[0], pager_argv);
       if (ret < 0)
         {
           DEBUG_NEW (PAGER, "execvp() failed: ret: %d: %s.", ret,
                             strerror (errno));
           exit (-1);
         }
-#endif
     }
   else if (process_id > 0)
     {
@@ -1488,7 +1538,7 @@ DEFINE_COMMAND (set_pager_pipe,
   struct shell *shell = (struct shell *) context;
   int index;
   int ret;
-  char *line, *stringp, *word;
+  char *line;
   int stage_argc;
   char *stage_argv[PAGER_PIPE_ARGV_MAX];
 
@@ -1496,22 +1546,12 @@ DEFINE_COMMAND (set_pager_pipe,
 
   /* argv[5] holds the rest of the line: split it into words. */
   line = strdup (argv[5]);
-  stringp = line;
-  stage_argc = 0;
-  while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
-    {
-      if (*word == '\0')
-        continue;
-      if (stage_argc >= PAGER_PIPE_ARGV_MAX)
-        {
-          fprintf (shell->terminal, "too many arguments.%s", shell->NL);
-          free (line);
-          return CMD_FAILURE;
-        }
-      stage_argv[stage_argc++] = word;
-    }
-
-  ret = pager_pipe_stage_set (index, stage_argc, stage_argv);
+  stage_argc = pager_command_line_split (line, stage_argv,
+                                         PAGER_PIPE_ARGV_MAX);
+  if (stage_argc > 0)
+    ret = pager_pipe_stage_set (index, stage_argc, stage_argv);
+  else
+    ret = -1;
   free (line);
 
   if (ret < 0)
@@ -1522,6 +1562,76 @@ DEFINE_COMMAND (set_pager_pipe,
     }
 
   fprintf (shell->terminal, "pager pipe[%d]: %s%s", index, argv[5], shell->NL);
+  return CMD_SUCCESS;
+}
+
+DEFINE_COMMAND (set_pager_command_line,
+                "set pager command <LINE>",
+                "set.\n"
+                "set pager.\n"
+                "set pager command.\n"
+                "specify command and arguments (e.g. less -FX).\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  char *line;
+  int cmd_argc;
+  char *cmd_argv[PAGER_PIPE_ARGV_MAX];
+
+  /* argv[3] holds the rest of the line: split it into words. */
+  line = strdup (argv[3]);
+  cmd_argc = pager_command_line_split (line, cmd_argv, PAGER_PIPE_ARGV_MAX);
+  if (cmd_argc > 0)
+    ret = pager_command_set (cmd_argc, cmd_argv);
+  else
+    ret = -1;
+  free (line);
+
+  if (ret < 0)
+    {
+      fprintf (shell->terminal, "can't set pager command.%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  fprintf (shell->terminal, "pager command: %s%s", argv[3], shell->NL);
+  return CMD_SUCCESS;
+}
+
+DEFINE_COMMAND (no_pager_command,
+                "no pager command",
+                "negate command.\n"
+                "pager.\n"
+                "pager command: restore the default.\n")
+{
+  struct shell *shell = (struct shell *) context;
+
+  pager_command_unset ();
+  fprintf (shell->terminal, "pager command: default.%s", shell->NL);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (show_pager_command,
+              "show pager command",
+              SHOW_HELP,
+              "pager information.\n",
+              "pager command.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i;
+
+  if (pager_command_stage.argc)
+    {
+      fprintf (shell->terminal, "pager command:");
+      for (i = 0; i < pager_command_stage.argc; i++)
+        fprintf (shell->terminal, " %s", pager_command_stage.argv[i]);
+    }
+  else
+    {
+      fprintf (shell->terminal, "pager command (default):");
+      for (i = 0; pager_command_default[i]; i++)
+        fprintf (shell->terminal, " %s", pager_command_default[i]);
+    }
+  fprintf (shell->terminal, "%s", shell->NL);
   return CMD_SUCCESS;
 }
 
@@ -1614,6 +1724,9 @@ default_install_command (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_pager_pipe);
   INSTALL_COMMAND2 (cmdset, no_pager_pipe);
   INSTALL_COMMAND2 (cmdset, show_pager_pipe);
+  INSTALL_COMMAND2 (cmdset, set_pager_command_line);
+  INSTALL_COMMAND2 (cmdset, no_pager_command);
+  INSTALL_COMMAND2 (cmdset, show_pager_command);
   INSTALL_COMMAND2 (cmdset, show_shell);
   INSTALL_COMMAND2 (cmdset, set_shell_winsize);
 
