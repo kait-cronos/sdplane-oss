@@ -67,6 +67,7 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_ROUTING_LOOKUP, "routing-lookup" },
   { DEBUG_SDPLANE_NEIGH_LOOKUP, "neigh-lookup" },
   { DEBUG_SDPLANE_FDB_LOOKUP, "fdb-lookup" },
+  { DEBUG_SDPLANE_VSWITCH_LINK, "vswitch-link" },
 };
 
 struct command_header debug_sdplane_cmd;
