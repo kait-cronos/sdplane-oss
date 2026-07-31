@@ -8,4 +8,5 @@ EXTRA_DIST = etc/sdplane.service.in
 CLEANFILES = etc/sdplane.service
 
 etc/sdplane.service: etc/sdplane.service.in Makefile
-	$(AM_V_GEN)sed -e 's|[@]sbindir[@]|$(sbindir)|g' $< > $@
+	$(AM_V_GEN)$(MKDIR_P) $(@D) && \
+	  sed -e 's|[@]sbindir[@]|$(sbindir)|g' $< > $@
