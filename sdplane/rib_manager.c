@@ -1285,11 +1285,11 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_VSWITCH_PORT_SET:
       {
         struct internal_msg_vswitch_port *msg_vswitch_port_set;
-        DEBUG_NEW (RIB, "recv msg_vswitch_port_set: %p.", msgp);
+        DEBUG_NEW (VSWITCH_LINK, "recv msg_vswitch_port_set: %p.", msgp);
         msg_vswitch_port_set =
             (struct internal_msg_vswitch_port *) (msg_header + 1);
 
-        DEBUG_NEW (TMP, "msg_vswitch_port_set: %p "
+        DEBUG_NEW (VSWITCH_LINK, "msg_vswitch_port_set: %p "
                    "vswitch_id: %d port_id: %d tag: %d",
                    msgp,
                    msg_vswitch_port_set->vswitch_id,
@@ -1301,7 +1301,7 @@ rib_manager_process_message (void *msgp)
             vswitch_lookup (new->rib_info, msg_vswitch_port_set->vswitch_id);
         if (! vswitch)
           {
-            DEBUG_NEW (RIB, "vswitch: %u not found",
+            DEBUG_NEW (VSWITCH_LINK, "vswitch: %u not found",
                        msg_vswitch_port_set->vswitch_id);
             break;
           }
@@ -1309,21 +1309,21 @@ rib_manager_process_message (void *msgp)
         link = vswitch_link_new (new->rib_info, vswitch, port);
         if (! link)
           {
-            DEBUG_NEW (RIB, "create failed: vswitch: %u port %u tag: %u",
+            DEBUG_NEW (VSWITCH_LINK, "create failed: vswitch: %u port %u tag: %u",
                        msg_vswitch_port_set->vswitch_id,
                        msg_vswitch_port_set->port_id,
                        msg_vswitch_port_set->tag_id);
             break;
           }
 
-        DEBUG_NEW (TMP, "msg_vswitch_port_set: %p "
+        DEBUG_NEW (VSWITCH_LINK, "msg_vswitch_port_set: %p "
                    "vswitch: %p port: %p link: %p",
                    msgp, vswitch, port, link);
 
         if (! msg_vswitch_port_set->is_tagged)
           {
             port_set_native_vlan (new->rib_info, port, link);
-            DEBUG_NEW (RIB, "create succeeded: link_id: %u "
+            DEBUG_NEW (VSWITCH_LINK, "create succeeded: link_id: %u "
                        "vswitch: %u port: %u native",
                 link->vswitch_link_id, msg_vswitch_port_set->vswitch_id,
                 msg_vswitch_port_set->port_id);
@@ -1334,7 +1334,7 @@ rib_manager_process_message (void *msgp)
                 msg_vswitch_port_set->tag_id != link->tag_id)
               link->tag_id = msg_vswitch_port_set->tag_id; // enable tag modified
             port_add_tagged_vlan (new->rib_info, port, link);
-            DEBUG_NEW (RIB, "create succeeded: link_id: %u "
+            DEBUG_NEW (VSWITCH_LINK, "create succeeded: link_id: %u "
                        "vswitch: %u port: %u tag: %u",
                 link->vswitch_link_id, msg_vswitch_port_set->vswitch_id,
                 msg_vswitch_port_set->port_id, msg_vswitch_port_set->tag_id);
@@ -1345,14 +1345,14 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_VSWITCH_PORT_NO_SET:
       {
         struct internal_msg_vswitch_port *msg_vswitch_port_no_set;
-        DEBUG_NEW (RIB, "recv msg_vswitch_port_no_set: %p.", msgp);
+        DEBUG_NEW (VSWITCH_LINK, "recv msg_vswitch_port_no_set: %p.", msgp);
         msg_vswitch_port_no_set =
             (struct internal_msg_vswitch_port *) (msg_header + 1);
         vswitch =
             vswitch_lookup (new->rib_info, msg_vswitch_port_no_set->vswitch_id);
         if (! vswitch)
           {
-            DEBUG_NEW (RIB, "vswitch: %u not found",
+            DEBUG_NEW (VSWITCH_LINK, "vswitch: %u not found",
                                msg_vswitch_port_no_set->vswitch_id);
             break;
           }
@@ -1360,7 +1360,7 @@ rib_manager_process_message (void *msgp)
         link = vswitch_link_lookup (new->rib_info, vswitch, port);
         if (! link)
           {
-            DEBUG_NEW (RIB, "vswitch link: vswitch: %u port: %u not found",
+            DEBUG_NEW (VSWITCH_LINK, "vswitch link: vswitch: %u port: %u not found",
                        msg_vswitch_port_no_set->vswitch_id,
                        msg_vswitch_port_no_set->port_id);
             break;
