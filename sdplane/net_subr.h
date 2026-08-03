@@ -790,7 +790,7 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
     }
 
   /* FIB lookup */
-  int tree_idx = (ipv4) ? 0 : 1; // IPv4=0, IPv6=1
+  int tree_idx = ((ipv4) ? 0 : 1); // IPv4=0, IPv6=1
   struct fib_tree *t = rib->rib_info->fib_tree[tree_idx];
   if (! t)
     return;
@@ -832,7 +832,7 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
           DEBUG_NEW (ROUTER, "m: %p SRv6 recursion limit reached", m);
           return;
         }
-      if (! _process_encapsulate_srv6_packet (
+      if (! _process_srv6_encap (
               m, &eth, &ipv4, &ipv6, &nh_info->gw.srv6_encap_sid,
               &rib->rib_info->srv6_tunnel_src_addr, rx_portid, rx_queueid))
         {
