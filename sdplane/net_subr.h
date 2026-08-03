@@ -1003,10 +1003,10 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   /* rewrite L2/L3 header */
   if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID)
     {
-      /* outer_is_fresh means _process_encapsulate_srv6_packet() built
-         this outer header on the way in.  It already decremented the inner
-         header, and RFC 2473 has the encapsulating node set the outer Hop
-         Limit rather than spend one on it, so leave the outer alone. */
+      /* outer_is_fresh means _process_srv6_encap() built this outer header
+         on the way in.  It already decremented the inner header, and RFC 2473
+         has the encapsulating node set the outer Hop Limit rather than spend
+         one on it, so leave the outer alone. */
       if (! outer_is_fresh)
         {
           if (ipv4)
