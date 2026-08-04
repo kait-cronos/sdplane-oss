@@ -34,6 +34,8 @@
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
+#define PREFETCH_OFFSET 4
+
 volatile int router_mode = 0; /* the normal/default mode. */
 
 #include "net_subr.h"
@@ -346,10 +348,17 @@ _thread_rx_burst ()
 
       port_statistics[portid].rx += nb_rx;
 
+
+      for (j = 0; j < PREFETCH_OFFSET && j < nb_rx; j++)
+        rte_prefetch0 (rte_pktmbuf_mtod (pkts_burst[j], void *));
+
       for (j = 0; j < nb_rx; j++)
         {
+          if (j + PREFETCH_OFFSET < nb_rx)
+            rte_prefetch0 (
+                rte_pktmbuf_mtod (pkts_burst[j + PREFETCH_OFFSET], void *));
+
           m = pkts_burst[j];
-          rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
           _process_rx_packet (m, portid, queueid);
 
