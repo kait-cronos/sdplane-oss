@@ -15,6 +15,7 @@
 #include "packet_hdr.h"
 #include "log_packet.h"
 #include "control_packet.h"
+#include "srv6.h"
 
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
@@ -746,6 +747,291 @@ _forwarding (struct rte_mbuf *m,
 
   DEBUG_NEW (ROUTER, "m: %p L2 switching for oif %d in vswitch[%d](vlan%d)",
              m, oif, tx_vswitch->vswitch_id, tx_vswitch->vlan_id);
+  _switching (m, rx_portid, rx_queueid, NULL, tx_vswitch, eth);
+}
+
+#define SRV6_MAX_RECURSION 4
+static inline void
+_srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
+                  struct rte_ether_hdr *eth, struct rte_ipv4_hdr *ipv4,
+                  struct rte_ipv6_hdr *ipv6, struct vswitch_conf *rx_vswitch,
+                  struct vswitch_link *rx_link, int recursion_count,
+                  bool outer_is_fresh)
+{
+  struct nh_info *nh_info;
+  struct neigh_entry *neigh_entry;
+  struct rte_ether_addr *dst_mac, *src_mac;
+  struct fib_node *fib_node;
+  uint8_t dst_ip[16] = { 0 };
+  int i;
+  struct vswitch_link *tx_link = NULL;
+  int dst_port = -1, neigh_table_type;
+
+  char dest[64];
+  if (IS_DEBUG (ROUTING_LOOKUP))
+    {
+      if (ipv4)
+        inet_ntop (AF_INET, &ipv4->dst_addr, dest, sizeof (dest));
+      else
+        inet_ntop (AF_INET6, IPV6_ADDR_BYTES (ipv6->dst_addr), dest,
+                   sizeof (dest));
+      //DEBUG_LOG_MSG ("m: %p routing-lookup: dest: %s", m, dest);
+    }
+
+  if (ipv4)
+    memcpy (dst_ip, &ipv4->dst_addr, sizeof (ipv4->dst_addr));
+  else if (ipv6)
+    memcpy (dst_ip, IPV6_ADDR_BYTES (ipv6->dst_addr), RTE_IPV6_ADDR_SIZE);
+
+  if (router_mode == 3) /* forwarding: just before the routing-lookup. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
+  /* FIB lookup */
+  int tree_idx = ((ipv4) ? 0 : 1); // IPv4=0, IPv6=1
+  struct fib_tree *t = rib->rib_info->fib_tree[tree_idx];
+  if (! t)
+    return;
+  fib_node = fib_route_lookup (t, dst_ip);
+  if (! fib_node)
+    {
+      DEBUG_NEW (ROUTING_LOOKUP,
+                 "m: %p routing-lookup: dest: %s FIB not found. drop.", m,
+                 dest);
+#if 0
+      if (IS_DEBUG (ROUTER))
+        log_packet (m, rx_portid, rx_queueid);
+#endif
+      return;
+    }
+
+  if (router_mode == 4) /* forwarding: right after the routing-lookup. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
+  char nexthop_str[INET6_ADDRSTRLEN];
+  /* determine the actual nexthop IP to lookup in neighbor table */
+  uint8_t lookup_ip[16];
+  char lookup_ip_str[INET6_ADDRSTRLEN];
+  int family, oif;
+
+  nh_info = nexthop_get_info_by_index (rib->rib_info, fib_node->sdplane_nh_id);
+  family = nh_info->family;
+  oif = nh_info->oif;
+
+  if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
+    {
+      DEBUG_NEW (ROUTING_LOOKUP, "m: %p SRv6 Encapsulation for dest: %s", m,
+                 dest);
+      if (recursion_count >= SRV6_MAX_RECURSION)
+        {
+          DEBUG_NEW (ROUTER, "m: %p SRv6 recursion limit reached", m);
+          return;
+        }
+      if (! _process_srv6_encap (
+              m, &eth, &ipv4, &ipv6, &nh_info->gw.srv6_encap_sid,
+              &rib->rib_info->srv6_tunnel_src_addr, rx_portid, rx_queueid))
+        {
+          DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 encapsulation", m);
+          return;
+        }
+      rx_link = NULL; // to avoid split-horizon check
+      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch,
+                        rx_link, recursion_count + 1, true);
+      return;
+    }
+
+  if (IS_DEBUG (ROUTING_LOOKUP) || IS_DEBUG (ROUTER))
+    inet_ntop (family, &nh_info->gw, nexthop_str, sizeof (nexthop_str));
+
+  DEBUG_NEW (ROUTING_LOOKUP,
+             "m: %p: routing-lookup: dest: %s nexthop: %s oif: %d", m, dest,
+             nexthop_str, oif);
+  DEBUG_NEW (ROUTER, "m: %p route found: nexthop: %s", m, nexthop_str);
+
+  memcpy (lookup_ip, &nh_info->gw, sizeof (lookup_ip));
+  if (IS_DEBUG (ROUTER))
+    inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
+
+  if (nh_info->type == NEXTHOP_TYPE_CONNECTED)
+    {
+      memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
+      if (IS_DEBUG (ROUTER))
+        inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
+      DEBUG_NEW (ROUTER,
+                 "m: %p directly connected route. "
+                 "using dst IP for neighbor lookup: %s",
+                 m, lookup_ip_str);
+    }
+
+  if (fib_node->table_id == RT_TABLE_LOCAL)
+    {
+      struct router_if *target_rif;
+      target_rif = &rx_vswitch->router_if;
+
+      if (target_rif && target_rif->sockfd >= 0 && target_rif->ring_up)
+        {
+          DEBUG_NEW (ROUTER,
+                     "m: %p local route (table %u). "
+                     "sending to router_if %s (ifindex=%d)",
+                     m, fib_node->table_id, target_rif->tap_name,
+                     target_rif->ifindex);
+          _send_router_if_ring (m, rx_portid, rx_queueid, target_rif);
+        }
+      else
+        {
+          DEBUG_NEW (ROUTER,
+                     "m: %p local route (table %u). "
+                     "but router_if unavailable (ifindex=%d)",
+                     m, fib_node->table_id, oif);
+        }
+      return;
+    }
+
+  if (router_mode == 5) /* forwarding: just before the neighbor-lookup. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
+  /* neighbor table lookup */
+  neigh_table_type = AF_TO_NEIGH_TABLE (family);
+  neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                        neigh_table_type, lookup_ip, &neigh_entry);
+
+  if (router_mode == 6) /* forwarding: right after the neighbor-lookup. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
+  if (! neigh_entry || rte_is_zero_ether_addr (&neigh_entry->mac_addr))
+    {
+      /* ARP/ND resolution */
+      for (i = 0; i < rib->rib_info->vswitch_size; i++)
+        {
+          struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
+          struct router_if *rif = &vs->router_if;
+          if (rif->ifindex != oif)
+            continue;
+
+          if (family == AF_INET)
+            {
+              struct rte_mbuf *arp_pkt;
+              arp_pkt = arp_req_pkt_gen (&rif->mac_addr, &rif->ipv4_addr,
+                                         (struct in_addr *) lookup_ip);
+              if (arp_pkt)
+                {
+                  char dst_ip_str[INET_ADDRSTRLEN];
+                  inet_ntop (AF_INET, lookup_ip, dst_ip_str,
+                             sizeof (dst_ip_str));
+                  DEBUG_NEW (ROUTER,
+                             "m: %p send ARP request: target_ip: %s,"
+                             " flooding to vswitch[%d]",
+                             arp_pkt, dst_ip_str, vs->vswitch_id);
+
+                  _flooding (arp_pkt, ROUTER_IF_RX_SELF_PORT_ID,
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs);
+
+                  rte_pktmbuf_free (arp_pkt);
+                }
+              else
+                DEBUG_NEW (ROUTER, "m: %p failed to generate ARP request", m);
+            }
+          else
+            {
+              struct rte_mbuf *ns_pkt;
+              ns_pkt = ns_pkt_gen (&rif->mac_addr, &rif->ll_addr,
+                                   (struct in6_addr *) lookup_ip);
+              if (ns_pkt)
+                {
+                  char dst_ip_str[INET6_ADDRSTRLEN];
+                  inet_ntop (AF_INET6, lookup_ip, dst_ip_str,
+                             sizeof (dst_ip_str));
+                  DEBUG_NEW (ROUTER,
+                             "m: %p send NS: %p, target_ip: %s,"
+                             " flooding to vswitch[%d]",
+                             m, ns_pkt, dst_ip_str, vs->vswitch_id);
+                  _flooding (ns_pkt, ROUTER_IF_RX_SELF_PORT_ID,
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs);
+
+                  rte_pktmbuf_free (ns_pkt);
+                }
+              else
+                DEBUG_NEW (ROUTER, "m: %p failed to generate NS", m);
+            }
+          return;
+        }
+      return;
+    }
+  dst_mac = &neigh_entry->mac_addr;
+
+  char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
+  if (IS_DEBUG (ROUTER))
+    rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str), dst_mac);
+  DEBUG_NEW (ROUTER,
+             "m: %p neighbor lookup succeeded: "
+             "neighbour: %s lladdr: %s",
+             m, lookup_ip_str, neigh_mac_str);
+
+  /* search the target vswitch */
+  struct vswitch_conf *tx_vswitch = NULL;
+  for (i = 0; i < rib->rib_info->vswitch_size; i++)
+    {
+      struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
+
+      if (vs->is_deleted)
+        continue;
+
+      if (vs->router_if.ifindex == oif)
+        {
+          tx_vswitch = vs;
+          break;
+        }
+    }
+
+  if (! tx_vswitch)
+    {
+      DEBUG_NEW (ROUTER, "m: %p vswitch for oif %d: not found.", m, oif);
+      return;
+    }
+
+  /* rewrite L2/L3 header */
+  if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID)
+    {
+      /* outer_is_fresh means _process_srv6_encap() built this outer header
+         on the way in.  It already decremented the inner header, and RFC 2473
+         has the encapsulating node set the outer Hop Limit rather than spend
+         one on it, so leave the outer alone. */
+      if (! outer_is_fresh)
+        {
+          if (ipv4)
+            {
+              ipv4->time_to_live--;
+              ipv4->hdr_checksum = 0;
+              ipv4->hdr_checksum = rte_ipv4_cksum (ipv4);
+            }
+          else if (ipv6)
+            ipv6->hop_limits--;
+        }
+
+      src_mac = &tx_vswitch->router_if.mac_addr;
+      rte_ether_addr_copy (src_mac, &eth->src_addr);
+      rte_ether_addr_copy (dst_mac, &eth->dst_addr);
+    }
+
+  if (router_mode == 7) /* forwarding: just before the switching. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
+  DEBUG_NEW (ROUTER, "m: %p L2 switching for oif %d in vswitch[%d](vlan%d)", m,
+             oif, tx_vswitch->vswitch_id, tx_vswitch->vlan_id);
   _switching (m, rx_portid, rx_queueid, NULL, tx_vswitch, eth);
 }
 
