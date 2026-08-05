@@ -81,6 +81,8 @@ struct port_conf
   uint16_t nb_txd;
   uint64_t rx_offloads;
   uint64_t tx_offloads;
+  uint64_t rx_offloads_active;
+  uint64_t tx_offloads_active;
   uint64_t rss_hf;
   bool rx_offloads_valid;
   bool tx_offloads_valid;
@@ -94,6 +96,18 @@ struct port_conf
   uint16_t vswitch_link_id_of_vlan[MAX_VLAN_PER_PORT];
   uint16_t vswitch_link_id_of_native_vlan;
 };
+
+static inline bool
+port_rx_offload_active (const struct port_conf *port, uint64_t offload)
+{
+  return (port->rx_offloads_active & offload) != 0;
+}
+
+static inline bool
+port_tx_offload_active (const struct port_conf *port, uint64_t offload)
+{
+  return (port->tx_offloads_active & offload) != 0;
+}
 
 #include "queue_config.h"
 

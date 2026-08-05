@@ -398,6 +398,21 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
                        shell->NL);
               fprintf (t, "  configured_rss_hf: <%s>%s", cfg_rss_hf,
                        shell->NL);
+
+              char act_rx_offload[128];
+              char act_tx_offload[128];
+              memset (act_rx_offload, 0, sizeof (act_rx_offload));
+              memset (act_tx_offload, 0, sizeof (act_tx_offload));
+              snprintf_flags (act_rx_offload, sizeof (act_rx_offload),
+                              port_cfg->rx_offloads_active, rx_offload_capa,
+                              "|", RX_OFFLOAD_CAPA_SIZE);
+              snprintf_flags (act_tx_offload, sizeof (act_tx_offload),
+                              port_cfg->tx_offloads_active, tx_offload_capa,
+                              "|", TX_OFFLOAD_CAPA_SIZE);
+              fprintf (t, "  active_rx_offloads: <%s>%s", act_rx_offload,
+                       shell->NL);
+              fprintf (t, "  active_tx_offloads: <%s>%s", act_tx_offload,
+                       shell->NL);
             }
 
           int i;
