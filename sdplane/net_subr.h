@@ -20,6 +20,17 @@
 extern struct rte_eth_dev_tx_buffer
     *tx_buffer_per_q[RTE_MAX_ETHPORTS][RTE_MAX_LCORE];
 
+static inline __attribute__ ((always_inline)) uint16_t
+_nb_ports_cached (void)
+{
+  static __thread uint16_t nb_ports_cached = 0;
+
+  if (unlikely (! nb_ports_cached))
+    nb_ports_cached = rte_eth_dev_count_avail ();
+
+  return nb_ports_cached;
+}
+
 /* _thread_tx_flush() flushes the queue'ed packets
    in tx_buffer_per_q[] onto the NIC. */
 static inline __attribute__ ((always_inline)) void
@@ -184,7 +195,7 @@ _send_link (struct rte_mbuf *m,
              m, rx_portid, rx_queueid, tx_portid, tx_queueid);
 #endif
 
-  nb_ports = rte_eth_dev_count_avail ();
+  nb_ports = _nb_ports_cached ();
 
   if (tx_portid >= nb_ports)
     return;
