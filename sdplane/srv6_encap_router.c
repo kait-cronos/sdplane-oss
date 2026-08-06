@@ -241,7 +241,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
                  rif->mac_addr.addr_bytes[2], rif->mac_addr.addr_bytes[3],
                  rif->mac_addr.addr_bytes[4], rif->mac_addr.addr_bytes[5]);
       _switching (m, rx_portid, rx_queueid,
-                  vswitch_link, vswitch, eth);
+                  vswitch_link, vswitch, eth, false);
       return;
     }
 
@@ -320,7 +320,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
       _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-                  NULL, vswitch, eth);
+                  NULL, vswitch, eth, false);
       return;
     }
 
@@ -337,7 +337,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
      without any condition, and I think indeed it should be sent,
      for the proper L3-switch behavior. */
   _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-              NULL, vswitch, eth);
+              NULL, vswitch, eth, false);
 #endif
 }
 

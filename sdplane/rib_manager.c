@@ -665,6 +665,7 @@ rib_check (struct rib *new)
         port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
       else
         port_conf.txmode.offloads &= (~RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE);
+
       if (*dev_info.dev_flags & RTE_ETH_DEV_INTR_LSC)
         {
           port_conf.intr_conf.lsc = 1;
