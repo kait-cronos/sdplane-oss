@@ -1027,12 +1027,8 @@ CLI_COMMAND2 (set_port_txrx_desc,
       if (tx_spec)
         nb_tx_desc = desc_val;
 
-      fprintf (shell->terminal,
-               "port: %d nb_rxd: %hu nb_txd: %hu%s",
-               port_id, nb_rx_desc, nb_tx_desc, shell->NL);
-
       DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_dev_adjust_nb_rx_tx_desc(): "
-                 "nrxdesc: %d ntxdesc: %d", port_id, nb_rxd, nb_txd);
+                 "nrxdesc: %d ntxdesc: %d", port_id, nb_rx_desc, nb_tx_desc);
       ret = rte_eth_dev_adjust_nb_rx_tx_desc (port_id,
                                               &nb_rx_desc, &nb_tx_desc);
       if (ret < 0)
@@ -1049,12 +1045,18 @@ CLI_COMMAND2 (set_port_txrx_desc,
                    ret, shell->NL);
         }
 
+      fprintf (shell->terminal, "port: %d %s: %hu%s", port_id,
+               (rx_spec ? "nb_rxd" : "nb_txd"),
+               (rx_spec ? nb_rx_desc : nb_tx_desc), shell->NL);
+
       void *msgp;
       struct internal_msg_txrx_desc txrx_desc;
       memset (&txrx_desc, 0, sizeof (txrx_desc));
       txrx_desc.portid = port_id;
-      txrx_desc.nb_rxd = nb_rx_desc;
-      txrx_desc.nb_txd = nb_tx_desc;
+      if (rx_spec)
+        txrx_desc.nb_rxd = nb_rx_desc;
+      if (tx_spec)
+        txrx_desc.nb_txd = nb_tx_desc;
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC, &txrx_desc,
                                   sizeof (txrx_desc));
       ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
