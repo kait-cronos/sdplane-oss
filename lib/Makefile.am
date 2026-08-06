@@ -28,8 +28,8 @@ nobase_include_HEADERS = \
 FORCE:
 .PHONY: FORCE clean-version
 
-sdplane/libsdplane_version.c: FORCE
-	top_srcdir=$(top_srcdir) bash $(top_srcdir)/lib/sdplane/libsdplane-version-c.sh > $(top_srcdir)/lib/sdplane/libsdplane_version.c
+libsdplane_version.c: FORCE
+	top_srcdir=$(top_srcdir) bash $(top_srcdir)/lib/sdplane/libsdplane-version-c.sh > sdplane/libsdplane_version.c
 
 clean-local: clean-version
 clean-version:
