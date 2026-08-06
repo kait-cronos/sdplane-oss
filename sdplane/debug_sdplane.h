@@ -54,6 +54,10 @@
 #define DEBUG_SDPLANE_NEIGH_LOOKUP       (1ULL << 47)
 #define DEBUG_SDPLANE_FDB_LOOKUP         (1ULL << 48)
 #define DEBUG_SDPLANE_VSWITCH_LINK       (1ULL << 49)
+#define DEBUG_SDPLANE_ROUTING            (1ULL << 50)
+#define DEBUG_SDPLANE_FORWARDING         (1ULL << 51)
+#define DEBUG_SDPLANE_SWITCHING          (1ULL << 52)
+#define DEBUG_SDPLANE_FLOODING           (1ULL << 53)
 
 #define DEBUG_DOMAIN_OF_LTHREAD            SDPLANE
 #define DEBUG_DOMAIN_OF_CONSOLE            SDPLANE
@@ -104,6 +108,10 @@
 #define DEBUG_DOMAIN_OF_NEIGH_LOOKUP       SDPLANE
 #define DEBUG_DOMAIN_OF_FDB_LOOKUP         SDPLANE
 #define DEBUG_DOMAIN_OF_VSWITCH_LINK       SDPLANE
+#define DEBUG_DOMAIN_OF_ROUTING            SDPLANE
+#define DEBUG_DOMAIN_OF_FORWARDING         SDPLANE
+#define DEBUG_DOMAIN_OF_SWITCHING          SDPLANE
+#define DEBUG_DOMAIN_OF_FLOODING           SDPLANE
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)

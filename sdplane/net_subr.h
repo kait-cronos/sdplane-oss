@@ -190,7 +190,7 @@ _send_link (struct rte_mbuf *m,
   int sent;
   struct rte_mbuf *c;
 
-#if 0
+#if 1
   DEBUG_NEW (ROUTER, "m: %p rxport: %d rxqueue: %d txport: %d txqueue: %d",
              m, rx_portid, rx_queueid, tx_portid, tx_queueid);
 #endif
@@ -295,13 +295,18 @@ _send_link (struct rte_mbuf *m,
   if (sent)
     {
       port_statistics[tx_portid].tx += sent;
-#if 0
-      DEBUG_NEW (ROUTER, "m: %p successfully sent: port: %d queue: %u",
+      DEBUG_NEW (ROUTER, "m: %p successfully sent (%d packets): port: %d queue: %u",
                  m, tx_portid, tx_queueid);
-#endif
+    }
+  else if (send == 0)
+    {
+      DEBUG_NEW (ROUTER, "m: %p successfully buffered: port: %d queue: %u",
+                 m, tx_portid, tx_queueid);
     }
   else
+    {
       DEBUG_NEW (ROUTER, "m: %p port[%d]: send failed", m, tx_portid);
+    }
 }
 
 static inline __attribute__ ((always_inline)) int
@@ -427,6 +432,12 @@ _flooding (struct rte_mbuf *m,
                      m, tx_portid);
           continue;
         }
+
+      DEBUG_NEW (FLOODING, "m: %p send_link(): vswitch[%d].port[%d] "
+                 "rx-port[%d:%d](%p) -> tx-port[%d:%d](%p)",
+                 m, vswitch->vswitch_id, i,
+                 rx_portid, rx_queueid, rx_link,
+                 tx_portid, tx_queueid, link);
 
       /* send to DPDK ports according to the vswitch_link */
       _send_link (m, rx_portid, rx_queueid, rx_link,

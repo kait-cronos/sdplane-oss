@@ -1257,9 +1257,11 @@ CLI_COMMAND2 (set_port_rss,
                                   sizeof (txrx_desc));
       ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
       if (ret < 0)
-        return CMD_FAILURE;
-
-      fprintf (shell->terminal,
+        fprintf (shell->terminal,
+               "port[%d]: set rss %s %s failed.%s",
+               port_id, argv[4], argv[5], shell->NL);
+      else
+        fprintf (shell->terminal,
                "port[%d]: set rss %s %s queued.%s",
                port_id, argv[4], argv[5], shell->NL);
     }
