@@ -117,7 +117,7 @@ vswitch_new (struct rib_info *new, uint16_t vswitch_id, uint16_t vlan_id)
 
 static inline __attribute__ ((always_inline)) struct vswitch_link *
 vswitch_link_lookup (struct rib_info *new, struct vswitch_conf *vswitch,
-                     struct port_conf *port)
+                     uint16_t port_id)
 {
   int i;
   struct vswitch_link *vswitch_link;
@@ -125,8 +125,7 @@ vswitch_link_lookup (struct rib_info *new, struct vswitch_conf *vswitch,
     {
       vswitch_link = &new->vswitch_link[i];
       if (vswitch_link->vswitch_id == vswitch->vswitch_id &&
-          vswitch_link->port_id == port->dpdk_port_id &&
-          ! vswitch_link->is_deleted)
+          vswitch_link->port_id == port_id && ! vswitch_link->is_deleted)
         return vswitch_link;
     }
   return NULL;
@@ -134,7 +133,7 @@ vswitch_link_lookup (struct rib_info *new, struct vswitch_conf *vswitch,
 
 static inline __attribute__ ((always_inline)) struct vswitch_link *
 vswitch_link_new (struct rib_info *new, struct vswitch_conf *vswitch,
-                  struct port_conf *port)
+                  uint16_t port_id)
 {
   uint16_t vswitch_link_id;
   struct vswitch_link *vswitch_link;
@@ -161,7 +160,7 @@ vswitch_link_new (struct rib_info *new, struct vswitch_conf *vswitch,
 
   vswitch_link = &new->vswitch_link[vswitch_link_id];
   vswitch_link->vswitch_link_id = vswitch_link_id;
-  vswitch_link->port_id = port->dpdk_port_id;
+  vswitch_link->port_id = port_id;
   vswitch_link->vlan_id = vswitch->vlan_id;
   vswitch_link->tag_id = vswitch->vlan_id; // tagged.
   vswitch_link->vswitch_id = vswitch->vswitch_id;
@@ -473,6 +472,8 @@ rib_info_create (struct rib_info *old)
       memset (new, 0, sizeof (struct rib_info));
       for (i = 0; i < ROUTE_TREE_SIZE; i++)
         new->fib_tree[i] = fib_new (NULL);
+      for (i = 0; i < MAX_ETH_PORTS; i++)
+        new->port[i].dpdk_port_id = i;
       if (fdb_table_init (&new->fdb_table) < 0)
         {
           free (new);
@@ -1306,7 +1307,8 @@ rib_manager_process_message (void *msgp)
             break;
           }
         port = &new->rib_info->port[msg_vswitch_port_set->port_id];
-        link = vswitch_link_new (new->rib_info, vswitch, port);
+        link = vswitch_link_new (new->rib_info, vswitch,
+                                 msg_vswitch_port_set->port_id);
         if (! link)
           {
             DEBUG_NEW (VSWITCH_LINK, "create failed: vswitch: %u port %u tag: %u",
@@ -1356,8 +1358,8 @@ rib_manager_process_message (void *msgp)
                                msg_vswitch_port_no_set->vswitch_id);
             break;
           }
-        port = &new->rib_info->port[msg_vswitch_port_no_set->port_id];
-        link = vswitch_link_lookup (new->rib_info, vswitch, port);
+        link = vswitch_link_lookup (new->rib_info, vswitch,
+                                    msg_vswitch_port_no_set->port_id);
         if (! link)
           {
             DEBUG_NEW (VSWITCH_LINK, "vswitch link: vswitch: %u port: %u not found",
