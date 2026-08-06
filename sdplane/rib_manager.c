@@ -712,6 +712,9 @@ rib_check (struct rib *new)
       DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_dev_stop().", i);
       rte_eth_dev_stop (i);
 
+      port_cfg->rx_offloads_active = port_conf.rxmode.offloads;
+      port_cfg->tx_offloads_active = port_conf.txmode.offloads;
+
       ret = rte_eth_dev_configure (i, nrxq, ntxq, &port_conf);
       DEBUG_NEW (RTE_ETHDEV, "rte_eth_dev_configure(): ret: %d "
                  "on port[%d]: nrxq: %d ntxq: %d",

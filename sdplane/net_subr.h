@@ -305,8 +305,8 @@ _send_link (struct rte_mbuf *m,
 }
 
 static inline __attribute__ ((always_inline)) int
-_verify_packet (struct rte_mbuf *m, struct rte_ipv4_hdr *ipv4,
-                struct rte_ipv6_hdr *ipv6)
+_verify_packet (struct rte_mbuf *m, const struct port_conf *rx_port,
+                struct rte_ipv4_hdr *ipv4, struct rte_ipv6_hdr *ipv6)
 {
   if (ipv4)
     {
@@ -317,20 +317,40 @@ _verify_packet (struct rte_mbuf *m, struct rte_ipv4_hdr *ipv4,
                      m, rte_pktmbuf_data_len (m));
           return -1;
         }
-      if (rte_ipv4_cksum (ipv4))
+      /* Trust the NIC's IPv4-header checksum result when present. */
+      const uint64_t ip_ck = m->ol_flags & RTE_MBUF_F_RX_IP_CKSUM_MASK;
+      const uint16_t hdr_len = rte_ipv4_hdr_len (ipv4);
+
+      switch (ip_ck)
         {
-          DEBUG_NEW (ROUTER, "error: IPv4 checksum");
+        case RTE_MBUF_F_RX_IP_CKSUM_BAD:
+          DEBUG_NEW (ROUTER, "error: IPv4 checksum (HW)");
           return -1;
+
+        case RTE_MBUF_F_RX_IP_CKSUM_GOOD:
+          if (likely (port_rx_offload_active (rx_port,
+                                              RTE_ETH_RX_OFFLOAD_IPV4_CKSUM)))
+            break;
+
+        case RTE_MBUF_F_RX_IP_CKSUM_NONE:
+        case RTE_MBUF_F_RX_IP_CKSUM_UNKNOWN:
+        default:
+          if (unlikely (rte_raw_cksum (ipv4, hdr_len) != UINT16_MAX))
+            {
+              DEBUG_NEW (ROUTER, "error: IPv4 checksum (SW)");
+              return -1;
+            }
+          break;
         }
       if (ipv4->version != IPVERSION)
         {
           DEBUG_NEW (ROUTER, "error: version is %d", ipv4->version);
           return -1;
         }
-      if (rte_ipv4_hdr_len (ipv4) < sizeof (struct rte_ipv4_hdr))
+      if (hdr_len < sizeof (struct rte_ipv4_hdr))
         {
           DEBUG_NEW (ROUTER, "error: %d bytes is smaller than 20 bytes",
-                     rte_ipv4_hdr_len (ipv4));
+                     hdr_len);
           return -1;
         }
       if (rte_be_to_cpu_16 (ipv4->total_length) < sizeof (struct rte_ipv4_hdr))
@@ -748,9 +768,11 @@ _forwarding (struct rte_mbuf *m,
     {
       if (ipv4)
         {
+          /* Incremental checksum update (RFC 1624) */
+          uint32_t sum = ipv4->hdr_checksum;
+          sum += rte_cpu_to_be_16 (0x0100);
+          ipv4->hdr_checksum = (uint16_t) (sum + (sum >= 0xFFFF));
           ipv4->time_to_live--;
-          ipv4->hdr_checksum = 0;
-          ipv4->hdr_checksum = rte_ipv4_cksum (ipv4);
         }
       else if (ipv6)
         ipv6->hop_limits--;

@@ -224,7 +224,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* 5. verify IP packet */
-  if (_verify_packet (m, ipv4, ipv6) != 0)
+  if (_verify_packet (m, port_conf, ipv4, ipv6) != 0)
     {
       DEBUG_NEW (ROUTER, "m: %p failed verify", m);
       return;
