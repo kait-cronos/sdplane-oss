@@ -52,6 +52,7 @@ void debug_log_close_syslog ();
 void debug_log_open_file (char *filename);
 void debug_log_close_file ();
 void debug_log_rotate_file ();
+void debug_log_clear_file ();
 
 void debug_log_init (char *progname);
 

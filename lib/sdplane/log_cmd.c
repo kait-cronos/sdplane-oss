@@ -103,6 +103,16 @@ DEFINE_COMMAND (no_log_file_cmd, "no log file",
   return 0;
 }
 
+CLI_COMMAND2 (clear_log_file_cmd,
+              "clear log file",
+              "clear information.\n",
+              "logging information.\n",
+              "log to file.\n")
+{
+  debug_log_clear_file ();
+  return 0;
+}
+
 void
 log_cmd_init (struct command_set *cmdset)
 {
@@ -110,4 +120,5 @@ log_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, log_cmd);
   INSTALL_COMMAND2 (cmdset, log_file_cmd);
   INSTALL_COMMAND2 (cmdset, no_log_file_cmd);
+  INSTALL_COMMAND2 (cmdset, clear_log_file_cmd);
 }
