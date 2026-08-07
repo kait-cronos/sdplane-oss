@@ -219,7 +219,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     {
       DEBUG_NEW (ROUTER, "L2 switching");
       _switching (m, rx_portid, rx_queueid,
-                  vswitch_link, vswitch, eth);
+                  vswitch_link, vswitch, eth, false);
       return;
     }
 
@@ -245,7 +245,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     vswitch_link = NULL;
   _forwarding (m, rx_portid, rx_queueid,
                eth, ipv4, ipv6,
-               vswitch, vswitch_link);
+               vswitch, vswitch_link, false);
 
   return;
 }
@@ -290,7 +290,7 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
       _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-                  NULL, vswitch, eth);
+                  NULL, vswitch, eth, false);
       return;
     }
 
@@ -298,14 +298,14 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
   _forwarding (m,
                ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
                eth, ipv4, ipv6,
-               vswitch, NULL);
+               vswitch, NULL, false);
 #else
   /* This is a packet sent from the Linux tap thru
      the packet_down(ring_dn).  I think it is safe to send it
      without any condition, and I think indeed it should be sent,
      for the proper L3-switch behavior. */
   _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-              NULL, vswitch, eth);
+              NULL, vswitch, eth, false);
 #endif
 }
 
