@@ -452,7 +452,7 @@ CLI_COMMAND2 (pktgen_do_set_range_mac,
 }
 
 CLI_COMMAND2 (pktgen_do_set_range_size,
-              "pktgen do set port ("PORT_ID_SPEC"|all) range size (start|min|max|inc) <1-9000>",
+              "pktgen do set port ("PORT_ID_SPEC"|all) range size (start|min|max) <1-9000>",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -464,7 +464,6 @@ CLI_COMMAND2 (pktgen_do_set_range_size,
               "set packet range for start.\n",
               "set packet range for min.\n",
               "set packet range for max.\n",
-              "set packet range for increment.\n",
               "set packet size.\n"
              )
 {
@@ -482,6 +481,21 @@ CLI_COMMAND2 (pktgen_do_set_range_size,
     return CMD_FAILURE;
   return CMD_SUCCESS;
 }
+
+ALIAS_COMMAND (pktgen_do_set_range_size_inc,
+               pktgen_do_set_range_size,
+              "pktgen do set port (<0-7>|all) range size inc <0-9000>",
+              "pktgen\n"
+              "pktgen do\n"
+              "pktgen set cmd\n"
+              "specify port.\n"
+              "specify port.\n"
+              "specify for all ports.\n"
+              "set packet range.\n"
+              "set packet range size.\n"
+              "set packet range for increment.\n"
+              "set packet size.\n"
+             );
 
 CLI_COMMAND2 (pktgen_do_rate,
               "pktgen do rate port ("PORT_ID_SPEC"|all) rate <0-100>",
@@ -605,6 +619,7 @@ pktgen_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_ipv4);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_mac);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_size);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_size_inc);
   INSTALL_COMMAND2 (cmdset, pktgen_do_rate);
   INSTALL_COMMAND2 (cmdset, pktgen_do_rate_count);
   INSTALL_COMMAND2 (cmdset, pktgen_do_rate_size);
