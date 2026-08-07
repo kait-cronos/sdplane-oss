@@ -232,14 +232,19 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
 
   /* 6. forwarding */
   bool modified;
+
+  if (ipv6)
 #if 0
-  modified = _process_srv6_packet (m, ipv6,
-                                   &rib->rib_info->srv6_local_sid_addr[0]);
+    modified = _process_srv6_packet (m, ipv6,
+                                    &rib->rib_info->srv6_local_sid_addr[0]);
 #else
-  modified = _process_srv6_packet_multi_sids (m, ipv6,
+    modified = _process_srv6_packet_multi_sids (m, ipv6,
                                    rib->rib_info->srv6_local_sid,
                                    rib->rib_info->srv6_local_sid_addr_num);
 #endif
+  else
+    modified = false;
+
   /* if the packet's destination is modified, avoid split-horizon. */
   if (modified)
     vswitch_link = NULL;
@@ -293,8 +298,8 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
                   NULL, vswitch, eth, false);
       return;
     }
-
-  _process_srv6_packet (m, ipv6, &rib->rib_info->srv6_local_sid_addr);
+  if (ipv6)
+    _process_srv6_packet (m, ipv6, &rib->rib_info->srv6_local_sid_addr);
   _forwarding (m,
                ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
                eth, ipv4, ipv6,
