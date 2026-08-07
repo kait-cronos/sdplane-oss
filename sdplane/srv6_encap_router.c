@@ -464,6 +464,8 @@ srv6_encap_router (__rte_unused void *dummy)
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
+      _fwd_cache_invalidate ();
+
       /* better to add processing here only when absolutely necessary
          or cannot be postponed. */
 
