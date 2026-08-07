@@ -754,8 +754,8 @@ _neigh_lookup_cached (int table_type, const ip16_key_t lookup_ip)
               _ip16_key_eq (fwd_cache.neigh_key, lookup_ip)))
     return fwd_cache.neigh_entry;
 
-  neigh_manager_lookup (&rib->rib_info->neigh_tables[table_type], table_type,
-                        lookup_ip, &neigh_entry);
+  neigh_entry = neigh_lookup (&rib->rib_info->neigh_tables[table_type], table_type,
+                              lookup_ip);
   memcpy (fwd_cache.neigh_key, lookup_ip, sizeof (fwd_cache.neigh_key));
   fwd_cache.neigh_table = table_type;
   fwd_cache.neigh_entry = neigh_entry;
@@ -1214,8 +1214,9 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
 
   /* neighbor table lookup */
   neigh_table_type = AF_TO_NEIGH_TABLE (family);
-  neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
-                        neigh_table_type, lookup_ip, &neigh_entry);
+  neigh_entry =
+      neigh_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                    neigh_table_type, lookup_ip);
 
   if (router_mode == 6) /* forwarding: right after the neighbor-lookup. */
     {

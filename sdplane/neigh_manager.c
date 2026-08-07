@@ -28,11 +28,6 @@ static __thread struct neigh_table master_neigh_tables[NEIGH_NR_TABLES];
 
 static __thread uint64_t loop_counter = 0;
 
-const int neigh_key_lengths[NEIGH_NR_TABLES] = {
-  [NEIGH_ARP_TABLE] = sizeof (struct in_addr),
-  [NEIGH_ND_TABLE] = sizeof (struct in6_addr),
-};
-
 const char *
 neigh_manager_table_str (int type)
 {
@@ -91,7 +86,7 @@ neigh_manager_add_entry (struct neigh_table *neigh_table, const int type,
   struct neigh_entry *found;
   int pos;
 
-  pos = neigh_manager_lookup (neigh_table, type, key, &found);
+  pos = neigh_lookup_pos (neigh_table, type, key, &found);
   if (found)
     {
       /* update existing entry */
@@ -128,7 +123,7 @@ neigh_manager_delete_entry (struct neigh_table *neigh_table, const int type,
   struct neigh_entry *found;
   int pos;
 
-  pos = neigh_manager_lookup (neigh_table, type, key, &found);
+  pos = neigh_lookup_pos (neigh_table, type, key, &found);
   if (found)
     {
       neigh_table->num_entries--;
@@ -144,41 +139,6 @@ neigh_manager_delete_entry (struct neigh_table *neigh_table, const int type,
                        neigh_manager_table_str (type));
 
   return -1;
-}
-
-int
-neigh_manager_lookup (const struct neigh_table *neigh_table, const int type,
-                      const void *key, struct neigh_entry **found)
-{
-  *found = NULL;
-
-  int left = 0;
-  int right = neigh_table->num_entries - 1;
-  int mid, ret;
-  struct neigh_entry *tmp;
-
-  /* binary search */
-  while (left <= right)
-    {
-      mid = (left + right) / 2;
-      tmp = &neigh_table->entries[mid];
-      ret = memcmp (&tmp->ip_addr, key, neigh_key_lengths[type]);
-      if (ret == 0)
-        {
-          /* found */
-          *found = tmp;
-          DEBUG_SDPLANE_LOG (NEIGH, "lookup hit in %s[%d].",
-                             neigh_manager_table_str (type), mid);
-          return mid;
-        }
-      else if (ret < 0)
-        left = mid + 1;
-      else
-        right = mid - 1;
-    }
-
-  /* not found */
-  return left; // return the position to insert/delete the entry.
 }
 
 void
@@ -263,9 +223,6 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
                                msg_neigh_entry, sizeof (*msg_neigh_entry));
       internal_msg_send_to (msg_queue_rib, new_msgp, NULL);
       break;
-
-    /* address resolution requests, etc. */
-    // case INTERNAL_MSG_TYPE_NEIGH_XXX:
 
     default:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg unknown: %p.", msgp);
