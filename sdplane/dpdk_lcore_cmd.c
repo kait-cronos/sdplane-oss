@@ -387,44 +387,71 @@ CLI_COMMAND2 (show_worker,
 }
 
 CLI_COMMAND2 (set_mempool,
-              "set mempool (|<1-32768>)",
+              "set mempool (|<1-1048575>)",
               SET_HELP,
               "mempool\n")
 {
   struct shell *shell = (struct shell *) context;
-  unsigned int nb_lcores = 0;
   uint16_t nb_ports;
   unsigned int nb_mbufs;
-  uint16_t nb_rxd = 1024;
-  uint16_t nb_txd = 1024;
 
-  nb_lcores = 4;
+#define MAX_PKT_BURST       32
+#define MEMPOOL_CACHE_SIZE  256
+
+#define DEFAULT_NB_MBUFS    131071U
+
   nb_ports = rte_eth_dev_count_avail ();
 
-#define MAX_PKT_BURST      32
-#define MEMPOOL_CACHE_SIZE 256
-  nb_mbufs = RTE_MAX (nb_ports * (nb_rxd + nb_txd + MAX_PKT_BURST +
-                                  nb_lcores * MEMPOOL_CACHE_SIZE),
-                      8192U);
-  if (argc > 2)
-    nb_mbufs = strtoul (argv[2], NULL, 0);
+  nb_mbufs = DEFAULT_NB_MBUFS;
 
-  fprintf (shell->terminal, "nb_mbufs: %u%s", nb_mbufs, shell->NL);
+  if (argc > 2)
+    {
+      unsigned long requested = strtoul (argv[2], NULL, 0);
+
+      if (requested == 0 || requested > 1048575UL)
+        {
+          fprintf (shell->terminal,
+                   "Invalid mbuf count: %lu%s",
+                   requested, shell->NL);
+          return -1;
+        }
+
+      nb_mbufs = (unsigned int) requested;
+    }
+
+  fprintf (shell->terminal,
+           "nb_ports: %u nb_mbufs: %u cache: %u data_room: %u%s",
+           nb_ports,
+           nb_mbufs,
+           MEMPOOL_CACHE_SIZE,
+           9500U,
+           shell->NL);
 
   if (l2fwd_pktmbuf_pool != NULL)
-    rte_mempool_free (l2fwd_pktmbuf_pool);
+    {
+      rte_mempool_free (l2fwd_pktmbuf_pool);
+      l2fwd_pktmbuf_pool = NULL;
+    }
 
   l2fwd_pktmbuf_pool =
-      rte_pktmbuf_pool_create ("mbuf_pool", nb_mbufs, MEMPOOL_CACHE_SIZE, 0,
-                               9500U, rte_socket_id ());
+      rte_pktmbuf_pool_create ("mbuf_pool",
+                               nb_mbufs,
+                               MEMPOOL_CACHE_SIZE,
+                               0,
+                               9500U,
+                               rte_socket_id ());
+
   if (l2fwd_pktmbuf_pool == NULL)
     {
-      fprintf (shell->terminal, "Cannot init mbuf pool.%s", shell->NL);
+      fprintf (shell->terminal,
+               "Cannot init mbuf pool: %s%s",
+               rte_strerror (rte_errno),
+               shell->NL);
       return -1;
     }
+
   return 0;
 }
-
 
 #define RTE_EAL_ARGV_MAX 8
 char *rte_eal_argv[RTE_EAL_ARGV_MAX];
