@@ -596,7 +596,8 @@ _switching (struct rte_mbuf *m,
       return _flooding (m, rx_portid, rx_queueid, rx_link, vswitch, consume);
     }
 
-  if (router_mode == 8) /* switching: just before the fdb-lookup */
+  /* switching: just before the fdb-lookup */
+  if (unlikely (router_mode == 8))
     {
       _debug_manual_send (m);
       return false;
@@ -607,7 +608,8 @@ _switching (struct rte_mbuf *m,
   dst_port =
       fdb_lookup_entry (rib->rib_info, &eth->dst_addr, vswitch->vlan_id);
 
-  if (router_mode == 9) /* switching: right after the fdb-lookup */
+  /* switching: right after the fdb-lookup */
+  if (unlikely (router_mode == 9))
     {
       _debug_manual_send (m);
       return false;
@@ -634,7 +636,8 @@ _switching (struct rte_mbuf *m,
         }
     }
 
-  if (router_mode == 10) /* switching: just before the flooding */
+  /* switching: just before the flooding */
+  if (unlikely (router_mode == 10))
     {
       _debug_manual_send (m);
       return false;
@@ -642,6 +645,153 @@ _switching (struct rte_mbuf *m,
 
   DEBUG_NEW (ROUTER, "m: %p L2 switching: dst MAC not learned, flooding", m);
   return _flooding (m, rx_portid, rx_queueid, rx_link, vswitch, consume);
+}
+
+
+/*
+ * IP lookup key
+ *
+ * A 16-byte buffer holding either an IPv6 address or an IPv4 address in
+ * its first 4 bytes with the remaining bytes zero-filled.  Both address
+ * families can therefore be built, copied and compared as two 64-bit
+ * words; the 8-byte alignment lets the compiler fold the memcpy () calls
+ * below into plain 64-bit loads and stores.
+ */
+#define IP16_KEY_SIZE 16
+typedef uint8_t ip16_key_t[IP16_KEY_SIZE] __attribute__ ((aligned (8)));
+
+/* stores the destination address of the packet into key.
+   exactly one of ipv4/ipv6 must be non-NULL. */
+static inline __attribute__ ((always_inline)) void
+_ip16_key_set_dst (ip16_key_t key, const struct rte_ipv4_hdr *ipv4,
+                   const struct rte_ipv6_hdr *ipv6)
+{
+  uint64_t lo = 0, hi = 0;
+
+  if (ipv4)
+    memcpy (&lo, &ipv4->dst_addr, sizeof (ipv4->dst_addr));
+  else
+    {
+      const uint8_t *addr = (const uint8_t *) IPV6_ADDR_BYTES (ipv6->dst_addr);
+
+      memcpy (&lo, addr, sizeof (lo));
+      memcpy (&hi, addr + sizeof (lo), sizeof (hi));
+    }
+
+  memcpy (key, &lo, sizeof (lo));
+  memcpy (key + sizeof (lo), &hi, sizeof (hi));
+}
+
+static inline __attribute__ ((always_inline)) bool
+_ip16_key_eq (const ip16_key_t a, const ip16_key_t b)
+{
+  uint64_t a_lo, a_hi, b_lo, b_hi;
+
+  memcpy (&a_lo, a, sizeof (a_lo));
+  memcpy (&a_hi, a + sizeof (a_lo), sizeof (a_hi));
+  memcpy (&b_lo, b, sizeof (b_lo));
+  memcpy (&b_hi, b + sizeof (b_lo), sizeof (b_hi));
+
+  return ((a_lo ^ b_lo) | (a_hi ^ b_hi)) == 0;
+}
+
+struct fwd_lookup_cache
+{
+  ip16_key_t fib_key;
+  struct fib_node *fib_node;
+  int fib_tree;
+  bool fib_valid;
+
+  ip16_key_t neigh_key;
+  struct neigh_entry *neigh_entry;
+  int neigh_table;
+  bool neigh_valid;
+
+  /* interface: oif ifindex -> tx vswitch */
+  struct vswitch_conf *tx_vswitch;
+  int oif;
+  bool oif_valid;
+};
+
+static __thread struct fwd_lookup_cache fwd_cache;
+
+/* drops every cached lookup result. */
+static inline __attribute__ ((always_inline)) void
+_fwd_cache_invalidate (void)
+{
+  fwd_cache.fib_valid = false;
+  fwd_cache.neigh_valid = false;
+  fwd_cache.oif_valid = false;
+}
+
+static inline __attribute__ ((always_inline)) struct fib_node *
+_fib_lookup_cached (int tree_idx, const ip16_key_t dst_ip)
+{
+  struct fib_tree *tree;
+
+  if (likely (fwd_cache.fib_valid && fwd_cache.fib_tree == tree_idx &&
+              _ip16_key_eq (fwd_cache.fib_key, dst_ip)))
+    return fwd_cache.fib_node;
+
+  tree = rib->rib_info->fib_tree[tree_idx];
+  if (unlikely (! tree))
+    return NULL;
+
+  fwd_cache.fib_node = fib_route_lookup (tree, dst_ip);
+  memcpy (fwd_cache.fib_key, dst_ip, sizeof (fwd_cache.fib_key));
+  fwd_cache.fib_tree = tree_idx;
+  fwd_cache.fib_valid = true;
+
+  return fwd_cache.fib_node;
+}
+
+static inline __attribute__ ((always_inline)) struct neigh_entry *
+_neigh_lookup_cached (int table_type, const ip16_key_t lookup_ip)
+{
+  struct neigh_entry *neigh_entry = NULL;
+
+  if (likely (fwd_cache.neigh_valid && fwd_cache.neigh_table == table_type &&
+              _ip16_key_eq (fwd_cache.neigh_key, lookup_ip)))
+    return fwd_cache.neigh_entry;
+
+  neigh_manager_lookup (&rib->rib_info->neigh_tables[table_type], table_type,
+                        lookup_ip, &neigh_entry);
+  memcpy (fwd_cache.neigh_key, lookup_ip, sizeof (fwd_cache.neigh_key));
+  fwd_cache.neigh_table = table_type;
+  fwd_cache.neigh_entry = neigh_entry;
+  fwd_cache.neigh_valid = true;
+
+  return neigh_entry;
+}
+
+static inline __attribute__ ((always_inline)) struct vswitch_conf *
+_tx_vswitch_lookup_cached (int oif)
+{
+  struct vswitch_conf *tx_vswitch = NULL;
+  int i;
+
+  if (likely (fwd_cache.oif_valid && fwd_cache.oif == oif))
+    return fwd_cache.tx_vswitch;
+
+  for (i = 0; i < rib->rib_info->vswitch_size; i++)
+    {
+      struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
+
+      if (vs->is_deleted)
+        continue;
+
+      if (vs->router_if.ifindex == oif)
+        {
+          tx_vswitch = vs;
+          break;
+        }
+    }
+
+  fwd_cache.oif = oif;
+  fwd_cache.tx_vswitch = tx_vswitch;
+  fwd_cache.oif_valid = true;
+
+  return tx_vswitch;
 }
 
 static inline __attribute__ ((always_inline)) bool
@@ -656,12 +806,16 @@ _forwarding (struct rte_mbuf *m,
   struct neigh_entry *neigh_entry;
   struct rte_ether_addr *dst_mac, *src_mac;
   struct fib_node *fib_node;
-  uint8_t dst_ip[16] = { 0 };
+  ip16_key_t dst_ip;
   int i;
   struct vswitch_link *tx_link = NULL;
   int dst_port = -1, neigh_table_type;
 
+  if (unlikely (! ipv4 && ! ipv6))
+    return false;
+
   char dest[64];
+  dest[0] = '\0';
   if (IS_DEBUG (ROUTING_LOOKUP))
     {
       if (ipv4)
@@ -672,28 +826,22 @@ _forwarding (struct rte_mbuf *m,
       //DEBUG_LOG_MSG ("m: %p routing-lookup: dest: %s", m, dest);
     }
 
-  if (ipv4)
-    memcpy (dst_ip, &ipv4->dst_addr, sizeof (ipv4->dst_addr));
-  else if (ipv6)
-    memcpy (dst_ip, IPV6_ADDR_BYTES (ipv6->dst_addr), RTE_IPV6_ADDR_SIZE);
+  _ip16_key_set_dst (dst_ip, ipv4, ipv6);
 
-  if (router_mode == 3) /* forwarding: just before the routing-lookup. */
+  /* forwarding: just before the routing-lookup. */
+  if (unlikely (router_mode == 3))
     {
       _debug_manual_send (m);
       return false;
     }
 
-  /* FIB lookup */
   int tree_idx = (ipv4) ? 0 : 1; // IPv4=0, IPv6=1
-  struct fib_tree *t = rib->rib_info->fib_tree[tree_idx];
-  if (! t)
-    return false;
-  fib_node = fib_route_lookup (t, dst_ip);
+  fib_node = _fib_lookup_cached (tree_idx, dst_ip);
   if (! fib_node)
     {
       DEBUG_NEW (ROUTING_LOOKUP,
-                 "m: %p routing-lookup: dest: %s FIB not found. drop.",
-                 m, dest);
+                 "m: %p routing-lookup: dest: %s FIB not found. drop.", m,
+                 dest);
 #if 0
       if (IS_DEBUG (ROUTER))
         log_packet (m, rx_portid, rx_queueid);
@@ -701,25 +849,27 @@ _forwarding (struct rte_mbuf *m,
       return false;
     }
 
-  if (router_mode == 4) /* forwarding: right after the routing-lookup. */
+  /* forwarding: right after the routing-lookup. */
+  if (unlikely (router_mode == 4))
     {
       _debug_manual_send (m);
       return false;
     }
 
-  char nexthop_str[INET6_ADDRSTRLEN];
   /* determine the actual nexthop IP to lookup in neighbor table */
-  uint8_t lookup_ip[16];
-  char lookup_ip_str[INET6_ADDRSTRLEN];
+  ip16_key_t lookup_ip;
   int family, oif;
 
   nh_info = nexthop_get_info_by_index (rib->rib_info, fib_node->sdplane_nh_id);
+  if (unlikely (! nh_info))
+    return false;
 
   if (unlikely (nh_info->type != NEXTHOP_TYPE_CONNECTED &&
                 nh_info->type != NEXTHOP_TYPE_GATEWAY))
     {
       DEBUG_NEW (ROUTING_LOOKUP,
-                 "m: %p routing-lookup: dest: %s nexthop is not CONNECTED or GATEWAY on _forwarding, drop.",
+                 "m: %p routing-lookup: dest: %s nexthop is not CONNECTED "
+                 "or GATEWAY on _forwarding, drop.",
                  m, dest);
       return false;
     }
@@ -728,32 +878,37 @@ _forwarding (struct rte_mbuf *m,
   oif = nh_info->oif;
 
   if (IS_DEBUG (ROUTING_LOOKUP) || IS_DEBUG (ROUTER))
-    inet_ntop (family, &nh_info->gw, nexthop_str, sizeof (nexthop_str));
-
-  DEBUG_NEW (ROUTING_LOOKUP,
-             "m: %p: routing-lookup: dest: %s nexthop: %s oif: %d",
-             m, dest, nexthop_str, oif);
-  DEBUG_NEW (ROUTER, "m: %p route found: nexthop: %s",
-             m, nexthop_str);
+    {
+      char nexthop_str[INET6_ADDRSTRLEN];
+      inet_ntop (family, &nh_info->gw, nexthop_str, sizeof (nexthop_str));
+      DEBUG_NEW (ROUTING_LOOKUP,
+                 "m: %p: routing-lookup: dest: %s nexthop: %s oif: %d", m,
+                 dest, nexthop_str, oif);
+      DEBUG_NEW (ROUTER, "m: %p route found: nexthop: %s",
+                 m, nexthop_str);
+    }
 
   memcpy (lookup_ip, &nh_info->gw, sizeof (lookup_ip));
-  if (IS_DEBUG (ROUTER))
-    inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
 
   if (nh_info->type == NEXTHOP_TYPE_CONNECTED)
     {
       memcpy (lookup_ip, dst_ip, sizeof (lookup_ip));
       if (IS_DEBUG (ROUTER))
-        inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
-      DEBUG_NEW (ROUTER, "m: %p directly connected route. "
-                 "using dst IP for neighbor lookup: %s",
-                 m, lookup_ip_str);
+        {
+          char lookup_ip_str[INET6_ADDRSTRLEN];
+          inet_ntop (family, lookup_ip, lookup_ip_str, sizeof (lookup_ip_str));
+          DEBUG_NEW (ROUTER,
+                     "m: %p directly connected route. "
+                     "using dst IP for neighbor lookup: %s",
+                     m, lookup_ip_str);
+        }
     }
 
   if (fib_node->table_id == RT_TABLE_LOCAL)
     {
-      struct router_if *target_rif;
-      target_rif = &rx_vswitch->router_if;
+      struct router_if *target_rif = NULL;
+      if (rx_vswitch)
+        target_rif = &rx_vswitch->router_if;
 
       if (target_rif && target_rif->sockfd >= 0 && target_rif->ring_up)
         {
@@ -772,18 +927,18 @@ _forwarding (struct rte_mbuf *m,
       return false;
     }
 
-  if (router_mode == 5) /* forwarding: just before the neighbor-lookup. */
+  /* forwarding: just before the neighbor-lookup. */
+  if (unlikely (router_mode == 5))
     {
       _debug_manual_send (m);
       return false;
     }
 
-  /* neighbor table lookup */
   neigh_table_type = AF_TO_NEIGH_TABLE (family);
-  neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
-                        neigh_table_type, lookup_ip, &neigh_entry);
+  neigh_entry = _neigh_lookup_cached (neigh_table_type, lookup_ip);
 
-  if (router_mode == 6) /* forwarding: right after the neighbor-lookup. */
+  /* forwarding: right after the neighbor-lookup. */
+  if (unlikely (router_mode == 6))
     {
       _debug_manual_send (m);
       return false;
@@ -856,30 +1011,22 @@ _forwarding (struct rte_mbuf *m,
     }
   dst_mac = &neigh_entry->mac_addr;
 
-  char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
   if (IS_DEBUG (ROUTER))
-    rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str), dst_mac);
-  DEBUG_NEW (ROUTER, "m: %p neighbor lookup succeeded: "
-             "neighbour: %s lladdr: %s",
-             m, lookup_ip_str, neigh_mac_str);
-
-  /* search the target vswitch */
-  struct vswitch_conf *tx_vswitch = NULL;
-  for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
-      struct vswitch_conf *vs = &rib->rib_info->vswitch[i];
-
-      if (vs->is_deleted)
-        continue;
-
-      if (vs->router_if.ifindex == oif)
-        {
-          tx_vswitch = vs;
-          break;
-        }
+      char neigh_ip_str[INET6_ADDRSTRLEN];
+      char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
+      inet_ntop (family, lookup_ip, neigh_ip_str, sizeof (neigh_ip_str));
+      rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str), dst_mac);
+      DEBUG_NEW (ROUTER,
+                 "m: %p neighbor lookup succeeded: "
+                 "neighbour: %s lladdr: %s",
+                 m, neigh_ip_str, neigh_mac_str);
     }
 
-  if (! tx_vswitch)
+  /* search the target vswitch */
+  struct vswitch_conf *tx_vswitch = _tx_vswitch_lookup_cached (oif);
+
+  if (unlikely (! tx_vswitch))
     {
       DEBUG_NEW (ROUTER, "m: %p vswitch for oif %d: not found.", m, oif);
       return false;
@@ -904,7 +1051,8 @@ _forwarding (struct rte_mbuf *m,
       rte_ether_addr_copy (dst_mac, &eth->dst_addr);
     }
 
-  if (router_mode == 7) /* forwarding: just before the switching. */
+  /* forwarding: just before the switching. */
+  if (unlikely (router_mode == 7))
     {
       _debug_manual_send (m);
       return false;
