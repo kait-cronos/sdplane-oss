@@ -364,7 +364,7 @@ _send_link (struct rte_mbuf *m,
       DEBUG_NEW (ROUTER, "m: %p successfully sent (%d packets): port: %d queue: %u",
                  m, tx_portid, tx_queueid);
     }
-  else if (send == 0)
+  else if (sent == 0)
     {
       DEBUG_NEW (ROUTER, "m: %p successfully buffered: port: %d queue: %u",
                  m, tx_portid, tx_queueid);
