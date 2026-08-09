@@ -387,44 +387,83 @@ CLI_COMMAND2 (show_worker,
 }
 
 CLI_COMMAND2 (set_mempool,
-              "set mempool (|<1-32768>)",
+              "set mempool (|auto|<1-1048575>)",
               SET_HELP,
               "mempool\n")
 {
   struct shell *shell = (struct shell *) context;
-  unsigned int nb_lcores = 0;
   uint16_t nb_ports;
   unsigned int nb_mbufs;
+  unsigned int nb_mbufs_auto;
+  unsigned int nb_mbufs_requested = 0;
+
+#define MAX_PKT_BURST       32
+#define MEMPOOL_CACHE_SIZE  256
+
+#define DEFAULT_NB_MBUFS    131071U
+
+  nb_ports = rte_eth_dev_count_avail ();
+  nb_mbufs = DEFAULT_NB_MBUFS;
+
+  unsigned int nb_lcores;
   uint16_t nb_rxd = 1024;
   uint16_t nb_txd = 1024;
+  nb_lcores = sysconf (_SC_NPROCESSORS_ONLN);
+  nb_mbufs_auto = RTE_MAX (nb_ports * (nb_rxd + nb_txd + MAX_PKT_BURST +
+                                       nb_lcores * MEMPOOL_CACHE_SIZE),
+                           8192U);
 
-  nb_lcores = 4;
-  nb_ports = rte_eth_dev_count_avail ();
-
-#define MAX_PKT_BURST      32
-#define MEMPOOL_CACHE_SIZE 256
-  nb_mbufs = RTE_MAX (nb_ports * (nb_rxd + nb_txd + MAX_PKT_BURST +
-                                  nb_lcores * MEMPOOL_CACHE_SIZE),
-                      8192U);
   if (argc > 2)
-    nb_mbufs = strtoul (argv[2], NULL, 0);
+    {
+      if (! strcmp (argv[2], "auto"))
+        {
+          nb_mbufs = nb_mbufs_auto;
+        }
+      else
+        {
+          unsigned long requested = strtoul (argv[2], NULL, 0);
+          nb_mbufs_requested = (unsigned int) requested;
+          nb_mbufs = nb_mbufs_requested;
+        }
+    }
+  else
+    {
+      nb_mbufs = nb_mbufs_auto;
+    }
 
+  fprintf (shell->terminal,
+           "nb_ports: %u nb_lcores: %u cache: %u data_room: %u%s",
+           nb_ports, nb_lcores, MEMPOOL_CACHE_SIZE, 9500U, shell->NL);
+  fprintf (shell->terminal, "nb_mbufs_auto: %u nb_mbuf_requested: %u%s",
+           nb_mbufs_auto, nb_mbufs_requested, shell->NL);
   fprintf (shell->terminal, "nb_mbufs: %u%s", nb_mbufs, shell->NL);
 
   if (l2fwd_pktmbuf_pool != NULL)
-    rte_mempool_free (l2fwd_pktmbuf_pool);
+    {
+#if 1
+      /* if mempool is already existing, the workers may be
+         (highly-likely) depending on it. */
+      fprintf (shell->terminal, "mempool already exists.%s", shell->NL);
+      return 0;
+#else
+      rte_mempool_free (l2fwd_pktmbuf_pool);
+      l2fwd_pktmbuf_pool = NULL;
+#endif
+    }
 
   l2fwd_pktmbuf_pool =
-      rte_pktmbuf_pool_create ("mbuf_pool", nb_mbufs, MEMPOOL_CACHE_SIZE, 0,
-                               9500U, rte_socket_id ());
+      rte_pktmbuf_pool_create ("mbuf_pool", nb_mbufs, MEMPOOL_CACHE_SIZE,
+                               0, 9500U, rte_socket_id ());
+
   if (l2fwd_pktmbuf_pool == NULL)
     {
-      fprintf (shell->terminal, "Cannot init mbuf pool.%s", shell->NL);
+      fprintf (shell->terminal, "Cannot init mbuf pool: %s%s",
+               rte_strerror (rte_errno), shell->NL);
       return -1;
     }
+
   return 0;
 }
-
 
 #define RTE_EAL_ARGV_MAX 8
 char *rte_eal_argv[RTE_EAL_ARGV_MAX];
