@@ -234,6 +234,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   bool modified;
 
   if (ipv6)
+    {
 #if 0
     modified = _process_srv6_packet (m, ipv6,
                                     &rib->rib_info->srv6_local_sid_addr[0]);
@@ -242,6 +243,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
                                    rib->rib_info->srv6_local_sid,
                                    rib->rib_info->srv6_local_sid_addr_num);
 #endif
+    }
   else
     modified = false;
 
