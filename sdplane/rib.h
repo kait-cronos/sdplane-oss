@@ -128,8 +128,6 @@ enum
 #define AF_TO_NEIGH_TABLE(af) \
   ((af) == AF_INET ? NEIGH_ARP_TABLE : NEIGH_ND_TABLE)
 
-extern const int neigh_key_lengths[];
-
 struct neigh_entry
 {
   int family;

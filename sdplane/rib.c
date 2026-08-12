@@ -423,19 +423,21 @@ CLI_COMMAND2 (show_neighbor,
         }
 
       int neigh_table_type;
-      struct neigh_entry *neigh_entry;
+      struct neigh_entry *neigh_entry = NULL;
       struct rte_ether_addr *dst_mac;
       char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
       neigh_table_type = AF_TO_NEIGH_TABLE (family);
       switch (family)
         {
         case AF_INET:
-          neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
-                                neigh_table_type, &ipv4_addr, &neigh_entry);
+          neigh_entry =
+              neigh_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                            neigh_table_type, &ipv4_addr);
           break;
         case AF_INET6:
-          neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
-                                neigh_table_type, &ipv6_addr, &neigh_entry);
+          neigh_entry =
+              neigh_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                            neigh_table_type, &ipv6_addr);
           break;
         default:
           break;
