@@ -578,6 +578,20 @@ netlink_read_rtattr_encap (struct internal_msg_route_entry *route,
           return 0;
         }
 
+      /* Only H.Encaps is implemented on the forwarding side, and it does
+       * not look at the action at all: _process_srv6_encap() encapsulates
+       * unconditionally.  Taking any other mode in here would silently
+       * encapsulate packets that were meant to be handled differently
+       * (H.Insert inserts an SRH instead, and the kernel leaves a
+       * placeholder :: in its segment list for the original destination).
+       * Skip the whole route entry until those modes are implemented. */
+      if (seg6_param.seg6_tuninfo->mode != SEG6_IPTUN_MODE_ENCAP)
+        {
+          DEBUG_NEW (NETLINK, "unsupported seg6 mode: %s; skip this route.",
+                     seg6_mode_str (seg6_param.seg6_tuninfo->mode));
+          return 1;
+        }
+
       int segment_count = seg6_param.seg6_tuninfo->srh->first_segment + 1;
       if (segment_count > MAX_SEGMENT_LIST_SIZE)
         {
