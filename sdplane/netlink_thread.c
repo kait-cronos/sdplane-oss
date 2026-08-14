@@ -557,8 +557,9 @@ netlink_parse_seg6local (struct rtattr *rta, struct seg6local_param *param)
 
 /* return 1 if the route entry should be skipped, 0 otherwise */
 static int
-netlink_read_rtattr_encap (struct internal_msg_route_entry *route,
-                           struct rtattr **rtns, uint16_t nlmsg_type)
+netlink_read_rtattr_encap (struct rtattr **rtns,
+                           struct internal_msg_route_entry *route,
+                           uint16_t nlmsg_type)
 {
   if (! rtns[RTA_ENCAP])
     return 0;
@@ -862,7 +863,7 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
     }
 
   /* RTA_ENCAP: SRv6 tunnel encapsulation. */
-  if (netlink_read_rtattr_encap (&msg_route_entry, rtns, h->nlmsg_type))
+  if (netlink_read_rtattr_encap (rtns, &msg_route_entry, h->nlmsg_type))
     return 0;
 
   /* create and send internal message */
