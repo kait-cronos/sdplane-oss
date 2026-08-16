@@ -175,6 +175,18 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   /* 2. send to capture_if */
   _send_capture_if_ring (m, rx_portid, rx_queueid, vswitch);
 
+  /* 2.5 send to application_slot */
+  for (i = 0; i < rib->rib_info->application_slot_size; i++)
+    {
+      struct application_slot_entry *app;
+      app = &rib->rib_info->application_slot[i];
+      if (app->ring && (*app->is_packet_match) (m))
+        {
+          DEBUG_NEW (ROUTER, "call appli_slot[%d]", i);
+          _send_ring (m, rx_portid, rx_queueid, app->ring);
+        }
+    }
+
   struct router_if *rif = &vswitch->router_if;
 
   /* check if destination MAC is ours */

@@ -75,6 +75,9 @@ int stat_collector (__rte_unused void *dummy);
 void rib_manager (void *arg);
 void netlink_thread (void *arg);
 
+extern struct rte_ring *ring_igmp_snooping_rx;
+int igmp_snooping (__rte_unused void *dummy);
+
 CLI_COMMAND2 (set_worker_lthread_stat_collector,
               "set worker lthread stat-collector", SET_HELP, WORKER_HELP,
               "lthread information\n", "stat-collector\n")
@@ -180,6 +183,33 @@ CLI_COMMAND2 (set_worker_lthread_dhcp_server,
   return CMD_SUCCESS;
 }
 
+CLI_COMMAND2 (set_worker_lthread_igmp_snooping,
+              "set worker lthread igmp-snooping", SET_HELP, WORKER_HELP,
+              "lthread information\n", "igmp-snooping\n")
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) igmp_snooping, NULL);
+  thread_register (lthread_core, lt, (lthread_func) igmp_snooping,
+                   "igmp-snooping", NULL);
+  lthread_detach2 (lt);
+
+  /* dhcp_server needs to be started immediately.
+     If it is a lthread, lthread_sleep() is necessary. */
+  lthread_sleep (0);
+
+  /* check whether the dhcp_server is actually started. */
+  if (! ring_igmp_snooping_rx)
+    {
+      fprintf (shell->terminal, "Can't start igmp-snooping.%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  return CMD_SUCCESS;
+}
+
+
 CLI_COMMAND2 (set_worker_lthread_l3_tap_handler,
               "set worker lthread l3-tap-handler", SET_HELP, WORKER_HELP,
               "lthread information\n", "l3-tap-handler\n")
@@ -201,6 +231,7 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_netlink_thread);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_dhcp_server);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_igmp_snooping);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_l3_tap_handler);
 }
 

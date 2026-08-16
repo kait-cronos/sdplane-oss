@@ -191,7 +191,7 @@ dhcp_server (__rte_unused void *dummy)
     {
       DEBUG_SDPLANE_LOG (DHCP_SERVER, "dhcp_server_init() failed: unable to create rx ring");
       return -1;
-  }
+    }
 
   /* register an application slot entry in rib,
      to receive packets from enhanced_repeater. */

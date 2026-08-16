@@ -148,6 +148,7 @@ update_lthread_core (struct shell *shell)
 int dhcp_server (__rte_unused void *dummy);
 int rib_manager (__rte_unused void *dummy);
 int netlink_thread (__rte_unused void *dummy);
+int igmp_snooping (__rte_unused void *dummy);
 
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore <0-16> "
@@ -159,7 +160,7 @@ CLI_COMMAND2 (set_worker,
 #ifdef ENABLE_PKTGEN
     "|pktgen"
 #endif
-    "|dhcp-server"
+    "|dhcp-server|igmp-snooping"
     "|rib-manager"
     "|netlink-thread"
     ")",
@@ -183,6 +184,7 @@ CLI_COMMAND2 (set_worker,
     "set lcore to launch pktgen\n"
 #endif
     "set lcore to launch dhcp-server\n"
+    "set lcore to launch igmp-snooping\n"
     "set lcore to launch rib-manager\n"
     "set lcore to launch netlink-thread\n"
     )
@@ -223,6 +225,8 @@ CLI_COMMAND2 (set_worker,
 #endif
   else if (! strcmp (argv[4], "dhcp-server"))
     func = dhcp_server;
+  else if (! strcmp (argv[4], "igmp-snooping"))
+    func = igmp_snooping;
   else if (! strcmp (argv[4], "rib-manager"))
     func = rib_manager;
   else if (! strcmp (argv[4], "netlink-thread"))
@@ -270,6 +274,8 @@ CLI_COMMAND2 (set_worker,
 #endif
   else if (func == dhcp_server)
     func_name = "dhcp-server";
+  else if (func == igmp_snooping)
+    func_name = "igmp-snooping";
   else if (func == rib_manager)
     func_name = "rib-manager";
   else if (func == netlink_thread)
