@@ -531,16 +531,28 @@ _flooding (struct rte_mbuf *m,
 
       if (! _send_link_ok (rx_link, link, tx_portid, tx_queueid, nb_ports))
         {
+#if 0
+          DEBUG_NEW (FLOODING, "m: %p send to a NG link.", m);
           _send_link (m, rx_portid, rx_queueid, rx_link,
                       tx_portid, tx_queueid, link, vswitch, nb_ports, false);
+#endif
           continue;
         }
 
+      /* We would like to postpone the _send_link() of the last_link
+         to a later time, because we want the consume-mode to work and
+         the consume-mode may delete the packet immediately.
+         So basically we want to send here all but the last_link,
+         with consume = false. */
+
+      /* if there's already last_link, process _send_link() for the link
+         because we're gonna update the last_link to the next one. */
       if (last_link)
         _send_link (m, rx_portid, rx_queueid, rx_link,
                     last_portid, tx_queueid, last_link, vswitch,
                     nb_ports, false);
 
+      /* update the last_link */
       last_link = link;
       last_portid = tx_portid;
     }
