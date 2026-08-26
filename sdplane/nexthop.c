@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <linux/seg6_local.h>
 #include <linux/seg6_iptunnel.h>
 
 #include "debug_sdplane.h"
@@ -15,6 +16,36 @@
 
 /* global hash table: mapping for kernel_nh_id to sdplane_nh_id. */
 struct hash_table nh_ht;
+
+static const char *
+_srv6_local_action_str (uint32_t action)
+{
+  switch (action)
+    {
+    case SEG6_LOCAL_ACTION_UNSPEC:
+      return "Unspec";
+    case SEG6_LOCAL_ACTION_END:
+      return "End";
+    case SEG6_LOCAL_ACTION_END_X:
+      return "End.X";
+    case SEG6_LOCAL_ACTION_END_T:
+      return "End.T";
+    case SEG6_LOCAL_ACTION_END_DX2:
+      return "End.DX2";
+    case SEG6_LOCAL_ACTION_END_DX6:
+      return "End.DX6";
+    case SEG6_LOCAL_ACTION_END_DX4:
+      return "End.DX4";
+    case SEG6_LOCAL_ACTION_END_DT6:
+      return "End.DT6";
+    case SEG6_LOCAL_ACTION_END_DT4:
+      return "End.DT4";
+    case SEG6_LOCAL_ACTION_END_DT46:
+      return "End.DT46";
+    default:
+      return "Unknown";
+    }
+}
 
 static const char *
 _srv6_encap_mode_str (uint32_t mode)
@@ -34,6 +65,46 @@ _srv6_encap_mode_str (uint32_t mode)
     default:
       return "Unknown";
     }
+}
+
+int
+_srv6_format_local_sid (const struct srv6_local_sid_entry *local_sid,
+                        char *buf, size_t buf_size)
+{
+  char sid_str[INET6_ADDRSTRLEN];
+  char param_str[INET6_ADDRSTRLEN];
+  int len;
+
+  inet_ntop (AF_INET6, &local_sid->sid, sid_str, sizeof (sid_str));
+  len = snprintf (buf, buf_size, "action=%s SID=%s oif=%d",
+                  _srv6_local_action_str (local_sid->action), sid_str,
+                  local_sid->oif);
+
+  switch (local_sid->action)
+    {
+    case SEG6_LOCAL_ACTION_END_X:
+    case SEG6_LOCAL_ACTION_END_DX6:
+      inet_ntop (AF_INET6, &local_sid->param.nh6, param_str,
+                 sizeof (param_str));
+      len += snprintf (buf + len, buf_size - len, " nh6=%s", param_str);
+      break;
+    case SEG6_LOCAL_ACTION_END_DX4:
+      inet_ntop (AF_INET, &local_sid->param.nh4, param_str,
+                 sizeof (param_str));
+      len += snprintf (buf + len, buf_size - len, " nh4=%s", param_str);
+      break;
+    case SEG6_LOCAL_ACTION_END_T:
+    case SEG6_LOCAL_ACTION_END_DT4:
+    case SEG6_LOCAL_ACTION_END_DT6:
+    case SEG6_LOCAL_ACTION_END_DT46:
+      len += snprintf (buf + len, buf_size - len, " table=%u",
+                       local_sid->param.table_id);
+      break;
+    default:
+      break;
+    }
+
+  return len;
 }
 
 int
@@ -74,6 +145,11 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
   if (nh->nhcnt == 1 && nh->members[0].kernel_nh_id == 0)
     {
       const struct nh_info *info = &nh->members[0].info;
+      if (info->type == NEXTHOP_TYPE_SRV6_END)
+        {
+          _srv6_format_local_sid (&info->gw.srv6_local_sid, buf, buf_size);
+          return buf;
+        }
       if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
         {
           _srv6_format_encap_sid (&info->gw.srv6_encap_sid, buf, buf_size);
@@ -98,6 +174,15 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
       else
         {
           const struct nh_info *info = &nh->members[i].info;
+          if (info->type == NEXTHOP_TYPE_SRV6_END)
+            {
+              char local_sid_str[256];
+              _srv6_format_local_sid (&info->gw.srv6_local_sid, local_sid_str,
+                                      sizeof (local_sid_str));
+              len += snprintf (buf + len, buf_size - len, "%s(w=%u)%s",
+                               local_sid_str, nh->members[i].weight, sep);
+              continue;
+            }
           if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
             {
               char encap_sid_str[512];
@@ -197,6 +282,16 @@ nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info)
                        info->oif_name, info->oif, family_str,
                        grp->members[j].weight, shell->NL);
             }
+          else if (info->type == NEXTHOP_TYPE_SRV6_END)
+            {
+              char local_sid_str[256];
+              _srv6_format_local_sid (&info->gw.srv6_local_sid, local_sid_str,
+                                      sizeof (local_sid_str));
+              fprintf (shell->terminal,
+                       "        is SRv6 local SID, %s, %s, weight %u%s",
+                       local_sid_str, family_str, grp->members[j].weight,
+                       shell->NL);
+            }
           else if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
             {
               char encap_sid_str[512];
@@ -247,6 +342,7 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
           (info->type == NEXTHOP_TYPE_CONNECTED)   ? "connected"
           : (info->type == NEXTHOP_TYPE_GATEWAY)   ? "gateway"
           : (info->type == NEXTHOP_TYPE_SRV6_HEAD) ? "srv6-head"
+          : (info->type == NEXTHOP_TYPE_SRV6_END)  ? "srv6-end"
                                                    : "unknown";
 
       if (info->type == NEXTHOP_TYPE_CONNECTED)
@@ -254,6 +350,15 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
           fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
                    i, info->refcnt, family_str, type_str, "-",
                    info->oif_name, info->oif, shell->NL);
+        }
+      else if (info->type == NEXTHOP_TYPE_SRV6_END)
+        {
+          char local_sid_str[256];
+          _srv6_format_local_sid (&info->gw.srv6_local_sid, local_sid_str,
+                                  sizeof (local_sid_str));
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s%s", i,
+                   info->refcnt, family_str, "srv6-end", local_sid_str,
+                   info->oif_name, shell->NL);
         }
       else if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
         {
@@ -332,6 +437,13 @@ _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
             return 0;
         }
       return 1;
+    }
+  else if (a->type == NEXTHOP_TYPE_SRV6_END)
+    {
+      if (a->gw.srv6_local_sid.action != b->gw.srv6_local_sid.action)
+        return 0;
+      return memcmp (&a->gw.srv6_local_sid.sid, &b->gw.srv6_local_sid.sid,
+                     sizeof (struct in6_addr)) == 0;
     }
   return 1;
 }
