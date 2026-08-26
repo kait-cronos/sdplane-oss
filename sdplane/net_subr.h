@@ -1149,6 +1149,36 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   family = nh_info->family;
   oif = nh_info->oif;
 
+  if (nh_info->type == NEXTHOP_TYPE_SRV6_END)
+    {
+      DEBUG_NEW (ROUTING_LOOKUP, "m: %p SRv6 Endpoint processing for SID: %s",
+                 m, dest);
+      if (recursion_count >= SRV6_MAX_RECURSION)
+        {
+          DEBUG_NEW (ROUTER, "m: %p SRv6 recursion limit reached", m);
+          return;
+        }
+      if (! ipv6)
+        {
+          DEBUG_NEW (ROUTER,
+                     "m: %p SRv6 Endpoint SID matched a non-IPv6 "
+                     "packet, drop.",
+                     m);
+          return;
+        }
+      if (! _process_srv6_end_packet (m, ipv6, &nh_info->gw.srv6_local_sid))
+        {
+          DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 Endpoint", m);
+          return;
+        }
+      rx_link = NULL; // to avoid split-horizon check
+      /* outer_is_fresh is passed through: unlike the encap case this outer
+         header came off the wire, so it still owes a hop. */
+      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch,
+                        rx_link, recursion_count + 1, outer_is_fresh);
+      return;
+    }
+
   if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
       DEBUG_NEW (ROUTING_LOOKUP, "m: %p SRv6 Encapsulation for dest: %s", m,
@@ -1168,6 +1198,19 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
       rx_link = NULL; // to avoid split-horizon check
       _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch,
                         rx_link, recursion_count + 1, true);
+      return;
+    }
+
+  /* Everything below resolves the nexthop as an L3 adjacency and reads
+     nh_info->gw as an address, so reject the types that do not hold one.
+     Same allow-list as _forwarding(). */
+  if (unlikely (nh_info->type != NEXTHOP_TYPE_CONNECTED &&
+                nh_info->type != NEXTHOP_TYPE_GATEWAY))
+    {
+      DEBUG_NEW (ROUTING_LOOKUP,
+                 "m: %p routing-lookup: dest: %s nexthop is not CONNECTED "
+                 "or GATEWAY on _srv6_forwarding, drop.",
+                 m, dest);
       return;
     }
 

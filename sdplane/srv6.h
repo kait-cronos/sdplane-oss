@@ -11,6 +11,7 @@
 #include "rte_override.h"
 #include "debug_sdplane.h"
 #include "nexthop.h"
+#include <linux/seg6_local.h>
 
 static inline __attribute__ ((always_inline)) bool
 _process_srv6_packet (struct rte_mbuf *m,
@@ -156,6 +157,100 @@ _process_srv6_packet_multi_sids (struct rte_mbuf *m,
 
   DEBUG_NEW (ROUTER, "m: %p: reload dst_addr from sid_list[%d]",
              m, srh->segments_left);
+  modified = true;
+  return modified;
+}
+
+/* SRv6 Endpoint (RFC 8986 End) processing for the nexthop-based model.
+   The SID match has already been done by the FIB lookup, so unlike
+   _process_srv6_packet_multi_sids() this does not compare the destination
+   against a local SID table.  Behaviors other than plain End are not
+   implemented yet and are rejected here rather than silently treated as
+   End. */
+static inline __attribute__ ((always_inline)) bool
+_process_srv6_end_packet (struct rte_mbuf *m, struct rte_ipv6_hdr *ipv6,
+                          struct srv6_local_sid_entry *srv6_local_sid)
+{
+  bool modified = false;
+
+  if (srv6_local_sid->action != SEG6_LOCAL_ACTION_END)
+    {
+      DEBUG_NEW (ROUTER, "m: %p: unsupported seg6local action: %u", m,
+                 srv6_local_sid->action);
+      return modified;
+    }
+
+  /* If not routing-header, quit processing. */
+  if (ipv6->proto != IPPROTO_ROUTING)
+    {
+      DEBUG_NEW (ROUTER, "m: %p: ipv6->proto != ROUTING", m);
+      return modified;
+    }
+
+  /* Bound every access below by the contiguous data of the first segment.
+     Deriving the end from the ipv6 pointer keeps this correct whatever L2
+     header sits in front (untagged 14, VLAN 18, ...), which is why
+     comparing rte_pktmbuf_pkt_len() against L3-only sizes is not enough. */
+  const uint8_t *pkt_end =
+      rte_pktmbuf_mtod (m, const uint8_t *) + rte_pktmbuf_data_len (m);
+
+  struct rte_ipv6_routing_ext *srh;
+  srh = (struct rte_ipv6_routing_ext *) (ipv6 + 1);
+  if (unlikely ((const uint8_t *) (srh + 1) > pkt_end))
+    {
+      DEBUG_NEW (ROUTER, "m: %p: SRH does not fit in the buffer", m);
+      return modified;
+    }
+
+  if (srh->type != RTE_IPV6_SRCRT_TYPE_4)
+    {
+      DEBUG_NEW (ROUTER, "m: %p: SRH->type != SRCRT_TYPE_4", m);
+      return modified;
+    }
+
+  /* hdr_len counts 8-octet units excluding the first 8 octets.  Confirm the
+     whole SRH is present before trusting it: the SID list is addressed
+     through hdr_len, so an over-declared hdr_len would index past the
+     buffer even when the declared IPv6 payload length looks consistent. */
+  uint32_t srh_len = ((uint32_t) srh->hdr_len + 1) * 8;
+  if (unlikely ((const uint8_t *) srh + srh_len > pkt_end))
+    {
+      DEBUG_NEW (ROUTER, "m: %p: SRH hdr_len %u exceeds the buffer", m,
+                 srh->hdr_len);
+      return modified;
+    }
+
+  /* With the SRH bounded above, last_entry <= max_last_entry keeps
+     sid_list[last_entry] inside it: the last SID ends exactly at
+     srh + (hdr_len + 1) * 8. */
+  int max_last_entry = (srh->hdr_len / 2) - 1;
+  if (srh->last_entry > max_last_entry ||
+      (srh->segments_left > srh->last_entry + 1))
+    {
+      DEBUG_NEW (ROUTER, "m: %p: max_entry or segments_left invalid", m);
+      return modified;
+    }
+
+  if (srh->segments_left == 0)
+    {
+      DEBUG_NEW (ROUTER, "m: %p: zero segments_left", m);
+      return modified;
+    }
+
+  void *dst_addr;
+#if RTE_VERSION < RTE_VERSION_NUM(24, 0, 0, 0)
+  dst_addr = (void *) &ipv6->dst_addr[0];
+#else
+  dst_addr = (void *) &ipv6->dst_addr.a;
+#endif
+
+  srh->segments_left--;
+
+  struct in6_addr *sid_list = (struct in6_addr *) (srh + 1);
+  rte_memcpy (dst_addr, &sid_list[srh->segments_left], 16);
+
+  DEBUG_NEW (ROUTER, "m: %p: reload dst_addr from sid_list[%d]", m,
+             srh->segments_left);
   modified = true;
   return modified;
 }

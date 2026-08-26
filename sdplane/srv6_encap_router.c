@@ -268,17 +268,9 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
       return;
     }
 
-  bool modified;
-
-  if (ipv6)
-    modified = _process_srv6_packet_multi_sids (
-        m, ipv6, rib->rib_info->srv6_local_sid,
-        rib->rib_info->srv6_local_sid_addr_num);
-  else
-    modified = false;
-
-  if (modified)
-    vswitch_link = NULL;
+  /* SRv6 Endpoint SIDs are resolved through the FIB in _srv6_forwarding(),
+     so the local SID table is not scanned here.  srv6_router keeps doing
+     that scan for the compatible path. */
 
   if (router_mode == 2) /* process_rx_packet: just before the forwarding. */
     {
@@ -339,11 +331,6 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
                   NULL, vswitch, eth, false);
       return;
     }
-
-  if (ipv6)
-    _process_srv6_packet_multi_sids (m, ipv6, rib->rib_info->srv6_local_sid,
-                                     rib->rib_info->srv6_local_sid_addr_num);
-
 
   _srv6_forwarding (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
                     eth, ipv4, ipv6, vswitch, NULL, 0, false);
