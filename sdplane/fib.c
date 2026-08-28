@@ -19,16 +19,29 @@
 static inline uint16_t
 BIT_INDEX (const uint8_t *key, int s, int n)
 {
-  uint8_t key_safe[17]; /* sentinel */
-  memcpy (key_safe, key, 16);
-  key_safe[16] = 0;
+  int byte = s >> 3;
+  uint32_t window;
 
   /*
    *  extract from two bytes comprising byte to
    *  which s belongs and adjacent byte
+   *
+   *  The adjacent byte does not exist for the last byte of the key, and
+   *  _lookup() reaches one step past the key entirely: it tests a child for
+   *  NULL at the top of the next call, so a /128 route is walked to s = 128.
+   *  Both cases used to be covered by copying the key into a 17-byte buffer
+   *  with a zero sentinel -- on every level, for one byte.  Reading zero
+   *  directly costs a branch instead of a 16-byte store the next load has to
+   *  wait on.
    */
-  return (((key_safe[s >> 3] << 8) | (key_safe[(s >> 3) + 1])) >>
-          (16 - ((s & 0x7) + n))) & ((1 << n) - 1);
+  if (byte >= (int) KEY_SIZE (128))
+    window = 0;
+  else if (byte == (int) KEY_SIZE (128) - 1)
+    window = (uint32_t) key[byte] << 8;
+  else
+    window = ((uint32_t) key[byte] << 8) | key[byte + 1];
+
+  return (window >> (16 - ((s & 0x7) + n))) & ((1 << n) - 1);
 }
 
 struct fib_tree *
