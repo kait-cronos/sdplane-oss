@@ -162,8 +162,10 @@ _delete (struct rib_node *n, const uint8_t *key, int keylen, int depth,
         }
       else
         {
+          /* the node exists but holds no route.
+             returning the node preserves the longer prefixes below it */
           *success = -1;
-          return NULL;
+          return n;
         }
     }
   else
