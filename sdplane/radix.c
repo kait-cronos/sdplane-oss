@@ -172,6 +172,14 @@ _delete (struct rib_node *n, const uint8_t *key, int keylen, int depth,
         n->right = _delete (n->right, key, keylen, depth + 1, success);
       else
         n->left = _delete (n->left, key, keylen, depth + 1, success);
+
+      /* _shrink() covers only the node that held the route, so its
+         ancestors are freed as the recursion unwinds */
+      if (! n->left && ! n->right && ! n->valid)
+        {
+          free (n);
+          return NULL;
+        }
       return n;
     }
 }
