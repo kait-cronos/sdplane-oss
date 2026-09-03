@@ -58,6 +58,7 @@
 #define DEBUG_SDPLANE_FORWARDING         (1ULL << 51)
 #define DEBUG_SDPLANE_SWITCHING          (1ULL << 52)
 #define DEBUG_SDPLANE_FLOODING           (1ULL << 53)
+#define DEBUG_SDPLANE_IGMP               (1ULL << 54)
 
 #define DEBUG_DOMAIN_OF_LTHREAD            SDPLANE
 #define DEBUG_DOMAIN_OF_CONSOLE            SDPLANE
@@ -112,6 +113,7 @@
 #define DEBUG_DOMAIN_OF_FORWARDING         SDPLANE
 #define DEBUG_DOMAIN_OF_SWITCHING          SDPLANE
 #define DEBUG_DOMAIN_OF_FLOODING           SDPLANE
+#define DEBUG_DOMAIN_OF_IGMP               SDPLANE
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)
