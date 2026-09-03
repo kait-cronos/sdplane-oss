@@ -77,6 +77,8 @@ void nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info);
 void nexthop_show_pool (struct shell *shell, struct rib_info *rib_info);
 
 int nexthop_add_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh);
+int nexthop_find_entry (struct rib_info *rib_info,
+                        struct internal_msg_nh_entry *nh);
 int nexthop_del_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh);
 
 void nexthop_increment_refcnt (struct rib_info *rib_info, int sdplane_nh_id);

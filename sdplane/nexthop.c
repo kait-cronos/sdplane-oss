@@ -402,6 +402,91 @@ _find_next_free_group_slot (struct nexthop *nexthop, int start)
   return -1; /* table full */
 }
 
+/* LEGACY: find a group without kernel_nh_id by nhcnt and inline info
+ * content */
+static int
+_group_find_by_content (struct nexthop *nexthop,
+                        const struct internal_msg_nh_entry *nh)
+{
+  int i, j;
+  for (j = 0; j < MAX_NEXTHOP_GRP_SIZE; j++)
+    {
+      struct nh_group *g = &nexthop->groups[j];
+      if (g->nhcnt == 0 || g->kernel_nh_id != 0)
+        continue;
+      if (g->nhcnt != nh->nhcnt)
+        continue;
+      int match = 1;
+      for (i = 0; i < nh->nhcnt; i++)
+        {
+          int aidx = g->members[i].info_index;
+          const struct nh_info *a =
+            (aidx >= 0) ? &nexthop->info_pool[aidx] : NULL;
+          const struct nh_info *b = &nh->members[i].info;
+          if (! a || a->family != b->family ||
+              memcmp (&a->gw, &b->gw, sizeof (a->gw)) != 0 ||
+              a->oif != b->oif)
+            {
+              match = 0;
+              break;
+            }
+        }
+      if (match)
+        return j;
+    }
+  return -1;
+}
+
+static void _group_release (struct nexthop *nexthop, int slot);
+
+/*
+ * AI-generated function - Claude Code 2026-07-05
+ * Purpose: refcnt-aware group release. A group shared by multiple
+ *          routes must survive until the last reference is dropped.
+ * Human review: reviewed
+ */
+static void
+_group_unref (struct nexthop *nexthop, int slot)
+{
+  if (slot < 0 || slot >= MAX_NEXTHOP_GRP_SIZE)
+    return;
+
+  struct nh_group *grp = &nexthop->groups[slot];
+  if (grp->nhcnt == 0)
+    return; /* already freed */
+
+  grp->refcnt--;
+
+  /* Groups tied to a kernel nexthop object live until the kernel
+   * deletes that object (NEXTHOP_ENTRY_DEL); only LEGACY groups are
+   * freed when the last route reference goes away. */
+  if (grp->refcnt <= 0 && grp->kernel_nh_id == 0)
+    _group_release (nexthop, slot);
+}
+
+static void
+_group_release (struct nexthop *nexthop, int slot)
+{
+  struct nh_group *grp = &nexthop->groups[slot];
+  int i;
+
+  /* Release all member resources */
+  for (i = 0; i < grp->nhcnt; i++)
+    {
+      _info_release (nexthop, grp->members[i].info_index);
+      if (grp->members[i].ref_sdplane_nh_id >= 0)
+        _group_unref (nexthop, grp->members[i].ref_sdplane_nh_id);
+    }
+
+  if (grp->kernel_nh_id != 0)
+    hash_table_remove (&nh_ht, (void *)(intptr_t)grp->kernel_nh_id);
+
+  DEBUG_NEW (RIB, "released group: slot=%d kernel_nh_id=%d", slot,
+             grp->kernel_nh_id);
+
+  memset (grp, 0, sizeof (*grp)); /* nhcnt -> 0 == free marker */
+}
+
 int
 nexthop_add_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
 {
@@ -422,33 +507,11 @@ nexthop_add_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
   else
     {
       /* LEGACY: deduplicate by content */
-      for (j = 0; j < MAX_NEXTHOP_GRP_SIZE; j++)
+      j = _group_find_by_content (nexthop, nh);
+      if (j >= 0)
         {
-          struct nh_group *g = &nexthop->groups[j];
-          if (g->nhcnt == 0 || g->kernel_nh_id != 0)
-            continue;
-          if (g->nhcnt != nh->nhcnt)
-            continue;
-          int match = 1;
-          for (i = 0; i < nh->nhcnt; i++)
-            {
-              int aidx = g->members[i].info_index;
-              const struct nh_info *a =
-                (aidx >= 0) ? &nexthop->info_pool[aidx] : NULL;
-              const struct nh_info *b = &nh->members[i].info;
-              if (!a || a->family != b->family ||
-                  memcmp (&a->gw, &b->gw, sizeof (a->gw)) != 0 ||
-                  a->oif != b->oif)
-                {
-                  match = 0;
-                  break;
-                }
-            }
-          if (match)
-            {
-              DEBUG_NEW (RIB, "reused group: kernel_nh_id=N/A sdplane_nh_id=%d", j);
-              return j;
-            }
+          DEBUG_NEW (RIB, "reused group: kernel_nh_id=N/A sdplane_nh_id=%d", j);
+          return j;
         }
     }
 
@@ -573,86 +636,47 @@ nexthop_add_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
 }
 
 int
-nexthop_del_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
+nexthop_find_entry (struct rib_info *rib_info,
+                    struct internal_msg_nh_entry *nh)
 {
   struct nexthop *nexthop = &rib_info->nexthop;
-  int slot = -1, i;
+  int slot;
 
   if (nh->kernel_nh_id != 0)
     {
       /* Lookup by kernel_nh_id via hash table */
       slot = nexthop_get_index_by_nhid (rib_info, nh->kernel_nh_id);
       if (slot < 0)
-        {
-          DEBUG_NEW (RIB, "nexthop not found: kernel_nh_id=%d",
-                     nh->kernel_nh_id);
-          return -1;
-        }
-
-      /* Remove from hash table */
-      hash_table_remove (&nh_ht, (void *)(intptr_t)nh->kernel_nh_id);
-    }
-  else
-    {
-      /* LEGACY: linear scan — match by nhcnt and inline info content */
-      for (slot = 0; slot < MAX_NEXTHOP_INFO_SIZE; slot++)
-        {
-          struct nh_group *g = &nexthop->groups[slot];
-          if (g->nhcnt == 0 || g->kernel_nh_id != 0)
-            continue;
-          if (g->nhcnt != nh->nhcnt)
-            continue;
-
-          int match = 1;
-          for (i = 0; i < nh->nhcnt; i++)
-            {
-              int aidx = g->members[i].info_index;
-              const struct nh_info *a =
-                (aidx >= 0) ? &nexthop->info_pool[aidx] : NULL;
-              const struct nh_info *b = &nh->members[i].info;
-
-              {
-                DEBUG_NEW (NEXTHOP, "nhcnt: %d", i);
-                DEBUG_NEW (NEXTHOP, "a: %p a->family: %d a->oif: %d",
-                           a, a->family, a->oif);
-                DEBUG_NEW (NEXTHOP, "b: %p b->family: %d b->oif: %d",
-                           b, b->family, b->oif);
-                DEBUG_NEW (NEXTHOP, "a->gw: %#x b->gw: %#x size: %d",
-                           a->gw, b->gw, sizeof (a->gw));
-              }
-
-              if (! a || a->family != b->family ||
-                  memcmp (&a->gw, &b->gw, sizeof (a->gw)) != 0 ||
-                  a->oif != b->oif)
-                {
-                  match = 0;
-                  break;
-                }
-            }
-          if (match)
-            break;
-        }
-      if (slot >= MAX_NEXTHOP_INFO_SIZE)
-        {
-          DEBUG_NEW (RIB, "LEGACY nexthop not found");
-          return -1;
-        }
+        DEBUG_NEW (RIB, "nexthop not found: kernel_nh_id=%d",
+                   nh->kernel_nh_id);
+      return slot;
     }
 
+  /* LEGACY: linear scan — match by nhcnt and inline info content */
+  slot = _group_find_by_content (nexthop, nh);
+  if (slot < 0)
+    DEBUG_NEW (RIB, "LEGACY nexthop not found");
+  return slot;
+}
+
+int
+nexthop_del_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
+{
+  struct nexthop *nexthop = &rib_info->nexthop;
+
+  int slot = nexthop_find_entry (rib_info, nh);
+  if (slot < 0)
+    return -1;
+
+  /* Deleting a group that routes still reference indicates a
+   * kernel/RIB desync; the kernel normally deletes routes before the
+   * nexthop object they use. Follow the kernel and free anyway. */
   struct nh_group *grp = &nexthop->groups[slot];
+  if (grp->refcnt > 0)
+    DEBUG_NEW (RIB, "deleting group still referenced: slot=%d refcnt=%d", slot,
+               grp->refcnt);
 
-  /* Release all member resources */
-  for (i = 0; i < grp->nhcnt; i++)
-    {
-      _info_release (nexthop, grp->members[i].info_index);
-      if (grp->members[i].ref_sdplane_nh_id >= 0)
-        nexthop->groups[grp->members[i].ref_sdplane_nh_id].refcnt--;
-    }
-
-  DEBUG_NEW (RIB, "deleted group: slot=%d kernel_nh_id=%d",
-             slot, grp->kernel_nh_id);
-
-  memset (grp, 0, sizeof (*grp)); /* nhcnt -> 0 == free marker */
+  _group_release (nexthop, slot);
   return slot;
 }
 
@@ -666,8 +690,7 @@ nexthop_increment_refcnt (struct rib_info *rib_info, int sdplane_nh_id)
 void
 nexthop_decrement_refcnt (struct rib_info *rib_info, int sdplane_nh_id)
 {
-  if (sdplane_nh_id >= 0 && sdplane_nh_id < MAX_NEXTHOP_GRP_SIZE)
-    rib_info->nexthop.groups[sdplane_nh_id].refcnt--;
+  _group_unref (&rib_info->nexthop, sdplane_nh_id);
 }
 
 struct nh_info *

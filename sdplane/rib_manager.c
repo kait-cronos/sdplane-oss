@@ -1621,10 +1621,9 @@ rib_manager_process_message (void *msgp)
         }
       else
         {
-          sdplane_nh_id = nexthop_del_entry (new->rib_info,
-                                             &msg_route_entry->nh);
+          sdplane_nh_id =
+              nexthop_find_entry (new->rib_info, &msg_route_entry->nh);
         }
-      nexthop_decrement_refcnt (new->rib_info, sdplane_nh_id);
       if (sdplane_nh_id < 0)
         break;
 
@@ -1654,6 +1653,13 @@ rib_manager_process_message (void *msgp)
                              msg_route_entry->family);
           break;
         }
+
+      /* Drop this route's reference only after the route was actually
+       * removed from the RIB; a delete request for a non-existent
+       * route whose nexthop matches an existing group must not touch
+       * that group's refcnt. A LEGACY group is freed when the last
+       * referencing route goes away. */
+      nexthop_decrement_refcnt (new->rib_info, sdplane_nh_id);
 
       break;
 
