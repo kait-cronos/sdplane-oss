@@ -20,6 +20,20 @@ enum nexthop_type
   NEXTHOP_TYPE_CONNECTED,
   NEXTHOP_TYPE_GATEWAY,
   NEXTHOP_TYPE_SRV6_HEAD,
+  NEXTHOP_TYPE_SRV6_END,
+};
+
+struct srv6_local_sid_entry
+{
+  struct in6_addr sid;
+  uint32_t action;
+  int oif;
+  union
+  {
+    struct in6_addr nh6;
+    struct in_addr nh4;
+    uint32_t table_id;
+  } param;
 };
 
 struct srv6_encap_sid_entry
@@ -36,6 +50,7 @@ struct nh_info
   enum nexthop_type type;
   union
   {
+    struct srv6_local_sid_entry srv6_local_sid;
     struct srv6_encap_sid_entry srv6_encap_sid;
     struct in_addr ipv4_addr;
     struct in6_addr ipv6_addr;
