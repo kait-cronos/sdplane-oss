@@ -302,7 +302,7 @@ nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info)
                        encap_sid_str, family_str, grp->members[j].weight,
                        shell->NL);
             }
-          else
+          else if (info->type == NEXTHOP_TYPE_GATEWAY)
             {
               memset (nh_str, 0, sizeof (nh_str));
               inet_ntop (info->family, &info->gw, nh_str, sizeof (nh_str));
@@ -311,6 +311,9 @@ nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info)
                        nh_str, info->oif_name, info->oif, family_str,
                        grp->members[j].weight, shell->NL);
             }
+          else
+            fprintf (shell->terminal, "        unknown %s%s", family_str,
+                     shell->NL);
         }
 
       fprintf (shell->terminal, "%s", shell->NL);
@@ -338,18 +341,12 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
         continue;
 
       const char *family_str = (info->family == AF_INET6) ? "IPv6" : "IPv4";
-      const char *type_str =
-          (info->type == NEXTHOP_TYPE_CONNECTED)   ? "connected"
-          : (info->type == NEXTHOP_TYPE_GATEWAY)   ? "gateway"
-          : (info->type == NEXTHOP_TYPE_SRV6_HEAD) ? "srv6-head"
-          : (info->type == NEXTHOP_TYPE_SRV6_END)  ? "srv6-end"
-                                                   : "unknown";
 
       if (info->type == NEXTHOP_TYPE_CONNECTED)
         {
-          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
-                   i, info->refcnt, family_str, type_str, "-",
-                   info->oif_name, info->oif, shell->NL);
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s", i,
+                   info->refcnt, family_str, "connected", "-", info->oif_name,
+                   info->oif, shell->NL);
         }
       else if (info->type == NEXTHOP_TYPE_SRV6_END)
         {
@@ -373,14 +370,14 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
         {
           memset (gw_str, 0, sizeof (gw_str));
           inet_ntop (info->family, &info->gw, gw_str, sizeof (gw_str));
-          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
-                   i, info->refcnt, family_str, type_str, gw_str,
-                   info->oif_name, info->oif, shell->NL);
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s", i,
+                   info->refcnt, family_str, "gateway", gw_str, info->oif_name,
+                   info->oif, shell->NL);
         }
       else
         {
           fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s", i,
-                   info->refcnt, family_str, type_str, "unknown",
+                   info->refcnt, family_str, "unknown", "unknown",
                    info->oif_name, info->oif, shell->NL);
         }
     }
@@ -442,8 +439,10 @@ _nh_info_equal (const struct nh_info *a, const struct nh_info *b)
     {
       if (a->gw.srv6_local_sid.action != b->gw.srv6_local_sid.action)
         return 0;
-      return memcmp (&a->gw.srv6_local_sid.sid, &b->gw.srv6_local_sid.sid,
-                     sizeof (struct in6_addr)) == 0;
+      if (memcmp (&a->gw.srv6_local_sid.sid, &b->gw.srv6_local_sid.sid,
+                  sizeof (struct in6_addr)))
+        return 0;
+      return 1;
     }
   return 1;
 }

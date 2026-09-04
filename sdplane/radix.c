@@ -305,9 +305,12 @@ rib_show_route (struct rib_node *n, void *arg)
         snprintf (nexthop_str, sizeof (nexthop_str), "srv6-head");
       else if (nh_info->type == NEXTHOP_TYPE_SRV6_END)
         snprintf (nexthop_str, sizeof (nexthop_str), "srv6-end");
-      else
+      else if (nh_info->type == NEXTHOP_TYPE_GATEWAY)
         inet_ntop (nh_info->family, &nh_info->gw,
                    nexthop_str, sizeof (nexthop_str));
+      else
+        snprintf (nexthop_str, sizeof (nexthop_str), "unknown");
+
 
       snprintf (if_str, sizeof (if_str), "%s (%u)",
                 nh_info->oif_name, nh_info->oif);
