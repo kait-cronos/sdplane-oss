@@ -40,8 +40,7 @@ BIT_INDEX (const uint8_t *key_safe, int s, int n)
    *  which s belongs and adjacent byte
    */
   return (((key_safe[s >> 3] << 8) | (key_safe[(s >> 3) + 1])) >>
-          (16 - ((s & 0x7) + n))) &
-         ((1 << n) - 1);
+          (16 - ((s & 0x7) + n))) & ((1 << n) - 1);
 }
 
 struct fib_tree *
