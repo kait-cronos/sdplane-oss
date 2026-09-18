@@ -152,6 +152,119 @@ nocopyloop      1632.4     361.6   4.51      2.4    258.2       0.5     0.01
 farload         1533.4     343.2   4.47    135.4    268.2       3.4     0.08
 ```
 
+# 結果の解釈
+
+ns - ナノ秒    
+insns - instructions(命令数)
+cycles - cpuサイクル数
+branches - 分岐命令数
+br-miss - 分岐命令予測失敗数
+IPC - instructions per cycle(1サイクル当たり命令数)
+stores - メモリ書き込み命令数
+loads - メモリ読み込み命令数
+ldhead_cyc - 最も古い未コミットのロード命令が原因でパイプラインのリタイア/進行が阻害されている総サイクル数
+stfwd_blk - Store-Forwardingが成立せず、先行ストアのデータ待ちによりブロックされたロード命令の発生回数
+
+
+まずIPCは素朴に考えれば1サイクルで1命令になるが
+近年のCPUはスーパースカラとして複数命令を同時実行しているため
+IPCが4などの値になるのはその影響である。
+しかし、スーパースカラには限界があり後続の処理が
+直前の処理の処理結果のデータに依存しているとCPUは同時実行ができない。
+
+ここにおけるStore Forwardingとはcpuがメモリへ書き込んですぐに
+同じメモリからサイズで読みだすときにそのデータを直接送るようにするというものである。
+https://readpipe.org/posts/db632a67-296e-4992-9d2e-e3f1eae45d83
+```
+mov DWORD [esi], edi ; ediからeaxへ直接送る
+mov eax, DWORD [esi] 
+
+mov WORD [esi], di   ; サイズが異なるためStore Forwardingが成立しない
+mov eax, DWORD [esi] 
+```
+これによりメモリ読み書きでブロックされずに後続のload命令を実行開始できるようになる。
+
+oldの実装は以下であったが
+key_safeへのstoreが終わらない限り後続のkey_safeからloadする処理ができないため
+ここは直列化されてしまっていた。
+```c
+static inline uint16_t 
+BIT_INDEX (const uint8_t *key, int s, int n) 
+{ 
+  uint8_t key_safe[17]; /* sentinel */ 
+  memcpy (key_safe, key, 16); // ここでkey -> key_safeのstoreが走る
+  key_safe[16] = 0; // そしてサイズの異なるstore
+
+  /* 
+  *  extract from two bytes comprising byte to 
+  *  which s belongs and adjacent byte 
+  */ 
+  return (((key_safe[s >> 3] << 8) | (key_safe[(s >> 3) + 1])) >> // key_safeからのload
+          (16 - ((s & 0x7) + n))) & ((1 << n) - 1); 
+} 
+```
+
+そのためkey_safeは`fib_router_lookup`等で一回だけ作成し探索中は`memcpy`をしないようにしたところ
+性能が改善した。
+
+当初は要因が`memcpy`数だと思っていたが対照実験として以下のような実装を用意して
+ストア処理の回数は同一で読みだすバッファだけ違うというものを用意してみた。
+
+```c
+static struct fib_node *
+farload_fib_route_lookup (struct fib_tree *t, const uint8_t *key)
+{
+  struct fib_node *n = t->root;
+  struct fib_node *cand = NULL;
+  int cur_plen = 0;
+  struct farload_buf scratch, readbuf;
+
+  new_bit_index_key_init (readbuf.b, key);
+  while (n)
+    {
+      if (n->leaf)
+        cand = n;
+      new_bit_index_key_init (scratch.b, key);
+      __asm__ volatile ("" : "+m" (scratch));
+      n = n->child[new_BIT_INDEX (readbuf.b, cur_plen, K)];
+      cur_plen += K;
+    }
+  return cand;
+}
+```
+
+その結果store命令数はほぼ同じにもかかわらず性能は`new`近くに改善したためstore命令数自体は律速要因ではなく
+書き込み直後に同じメモリから読みだすことが律速原因だったと考えられる。
+
+```
+# old
+362c:	movdqu (%rsi),%xmm0            # const uint8_t* keyの値をレジスタに読み込み (loop外)
+3644:	movb   $0x0,0x10(%rsp)         # key_safe[16] = 0; 
+364b:	movaps %xmm0,(%rsp)            # memcpy (key_safe, key, 16); # loop内でstore
+3666:	movzbl (%rsp,%rax,1),%eax      # (((key_safe[s >> 3] << 8) | (key_safe[(s >> 3) + 1]))) のアクセス相当
+366a:	movzbl (%rsp,%rcx,1),%ecx      # 
+
+# new
+3db6:	movdqu (%rsi),%xmm0            # const uint8_t* keyの値をレジスタに読み込み
+3dcd:	mov    %dx,0x10(%rsp)          # memset (key_safe + KEY_SIZE (128), 0, BIT_INDEX_KEY_SIZE - KEY_SIZE (128));
+3dd6:	movaps %xmm0,(%rsp)            # memcpy (key_safe, key, KEY_SIZE (128)); // どちらもloop前に完了
+3e15:	movzbl 0x1(%rsp,%rcx,1),%eax   # (((key_safe[s >> 3] << 8) | (key_safe[(s >> 3) + 1]))) のアクセス相当
+3e1a:	movzbl (%rsp,%rcx,1),%ecx      # loop内では読み込みのみ
+
+# farload
+3564:	movdqu (%rsi),%xmm0            # const uint8_t* keyの値をレジスタに読み込み
+357f:	movaps %xmm0,0x20(%rsp)        # ループ外書き込み
+359d:	movaps %xmm0,(%rsp)            # ループ内書き込み (読み込まれない)
+35b8:	movzbl 0x20(%rsp,%rcx,1),%eax  # ループ外書き込みしたのから読み取る
+35bd:	movzbl 0x21(%rsp,%rcx,1),%ecx  # 
+
+# nocopy
+36c8:	movzbl (%r8,%r10,1),%eax       # %r8 == keyのアドレス
+36cd:	movzbl 0x1(%r8,%r10,1),%r10d   # 
+3716:	movzbl 0xf(%r8),%eax           
+
+```
+
 # スクリプトの内容
 
 + make-bench.sh - ベンチマーク用.cファイルを作成するスクリプト
@@ -165,9 +278,9 @@ farload         1533.4     343.2   4.47    135.4    268.2       3.4     0.08
   2. gccでbitindex-bench.cをコンパイルする
   3. bitindex-benchを実行してbitindex-bench.txtに保存する
   4. disasm.txtにnmとobjdumpを使用して各実装に対応するアセンブリ部分を抽出する(best effort)
-  5. perfコマンドがあればperfを使って
+  5. perfコマンドがあればperfを使って追加の指標を出す
 + cpufreq-pin.sh - ベンチマーク時にcpu周波数を固定する用スクリプト(要sudo)
-  + 通常のcpuだとサーマルスロットリングしうるため
+  + 通常のcpuだとサーマルスロットリングしうるため周波数を固定してnsも厳密に測る用
 
 # 必要依存関係
 
