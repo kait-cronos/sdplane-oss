@@ -233,8 +233,12 @@ CLI_COMMAND2 (start_stop_port, "(start|stop|reset) port (|<0-16>|all)",
   return 0;
 }
 
-CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
-              PORT_NUMBER_HELP, PORT_ALL_HELP)
+CLI_COMMAND2 (show_port,
+              "show port (|"PORT_ID_SPEC"|all)",
+              SHOW_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP,
+              PORT_ALL_HELP)
 {
   struct shell *shell = (struct shell *) context;
   int port_id;
@@ -517,11 +521,11 @@ CLI_COMMAND2 (show_port_statistics,
 }
 
 CLI_COMMAND2 (show_port_queue_statistics,
-              "show port statistics per-queue (<0-16>|all) (|pps|total|bps|Bps|total-bytes)",
+              "show port statistics per-queue ("PORT_ID_SPEC"|all) (|pps|total|bps|Bps|total-bytes)",
               SHOW_HELP,
               PORT_HELP,
+              "show port statistics\n",
               "show port statistics per-queue\n",
-              "port number (0-16 or all)\n",
               "port number (0-16 or all)\n",
               "show all port queues\n",
               "packets per second.\n",
@@ -641,8 +645,13 @@ CLI_COMMAND2 (show_port_queue_statistics,
   return 0;
 }
 
-CLI_COMMAND2 (show_port_promiscuous, "show port (<0-16>|all) promiscuous",
-              SHOW_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP "promiscuous\n")
+CLI_COMMAND2 (show_port_promiscuous,
+              "show port ("PORT_ID_SPEC"|all) promiscuous",
+              SHOW_HELP
+              PORT_HELP
+              PORT_NUMBER_HELP
+              ALL_HELP
+              "promiscuous\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -671,8 +680,13 @@ CLI_COMMAND2 (show_port_promiscuous, "show port (<0-16>|all) promiscuous",
   return 0;
 }
 
-CLI_COMMAND2 (show_port_flowcontrol, "show port (<0-16>|all) flowcontrol",
-              SHOW_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP "flowcontrol\n")
+CLI_COMMAND2 (show_port_flowcontrol,
+              "show port ("PORT_ID_SPEC"|all) flowcontrol",
+              SHOW_HELP
+              PORT_HELP
+              PORT_NUMBER_HELP
+              ALL_HELP
+              "flowcontrol\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -1389,8 +1403,10 @@ CLI_COMMAND2 (set_port_link_updown,
 }
 
 CLI_COMMAND2 (show_port_get_info,
-              "show port <0-16> get-info",
-              SHOW_HELP, PORT_HELP, PORT_NUMBER_HELP,
+              "show port "PORT_ID_SPEC" get-info",
+              SHOW_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP,
               "port get-info\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -1419,9 +1435,64 @@ CLI_COMMAND2 (show_port_get_info,
   return 0;
 }
 
+#ifdef REGVAR_SUPPORT
+int
+regvar_portid_is_spec (char *spec)
+{
+  return ! strcmp (spec, "<PORT-ID>");
+}
+
+int
+regvar_portid_is_match (char *spec, char *word)
+{
+  int port_id;
+  char *endptr;
+  port_id = strtol (word, &endptr, 0);
+  if (endptr[0] != '\0')
+    return 0;
+  if (0 <= port_id && port_id < rte_eth_dev_count_avail ())
+    return 1;
+  return 0;
+}
+
+char *
+regvar_portid_convert_cmdstr (char *spec, char *word)
+{
+  char cmdstr[32];
+  int nb_ports;
+  nb_ports = rte_eth_dev_count_avail ();
+  snprintf (cmdstr, sizeof (cmdstr), "<0-%d>", nb_ports - 1);
+  return strdup (cmdstr);
+}
+
+char *
+regvar_portid_convert_helpstr (char *spec, char *orig_helpstr, char *word)
+{
+  char helpstr[32];
+  int nb_ports;
+  nb_ports = rte_eth_dev_count_avail ();
+  snprintf (helpstr, sizeof (helpstr),
+            "specify PORT-ID. (<0-%d>)", nb_ports - 1);
+  return strdup (helpstr);
+}
+#endif /*REGVAR_SUPPORT*/
+
 void
 dpdk_port_cmd_init (struct command_set *cmdset)
 {
+#ifdef REGVAR_SUPPORT
+  struct regvar *regvar;
+  regvar = malloc (sizeof (struct regvar));
+  regvar->spec = "<PORT-ID>";
+  regvar->is_spec = regvar_portid_is_spec;
+  regvar->is_match = regvar_portid_is_match;
+  regvar->convert_cmdstr = regvar_portid_convert_cmdstr;
+  regvar->convert_helpstr = regvar_portid_convert_helpstr;
+
+  cmdset->regvars = vector_create ();
+  vector_add (regvar, cmdset->regvars);
+#endif /*REGVAR_SUPPORT*/
+
   INSTALL_COMMAND2 (cmdset, start_stop_port);
   INSTALL_COMMAND2 (cmdset, show_port);
   INSTALL_COMMAND2 (cmdset, show_port_statistics);
