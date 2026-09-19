@@ -31,6 +31,18 @@ struct command_node
 struct command_set
 {
   struct command_node *root;
+
+  struct vector *regvars;
+};
+
+#define REGVAR_SUPPORT 1
+struct regvar
+{
+  char *spec;
+  int (*is_spec) (char *spec);
+  int (*is_match) (char *spec, char *word);
+  char * (*convert_cmdstr) (char *spec, char *word);
+  char * (*convert_helpstr) (char *spec, char *helpstr, char *word);
 };
 
 struct command_header
@@ -51,6 +63,9 @@ void command_func_name_register (command_func_t command_func,
                                  char *command_name);
 char *command_func_name_lookup (command_func_t command_func);
 void command_func_name_finish ();
+
+char *regvar_cmdstr (struct command_set *cmdset, char *spec, char *word);
+char *regvar_helpstr (struct command_set *cmdset, char *spec, char *helpstr, char *word);
 
 #define DEFINE_COMMAND(cmdname, cmdstr, helpstr)                              \
   int cmdname##_func (void *context, int argc, char **argv);                  \

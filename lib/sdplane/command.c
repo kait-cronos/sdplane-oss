@@ -514,6 +514,80 @@ is_command_match (char *spec, char *word)
   return 0;
 }
 
+char *
+regvar_cmdstr (struct command_set *cmdset, char *spec, char *word)
+{
+  struct vector_node *vn;
+  char *retval = NULL;
+
+  if (cmdset->regvars)
+    {
+      for (vn = vector_head (cmdset->regvars); vn; vn = vector_next (vn))
+        {
+          struct regvar *regvar = (struct regvar *) vn->data;
+          if (regvar && regvar->is_spec &&
+              (*regvar->is_spec) (spec))
+            {
+              if (regvar->convert_cmdstr)
+                retval = (*regvar->convert_cmdstr) (spec, word);
+              else
+                retval = spec;
+            }
+        }
+    }
+
+  return retval;
+}
+
+char *
+regvar_helpstr (struct command_set *cmdset, char *spec, char *helpstr, char *word)
+{
+  struct vector_node *vn;
+  char *retval = NULL;
+
+  if (cmdset->regvars)
+    {
+      for (vn = vector_head (cmdset->regvars); vn; vn = vector_next (vn))
+        {
+          struct regvar *regvar = (struct regvar *) vn->data;
+          if (regvar && regvar->is_spec &&
+              (*regvar->is_spec) (spec))
+            {
+              if (regvar->convert_helpstr)
+                retval = (*regvar->convert_helpstr) (spec, helpstr, word);
+              else
+                retval = helpstr;
+            }
+        }
+    }
+
+  return retval;
+}
+
+int
+is_command_match_regvar (struct command_set *cmdset, char *spec, char *word)
+{
+  struct vector_node *vn;
+  int ret = 0;
+
+  if (cmdset->regvars)
+    {
+      for (vn = vector_head (cmdset->regvars); vn; vn = vector_next (vn))
+        {
+          struct regvar *regvar = (struct regvar *) vn->data;
+          if (regvar && regvar->is_spec &&
+              (*regvar->is_spec) (spec))
+            {
+              if (regvar->is_match &&
+                  (*regvar->is_match) (spec, word))
+                ret++;
+            }
+        }
+    }
+
+  return ret;
+}
+
 int
 varmatch_pri (char *spec)
 {
@@ -547,7 +621,7 @@ is_command_node_variable (struct command_node *node)
 }
 
 struct command_node *
-command_match_unique (struct command_node *parent, char *word)
+command_match_unique (struct command_set *cmdset, struct command_node *parent, char *word)
 {
   struct vector_node *vn;
   struct command_node *node, *match = NULL, *varmatch = NULL;
@@ -561,6 +635,13 @@ command_match_unique (struct command_node *parent, char *word)
           if (! varmatch ||
               varmatch_pri (node->cmdstr) > varmatch_pri (varmatch->cmdstr))
             varmatch = node;
+          varmatch_count++;
+          match_count++;
+        }
+      if (is_command_match_regvar (cmdset, node->cmdstr, word))
+        {
+          match = node;
+          varmatch = node;
           varmatch_count++;
           match_count++;
         }
@@ -585,11 +666,11 @@ command_match_unique (struct command_node *parent, char *word)
 }
 
 struct command_node *
-command_match_unique_exact (struct command_node *parent, char *word)
+command_match_unique_exact (struct command_set *cmdset, struct command_node *parent, char *word)
 {
   struct command_node *match = NULL;
 
-  match = command_match_unique (parent, word);
+  match = command_match_unique (cmdset, parent, word);
   if (match)
     return match;
 
@@ -911,7 +992,7 @@ command_matched_nodes (int argc, char **argv, char *command_line,
   for (i = 0; i < argc; i++)
     {
       word = argv[i];
-      match = command_match_unique_exact (parent, word);
+      match = command_match_unique_exact (cmdset, parent, word);
       if (match == NULL)
         break;
       cmdnodes[i] = match;
@@ -923,9 +1004,11 @@ command_matched_nodes (int argc, char **argv, char *command_line,
           break;
         }
 
+#if 0 /* this replace breaks commands when regvar is working. */
       /* update the word if unique and not empty word */
       if (strlen (word) > 0)
         argv[i] = command_replace (match, word);
+#endif
 
       parent = match;
     }
@@ -961,7 +1044,7 @@ command_execute (char *command_line, struct command_set *cmdset, void *context)
       if (*word == '\0')
         break;
 
-      match = command_match_unique_exact (parent, word);
+      match = command_match_unique_exact (cmdset, parent, word);
       if (match == NULL)
         break;
 
@@ -1050,7 +1133,7 @@ command_complete (char *command_line, int point, struct command_set *cmdset)
 
   while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
     {
-      match = command_match_unique_exact (parent, word);
+      match = command_match_unique_exact (cmdset, parent, word);
       if (match == NULL)
         break;
       matched = word;
@@ -1097,10 +1180,12 @@ command_match_node (char *command_line, struct command_set *cmdset)
       if (*word == '\0')
         break;
 
-      match = command_match_unique_exact (parent, word);
+      match = command_match_unique_exact (cmdset, parent, word);
       if (match == NULL)
         break;
 
+      /* <LINE> and <FILE> are special ones. stop decsending search and
+         return the current match. */
       if (line_spec (match->cmdstr) || file_spec (match->cmdstr))
         break;
 

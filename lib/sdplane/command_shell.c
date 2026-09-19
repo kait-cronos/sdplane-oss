@@ -1051,6 +1051,54 @@ shell_read_nowait_paging (struct shell *shell)
 }
 
 int
+command_execute2 (int argc, char **argv, struct command_set *cmdset,
+                  struct command_node **cmdnodes, struct shell *shell)
+{
+  int ret;
+
+  struct command_node *node;
+  struct vector_node *vn;
+  struct command_node *match = NULL;
+  struct command_node *parent = NULL;
+
+  int index;
+  int curr, upper;
+
+  assert (argc > 0);
+  index = argc - 1;
+
+  if (index == 0)
+    {
+      if (cmdnodes[0])
+        match = cmdnodes[0];
+      parent = cmdset->root;
+    }
+  else
+    {
+      match = cmdnodes[index];
+      parent = cmdnodes[index - 1];
+    }
+
+  /* treat cases when "show port" command is installed and the
+     current command-line is "show port ?".
+     In the case, the current argv is "" and the
+     upper matched node has the execution function. */
+  if (! strlen (argv[index]) && parent->func)
+    {
+      match = parent;
+      argc--;
+      argv[argc] = NULL;
+    }
+
+  if (! match || ! match->func)
+    ret = CMD_NOT_FOUND;
+  else
+    ret = (*match->func) (shell, argc, argv);
+
+  return ret;
+}
+
+int
 command_shell_execute (struct shell *shell)
 {
   int ret = 0;
@@ -1097,7 +1145,31 @@ command_shell_execute (struct shell *shell)
                  shell->command_line, shell->NL);
 #endif
 
+#if 0
       ret = command_execute (shell->command_line, shell->cmdset, shell);
+#else
+
+  char *command_line_dup;
+  int argc;
+  char **argv;
+  struct command_node **cmdnodes;
+  struct command_set *cmdset;
+
+  command_line_dup = strdup (shell->command_line);
+
+  /* parse current command-line's argv. */
+  command_argv_parse (command_line_dup, &argc, &argv);
+
+  /* find matching command nodes. */
+  command_matched_nodes (argc, argv, shell->command_line,
+                         shell->cmdset, &cmdnodes);
+
+      ret = command_execute2 (argc, argv, shell->cmdset, cmdnodes, shell);
+
+  free (command_line_dup);
+  free (argv);
+  free (cmdnodes);
+#endif
 
 #if 0
       if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
@@ -1289,6 +1361,101 @@ file_ls_candidate (struct shell *shell, char *file_path)
 }
 
 int
+command_ls_candidate (int argc, char **argv, struct command_set *cmdset,
+                      struct command_node **cmdnodes, struct shell *shell)
+{
+  struct command_node *match;
+  struct command_node *node;
+  struct vector_node *vn;
+
+  int index;
+  int curr, upper;
+
+  assert (argc > 0);
+  index = argc - 1;
+
+  if (index == 0)
+    {
+      if (cmdnodes[0])
+        match = cmdnodes[0];
+      else
+        match = cmdset->root;
+    }
+  else
+    {
+      match = cmdnodes[index - 1];
+    }
+
+  curr = argc - 1;
+  upper = (curr > 0 ? upper = curr - 1 : -1);
+
+#if 0
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
+    {
+      fprintf (shell->terminal, "upper: %d curr: %d%s",
+               upper, curr, shell->NL);
+      fprintf (shell->terminal, "argv[%d]: \"%s\" (strlen: %lu)%s",
+               index, argv[index], strlen (argv[index]), shell->NL);
+      fprintf (shell->terminal, "cmdnodes[upper]: %p cmdnodes[curr]: %p%s",
+               cmdnodes[upper], cmdnodes[curr], shell->NL);
+      if (upper >= 0 && cmdnodes[upper])
+      fprintf (shell->terminal, "cmdnodes[upper]: %s%s",
+               cmdnodes[upper]->cmdstr, shell->NL);
+      if (cmdnodes[curr])
+      fprintf (shell->terminal, "cmdnodes[curr]: %s%s",
+               cmdnodes[curr]->cmdstr, shell->NL);
+    }
+#endif
+
+  if (upper >= 0 && cmdnodes[upper])
+    {
+      match = cmdnodes[upper];
+
+      /* treat cases when "show port" command is installed and the
+         current command-line is "show port ?".
+         In the case, the current argv is "" and the
+         upper matched node has the execution function. */
+      if (! strlen (argv[curr]) && match->func)
+        fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
+                 match->helpstr, shell->NL);
+
+      for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
+        {
+          node = (struct command_node *) vn->data;
+          if (is_command_match_regvar (shell->cmdset, node->cmdstr, argv[index]))
+            {
+          char *regvar_spec;
+          char *regvar_help;
+            regvar_spec = (char *) regvar_cmdstr (shell->cmdset, node->cmdstr, argv[index]);
+            regvar_help = (char *) regvar_helpstr (shell->cmdset, node->cmdstr, node->helpstr, argv[index]);
+            fprintf (shell->terminal, "  %-16s %s%s",
+                     regvar_spec,
+                     regvar_help,
+                     shell->NL);
+            }
+          else
+          if (is_command_match (node->cmdstr, argv[index]))
+            fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
+                     node->helpstr, shell->NL);
+
+          if (file_spec (node->cmdstr))
+            file_ls_candidate (shell, argv[index]);
+        }
+    }
+  else if (argc == 1)
+    {
+      match = cmdset->root;
+      for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
+        {
+          node = (struct command_node *) vn->data;
+          if (is_command_match (node->cmdstr, argv[index]))
+            fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
+                     node->helpstr, shell->NL);
+        }
+    }
+}
+
+int
 command_shell_ls_candidate (struct shell *shell)
 {
   char *cmd_dup;
@@ -1323,6 +1490,10 @@ command_shell_ls_candidate (struct shell *shell)
   command_matched_nodes (argc, argv, shell->command_line,
                          shell->cmdset, &cmdnodes);
 
+#if 1
+  command_ls_candidate (argc, argv, shell->cmdset, cmdnodes, shell);
+#else
+
   cmdset = shell->cmdset;
   int index;
   int curr, upper;
@@ -1345,6 +1516,7 @@ command_shell_ls_candidate (struct shell *shell)
   curr = argc - 1;
   upper = (curr > 0 ? upper = curr - 1 : -1);
 
+#if 0
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
     {
       fprintf (shell->terminal, "upper: %d curr: %d%s",
@@ -1360,16 +1532,35 @@ command_shell_ls_candidate (struct shell *shell)
       fprintf (shell->terminal, "cmdnodes[curr]: %s%s",
                cmdnodes[curr]->cmdstr, shell->NL);
     }
+#endif
 
   if (upper >= 0 && cmdnodes[upper])
     {
       match = cmdnodes[upper];
+
+      /* treat cases when "show port" command is installed and the
+         current command-line is "show port ?".
+         In the case, the current argv is "" and the
+         upper matched node has the execution function. */
       if (! strlen (argv[curr]) && match->func)
         fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
                  match->helpstr, shell->NL);
+
       for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
         {
           node = (struct command_node *) vn->data;
+          if (is_command_match_regvar (shell->cmdset, node->cmdstr, argv[index]))
+            {
+          char *regvar_spec;
+          char *regvar_help;
+            regvar_spec = (char *) regvar_cmdstr (shell->cmdset, node->cmdstr, argv[index]);
+            regvar_help = (char *) regvar_helpstr (shell->cmdset, node->cmdstr, node->helpstr, argv[index]);
+            fprintf (shell->terminal, "  %-16s %s%s",
+                     regvar_spec,
+                     regvar_help,
+                     shell->NL);
+            }
+          else
           if (is_command_match (node->cmdstr, argv[index]))
             fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
                      node->helpstr, shell->NL);
@@ -1389,6 +1580,7 @@ command_shell_ls_candidate (struct shell *shell)
                      node->helpstr, shell->NL);
         }
     }
+#endif
 
   free (command_line_dup);
   free (argv);
