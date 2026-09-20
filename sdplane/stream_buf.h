@@ -1,6 +1,9 @@
 #ifndef __STREAM_BUF_H__
 #define __STREAM_BUF_H__
 
+#include <stdint.h>
+#include <stddef.h>
+
 struct stream_buf
 {
   uint8_t *data;

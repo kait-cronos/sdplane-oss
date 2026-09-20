@@ -10,6 +10,7 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
+#include <rte_ether.h>
 
 #include <sdplane/debug.h>
 #include <sdplane/termio.h>
@@ -18,21 +19,15 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 #include <sdplane/debug_cmd.h>
-
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
-#include <rte_ether.h>
 #include "l2fwd_export.h"
-
 #include "sdplane.h"
 #include "thread_info.h"
 #include "rib_manager.h"
-#include "tap.h"
 #include "internal_message.h"
-
 #include "log_packet.h"
 
 static __thread uint64_t loop_counter_dhcp = 0;
@@ -45,7 +40,6 @@ bool
 is_dhcp_packet (struct rte_mbuf *m)
 {
   struct rte_ether_hdr *eth;
-  uint16_t eth_type;
   struct rte_vlan_hdr *vlan = NULL;
   struct llc_snap_hdr *snap = NULL;
   struct rte_ipv4_hdr *ipv4 = NULL;
@@ -96,12 +90,9 @@ dhcp_server_read (struct rte_mbuf *m)
 {
   uint32_t pkt_len;
   uint16_t data_len;
-  char *pkt;
-  int ret;
 
   pkt_len = rte_pktmbuf_pkt_len (m);
   data_len = rte_pktmbuf_data_len (m);
-  pkt = rte_pktmbuf_mtod (m, char *);
 
   if (data_len < pkt_len)
     ERROR_MSG ("m: %p warning: multi-seg mbuf: %u < %u",
@@ -117,7 +108,6 @@ static inline __attribute__ ((always_inline)) void
 dhcp_server_write (char *data, int size, unsigned vswitch_id)
 {
   char *pkt;
-  int ret;
   struct vswitch_conf *vswitch;
 
   vswitch = &rib->rib_info->vswitch[vswitch_id];
@@ -128,16 +118,23 @@ dhcp_server_write (char *data, int size, unsigned vswitch_id)
   if (! vswitch->router_if.ring_dn)
     return;
 
-  int socket = rte_lcore_to_socket_id (rte_lcore_id ());
   struct rte_mempool *mp = l2fwd_pktmbuf_pool;
   struct rte_mbuf *m = rte_pktmbuf_alloc (mp);
+  if (! m)
+    {
+      WARNING ("rte_pktmbuf_alloc() failed: drop %d bytes", size);
+      return;
+    }
   rte_pktmbuf_append (m, size);
   pkt = rte_pktmbuf_mtod (m, char *);
   memcpy (pkt, data, size);
 
-  rte_ring_enqueue (vswitch->router_if.ring_dn, m);
   DEBUG_NEW (DHCP_SERVER, "m: %p size: %d -> vswitch %d ring_dn %d",
              m, size, vswitch_id, vswitch->router_if.tap_ring_id);
+  /* after a successful enqueue, m is owned by the consumer (router lcore)
+     and must not be touched here. */
+  if (rte_ring_enqueue (vswitch->router_if.ring_dn, m) != 0)
+    rte_pktmbuf_free (m);
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -166,22 +163,35 @@ dhcp_server_rx ()
     }
 }
 
-void
+int
 dhcp_server_init ()
 {
-  ring_dhcp_rx = rte_ring_create ("dhcp_rx", 32, SOCKET_ID_ANY,
-                                  RING_F_SC_DEQ);
+  ring_dhcp_rx = rte_ring_create ("dhcp_rx", 32, SOCKET_ID_ANY, RING_F_SC_DEQ);
+  if (! ring_dhcp_rx)
+    {
+      printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
+      DEBUG_SDPLANE_LOG (DHCP_SERVER, "rte_ring_create(dhcp_rx) failed: %s",
+                         rte_strerror (rte_errno));
+      return -1;
+    }
+  return 0;
 }
 
 int
 dhcp_server (__rte_unused void *dummy)
 {
   unsigned lcore_id;
+  int ret;
 
   lcore_id = rte_lcore_id ();
   DEBUG_NEW (DHCP_SERVER, "start thread on lcore[%d].", lcore_id);
 
-  dhcp_server_init ();
+  ret = dhcp_server_init ();
+  if (ret < 0)
+    {
+      DEBUG_SDPLANE_LOG (DHCP_SERVER, "dhcp_server_init() failed: unable to create rx ring");
+      return -1;
+    }
 
   /* register an application slot entry in rib,
      to receive packets from enhanced_repeater. */

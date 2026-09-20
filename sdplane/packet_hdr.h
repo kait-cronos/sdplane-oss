@@ -1,6 +1,10 @@
 #ifndef __PACKET_HDR_H__
 #define __PACKET_HDR_H__
 
+#include <stdbool.h>
+#include <rte_mbuf.h>
+#include <rte_ethdev.h>
+
 static inline __attribute__ ((always_inline)) bool
 is_rte_vlan_hdr (struct rte_mbuf *m)
 {

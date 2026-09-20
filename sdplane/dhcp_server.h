@@ -1,6 +1,10 @@
 #ifndef __DHCP_SERVER_H__
 #define __DHCP_SERVER_H__
 
+#include <stdbool.h>
+#include <rte_common.h>
+#include <rte_mbuf.h>
+
 bool is_dhcp_packet (struct rte_mbuf *m);
 void dhcp_server_init ();
 

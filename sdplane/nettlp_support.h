@@ -1,7 +1,7 @@
 #ifndef __NETTLP_SUPPORT_H__
 #define __NETTLP_SUPPORT_H__
 
-#include "tlp.h"
+#include <stdint.h>
 
 /*
  * NetTLP specific header

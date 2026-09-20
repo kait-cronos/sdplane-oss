@@ -6,7 +6,6 @@
 
 #include "argv_list.h"
 #include "sdplane.h"
-// #include "tap_handler.h"
 
 #ifdef ENABLE_PKTGEN
 
@@ -116,7 +115,6 @@ CLI_COMMAND2 (pktgen_init,
               "specify argv-list number\n")
 {
   struct shell *shell = (struct shell *) context;
-
   int index;
   index = strtol (argv[3], NULL, 0);
 
@@ -127,6 +125,7 @@ CLI_COMMAND2 (pktgen_init,
   _pktgen_main_init (*argcp, argvp);
   pthread_mutex_unlock (&argv_list_mutex);
   rte_eal_init_done = true;
+  update_lthread_core (shell);
   return 0;
 }
 
@@ -143,7 +142,6 @@ CLI_COMMAND2 (pktgen_do_start_stop,
               "specify for all ports.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
@@ -157,6 +155,9 @@ CLI_COMMAND2 (pktgen_do_start_stop,
 }
 
 int set_cmd(int argc, char **argv);
+int range_cmd(int argc, char **argv);
+int rate_cmd(int argc, char **argv);
+int en_dis_cmd(int argc, char **argv);
 
 CLI_COMMAND2 (pktgen_do_set_count,
               "pktgen do set port (<0-7>|all) count <0-4000000000>",
@@ -170,7 +171,6 @@ CLI_COMMAND2 (pktgen_do_set_count,
               "set packet count.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
@@ -197,7 +197,6 @@ CLI_COMMAND2 (pktgen_do_set_size,
               "set packet size.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
@@ -224,14 +223,13 @@ CLI_COMMAND2 (pktgen_do_set_rate,
               "set packet rate in percentage.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
   pktgen_argv[0] = "set";
-  pktgen_argv[1] = argv[4];
+  pktgen_argv[1] = argv[4]; //(0-7|all)
   pktgen_argv[2] = "rate";
-  pktgen_argv[3] = argv[6];
+  pktgen_argv[3] = argv[6]; //0-100
   pktgen_argc = 4;
   ret = set_cmd (pktgen_argc, pktgen_argv);
   if (ret < 0)
@@ -254,7 +252,6 @@ CLI_COMMAND2 (pktgen_do_set_tcp_port,
               "specify the packet tcp port number.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
@@ -285,7 +282,6 @@ CLI_COMMAND2 (pktgen_do_set_ttl,
               "specify the packet ttl number.\n"
              )
 {
-  struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
@@ -385,6 +381,214 @@ CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
   return CMD_SUCCESS;
 }
 
+CLI_COMMAND2 (pktgen_do_set_range_ipv4,
+              "pktgen do set port (<0-7>|all) range ip (src|dst) (start|min|max|inc) A.B.C.D",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet range.\n",
+              "set packet range for IPv4.\n",
+              "set packet range for IPv4 source.\n",
+              "set packet range for IPv4 destination.\n",
+              "set packet range for start.\n",
+              "set packet range for min.\n",
+              "set packet range for max.\n",
+              "set packet range for increment.\n",
+              "set packet range in ipv4 address.\n"
+             )
+{
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "range";
+  pktgen_argv[1] = argv[4]; //port
+  pktgen_argv[2] = argv[7]; //src/dst
+  pktgen_argv[3] = argv[6]; //ip
+  pktgen_argv[4] = argv[8]; //SMMI
+  pktgen_argv[5] = argv[9]; //IPaddr
+  pktgen_argc = 6;
+  ret = range_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_set_range_mac,
+              "pktgen do set port (<0-7>|all) range mac (src|dst) (start|min|max|inc) <WORD>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet range.\n",
+              "set packet range for Ether.\n",
+              "set packet range for Ether source.\n",
+              "set packet range for Ether destination.\n",
+              "set packet range for start.\n",
+              "set packet range for min.\n",
+              "set packet range for max.\n",
+              "set packet range for increment.\n",
+              "set packet range in Ethernet address.\n"
+             )
+{
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "range";
+  pktgen_argv[1] = argv[4]; //port
+  pktgen_argv[2] = argv[7]; //src/dst
+  pktgen_argv[3] = argv[6]; //mac
+  pktgen_argv[4] = argv[8]; //SMMI
+  pktgen_argv[5] = argv[9]; //ether addr
+  pktgen_argc = 6;
+  ret = range_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_set_range_size,
+              "pktgen do set port (<0-7>|all) range size (start|min|max|inc) <1-9000>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet range.\n",
+              "set packet range size.\n",
+              "set packet range for start.\n",
+              "set packet range for min.\n",
+              "set packet range for max.\n",
+              "set packet range for increment.\n",
+              "set packet size.\n"
+             )
+{
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "range";
+  pktgen_argv[1] = argv[4]; //port
+  pktgen_argv[2] = argv[6]; //size
+  pktgen_argv[3] = argv[7]; //SMMI
+  pktgen_argv[4] = argv[8]; //size
+  pktgen_argc = 5;
+  ret = range_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_rate,
+              "pktgen do rate port (<0-7>|all) rate <0-100>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen rate cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet rate.\n",
+              "set packet rate in percentage.\n"
+             )
+{
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "rate";
+  pktgen_argv[1] = argv[4]; //port
+  pktgen_argv[2] = argv[5]; //rate
+  pktgen_argv[3] = argv[6]; //<0-100>
+  pktgen_argc = 4;
+  ret = rate_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_rate_count,
+              "pktgen do rate port (<0-7>|all) count <0-4000000000>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen rate cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet count.\n",
+              "set packet count.\n"
+             )
+{
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "rate";
+  pktgen_argv[1] = argv[4]; //port
+  pktgen_argv[2] = argv[5]; //count
+  pktgen_argv[3] = argv[6]; //<0-4000000000>
+  pktgen_argc = 4;
+  ret = rate_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_rate_size,
+              "pktgen do rate port (<0-7>|all) size <0-9000>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen rate cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet size.\n",
+              "set packet size.\n"
+             )
+{
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = "rate";
+  pktgen_argv[1] = argv[4]; //port
+  pktgen_argv[2] = argv[5]; //size
+  pktgen_argv[3] = argv[6]; //<0-9000>
+  pktgen_argc = 4;
+  ret = rate_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_set_enable,
+              "pktgen do set port (<0-7>|all) (range|rate|vlan|qinq) (enable|disable)",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet range.\n",
+              "set packet rate.\n",
+              "set vlan.\n",
+              "set Q-in-Q.\n",
+              "set to enable.\n",
+              "set to disable.\n")
+{
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  pktgen_argv[0] = argv[6]; //enable/disable
+  pktgen_argv[1] = argv[4]; //port
+  pktgen_argv[2] = argv[5]; //(range|rate|vlan|qinq)
+  pktgen_argc = 3;
+  ret = en_dis_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
 void
 pktgen_cmd_init (struct command_set *cmdset)
 {
@@ -398,5 +602,12 @@ pktgen_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_ttl);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_mac_addr);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_ipv4_addr);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_ipv4);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_mac);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_size);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_rate);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_rate_count);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_rate_size);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_enable);
 }
 #endif /*ENABLE_PKTGEN*/

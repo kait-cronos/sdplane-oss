@@ -5,8 +5,12 @@
 #include "queue_config.h"
 
 #include "rib.h"
+#include "sdplane.h"
+
+#include "debug_sdplane.h"
 
 extern struct rib_tree *rib_tree_master[ROUTE_TREE_SIZE];
+extern struct hash_table nh_ht;
 
 struct rib
 {
@@ -27,8 +31,7 @@ extern struct rte_ring *capture_if_ring_dn[MAX_VSWITCH];
 void rib_manager_recv_message (void *msgp);
 //void rib_manager_send_message (void *msgp, struct shell *shell);
 
-int fdb_lookup_entry (const struct rib_info *rib_info,
-                      const struct rte_ether_addr *mac_addr, uint16_t vlan_id);
+int srv6_local_sid_find (struct rib_info *rib_info, const struct in6_addr *sid);
 
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
@@ -41,7 +44,17 @@ do { \
   if (msg_queue_rib) \
     { \
       DEBUG_SDPLANE_LOG (RIB, "sending message to rib: %p.", (msgp)); \
-      rte_ring_enqueue (msg_queue_rib, (msgp)); \
+      if (rte_ring_enqueue (msg_queue_rib, (msgp)) != 0) \
+        { \
+          WARNING ("rte_ring_enqueue: msg_queue_rib full. " \
+                   "message %p lost.", (msgp)); \
+          free (msgp); \
+        } \
+    } \
+  else \
+    { \
+      WARNING ("can't send message to rib: queue: NULL."); \
+      free (msgp); \
     } \
 } while (0)
 
@@ -50,16 +63,23 @@ do { \
   if (msg_queue_rib) \
     { \
       DEBUG_SDPLANE_LOG (RIB, "sending message to rib: %p.", (msgp)); \
-      rte_ring_enqueue (msg_queue_rib, (msgp)); \
+      if (rte_ring_enqueue (msg_queue_rib, (msgp)) != 0) \
+        { \
+          WARNING ("rte_ring_enqueue: msg_queue_rib full. " \
+                   "message %p lost.", (msgp)); \
+          free (msgp); \
+        } \
     } \
   else if (shell) \
     { \
       fprintf ((shell)->terminal, "can't send message to rib: queue: NULL.%s", \
                (shell)->NL); \
+      free (msgp); \
     } \
   else \
     { \
       WARNING ("can't send message to rib: rib_queue: NULL."); \
+      free (msgp); \
     } \
 } while (0)
 

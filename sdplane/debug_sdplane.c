@@ -59,6 +59,20 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_WARNING, "warning" },
   { DEBUG_SDPLANE_ERROR, "error" },
   { DEBUG_SDPLANE_NETLINK_HOOK, "netlink-hook" },
+  { DEBUG_SDPLANE_SIGNAL, "signal" },
+  { DEBUG_SDPLANE_NEXTHOP, "nexthop" },
+  { DEBUG_SDPLANE_RTE_ETHDEV, "rte-ethdev" },
+  { DEBUG_SDPLANE_TMP, "tmp-target" },
+  { DEBUG_SDPLANE_INTERFACE, "interface" },
+  { DEBUG_SDPLANE_ROUTING_LOOKUP, "routing-lookup" },
+  { DEBUG_SDPLANE_NEIGH_LOOKUP, "neigh-lookup" },
+  { DEBUG_SDPLANE_FDB_LOOKUP, "fdb-lookup" },
+  { DEBUG_SDPLANE_VSWITCH_LINK, "vswitch-link" },
+  { DEBUG_SDPLANE_ROUTING, "routing" },
+  { DEBUG_SDPLANE_FORWARDING, "forwarding" },
+  { DEBUG_SDPLANE_SWITCHING, "switching" },
+  { DEBUG_SDPLANE_FLOODING, "flooding" },
+  { DEBUG_SDPLANE_IGMP, "igmp" },
 };
 
 struct command_header debug_sdplane_cmd;
@@ -94,7 +108,13 @@ debug_sdplane_func (void *context, int argc, char **argv)
       argc--;
     }
 
-  if (! strcmp (argv[2], "all"))
+  char *target = NULL;
+  if (argc > 2)
+    target = argv[2];
+  else
+    target = argv[1];
+
+  if (! strcmp (target, "all"))
     {
       if (negate)
         {
@@ -113,7 +133,7 @@ debug_sdplane_func (void *context, int argc, char **argv)
 
   for (i = 0; i < debug_type_size; i++)
     {
-      if (! strcmp (argv[2], debug_types[i].name))
+      if (! strcmp (target, debug_types[i].name))
         {
           if (negate)
             {
@@ -133,7 +153,7 @@ debug_sdplane_func (void *context, int argc, char **argv)
 }
 
 CLI_COMMAND2 (show_debug_sdplane,
-              "show debugging sdplane",
+              "show debugging (sdplane|)",
               SHOW_HELP,
               "show debugging information.\n",
               "sdplane\n")
@@ -158,10 +178,10 @@ debug_sdplane_cmd_init ()
   int debug_type_size;
   debug_type_size = sizeof (debug_sdplane_types) / sizeof (struct debug_type);
 
-  debug_cmdstr_init ("sdplane", debug_sdplane_cmdstr,
+  debug_cmdstr_init ("(sdplane|)", debug_sdplane_cmdstr,
                      sizeof (debug_sdplane_cmdstr), debug_sdplane_types,
                      debug_type_size);
-  debug_helpstr_init ("sdplane", debug_sdplane_helpstr,
+  debug_helpstr_init ("(sdplane|)", debug_sdplane_helpstr,
                       sizeof (debug_sdplane_helpstr), debug_sdplane_types,
                       debug_type_size);
 

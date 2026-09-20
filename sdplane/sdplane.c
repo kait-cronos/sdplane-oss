@@ -1,5 +1,7 @@
 #include "include.h"
 
+#include <lthread.h>
+
 #include <rte_ethdev.h>
 #include <rte_bus_pci.h>
 
@@ -14,24 +16,19 @@
 #include <sdplane/libsdplane_version.h>
 #endif
 
-#include "l3fwd.h"
 #include "l2fwd_export.h"
-
+#include "internal_message.h"
 #include "sdplane.h"
 #include "sdplane_version.h"
 #include "stat_collector.h"
-#include "tap_handler.h"
 #include "debug_sdplane.h"
-
-#include <lthread.h>
 #include "thread_info.h"
 #include "queue_config.h"
-
 #include "rib.h"
 #include "tap_cmd.h"
 #include "dpdk_port_cmd.h"
-
 #include "rte_flow_support.h"
+#include "netlink_hook.h"
 
 #include "argv_list.h"
 
@@ -167,6 +164,65 @@ CLI_COMMAND2 (show_mempool, "show mempool", SHOW_HELP, "show mempool.\n")
   return 0;
 }
 
+#if 0
+$ rg router_mode router.c net_subr.h
+router.c
+37:volatile int router_mode = 0; /* the normal/default mode. */
+58:  if (router_mode == 1) /* process_rx_packet: the beginning. */
+248:  if (router_mode == 2) /* process_rx_packet: just before the forwarding. */
+
+net_subr.h
+140:extern volatile int router_mode;
+361:  if (router_mode == 11) /* flooding: the beginning. */
+387:  if (router_mode == 12) /* flooding: after sending all ports, without sending router-if. */
+427:  if (router_mode == 8) /* switching: just before the fdb-lookup */
+438:  if (router_mode == 9) /* switching: right after the fdb-lookup */
+465:  if (router_mode == 10) /* switching: just before the flooding */
+509:  if (router_mode == 3) /* forwarding: just before the routing-lookup. */
+530:  if (router_mode == 4) /* forwarding: right after the routing-lookup. */
+591:  if (router_mode == 5) /* forwarding: just before the neighbor-lookup. */
+602:  if (router_mode == 6) /* forwarding: right after the neighbor-lookup. */
+711:  if (router_mode == 7) /* forwarding: just before the switching. */
+#endif
+
+extern volatile int router_mode;
+
+CLI_COMMAND2 (set_router_mode,
+              "set router mode (0|1|2|3|4|5|6|7|8|9|10|11|12)",
+              SET_HELP,
+              "set router mode.\n",
+              "set router mode.\n",
+              "the normal/default mode.\n",
+              "process_rx_packet: the beginning.\n",
+              "process_rx_packet: just before the forwarding.\n",
+              "forwarding: just before the routing-lookup.\n",
+              "forwarding: right after the routing-lookup.\n",
+              "forwarding: just before the neighbor-lookup.\n",
+              "forwarding: right after the neighbor-lookup.\n",
+              "forwarding: just before the switching.\n",
+              "switching: just before the fdb-lookup\n",
+              "switching: right after the fdb-lookup\n",
+              "switching: just before the flooding\n",
+              "flooding: the beginning.\n",
+              "flooding: after sending all ports, without sending router-if.\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  router_mode = strtol (argv[3], NULL, 0);
+  return 0;
+}
+
+CLI_COMMAND2 (show_router_mode,
+              "show router mode",
+              SHOW_HELP,
+              "show router mode.\n",
+              "show router mode.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  fprintf (shell->terminal, "router-mode: %d%s", router_mode, shell->NL);
+  return 0;
+}
+
 void
 shell_read_response_port_get (struct shell *shell,
                               struct internal_msg_header *imsghdr)
@@ -175,14 +231,12 @@ shell_read_response_port_get (struct shell *shell,
   struct rte_eth_dev_info *dev;
   char link_capa[32];
   char devname[32];
-  const char *businfo;
   char drivername[32];
 
   port_info = internal_msg_body (imsghdr);
   dev = &port_info->dev_info;
 
   snprintf (devname, sizeof (devname), "%s", rte_dev_name (dev->device));
-  businfo = rte_dev_bus_info (dev->device);
   snprintf_flags (link_capa, sizeof (link_capa), dev->speed_capa,
                   link_speeds, "|", LINK_SPEEDS_SIZE);
   snprintf (drivername, sizeof (drivername), "%s", dev->driver_name);
@@ -288,12 +342,14 @@ sdplane_cmd_init (struct command_set *cmdset)
   rte_flow_cmd_init (cmdset);
 
   srv6_cmd_init (cmdset);
+
+  INSTALL_COMMAND2 (cmdset, set_router_mode);
+  INSTALL_COMMAND2 (cmdset, show_router_mode);
 }
 
 void
 sdplane_init ()
 {
-  int lcore_id;
   argv_list_init ();
   nlhook_init ();
   debug_sdplane_cmd_init ();

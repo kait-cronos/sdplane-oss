@@ -83,6 +83,7 @@ internal_msg_send_to (struct rte_ring *ring,
         }
       WARNING (MSG1, msgp);
       WARNING (MSG2);
+      internal_msg_delete (msgp);
       return -1;
     }
   return 0;
