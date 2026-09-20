@@ -38,8 +38,6 @@
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
-
 #include <sdplane/termio.h>
 #include <sdplane/vector.h>
 #include <sdplane/shell.h>
@@ -47,20 +45,11 @@
 #include <sdplane/command_shell.h>
 
 #include "l3fwd.h"
-#include "l3fwd_event.h"
 #include "l3fwd_route.h"
-#include "l3fwd_cmd.h"
-
-#include "l2fwd_export.h"
-#include "l2fwd_cmd.h"
-
 #include "sdplane.h"
 #include "tap_handler.h"
 #include "neigh_manager.h"
-
-#include "vty_shell.h"
 #include "thread_info.h"
-
 #include "dhcp_server.h"
 
 #if HAVE_LIBURCU_QSBR
@@ -73,6 +62,11 @@ static __thread uint64_t loop_counter = 0;
 
 int lthread_core = 0;
 
+extern struct rte_ring *msg_queue_rib;
+extern struct rte_ring *msg_queue_neigh;
+extern struct rte_ring *ring_dhcp_rx;
+extern struct rte_ring *ring_resp;
+
 int startup_config (__rte_unused void *dummy);
 void console_shell (void *arg);
 void vty_server (void *arg);
@@ -81,11 +75,13 @@ int stat_collector (__rte_unused void *dummy);
 void rib_manager (void *arg);
 void netlink_thread (void *arg);
 
+extern struct rte_ring *ring_igmp_snooping_rx;
+int igmp_snooping (__rte_unused void *dummy);
+
 CLI_COMMAND2 (set_worker_lthread_stat_collector,
               "set worker lthread stat-collector", SET_HELP, WORKER_HELP,
               "lthread information\n", "stat-collector\n")
 {
-  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) stat_collector, NULL);
@@ -146,7 +142,19 @@ CLI_COMMAND2 (set_worker_lthread_neigh_manager,
   thread_register (lthread_core, lt, (lthread_func) neigh_manager,
                    "neigh_manager", NULL);
   lthread_detach2 (lt);
-  return 0;
+
+  /* neigh_manager needs to be started immediately.
+     If it is a lthread, lthread_sleep() is necessary. */
+  lthread_sleep (0);
+
+  /* check whether the neigh_manager is actually started. */
+  if (! msg_queue_neigh)
+    {
+      fprintf (shell->terminal, "Can't start neigh_manager.%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  return CMD_SUCCESS;
 }
 
 CLI_COMMAND2 (set_worker_lthread_dhcp_server,
@@ -160,14 +168,52 @@ CLI_COMMAND2 (set_worker_lthread_dhcp_server,
   thread_register (lthread_core, lt, (lthread_func) dhcp_server,
                    "dhcp-server", NULL);
   lthread_detach2 (lt);
-  return 0;
+
+  /* dhcp_server needs to be started immediately.
+     If it is a lthread, lthread_sleep() is necessary. */
+  lthread_sleep (0);
+
+  /* check whether the dhcp_server is actually started. */
+  if (! ring_dhcp_rx)
+    {
+      fprintf (shell->terminal, "Can't start dhcp_server.%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  return CMD_SUCCESS;
 }
+
+CLI_COMMAND2 (set_worker_lthread_igmp_snooping,
+              "set worker lthread igmp-snooping", SET_HELP, WORKER_HELP,
+              "lthread information\n", "igmp-snooping\n")
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) igmp_snooping, NULL);
+  thread_register (lthread_core, lt, (lthread_func) igmp_snooping,
+                   "igmp-snooping", NULL);
+  lthread_detach2 (lt);
+
+  /* dhcp_server needs to be started immediately.
+     If it is a lthread, lthread_sleep() is necessary. */
+  lthread_sleep (0);
+
+  /* check whether the dhcp_server is actually started. */
+  if (! ring_igmp_snooping_rx)
+    {
+      fprintf (shell->terminal, "Can't start igmp-snooping.%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  return CMD_SUCCESS;
+}
+
 
 CLI_COMMAND2 (set_worker_lthread_l3_tap_handler,
               "set worker lthread l3-tap-handler", SET_HELP, WORKER_HELP,
               "lthread information\n", "l3-tap-handler\n")
 {
-  struct shell *shell = (struct shell *) context;
   lthread_t *lt = NULL;
 
   lthread_create (&lt, (lthread_func) l3_tap_handler, NULL);
@@ -185,6 +231,7 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_netlink_thread);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_dhcp_server);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_igmp_snooping);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_l3_tap_handler);
 }
 
@@ -235,10 +282,6 @@ lthread_main (__rte_unused void *dummy)
   debug_zcmdsh_cmd_init ();
   command_shell_init ();
 
-  lthread_create (&lt, (lthread_func) vty_server, NULL);
-  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
-  lthread_detach2 (lt);
-
   ret = startup_config (NULL);
   if (ret < 0)
     {
@@ -251,6 +294,18 @@ lthread_main (__rte_unused void *dummy)
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   thread_id =
       thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
+
+  lthread_create (&lt, (lthread_func) vty_server, NULL);
+  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
+  lthread_detach2 (lt);
+
+  lthread_sleep (0);
+  if (! ring_resp)
+    {
+      printf ("%s[%d]: %s: error in console_shell.\n", __FILE__, __LINE__,
+              __func__);
+      force_quit = 1;
+    }
 
   /* quietly wait/check for the application process quit status. */
   while (! force_quit && ! force_stop[lthread_core])

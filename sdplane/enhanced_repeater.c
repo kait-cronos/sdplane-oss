@@ -23,21 +23,14 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug_log.h>
-#include "debug_sdplane.h"
 
-#include "l2fwd_export.h"
 #include "sdplane.h"
-#include "tap_handler.h"
-
+#include "l2fwd_export.h"
 #include "rib_manager.h"
 #include "thread_info.h"
-
 #include "packet_hdr.h"
-#include "rte_override.h"
 
-#include "dhcp_server.h"
 
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
@@ -87,11 +80,7 @@ _send_ring (struct rte_mbuf *m,
             struct rte_ring *ring)
 {
   struct rte_mbuf *c;
-  uint32_t pkt_len;
-  uint16_t data_len;
   int ret;
-  pkt_len = rte_pktmbuf_pkt_len (m);
-  data_len = rte_pktmbuf_data_len (m);
 
   DEBUG_NEW (ENHANCED_REPEATER,
              "m: %p port %d queue %d to ring: %s (%p)",
@@ -234,7 +223,6 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   struct vswitch_conf *vswitch = NULL;
   struct vswitch_link *vswitch_link = NULL;
   int i;
-  int ret;
   uint16_t vlan_id = 0;
 
   struct rte_ether_hdr *eth;

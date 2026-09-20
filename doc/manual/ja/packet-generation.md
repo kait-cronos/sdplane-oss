@@ -45,7 +45,7 @@ pktgen init argv-list 2
 
 ### pktgen_do - PKTGENコマンド実行
 ```
-pktgen do (start|stop) (<0-7>|all)
+pktgen do (start|stop) port (<0-7>|all)
 ```
 
 PKTGENの開始または停止を実行します。
@@ -61,16 +61,16 @@ PKTGENの開始または停止を実行します。
 **使用例：**
 ```bash
 # ポート0でパケット生成を開始
-pktgen do start 0
+pktgen do start port 0
 
 # 全ポートでパケット生成を開始
-pktgen do start all
+pktgen do start port all
 
 # ポート1でパケット生成を停止
-pktgen do stop 1
+pktgen do stop port 1
 
 # 全ポートでパケット生成を停止
-pktgen do stop all
+pktgen do stop port all
 ```
 
 ## PKTGENの概要
@@ -113,7 +113,7 @@ start worker lcore 1
 
 4. **パケット生成の開始**
 ```bash
-pktgen do start 0
+pktgen do start port 0
 ```
 
 ### 設定パラメータ
@@ -140,25 +140,25 @@ set worker lcore 1 pktgen
 start worker lcore 1
 
 # パケット生成開始
-pktgen do start 0
+pktgen do start port 0
 
 # 状態確認
 show pktgen
 
 # パケット生成停止
-pktgen do stop 0
+pktgen do stop port 0
 ```
 
 ### 複数ポートでの生成
 ```bash
 # 複数ポートで開始
-pktgen do start all
+pktgen do start port all
 
 # 状態確認
 show pktgen
 
 # 複数ポートで停止
-pktgen do stop all
+pktgen do stop port all
 ```
 
 ## 監視と統計
@@ -208,7 +208,7 @@ show port
 ### パケット生成が停止しない場合
 1. 明示的に停止
 ```bash
-pktgen do stop all
+pktgen do stop port all
 ```
 
 2. ワーカーの再起動

@@ -47,10 +47,12 @@ static inline int __attribute__((format(printf, 1, 2))) cli_printf(const char *f
     int n;
 
     va_start(vaList, fmt);
-    n = vfprintf(this_scrn->fd_out, fmt, vaList);
+    //n = vfprintf(this_scrn->fd_out, fmt, vaList);
+    n = vfprintf(stderr, fmt, vaList);
     va_end(vaList);
 
-    fflush(this_scrn->fd_out);
+    //fflush(this_scrn->fd_out);
+    fflush(stderr);
 
     return n;
 }

@@ -45,29 +45,20 @@
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_cmd.h>
-// #include <sdplane/shell_fselect.h>
 #include <sdplane/debug_zcmdsh.h>
 
 #include "l3fwd.h"
-#include "l3fwd_event.h"
 #include "l3fwd_route.h"
 #include "l3fwd_cmd.h"
-
-#include "l2fwd_export.h"
 #include "l2fwd_cmd.h"
-
 #include "sdplane.h"
-#include "tap_handler.h"
-
-#include "debug_sdplane.h"
 #include "vty_shell.h"
-
 #include "thread_info.h"
 #include "rib_manager.h"
 
-#include "dpdk_port_cmd.h"
-
 extern int lthread_core;
+
+struct rte_ring *ring_resp;
 
 void lthread_cancel_all ();
 
@@ -79,10 +70,14 @@ CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
   /* don't shell_close(): this closes stdout. */
   // shell_close (shell);
 
-  int nb_lcores = rte_lcore_count ();
   int lcore_id;
-  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
-    stop_lcore (shell, lcore_id);
+  if (rte_eal_init_done)
+    {
+      RTE_LCORE_FOREACH (lcore_id)
+        stop_lcore (shell, lcore_id);
+    }
+  else
+    stop_lcore (shell, lthread_core);
   return 0;
 }
 
@@ -107,6 +102,7 @@ console_shell (void *arg)
   shell_set_terminal (shell, 0, 1);
   shell_set_prompt (shell, "console> ");
   get_winsize (shell);
+  shell->pager = true;
 
   INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
 
@@ -135,9 +131,14 @@ console_shell (void *arg)
   sdplane_cmd_init (shell->cmdset);
 
   char ring_name[32];
-  struct rte_ring *ring_resp;
   snprintf (ring_name, sizeof (ring_name), "console-resp");
   ring_resp = rte_ring_create (ring_name, 4, rte_socket_id (), 0);
+  if (! ring_resp)
+    {
+      DEBUG_SDPLANE_LOG (CONSOLE, "rte_ring_create(console-resp) failed: %s",
+                         rte_strerror (rte_errno));
+      return;
+    }
 #ifdef SHELL_RING_RESPONSE
   shell->ring_response = ring_resp;
 #endif

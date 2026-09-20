@@ -10,25 +10,21 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
 #include "rib_manager.h"
 #include "neigh_manager.h"
+#include "fdb.h"
 #include "sdplane.h"
 #include "thread_info.h"
-
-#include "l2fwd_export.h"
-
 #include "internal_message.h"
-
 #include "tap.h"
 #include "fib.h"
+#include "rib.h"
 #include "radix.h"
 
 // clang-format off
@@ -41,7 +37,6 @@ CLI_COMMAND2 (show_rib,
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
   int i, j;
-  int nb_ports;
 
   if (! rib || ! rib->rib_info)
     {
@@ -107,7 +102,7 @@ CLI_COMMAND2 (show_rib,
 
   // show lcore informartion
   fprintf (shell->terminal, "lcores: %s", shell->NL);
-  for (i = 0; i < rib->rib_info->lcore_size; i++)
+  RTE_LCORE_FOREACH (i)
     {
       struct lcore_qconf *qconf = &rib->rib_info->lcore_qconf[i];
 
@@ -305,6 +300,31 @@ CLI_COMMAND2 (show_rib_capture_if,
   return 0;
 }
 
+CLI_COMMAND2 (set_fdb_entry,
+              "set fdb port <0-8> vlan <0-4096> lladdr <WORD>",
+              SET_HELP,
+              "set fdb entry\n",
+              "set fdb entry port\n",
+              "set fdb entry port\n",
+              "set fdb entry vlan\n",
+              "set fdb entry vlan\n",
+              "set fdb entry lladdr\n",
+              "set fdb entry lladdr\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_fdb_entry fdb_entry_add;
+  struct internal_msg_header *msgp;
+
+  rte_ether_unformat_addr (argv[7], &fdb_entry_add.mac_addr);
+  fdb_entry_add.port = strtol (argv[3], NULL, 0);
+  fdb_entry_add.vlan_id = strtol (argv[5], NULL, 0);
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_FDB_ENTRY_ADD, &fdb_entry_add,
+                              sizeof (fdb_entry_add));
+  shell_rib_send_message (msgp, shell);
+  return CMD_SUCCESS;
+}
+
 CLI_COMMAND2 (show_fdb,
               "show fdb",
               SHOW_HELP,
@@ -312,26 +332,11 @@ CLI_COMMAND2 (show_fdb,
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
-  int i, count = 0;
-  char mac_str[32];
 
   fprintf (shell->terminal, "fdb:%s", shell->NL);
-  for (i = 0; i < FDB_SIZE; i++)
-    {
-      if (rib->rib_info->fdb[i].state != FDB_STATE_NONE)
-        {
-          rte_ether_format_addr (mac_str, sizeof (mac_str),
-                                 &rib->rib_info->fdb[i].l2addr);
-          fprintf (shell->terminal,
-                   "  fdb[%d]: %s vlan:%u port:%d last_seen:%lu%s",
-                   i, mac_str, rib->rib_info->fdb[i].vlan_id,
-                   rib->rib_info->fdb[i].port,
-                   rib->rib_info->fdb[i].last_seen, shell->NL);
-          count++;
-        }
-    }
-  fprintf (shell->terminal, "total fdb entries: %d/%d%s", count, FDB_SIZE,
-           shell->NL);
+  hash_table_foreach (&rib->rib_info->fdb_table, show_fdb_entry_callback, shell);
+  fprintf (shell->terminal, "total fdb entries: %d%s",
+           rib->rib_info->fdb_table.count, shell->NL);
   return 0;
 }
 
@@ -418,19 +423,21 @@ CLI_COMMAND2 (show_neighbor,
         }
 
       int neigh_table_type;
-      struct neigh_entry *neigh_entry;
+      struct neigh_entry *neigh_entry = NULL;
       struct rte_ether_addr *dst_mac;
       char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
       neigh_table_type = AF_TO_NEIGH_TABLE (family);
       switch (family)
         {
         case AF_INET:
-          neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
-                                neigh_table_type, &ipv4_addr, &neigh_entry);
+          neigh_entry =
+              neigh_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                            neigh_table_type, &ipv4_addr);
           break;
         case AF_INET6:
-          neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
-                                neigh_table_type, &ipv6_addr, &neigh_entry);
+          neigh_entry =
+              neigh_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                            neigh_table_type, &ipv6_addr);
           break;
         default:
           break;
@@ -490,21 +497,27 @@ CLI_COMMAND2 (show_fib_ip_route,
   else if (! strcmp (argv[2], "ipv6"))
     show_arg.family = AF_INET6;
 
-  fprintf (shell->terminal, "%-30s  %-20s%s",
-           "Destination", "Nexthop", shell->NL);
+  fprintf (shell->terminal, "%-30s  %-20s  %-6s%s",
+           "Destination", "Nexthop", "Table", shell->NL);
 
+  bool found = false;
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
-      /* main table only for test */
-      if (rib->rib_info->fib_tree[i]->table_id == 254 &&
-          rib->rib_info->fib_tree[i]->family == show_arg.family)
-        {
-          fprintf (shell->terminal, "fib_tree[%d]:%p%s",
-                   i, rib->rib_info->fib_tree[i], shell->NL);
-          fib_traverse (rib->rib_info->fib_tree[i], fib_show_route,
-                        &show_arg);
-          break;
-        }
+      struct fib_tree *fib_tree = rib->rib_info->fib_tree[i];
+      if (! fib_tree || fib_tree->family != show_arg.family)
+        continue;
+
+      fprintf (shell->terminal, "fib_tree[%d] (table %d):%p%s",
+               i, fib_tree->table_id, fib_tree, shell->NL);
+      fib_traverse (fib_tree, fib_show_route, &show_arg);
+      found = true;
+    }
+
+  if (! found)
+    {
+      const char *family_str = (show_arg.family == AF_INET) ? "IPv4" : "IPv6";
+      fprintf (shell->terminal, "no %s fib routes%s",
+               family_str, shell->NL);
     }
 
   return 0;
@@ -535,39 +548,40 @@ CLI_COMMAND2 (show_rib_ip_route,
   else if (! strcmp (argv[2], "ipv6"))
     show_arg.family = AF_INET6;
 
-  fprintf (shell->terminal, "%-30s  %-30s  Interface%s",
-           "Destination", "Nexthop", shell->NL);
+  fprintf (shell->terminal, "%-30s  %-30s  %-6s  Interface%s",
+           "Destination", "Nexthop", "Table", shell->NL);
 
+  bool found = false;
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
-      if (! rib_tree_master[i])
+      struct rib_tree *rib_tree = rib_tree_master[i];
+      if (! rib_tree || rib_tree->family != show_arg.family)
         continue;
-      /* main table only for test */
-      if (rib_tree_master[i]->table_id == 254 &&
-          rib_tree_master[i]->family == show_arg.family)
-        {
-          fprintf (shell->terminal, "rib_tree_master[%d]:%p%s",
-                   i, rib_tree_master[i], shell->NL);
-          rib_traverse (rib_tree_master[i], rib_show_route,
-                        &show_arg);
-          break;
-        }
+
+      fprintf (shell->terminal, "rib_tree_master[%d] (table %d):%p%s",
+               i, rib_tree->table_id, rib_tree, shell->NL);
+      rib_traverse (rib_tree, rib_show_route, &show_arg);
+      found = true;
+    }
+
+  if (! found)
+    {
+      const char *family_str = (show_arg.family == AF_INET) ? "IPv4" : "IPv6";
+      fprintf (shell->terminal, "no %s rib routes%s",
+               family_str, shell->NL);
     }
 
   return 0;
 }
 
-CLI_COMMAND2 (show_rib_nexthop,
-              "show rib nexthop",
+CLI_COMMAND2 (show_rib_nexthop_group,
+              "show rib nexthop-group",
               SHOW_HELP,
               "rib_tree\n",
-              "nexthop\n")
+              "nexthop group table\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
-  struct show_route_arg show_arg;
-  char nexthop_str[INET6_ADDRSTRLEN];
-  int i, j;
 
   if (! rib || ! rib->rib_info)
     {
@@ -575,75 +589,27 @@ CLI_COMMAND2 (show_rib_nexthop,
       return 0;
     }
 
-  fprintf (shell->terminal, "nexthop type: NH_TYPE_LEGACY%s", shell->NL);
+  nexthop_show_group_table (shell, rib->rib_info);
 
-  fprintf (shell->terminal, "%-5s  %-7s  %-30s  Interface%s",
-           "ID", "RefCnt", "Nexthop", shell->NL);
+  return 0;
+}
 
-  for (i = 0; i < MAX_NEXTHOP_OBJ_SIZE; i++)
+CLI_COMMAND2 (show_rib_nexthop_pool,
+              "show rib nexthop-pool",
+              SHOW_HELP,
+              "rib_tree\n",
+              "nexthop info pool\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+
+  if (! rib || ! rib->rib_info)
     {
-      switch (rib->rib_info->nexthop.legacy.object[i].type)
-        {
-          case NH_OBJ_TYPE_OBJECT:
-            {
-              struct nh_info *nh_info =
-                &rib->rib_info->nexthop.legacy.object[i].nh_info;
+      fprintf (shell->terminal, "no routing information%s", shell->NL);
+      return 0;
+    }
 
-              if (rib->rib_info->nexthop.legacy.object[i].ref_count == 0)
-                continue;
-
-              inet_ntop (nh_info->family, &nh_info->nh_ip_addr,
-                         nexthop_str, sizeof (nexthop_str));
-              fprintf(shell->terminal,
-                      "%-5d  %-7d  %-30s  dev %u%s",
-                      i,
-                      rib->rib_info->nexthop.legacy.object[i].ref_count,
-                      nexthop_str,
-                      rib->rib_info->nexthop.legacy.object[i].nh_info.oif,
-                      shell->NL);
-              break;
-            }
-
-          case NH_OBJ_TYPE_GROUP:
-            {
-              struct nh_info_group *nh_grp =
-                &rib->rib_info->nexthop.legacy.object[i].nh_grp;
-
-              if (rib->rib_info->nexthop.legacy.object[i].ref_count == 0)
-                continue;
-
-              for (j = 0; j < nh_grp->num; j++)
-                {
-                  inet_ntop (nh_grp->nh_info_list[j].family,
-                             &nh_grp->nh_info_list[j].nh_ip_addr,
-                             nexthop_str, sizeof (nexthop_str));
-                  if (j == 0)
-                    fprintf(shell->terminal,
-                            "%-5d  %-7d  %-30s  dev %u%s",
-                            i,
-                            rib->rib_info->nexthop.legacy.object[i].ref_count,
-                            nexthop_str,
-                            nh_grp->nh_info_list[j].oif,
-                            shell->NL);
-                  else
-                    fprintf(shell->terminal,
-                            "%-5s  %-7s  %-30s  dev %u%s",
-                            "",
-                            "",
-                            nexthop_str,
-                            nh_grp->nh_info_list[j].oif,
-                            shell->NL);
-                }
-              break;
-            }
-
-          default:
-            snprintf (nexthop_str, sizeof (nexthop_str), "unknown");
-            break;
-        }
-      }
-
-  // TODO: show NH_TYPE_OBJECT nexthop
+  nexthop_show_pool (shell, rib->rib_info);
 
   return 0;
 }
@@ -993,12 +959,14 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib_vswitch_link);
   INSTALL_COMMAND2 (cmdset, show_rib_router_if);
   INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
+  INSTALL_COMMAND2 (cmdset, set_fdb_entry);
   INSTALL_COMMAND2 (cmdset, show_fdb);
   INSTALL_COMMAND2 (cmdset, show_neighbor);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, show_fib_ip_route);
   INSTALL_COMMAND2 (cmdset, show_rib_ip_route);
-  INSTALL_COMMAND2 (cmdset, show_rib_nexthop);
+  INSTALL_COMMAND2 (cmdset, show_rib_nexthop_group);
+  INSTALL_COMMAND2 (cmdset, show_rib_nexthop_pool);
   INSTALL_COMMAND2 (cmdset, set_vswitch);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port);
   INSTALL_COMMAND2 (cmdset, set_vswitch_port_tag_swap);

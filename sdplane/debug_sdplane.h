@@ -2,6 +2,8 @@
 #define __DEBUG_SDPLANE_H__
 
 #include <stdint.h>
+#include <sdplane/command.h>
+#include <sdplane/debug_log.h>
 
 #define DEBUG_SDPLANE_LTHREAD            (1ULL << 0)
 #define DEBUG_SDPLANE_CONSOLE            (1ULL << 1)
@@ -43,6 +45,20 @@
 #define DEBUG_SDPLANE_WARNING            (1ULL << 38)
 #define DEBUG_SDPLANE_ERROR              (1ULL << 39)
 #define DEBUG_SDPLANE_NETLINK_HOOK       (1ULL << 40)
+#define DEBUG_SDPLANE_SIGNAL             (1ULL << 41)
+#define DEBUG_SDPLANE_NEXTHOP            (1ULL << 42)
+#define DEBUG_SDPLANE_RTE_ETHDEV         (1ULL << 43)
+#define DEBUG_SDPLANE_TMP                (1ULL << 44)
+#define DEBUG_SDPLANE_INTERFACE          (1ULL << 45)
+#define DEBUG_SDPLANE_ROUTING_LOOKUP     (1ULL << 46)
+#define DEBUG_SDPLANE_NEIGH_LOOKUP       (1ULL << 47)
+#define DEBUG_SDPLANE_FDB_LOOKUP         (1ULL << 48)
+#define DEBUG_SDPLANE_VSWITCH_LINK       (1ULL << 49)
+#define DEBUG_SDPLANE_ROUTING            (1ULL << 50)
+#define DEBUG_SDPLANE_FORWARDING         (1ULL << 51)
+#define DEBUG_SDPLANE_SWITCHING          (1ULL << 52)
+#define DEBUG_SDPLANE_FLOODING           (1ULL << 53)
+#define DEBUG_SDPLANE_IGMP               (1ULL << 54)
 
 #define DEBUG_DOMAIN_OF_LTHREAD            SDPLANE
 #define DEBUG_DOMAIN_OF_CONSOLE            SDPLANE
@@ -84,6 +100,20 @@
 #define DEBUG_DOMAIN_OF_WARNING            SDPLANE
 #define DEBUG_DOMAIN_OF_ERROR              SDPLANE
 #define DEBUG_DOMAIN_OF_NETLINK_HOOK       SDPLANE
+#define DEBUG_DOMAIN_OF_SIGNAL             SDPLANE
+#define DEBUG_DOMAIN_OF_NEXTHOP            SDPLANE
+#define DEBUG_DOMAIN_OF_RTE_ETHDEV         SDPLANE
+#define DEBUG_DOMAIN_OF_TMP                SDPLANE
+#define DEBUG_DOMAIN_OF_INTERFACE          SDPLANE
+#define DEBUG_DOMAIN_OF_ROUTING_LOOKUP     SDPLANE
+#define DEBUG_DOMAIN_OF_NEIGH_LOOKUP       SDPLANE
+#define DEBUG_DOMAIN_OF_FDB_LOOKUP         SDPLANE
+#define DEBUG_DOMAIN_OF_VSWITCH_LINK       SDPLANE
+#define DEBUG_DOMAIN_OF_ROUTING            SDPLANE
+#define DEBUG_DOMAIN_OF_FORWARDING         SDPLANE
+#define DEBUG_DOMAIN_OF_SWITCHING          SDPLANE
+#define DEBUG_DOMAIN_OF_FLOODING           SDPLANE
+#define DEBUG_DOMAIN_OF_IGMP               SDPLANE
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)

@@ -185,7 +185,7 @@ CLI_COMMAND2 (show_thread_qconf, "show thread qconf", SHOW_HELP,
 
   if (rib && rib->rib_info)
     {
-      for (i = 0; i < rib->rib_info->lcore_size; i++)
+      RTE_LCORE_FOREACH (i)
         {
           int nrxq;
           nrxq = rib->rib_info->lcore_qconf[i].nrxq;

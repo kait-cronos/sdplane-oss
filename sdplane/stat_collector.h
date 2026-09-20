@@ -1,6 +1,9 @@
 #ifndef __STAT_COLLECTOR_H__
 #define __STAT_COLLECTOR_H__
 
+#include <stdint.h>
+#include <rte_ethdev.h>
+
 extern uint64_t loop_console_prev, loop_console_current, loop_console_pps;
 extern uint64_t loop_vty_shell_prev, loop_vty_shell_current,
     loop_vty_shell_pps;

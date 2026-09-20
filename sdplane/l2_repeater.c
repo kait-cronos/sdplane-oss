@@ -21,19 +21,15 @@
 #endif /*HAVE_LIBURCU_QSBR*/
 
 #include <sdplane/command.h>
-
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
 
+#include "debug_sdplane.h"
 #include "l2fwd_export.h"
 #include "sdplane.h"
-#include "tap_handler.h"
-
 #include "rib_manager.h"
 #include "thread_info.h"
-
 #include "log_packet.h"
 
 static __thread unsigned lcore_id;
@@ -86,7 +82,6 @@ static inline __attribute__ ((always_inline)) void
 l2_repeater_tx_burst ()
 {
   struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
-  struct rte_mbuf *m;
   unsigned i, nb_rx;
   uint16_t portid, queueid;
   uint16_t tx_queueid;
@@ -246,8 +241,6 @@ l2_repeater (__rte_unused void *dummy)
   uint64_t prev_tsc, diff_tsc, cur_tsc;
   const uint64_t drain_tsc =
       (rte_get_tsc_hz () + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
-
-  uint16_t nb_ports;
 
   /* the tx_buffer_per_q is initialized in rib_manager. */
 

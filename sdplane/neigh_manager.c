@@ -28,11 +28,6 @@ static __thread struct neigh_table master_neigh_tables[NEIGH_NR_TABLES];
 
 static __thread uint64_t loop_counter = 0;
 
-const int neigh_key_lengths[NEIGH_NR_TABLES] = {
-  [NEIGH_ARP_TABLE] = sizeof (struct in_addr),
-  [NEIGH_ND_TABLE] = sizeof (struct in6_addr),
-};
-
 const char *
 neigh_manager_table_str (int type)
 {
@@ -91,7 +86,7 @@ neigh_manager_add_entry (struct neigh_table *neigh_table, const int type,
   struct neigh_entry *found;
   int pos;
 
-  pos = neigh_manager_lookup (neigh_table, type, key, &found);
+  pos = neigh_lookup_pos (neigh_table, type, key, &found);
   if (found)
     {
       /* update existing entry */
@@ -128,7 +123,7 @@ neigh_manager_delete_entry (struct neigh_table *neigh_table, const int type,
   struct neigh_entry *found;
   int pos;
 
-  pos = neigh_manager_lookup (neigh_table, type, key, &found);
+  pos = neigh_lookup_pos (neigh_table, type, key, &found);
   if (found)
     {
       neigh_table->num_entries--;
@@ -144,41 +139,6 @@ neigh_manager_delete_entry (struct neigh_table *neigh_table, const int type,
                        neigh_manager_table_str (type));
 
   return -1;
-}
-
-int
-neigh_manager_lookup (const struct neigh_table *neigh_table, const int type,
-                      const void *key, struct neigh_entry **found)
-{
-  *found = NULL;
-
-  int left = 0;
-  int right = neigh_table->num_entries - 1;
-  int mid, ret;
-  struct neigh_entry *tmp;
-
-  /* binary search */
-  while (left <= right)
-    {
-      mid = (left + right) / 2;
-      tmp = &neigh_table->entries[mid];
-      ret = memcmp (&tmp->ip_addr, key, neigh_key_lengths[type]);
-      if (ret == 0)
-        {
-          /* found */
-          *found = tmp;
-          DEBUG_SDPLANE_LOG (NEIGH, "lookup hit in %s[%d].",
-                             neigh_manager_table_str (type), mid);
-          return mid;
-        }
-      else if (ret < 0)
-        left = mid + 1;
-      else
-        right = mid - 1;
-    }
-
-  /* not found */
-  return left; // return the position to insert/delete the entry.
 }
 
 void
@@ -216,7 +176,7 @@ neigh_manager_show_table (const int type, const struct shell *shell)
 void
 neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
 {
-  int i, ret;
+  int ret;
   DEBUG_SDPLANE_LOG (NEIGH, "%s: msg: %p.", __func__, msgp);
 
   void *new_msgp;
@@ -264,9 +224,6 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
       internal_msg_send_to (msg_queue_rib, new_msgp, NULL);
       break;
 
-    /* address resolution requests, etc. */
-    // case INTERNAL_MSG_TYPE_NEIGH_XXX:
-
     default:
       DEBUG_SDPLANE_LOG (NEIGH, "recv msg unknown: %p.", msgp);
       break;
@@ -275,26 +232,41 @@ neigh_manager_process_message (void *msgp, struct neigh_table *neigh_tables)
   free (msgp);
 }
 
-void
+int
 neigh_manager_init ()
 {
   /* initialize */
   if (! msg_queue_neigh)
-    msg_queue_neigh =
-        rte_ring_create ("msg_queue_neigh", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
+    {
+      msg_queue_neigh =
+          rte_ring_create ("msg_queue_neigh", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
+      if (! msg_queue_neigh)
+        {
+          printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
+          DEBUG_SDPLANE_LOG (NEIGH,
+                             "rte_ring_create(msg_queue_neigh) failed: %s",
+                             rte_strerror (rte_errno));
+          return -1;
+        }
+    }
+  return 0;
 }
 
 int
 neigh_manager (void *arg __rte_unused)
 {
-  int i;
+  int i, ret;
   void *msgp;
   unsigned lcore_id = rte_lcore_id ();
 
-  printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
-  DEBUG_SDPLANE_LOG (NEIGH, "%s: started.", __func__);
-
-  neigh_manager_init ();
+  ret = neigh_manager_init();
+  if (ret < 0)
+    {
+      printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
+      DEBUG_SDPLANE_LOG (NEIGH,
+                         "neigh_manager_init() failed: unable to create message queue");
+      return -1;
+    }
 
   int thread_id;
   thread_id = thread_lookup (neigh_manager);
@@ -302,6 +274,9 @@ neigh_manager (void *arg __rte_unused)
 
   /* initialize master neigh tables */
   memset (master_neigh_tables, 0, sizeof (master_neigh_tables));
+
+  printf ("%s[%d]: %s: started.\n", __FILE__, __LINE__, __func__);
+  DEBUG_SDPLANE_LOG (NEIGH, "%s: started.", __func__);
 
   while (! force_quit && ! force_stop[lcore_id])
     {

@@ -4,19 +4,17 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
-
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include "debug_sdplane.h"
-
-#include "sdplane.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <dirent.h>
+
+#include "sdplane.h"
 
 const char *drivers_path = "/sys/bus/pci/drivers";
 const char *devices_path = "/sys/bus/pci/devices";
@@ -61,8 +59,6 @@ is_net_device (char *device_dirname)
 char *
 get_net_devname (char *device_dirname)
 {
-  int ret;
-  struct stat statbuf;
   char filename[256];
   DIR *dir;
   struct dirent *dirent;
@@ -102,7 +98,6 @@ CLI_COMMAND2 (show_devices, "show devices", SHOW_HELP,
   char devname[16];
   char devpath[256];
   char drvrpath[256];
-  int i;
 
   dir = opendir (drivers_path);
   if (dir == NULL)
@@ -201,55 +196,97 @@ pci_bus_number_spec (char *spec)
 int
 pci_bus_number_match (char *spec, char *word)
 {
-  if (strlen (word) == 7)
+  size_t len = strlen (word);
+  size_t i;
+  int colons = 0, dots = 0;
+  char buf[32];
+  char *p, *tok_domain, *tok_bus, *tok_dev, *tok_func;
+
+  if (len == 0 || len >= sizeof (buf))
+    return 0;
+
+  for (i = 0; i < len; i++)
     {
-      if (! isdigit (word[0]))
+      if (word[i] == ':')
+        colons++;
+      else if (word[i] == '.')
+        dots++;
+      else if (! isxdigit (word[i]))
         return 0;
-      if (! isdigit (word[1]))
-        return 0;
-      if (word[2] != ':')
-        return 0;
-      if (! isdigit (word[3]))
-        return 0;
-      if (! isdigit (word[4]))
-        return 0;
-      if (word[5] != '.')
-        return 0;
-      if (! isdigit (word[6]))
-        return 0;
-      return 1;
     }
 
-  if (strlen (word) == 12)
+  if ((colons != 1 && colons != 2) || dots != 1)
+    return 0;
+
+  snprintf (buf, sizeof (buf), "%s", word);
+
+  p = buf;
+  tok_domain = (colons == 2 ? strsep (&p, ":") : NULL);
+  tok_bus = strsep (&p, ":");
+  tok_dev = strsep (&p, ".");
+  tok_func = p;
+
+  if (tok_domain)
     {
-      if (! isdigit (word[0]))
-        return 0;
-      if (! isdigit (word[1]))
-        return 0;
-      if (! isdigit (word[2]))
-        return 0;
-      if (! isdigit (word[3]))
-        return 0;
-      if (word[4] != ':')
-        return 0;
-      if (! isdigit (word[5]))
-        return 0;
-      if (! isdigit (word[6]))
-        return 0;
-      if (word[7] != ':')
-        return 0;
-      if (! isdigit (word[8]))
-        return 0;
-      if (! isdigit (word[9]))
-        return 0;
-      if (word[10] != '.')
-        return 0;
-      if (! isdigit (word[11]))
-        return 0;
-      return 1;
+      if (*tok_domain == '\0')
+        {
+          return 0;
+        }
+
+      if (strlen (tok_domain) > 4)
+        {
+          return 0;
+        }
     }
 
-  return 0;
+  if (! tok_bus || ! tok_dev || ! tok_func)
+    {
+      return 0;
+    }
+
+  if (*tok_bus == '\0' || *tok_dev == '\0' || *tok_func == '\0')
+    {
+      return 0;
+    }
+
+  if (strlen (tok_bus) > 2 || strlen (tok_dev) > 2 || strlen (tok_func) > 1)
+    {
+      return 0;
+    }
+
+  return 1;
+}
+
+int
+pci_bus_number_normalize (char *word, char *out, size_t outlen)
+{
+  size_t i, len = strlen (word);
+  int colons = 0;
+  char buf[32];
+  char *p, *tok_domain, *tok_bus, *tok_dev, *tok_func;
+  unsigned long domain, bus, dev, func;
+
+  for (i = 0; i < len; i++)
+    if (word[i] == ':')
+      colons++;
+
+  snprintf (buf, sizeof (buf), "%s", word);
+
+  p = buf;
+  tok_domain = (colons == 2 ? strsep (&p, ":") : NULL);
+  tok_bus = strsep (&p, ":");
+  tok_dev = strsep (&p, ".");
+  tok_func = p;
+
+  domain = (tok_domain ? strtoul (tok_domain, NULL, 16) : 0);
+  bus = strtoul (tok_bus, NULL, 16);
+  dev = strtoul (tok_dev, NULL, 16);
+  func = strtoul (tok_func, NULL, 16);
+
+  if (out && outlen > 0)
+    snprintf (out, outlen, "%04lx:%02lx:%02lx.%lx", domain, bus, dev, func);
+
+  return 1;
 }
 
 CLI_COMMAND2 (
@@ -267,8 +304,6 @@ CLI_COMMAND2 (
 {
   struct shell *shell = (struct shell *) context;
   char driver_bind_path[256];
-  DIR *driver_dir;
-  struct dirent *driver_ent;
   int fd;
   int ret;
   char pci_number[16];
@@ -276,15 +311,13 @@ CLI_COMMAND2 (
 
   if (! pci_bus_number_match ("<XXXX:XX:XX.X>", argv[2]))
     {
-      fprintf (shell->terminal, "unknown PCI number: %s%s", argv[2],
+      fprintf (shell->terminal, "invalid PCI number: %s%s", argv[2],
                shell->NL);
       return -1;
     }
 
-  if (strlen (argv[2]) == 7)
-    snprintf (pci_number, sizeof (pci_number), "0000:%s", argv[2]);
-  else
-    snprintf (pci_number, sizeof (pci_number), "%s", argv[2]);
+  pci_bus_number_normalize (argv[2], pci_number,
+                              sizeof (pci_number));
 
   snprintf (driver_name, sizeof (driver_name), "%s", argv[4]);
 
