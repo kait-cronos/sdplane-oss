@@ -194,7 +194,7 @@ offload_flag_from_word (const char *word, struct flag_name *flags, int flags_siz
 }
 
 CLI_COMMAND2 (start_stop_port,
-              "(start|stop|reset) port (|"PORT_ID_SPEC"|all)",
+              "(start|stop|reset) port ("PORT_ID_SPEC"|all)",
               START_HELP, STOP_HELP, RESET_HELP,
               PORT_HELP,
               PORT_NUMBER_HELP, PORT_ALL_HELP)
