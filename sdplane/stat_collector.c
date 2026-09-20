@@ -4,6 +4,7 @@
 
 #include <rte_ether.h>
 #include <rte_ethdev.h>
+#include <rte_version.h>
 
 #include <sdplane/log.h>
 #include <sdplane/debug.h>
@@ -59,6 +60,7 @@ rte_eth_stats_per_sec (int port_id, struct rte_eth_stats *per_sec,
 
   int max_queues = RTE_MAX (dev_info.nb_rx_queues, dev_info.nb_tx_queues);
 
+#if RTE_VERSION < RTE_VERSION_NUM(25,0,0,0)
   for (int i = 0; i < max_queues; i++)
     {
       per_sec->q_ipackets[i] =
@@ -70,6 +72,7 @@ rte_eth_stats_per_sec (int port_id, struct rte_eth_stats *per_sec,
       per_sec->q_obytes[i] =
           stats_current->q_obytes[i] - stats_prev->q_obytes[i];
     }
+#endif
 }
 
 static uint64_t loop_stat_collector = 0;
