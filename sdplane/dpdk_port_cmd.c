@@ -193,9 +193,11 @@ offload_flag_from_word (const char *word, struct flag_name *flags, int flags_siz
   return -1;
 }
 
-CLI_COMMAND2 (start_stop_port, "(start|stop|reset) port (|<0-16>|all)",
-              START_HELP, STOP_HELP, RESET_HELP, PORT_HELP, PORT_NUMBER_HELP,
-              PORT_ALL_HELP)
+CLI_COMMAND2 (start_stop_port,
+              "(start|stop|reset) port ("PORT_ID_SPEC"|all)",
+              START_HELP, STOP_HELP, RESET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, PORT_ALL_HELP)
 {
   int port_id;
   int port_spec = -1;
@@ -237,8 +239,7 @@ CLI_COMMAND2 (show_port,
               "show port (|"PORT_ID_SPEC"|all)",
               SHOW_HELP,
               PORT_HELP,
-              PORT_NUMBER_HELP,
-              PORT_ALL_HELP)
+              PORT_NUMBER_HELP, PORT_ALL_HELP)
 {
   struct shell *shell = (struct shell *) context;
   int port_id;
@@ -521,12 +522,13 @@ CLI_COMMAND2 (show_port_statistics,
 }
 
 CLI_COMMAND2 (show_port_queue_statistics,
-              "show port statistics per-queue ("PORT_ID_SPEC"|all) (|pps|total|bps|Bps|total-bytes)",
+              "show port statistics per-queue ("PORT_ID_SPEC"|all) "
+              "(|pps|total|bps|Bps|total-bytes)",
               SHOW_HELP,
               PORT_HELP,
               "show port statistics\n",
               "show port statistics per-queue\n",
-              "port number (0-16 or all)\n",
+              "specify port number to show\n",
               "show all port queues\n",
               "packets per second.\n",
               "total packets.\n",
@@ -747,9 +749,12 @@ CLI_COMMAND2 (show_port_flowcontrol,
 }
 
 CLI_COMMAND2 (set_port_promiscuous,
-              "set port (<0-16>|all) promiscuous (enable|disable)",
-              SET_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP
-              "promiscuous\n" ENABLE_HELP DISABLE_HELP)
+              "set port ("PORT_ID_SPEC"|all) promiscuous (enable|disable)",
+              SET_HELP
+              PORT_HELP
+              PORT_NUMBER_HELP ALL_HELP
+              "promiscuous\n"
+              ENABLE_HELP DISABLE_HELP)
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -774,18 +779,20 @@ CLI_COMMAND2 (set_port_promiscuous,
   return 0;
 }
 
-CLI_COMMAND2 (
-    set_port_flowcontrol,
-    "set port (<0-16>|all) flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)",
-    SET_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP
-    "flowcontrol\n"
-    "flowcontrol rx\n"
-    "flowcontrol tx\n"
-    "flowcontrol autoneg\n"
-    "flowcontrol send-xon\n"
-    "flowcontrol forward mac control frames\n"
-    "flowcontrol on\n"
-    "flowcontrol off\n")
+CLI_COMMAND2 (set_port_flowcontrol,
+              "set port ("PORT_ID_SPEC"|all) flowcontrol "
+              "(rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)",
+              SET_HELP
+              PORT_HELP
+              PORT_NUMBER_HELP ALL_HELP
+              "flowcontrol\n"
+              "flowcontrol rx\n"
+              "flowcontrol tx\n"
+              "flowcontrol autoneg\n"
+              "flowcontrol send-xon\n"
+              "flowcontrol forward mac control frames\n"
+              "flowcontrol on\n"
+              "flowcontrol off\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -891,9 +898,13 @@ lsi_event_callback(uint16_t port_id, enum rte_eth_event_type type, void *param,
 }
 
 CLI_COMMAND2 (set_port_dev_configure,
-              "set port (<0-16>|all) dev-configure <0-64> <0-64>", SHOW_HELP,
-              PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
-              "rte_eth_dev_configure.\n", "nb_rx_queue.\n", "nb_tx_queue.\n")
+              "set port ("PORT_ID_SPEC"|all) dev-configure <0-64> <0-64>",
+              SHOW_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
+              "rte_eth_dev_configure.\n",
+              "nb_rx_queue.\n",
+              "nb_tx_queue.\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -1011,8 +1022,10 @@ CLI_COMMAND2 (set_port_dev_configure,
 }
 
 CLI_COMMAND2 (set_port_txrx_desc,
-              "set port (<0-16>|all) (nrxdesc|ntxdesc) <0-16384>", SET_HELP,
-              PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port ("PORT_ID_SPEC"|all) (nrxdesc|ntxdesc) <0-16384>",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
               "set the number of rx descriptor for the port\n",
               "set the number of tx descriptor for the port\n",
               "Specify the descriptor number.\n")
@@ -1100,16 +1113,16 @@ CLI_COMMAND2 (set_port_txrx_desc,
   return CMD_SUCCESS;
 }
 
-CLI_COMMAND2 (
-    set_port_offload,
-    "set port (<0-16>|all) offload (rx|tx) <WORD> (on|off)",
-    SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
-    "set port offload\n",
-    "set rx offload\n",
-    "set tx offload\n",
-    "offload name or bitmask (e.g. IPV4_CKSUM, RSS_HASH, all)\n",
-    "enable this offload\n",
-    "disable this offload\n")
+CLI_COMMAND2 (set_port_offload,
+              "set port ("PORT_ID_SPEC"|all) offload (rx|tx) <WORD> (on|off)",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
+              "set port offload\n",
+              "set rx offload\n", "set tx offload\n",
+              "offload bitmask by name (e.g. IPV4_CKSUM, RSS_HASH, all)\n",
+              "enable this offload\n",
+              "disable this offload\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -1207,10 +1220,12 @@ CLI_COMMAND2 (
 }
 
 CLI_COMMAND2 (set_port_rss,
-              "set port (<0-16>|all) rss <WORD> (on|off)",
-              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port ("PORT_ID_SPEC"|all) rss <WORD> (on|off)",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
               "set port rss hash fields\n",
-              "rss hash field name or bitmask (e.g. IPV4, NONFRAG_IPV4_TCP, all)\n",
+              "rss hash field bitmask by name (e.g. IPV4, NONFRAG_IPV4_TCP, all)\n",
               "enable rss hash field\n",
               "disable rss hash field\n")
 {
@@ -1284,8 +1299,10 @@ CLI_COMMAND2 (set_port_rss,
 }
 
 CLI_COMMAND2 (set_port_mtu,
-              "set port (<0-16>|all) mtu <0-16384>",
-              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port ("PORT_ID_SPEC"|all) mtu <0-16384>",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
               "set MTU for the port\n",
               "Specify the mtu number.\n")
 {
@@ -1326,8 +1343,10 @@ CLI_COMMAND2 (set_port_mtu,
 }
 
 CLI_COMMAND2 (set_port_nb_txrx_queue,
-              "set port (<0-16>|all) (nrxq|ntxq) <0-256>",
-              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port ("PORT_ID_SPEC"|all) (nrxq|ntxq) <0-256>",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
               "set #rxqueue for the port\n",
               "set #txqueue for the port\n",
               "Specify the number of queues.\n")
@@ -1372,8 +1391,10 @@ CLI_COMMAND2 (set_port_nb_txrx_queue,
 }
 
 CLI_COMMAND2 (set_port_link_updown,
-              "set port (<0-16>|all) link (up|down)",
-              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port ("PORT_ID_SPEC"|all) link (up|down)",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
               "set port link up/down status\n",
               "set port the link status up\n",
               "set port the link status down\n")
@@ -1475,6 +1496,8 @@ regvar_portid_convert_helpstr (char *spec, char *orig_helpstr, char *word)
             "specify PORT-ID. (<0-%d>)", nb_ports - 1);
   return strdup (helpstr);
 }
+
+struct regvar regvar_portid;
 #endif /*REGVAR_SUPPORT*/
 
 void
@@ -1482,14 +1505,15 @@ dpdk_port_cmd_init (struct command_set *cmdset)
 {
 #ifdef REGVAR_SUPPORT
   struct regvar *regvar;
-  regvar = malloc (sizeof (struct regvar));
+  regvar = &regvar_portid;
   regvar->spec = "<PORT-ID>";
   regvar->is_spec = regvar_portid_is_spec;
   regvar->is_match = regvar_portid_is_match;
   regvar->convert_cmdstr = regvar_portid_convert_cmdstr;
   regvar->convert_helpstr = regvar_portid_convert_helpstr;
 
-  cmdset->regvars = vector_create ();
+  if (! cmdset->regvars)
+    cmdset->regvars = vector_create ();
   vector_add (regvar, cmdset->regvars);
 #endif /*REGVAR_SUPPORT*/
 
