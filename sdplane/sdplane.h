@@ -78,8 +78,10 @@ extern struct vswitch vswitch0;
 
 #ifdef REGVAR_SUPPORT
 #define PORT_ID_SPEC "<PORT-ID>"
+#define LCORE_ID_SPEC "<LCORE-ID>"
 #else
 #define PORT_ID_SPEC "<0-16>"
+#define LCORE_ID_SPEC "<0-16>"
 #endif /*REGVAR_SUPPORT*/
 
 void start_lcore (struct shell *shell, int lcore_id);
