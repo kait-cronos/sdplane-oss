@@ -3,6 +3,7 @@
 #include <rte_ethdev.h>
 #include <rte_bus_pci.h>
 #include <rte_malloc.h>
+#include <rte_version.h>
 
 #include <sdplane/debug.h>
 #include <sdplane/termio.h>
@@ -631,6 +632,7 @@ CLI_COMMAND2 (show_port_queue_statistics,
           char queue_name[32];
           snprintf (queue_name, sizeof (queue_name), "queue[%d]:",
                   i);
+#if RTE_VERSION < RTE_VERSION_NUM(25,0,0,0)
           if (packets)
             fprintf (t, "%18s %'11lu %'13lu%s", queue_name,
                       stats->q_ipackets[i], stats->q_opackets[i], shell->NL);
@@ -641,6 +643,11 @@ CLI_COMMAND2 (show_port_queue_statistics,
             fprintf (t, "%18s %'13lu %'15lu%s", queue_name,
                       stats->q_ibytes[i] * 8, stats->q_obytes[i] * 8,
                       shell->NL);
+#else
+            fprintf (t, "%18s %17s %19s%s", queue_name,
+                      "---", "---",
+                      shell->NL);
+#endif /* DPDK < 25.0.0.0 */
         }
       fprintf (t, "%s", shell->NL);
     }
