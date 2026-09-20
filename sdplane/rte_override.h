@@ -41,4 +41,8 @@
   #define IPV6_ADDR_BYTES(x) (x)
 #endif
 
+#if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
+#define RTE_ETHDEV_QUEUE_STAT_CNTRS 16 /* max 256 */
+#endif
+
 #endif /*__RTE_OVERRIDE_H__*/
