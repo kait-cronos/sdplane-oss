@@ -1430,6 +1430,7 @@ command_ls_candidate (int argc, char **argv, struct command_set *cmdset,
                                     match->helpstr, argv[index]);
                   fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
                           regvar_help, shell->NL);
+                  free (regvar_help);
                 }
             }
           else
@@ -1459,6 +1460,8 @@ command_ls_candidate (int argc, char **argv, struct command_set *cmdset,
                                     node->helpstr, argv[index]);
                   fprintf (shell->terminal, "  %-16s %s%s",
                            regvar_spec, regvar_help, shell->NL);
+                  free (regvar_spec);
+                  free (regvar_help);
                 }
             }
           else
