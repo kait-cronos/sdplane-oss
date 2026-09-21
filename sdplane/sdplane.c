@@ -311,6 +311,7 @@ void dpdk_devbind_cmd_init (struct command_set *cmdset);
 void pktgen_cmd_init (struct command_set *cmdset);
 void dhcp_cmd_init (struct command_set *cmdset);
 void srv6_cmd_init (struct command_set *cmdset);
+void igmp_cmd_init (struct command_set *cmdset);
 
 void
 sdplane_cmd_init (struct command_set *cmdset)
@@ -342,6 +343,8 @@ sdplane_cmd_init (struct command_set *cmdset)
   rte_flow_cmd_init (cmdset);
 
   srv6_cmd_init (cmdset);
+
+  igmp_cmd_init (cmdset);
 
   INSTALL_COMMAND2 (cmdset, set_router_mode);
   INSTALL_COMMAND2 (cmdset, show_router_mode);
