@@ -565,6 +565,28 @@ regvar_helpstr (struct command_set *cmdset, char *spec, char *helpstr, char *wor
 }
 
 int
+is_command_regvar (struct command_set *cmdset, char *spec)
+{
+  struct vector_node *vn;
+  int ret = 0;
+
+  if (cmdset->regvars)
+    {
+      for (vn = vector_head (cmdset->regvars); vn; vn = vector_next (vn))
+        {
+          struct regvar *regvar = (struct regvar *) vn->data;
+          if (regvar && regvar->is_spec &&
+              (*regvar->is_spec) (spec))
+            {
+              ret++;
+            }
+        }
+    }
+
+  return ret;
+}
+
+int
 is_command_match_regvar (struct command_set *cmdset, char *spec, char *word)
 {
   struct vector_node *vn;
@@ -580,6 +602,31 @@ is_command_match_regvar (struct command_set *cmdset, char *spec, char *word)
             {
               if (regvar->is_match &&
                   (*regvar->is_match) (spec, word))
+                ret++;
+            }
+        }
+    }
+
+  return ret;
+}
+
+int
+is_command_match_regvar_matching (struct command_set *cmdset,
+                                  char *spec, char *word)
+{
+  struct vector_node *vn;
+  int ret = 0;
+
+  if (cmdset->regvars)
+    {
+      for (vn = vector_head (cmdset->regvars); vn; vn = vector_next (vn))
+        {
+          struct regvar *regvar = (struct regvar *) vn->data;
+          if (regvar && regvar->is_spec &&
+              (*regvar->is_spec) (spec))
+            {
+              if (regvar->is_matching &&
+                  (*regvar->is_matching) (spec, word))
                 ret++;
             }
         }
