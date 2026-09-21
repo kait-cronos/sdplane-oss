@@ -545,9 +545,7 @@ nexthop_add_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
               const struct nh_info *a =
                 (aidx >= 0) ? &nexthop->info_pool[aidx] : NULL;
               const struct nh_info *b = &nh->members[i].info;
-              if (!a || a->family != b->family ||
-                  memcmp (&a->gw, &b->gw, sizeof (a->gw)) != 0 ||
-                  a->oif != b->oif)
+              if (!a || !_nh_info_equal (a, b))
                 {
                   match = 0;
                   break;
@@ -720,19 +718,7 @@ nexthop_del_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
                 (aidx >= 0) ? &nexthop->info_pool[aidx] : NULL;
               const struct nh_info *b = &nh->members[i].info;
 
-              {
-                DEBUG_NEW (NEXTHOP, "nhcnt: %d", i);
-                DEBUG_NEW (NEXTHOP, "a: %p a->family: %d a->oif: %d",
-                           a, a->family, a->oif);
-                DEBUG_NEW (NEXTHOP, "b: %p b->family: %d b->oif: %d",
-                           b, b->family, b->oif);
-                DEBUG_NEW (NEXTHOP, "a->gw: %#x b->gw: %#x size: %d",
-                           a->gw, b->gw, sizeof (a->gw));
-              }
-
-              if (! a || a->family != b->family ||
-                  memcmp (&a->gw, &b->gw, sizeof (a->gw)) != 0 ||
-                  a->oif != b->oif)
+              if (! a || ! _nh_info_equal (a, b))
                 {
                   match = 0;
                   break;
@@ -745,6 +731,13 @@ nexthop_del_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
         {
           DEBUG_NEW (RIB, "LEGACY nexthop not found");
           return -1;
+        }
+      /* still shared by other routes: keep the group */
+      if (nexthop->groups[slot].refcnt > 1)
+        {
+          DEBUG_NEW (RIB, "group in use: slot=%d refcnt=%d", slot,
+                     nexthop->groups[slot].refcnt);
+          return slot;
         }
     }
 
