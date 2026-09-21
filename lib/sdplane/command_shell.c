@@ -1422,12 +1422,12 @@ command_ls_candidate (int argc, char **argv, struct command_set *cmdset,
               /* regvar match is completed
                  (i.e., "matched", not "matching") */
               if (is_command_match_regvar (shell->cmdset, match->cmdstr,
-                                           argv[index]))
+                                           argv[upper]))
                 {
                   char *regvar_help;
                   regvar_help = (char *)
                     regvar_helpstr (shell->cmdset, match->cmdstr,
-                                    match->helpstr, argv[index]);
+                                    match->helpstr, argv[upper]);
                   fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
                           regvar_help, shell->NL);
                   free (regvar_help);
