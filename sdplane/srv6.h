@@ -276,7 +276,11 @@ _process_encapsulate_srv6_packet (struct rte_mbuf *m,
       return false;
     }
   memmove (new_ether_hdr, *original_ether_hdr, original_pre_ip_hdr_size);
-  new_ether_hdr->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
+  //new_ether_hdr->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
+  rte_be16_t *pre_ip_ether_type =
+      (rte_be16_t *) ((uint8_t *) new_ether_hdr + original_pre_ip_hdr_size -
+                      sizeof (rte_be16_t));
+  *pre_ip_ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
   struct rte_ipv6_hdr* new_ipv6_hdr =
           (struct rte_ipv6_hdr *) ((uint8_t *) new_ether_hdr +
                                    original_pre_ip_hdr_size);
