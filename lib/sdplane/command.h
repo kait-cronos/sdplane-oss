@@ -41,6 +41,7 @@ struct regvar
   char *spec;
   int (*is_spec) (char *spec);
   int (*is_match) (char *spec, char *word);
+  int (*is_matching) (char *spec, char *word);
   char * (*convert_cmdstr) (char *spec, char *word);
   char * (*convert_helpstr) (char *spec, char *helpstr, char *word);
 };
@@ -118,6 +119,11 @@ struct command_set *command_set_create ();
 void command_set_delete (struct command_set *cmdset);
 
 int is_command_match (char *spec, char *word);
+
+int is_command_match_regvar (struct command_set *cmdset,
+                             char *spec, char *word);
+int is_command_match_regvar_matching (struct command_set *cmdset,
+                                      char *spec, char *word);
 
 void command_install (struct command_set *cmdset, char *command_line,
                       char *help_string, command_func_t func);

@@ -1415,23 +1415,51 @@ command_ls_candidate (int argc, char **argv, struct command_set *cmdset,
          current command-line is "show port ?".
          In the case, the current argv is "" and the
          upper matched node has the execution function. */
-      if (! strlen (argv[curr]) && match->func)
-        fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
-                 match->helpstr, shell->NL);
+      if (! strlen (argv[curr]))
+        {
+          if (is_command_regvar (shell->cmdset, match->cmdstr))
+            {
+              /* regvar match is completed
+                 (i.e., "matched", not "matching") */
+              if (is_command_match_regvar (shell->cmdset, match->cmdstr,
+                                           argv[index]))
+                {
+                  char *regvar_help;
+                  regvar_help = (char *)
+                    regvar_helpstr (shell->cmdset, match->cmdstr,
+                                    match->helpstr, argv[index]);
+                  fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
+                          regvar_help, shell->NL);
+                }
+            }
+          else
+            {
+              if (match->func)
+                fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
+                         match->helpstr, shell->NL);
+            }
+        }
 
       for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
         {
           node = (struct command_node *) vn->data;
-          if (is_command_match_regvar (shell->cmdset, node->cmdstr, argv[index]))
+          if (is_command_regvar (shell->cmdset, node->cmdstr))
             {
-          char *regvar_spec;
-          char *regvar_help;
-            regvar_spec = (char *) regvar_cmdstr (shell->cmdset, node->cmdstr, argv[index]);
-            regvar_help = (char *) regvar_helpstr (shell->cmdset, node->cmdstr, node->helpstr, argv[index]);
-            fprintf (shell->terminal, "  %-16s %s%s",
-                     regvar_spec,
-                     regvar_help,
-                     shell->NL);
+              if (is_command_match_regvar (shell->cmdset, node->cmdstr,
+                                           argv[index]) ||
+                  is_command_match_regvar_matching (shell->cmdset,
+                                           node->cmdstr, argv[index]))
+                {
+                  char *regvar_spec;
+                  char *regvar_help;
+                  regvar_spec = (char *)
+                    regvar_cmdstr (shell->cmdset, node->cmdstr, argv[index]);
+                  regvar_help = (char *)
+                    regvar_helpstr (shell->cmdset, node->cmdstr,
+                                    node->helpstr, argv[index]);
+                  fprintf (shell->terminal, "  %-16s %s%s",
+                           regvar_spec, regvar_help, shell->NL);
+                }
             }
           else
           if (is_command_match (node->cmdstr, argv[index]))
