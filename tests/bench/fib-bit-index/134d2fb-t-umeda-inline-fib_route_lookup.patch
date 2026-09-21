@@ -1,0 +1,67 @@
+From 134d2fb2f2c7057f99f98ee520bb48ed68b988d7 Mon Sep 17 00:00:00 2001
+From: t-umeda <x86taka@x86taka.net>
+Date: Wed, 29 Jul 2026 17:31:19 +0900
+Subject: [PATCH] perf: inline fib_route_lookup and copy the lookup key once
+
+---
+ sdplane/fib.c | 41 ++++++++++++++++++++++-------------------
+ 1 file changed, 22 insertions(+), 19 deletions(-)
+
+diff --git a/sdplane/fib.c b/sdplane/fib.c
+index 83a050f..0ca057c 100644
+--- a/sdplane/fib.c
++++ b/sdplane/fib.c
+@@ -267,28 +267,31 @@ int
+ rib_route_delete4 (struct rib_tree *t, uint8_t *key, int keylen) {}
+ #endif
+ 
+-static struct fib_node *
+-_lookup (struct fib_node *n, struct fib_node *cand, const uint8_t *key,
+-         int cur_plen)
+-{
+-  uint16_t index;
+-
+-  if (! n)
+-    return cand;
+-
+-  if (n->leaf)
+-    cand = n;
+-
+-  index = BIT_INDEX (key, cur_plen, K);
+-  DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "cur_plen=%d, index=%d", cur_plen, index);
+-
+-  return _lookup (n->child[index], cand, key, cur_plen + K);
+-}
+-
+ struct fib_node *
+ fib_route_lookup (struct fib_tree *t, const uint8_t *key)
+ {
+-  return _lookup (t->root, NULL, key, 0);
++  struct fib_node *n = t->root;
++  struct fib_node *cand = NULL;
++
++  uint8_t key_safe[17];
++  memcpy (key_safe, key, 16);
++  key_safe[16] = 0;
++
++  int cur_plen = 0;
++  while (n)
++    {
++      if (n->leaf)
++        cand = n;
++
++      const int s = cur_plen;
++      const uint16_t idx =
++          ((((uint16_t)key_safe[s >> 3] << 8) | key_safe[(s >> 3) + 1]) >>
++           (16 - ((s & 0x7) + K))) &
++          ((1 << K) - 1);
++      n = n->child[idx];
++      cur_plen += K;
++    }
++  return cand;
+ }
+ 
+ /* traverse FIB tree depth-first in-order */
+-- 
+2.55.0
+
