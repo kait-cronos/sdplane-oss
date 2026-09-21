@@ -436,7 +436,7 @@ CLI_COMMAND2 (set_srv6_encap_head,
               NO_HELP, SET_HELP, "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
               "set SRv6 encap head-end route\n",
-              "specify destination prefix (e.g. 2001:db8::/64)\n",
+              "specify destination prefix (e.g. 2001:db8::/64, 192.0.2.0/24)\n",
               "specify SRv6 segments in path order (comma-separated)\n",
               "encapsulate with H.Encaps (default)\n",
               "insert SRH with H.Insert (not supported yet)\n")
