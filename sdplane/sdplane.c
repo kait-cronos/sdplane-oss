@@ -303,6 +303,8 @@ shell_read_response (struct shell *shell, struct rte_ring *ring_resp)
     }
 }
 
+void variable_cmd_init (struct command_set *cmdset);
+
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
 void lthread_cmd_init (struct command_set *cmdset);
@@ -316,6 +318,7 @@ void
 sdplane_cmd_init (struct command_set *cmdset)
 {
   setlocale (LC_ALL, "en_US.utf8");
+  variable_cmd_init (cmdset);
   dpdk_lcore_cmd_init (cmdset);
   dpdk_port_cmd_init (cmdset);
   argv_list_cmd_init (cmdset);
