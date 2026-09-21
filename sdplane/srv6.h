@@ -161,164 +161,126 @@ _process_srv6_packet_multi_sids (struct rte_mbuf *m,
 }
 
 static inline __attribute__ ((always_inline)) bool
-_process_srv6_end_packet (struct rte_mbuf *m,
-                      struct rte_ipv6_hdr *ipv6,
-                      struct srv6_local_sid_entry *srv6_local_sid)
-{
-  bool modified = false;
-
-  /* If not routing-header, quit processing. */
-  if (ipv6->proto != IPPROTO_ROUTING)
-  {
-    DEBUG_NEW (ROUTER, "m: %p: ipv6->proto != ROUTING", m);
-    return modified;
-  }
-
-  /* If the packet is too short. */
-  uint32_t pkt_len = rte_pktmbuf_pkt_len (m);
-  if (unlikely (pkt_len < sizeof (struct rte_ipv6_hdr) +
-                          sizeof (struct rte_ipv6_routing_ext)))
-  {
-    DEBUG_NEW (ROUTER, "m: %p: pkt_len short: %d", m, pkt_len);
-    return modified;
-  }
-
-  struct rte_ipv6_routing_ext *srh;
-  srh = (struct rte_ipv6_routing_ext *)(ipv6 + 1);
-  if (srh->type != RTE_IPV6_SRCRT_TYPE_4)
-  {
-    DEBUG_NEW (ROUTER, "m: %p: SRH->type != SRCRT_TYPE_4", m);
-    return modified;
-  }
-
-  int max_last_entry = (srh->hdr_len / 2) - 1;
-  if (srh->last_entry > max_last_entry ||
-      (srh->segments_left > srh->last_entry + 1))
-  {
-    DEBUG_NEW (ROUTER, "m: %p: max_entry or segments_left invalid", m);
-    return modified;
-  }
-
-  if (srh->segments_left == 0)
-  {
-    DEBUG_NEW (ROUTER, "m: %p: zero segments_left", m);
-    return modified;
-  }
-
-  void *dst_addr;
-#if RTE_VERSION < RTE_VERSION_NUM(24, 0, 0, 0)
-  dst_addr = (void *) &ipv6->dst_addr[0];
-#else
-  dst_addr = (void *) &ipv6->dst_addr.a;
-#endif
-
-  srh->segments_left --;
-
-  struct in6_addr* sid_list = (struct in6_addr *)(srh + 1);
-  rte_memcpy (dst_addr, &sid_list[srh->segments_left], 16);
-
-  DEBUG_NEW (ROUTER, "m: %p: reload dst_addr from sid_list[%d]",
-             m, srh->segments_left);
-  modified = true;
-  return modified;
-}
-
-static inline __attribute__ ((always_inline)) bool
-_process_encapsulate_srv6_packet (struct rte_mbuf *m,
-                      struct rte_ether_hdr** original_ether_hdr,
-                      struct rte_ipv4_hdr** original_ipv4_hdr,
-                      struct rte_ipv6_hdr **original_ipv6_hdr,
-                      struct srv6_encap_sid_entry *srv6_encap_sid,
-                      struct in6_addr* src_addr,int rx_portid,int rx_queueid)
+_process_srv6_encap (struct rte_mbuf *m,
+                                  struct rte_ether_hdr **original_ether_hdr,
+                                  struct rte_ipv4_hdr **original_ipv4_hdr,
+                                  struct rte_ipv6_hdr **original_ipv6_hdr,
+                                  struct srv6_encap_sid_entry *srv6_encap_sid,
+                                  struct in6_addr *src_addr, int rx_portid,
+                                  int rx_queueid)
 {
   /* encapsulate with SRv6 */
-  uint32_t outer_header_size = sizeof (struct rte_ipv6_hdr) +
-                              sizeof (struct rte_ipv6_routing_ext) +
-                              srv6_encap_sid->segment_list_size *
-                              sizeof(struct in6_addr);
+  uint32_t outer_header_size =
+      sizeof (struct rte_ipv6_hdr) + sizeof (struct rte_ipv6_routing_ext) +
+      srv6_encap_sid->segment_list_size * sizeof (struct in6_addr);
 
-  DEBUG_NEW (ROUTER, "m: %p: encapsulating with SRv6, original pkt len"
+  DEBUG_NEW (ROUTER,
+             "m: %p: encapsulating with SRv6, original pkt len"
              " %d, outer header size %d, segment list size %d,"
              " original %s hdr packet len %d",
              m, rte_pktmbuf_pkt_len (m), outer_header_size,
              srv6_encap_sid->segment_list_size,
-             (*original_ipv4_hdr) ? "IPv4" : "IPv6",
-       (*original_ipv4_hdr) ? 
-        rte_be_to_cpu_16 ((*original_ipv4_hdr)->total_length) :
-       (*original_ipv6_hdr) ? 
-        rte_be_to_cpu_16 ((*original_ipv6_hdr)->payload_len) : 0);
+             ((*original_ipv4_hdr) ? "IPv4" : "IPv6"),
+             ((*original_ipv4_hdr)
+                  ? rte_be_to_cpu_16 ((*original_ipv4_hdr)->total_length)
+                  : ((*original_ipv6_hdr)
+                         ? rte_be_to_cpu_16 ((*original_ipv6_hdr)->payload_len)
+                         : 0)));
   // because the original may have some headers between ether_hdr and ipv6_hdr,
   // we need to prepend the same size of header space for new_ether_hdr,
   // and copy the header content before ipv6_hdr to the new_ether_hdr.
   size_t original_pre_ip_hdr_size;
   if (*original_ipv4_hdr)
     {
-      original_pre_ip_hdr_size = (uint8_t *) *original_ipv4_hdr -
-                                  (uint8_t *) *original_ether_hdr;
+      // RFC8986 and RFC2473, decrement TTL and recalculate checksum
+      if ((*original_ipv4_hdr)->time_to_live <= 1)
+        {
+          DEBUG_NEW (ROUTER, "m: %p: TTL is %d, cannot encapsulate", m,
+                     (*original_ipv4_hdr)->time_to_live);
+          return false;
+        }
+      (*original_ipv4_hdr)->time_to_live--;
+      (*original_ipv4_hdr)->hdr_checksum = 0;
+      (*original_ipv4_hdr)->hdr_checksum = rte_ipv4_cksum (*original_ipv4_hdr);
+      original_pre_ip_hdr_size =
+          (uint8_t *) *original_ipv4_hdr - (uint8_t *) *original_ether_hdr;
     }
   else if (*original_ipv6_hdr)
     {
+      // RFC8986 and RFC2473, decrement hop_limits
+      if ((*original_ipv6_hdr)->hop_limits <= 1)
+        {
+          DEBUG_NEW (ROUTER, "m: %p: hop_limits is %d, cannot encapsulate", m,
+                     (*original_ipv6_hdr)->hop_limits);
+          return false;
+        }
+      (*original_ipv6_hdr)->hop_limits--;
       original_pre_ip_hdr_size =
-      (uint8_t *) *original_ipv6_hdr -
-                                  (uint8_t *) *original_ether_hdr;
+          (uint8_t *) *original_ipv6_hdr - (uint8_t *) *original_ether_hdr;
     }
   else
     {
-      DEBUG_NEW (ROUTER,
-                 "m: %p: no ipv4 or ipv6 header found for encapsulate", m);
+      DEBUG_NEW (ROUTER, "m: %p: no ipv4 or ipv6 header found for encapsulate",
+                 m);
       return false;
     }
-  struct rte_ether_hdr* new_ether_hdr =
-    rte_pktmbuf_prepend (m, outer_header_size);
-  if (!new_ether_hdr)
+  struct rte_ether_hdr *new_ether_hdr =
+      (struct rte_ether_hdr *) rte_pktmbuf_prepend (m, outer_header_size);
+  if (! new_ether_hdr)
     {
       DEBUG_NEW (ROUTER, "m: %p: failed to prepend for encapsulate", m);
       return false;
     }
   memmove (new_ether_hdr, *original_ether_hdr, original_pre_ip_hdr_size);
-  //new_ether_hdr->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
-  rte_be16_t *pre_ip_ether_type =
-      (rte_be16_t *) ((uint8_t *) new_ether_hdr + original_pre_ip_hdr_size -
-                      sizeof (rte_be16_t));
-  *pre_ip_ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
-  struct rte_ipv6_hdr* new_ipv6_hdr =
-          (struct rte_ipv6_hdr *) ((uint8_t *) new_ether_hdr +
-                                   original_pre_ip_hdr_size);
+  // the L3 protocol type is held in the VLAN header if the packet is
+  // tagged.  overwriting ether_type would break the VLAN tag, and the
+  // tx side (_send_link) would no longer recognize the packet as tagged.
+  if (new_ether_hdr->ether_type == rte_cpu_to_be_16 (RTE_ETHER_TYPE_VLAN))
+    {
+      struct rte_vlan_hdr *new_vlan_hdr =
+          (struct rte_vlan_hdr *) (new_ether_hdr + 1);
+      new_vlan_hdr->eth_proto = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
+    }
+  else
+    new_ether_hdr->ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6);
+  struct rte_ipv6_hdr *new_ipv6_hdr =
+      (struct rte_ipv6_hdr *) ((uint8_t *) new_ether_hdr +
+                               original_pre_ip_hdr_size);
   // version 6, traffic class and flow label are set to 0
-  new_ipv6_hdr->vtc_flow = rte_cpu_to_be_32(6 << 28);
-  new_ipv6_hdr->payload_len = rte_cpu_to_be_16(rte_pktmbuf_pkt_len(m) -
-                            original_pre_ip_hdr_size -
-                            sizeof(struct rte_ipv6_hdr));
+  new_ipv6_hdr->vtc_flow = rte_cpu_to_be_32 (6 << 28);
+  new_ipv6_hdr->payload_len =
+      rte_cpu_to_be_16 (rte_pktmbuf_pkt_len (m) - original_pre_ip_hdr_size -
+                        sizeof (struct rte_ipv6_hdr));
   new_ipv6_hdr->proto = IPPROTO_ROUTING;
   new_ipv6_hdr->hop_limits = 64; // TODO: configurable hop limit
   rte_memcpy (&new_ipv6_hdr->src_addr, src_addr, 16);
-  struct rte_ipv6_routing_ext* new_srh =
-    (struct rte_ipv6_routing_ext *) (new_ipv6_hdr + 1);
+  struct rte_ipv6_routing_ext *new_srh =
+      (struct rte_ipv6_routing_ext *) (new_ipv6_hdr + 1);
   new_srh->type = RTE_IPV6_SRCRT_TYPE_4;
   new_srh->hdr_len = srv6_encap_sid->segment_list_size * 2;
   new_srh->segments_left = srv6_encap_sid->segment_list_size - 1;
   new_srh->last_entry = srv6_encap_sid->segment_list_size - 1;
-  new_srh->next_hdr = (*original_ipv4_hdr) ? 4: 41; // IPv4: 4, IPv6: 41
-  new_srh->tag = 0; // TODO: configurable tag
-  new_srh->flag = 0; // TODO: configurable flag
+  new_srh->next_hdr = ((*original_ipv4_hdr) ? 4 : 41); // IPv4: 4, IPv6: 41
+  new_srh->tag = 0;                                  // TODO: configurable tag
+  new_srh->flag = 0;                                 // TODO: configurable flag
   rte_memcpy (&new_ipv6_hdr->dst_addr,
-          &srv6_encap_sid->sids[srv6_encap_sid->segment_list_size - 1], 16);
+              &srv6_encap_sid->sids[srv6_encap_sid->segment_list_size - 1],
+              16);
   rte_memcpy (new_srh + 1, srv6_encap_sid->sids,
-                srv6_encap_sid->segment_list_size * 16);
+              srv6_encap_sid->segment_list_size * 16);
   *original_ether_hdr = new_ether_hdr;
   *original_ipv6_hdr = new_ipv6_hdr;
   *original_ipv4_hdr = NULL; // Clear the IPv4 header pointer
   if (IS_DEBUG (ROUTER))
     {
       DEBUG_NEW (ROUTER,
-        "m: %p: encapsulated with new outer IPv6 and SRH encaped packet len %d",
-         m, rte_pktmbuf_pkt_len(m));
+                 "m: %p: encapsulated with new outer IPv6 and "
+                 "SRH encaped packet len %d",
+                 m, rte_pktmbuf_pkt_len (m));
       log_packet (m, rx_portid, rx_queueid);
     }
 
   return true;
 }
-
-extern bool enable_srv6_encap_mode;
 
 #endif /*__SRV6_H__*/

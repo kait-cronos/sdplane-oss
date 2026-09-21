@@ -53,6 +53,12 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   struct rte_ipv6_hdr *ipv6 = NULL;
   struct rte_icmp_hdr *icmp = NULL;
 
+  if (router_mode == 1) /* process_rx_packet: the beginning. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
   eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
   eth_type = rte_be_to_cpu_16 (eth->ether_type);
 
@@ -165,9 +171,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     log_packet (m, rx_portid, rx_queueid);
 
   /* 2. send to capture_if */
-  struct capture_if *cif = &vswitch->capture_if;
-  if (cif->sockfd >= 0 && cif->ring_up)
-    _send_ring (m, rx_portid, rx_queueid, cif->ring_up);
+  _send_capture_if_ring (m, rx_portid, rx_queueid, vswitch);
 
   struct router_if *rif = &vswitch->router_if;
 
@@ -192,9 +196,11 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* check if destination MAC is multicast or broadcast */
+  bool is_mcast_bcast = false;
   if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
+      is_mcast_bcast = true;
       DEBUG_NEW (ROUTER, "m: %p mac_addr bcast/mcast: send to router_if",
                  m, eth_type);
       _send_router_if_ring (m, rx_portid, rx_queueid, rif);
@@ -202,32 +208,37 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     }
 
   /* 3. check if control packet (ARP, ICMP, etc.) */
+  bool is_control = false;
   if (rif->sockfd >= 0 && rif->ring_up)
     {
-      bool is_control = _check_control_packet (m, vswitch, eth_type, eth,
-                                               vlan, ipv4, ipv6, icmp);
+      is_control = _check_control_packet (m, vswitch, eth_type, eth,
+                                          vlan, ipv4, ipv6, icmp);
       if (is_control)
         {
-          DEBUG_NEW (ROUTER,
-              "m: %p control packet (eth_type:0x%04x), send to router_if", m,
-              eth_type);
-          _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+          if (! is_mcast_bcast) //unicast
+            {
+              DEBUG_NEW (ROUTER,
+                  "m: %p control packet (eth_type:0x%04x), send to router_if", m,
+                  eth_type);
+              _send_router_if_ring (m, rx_portid, rx_queueid, rif);
+            }
+
           return;
         }
     }
 
   /* 3.5 IPv4 multicast with SRv6 H.Encaps route */
-  if (ipv4 && enable_srv6_encap_mode && ipv4->next_proto_id != IPPROTO_IGMP &&
+  if (ipv4 && ipv4->next_proto_id != IPPROTO_IGMP &&
       _is_ipv4_multicast (ipv4) && _has_srv6_h_encaps_route (ipv4))
     {
-      if (_verify_packet (m, ipv4, ipv6) != 0)
+      if (_verify_packet (m, port_conf, ipv4, ipv6) != 0)
         {
           DEBUG_NEW (ROUTER, "m: %p failed verify", m);
           return;
         }
       DEBUG_NEW (ROUTER, "m: %p IPv4 multicast with SRv6 H.Encaps", m);
       _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, vswitch,
-                        vswitch_link, 0);
+                        vswitch_link, 0, false);
 
       return;
     }
@@ -246,21 +257,38 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
                  rif->mac_addr.addr_bytes[2], rif->mac_addr.addr_bytes[3],
                  rif->mac_addr.addr_bytes[4], rif->mac_addr.addr_bytes[5]);
       _switching (m, rx_portid, rx_queueid,
-                  vswitch_link, vswitch, eth);
+                  vswitch_link, vswitch, eth, false);
       return;
     }
 
   /* 5. verify IP packet */
-  if (_verify_packet (m, ipv4, ipv6) != 0)
+  if (_verify_packet (m, port_conf, ipv4, ipv6) != 0)
     {
       DEBUG_NEW (ROUTER, "m: %p failed verify", m);
       return;
     }
 
+  bool modified;
+
+  if (ipv6)
+    modified = _process_srv6_packet_multi_sids (
+        m, ipv6, rib->rib_info->srv6_local_sid,
+        rib->rib_info->srv6_local_sid_addr_num);
+  else
+    modified = false;
+
+  if (modified)
+    vswitch_link = NULL;
+
+  if (router_mode == 2) /* process_rx_packet: just before the forwarding. */
+    {
+      _debug_manual_send (m);
+      return;
+    }
+
   /* 6. forwarding */
-  _srv6_forwarding (m, rx_portid, rx_queueid,
-               eth, ipv4, ipv6,
-               vswitch, vswitch_link,0);
+  _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, vswitch,
+                    vswitch_link, 0, false);
 
   return;
 }
@@ -298,6 +326,9 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
              "m: %p received on port: %d queue: %d",
              m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
 
+  if (IS_DEBUG (ROUTER) || IS_DEBUG (PACKET))
+    log_packet (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
+
 #if 1
   /* check if this is a non-IP packet or multicast or broadcast */
   if ((! ipv4 && ! ipv6) ||
@@ -305,21 +336,24 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
       _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-                  NULL, vswitch, eth);
+                  NULL, vswitch, eth, false);
       return;
     }
 
-  _srv6_forwarding (m,
-               ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-               eth, ipv4, ipv6,
-               vswitch, NULL, 0);
+  if (ipv6)
+    _process_srv6_packet_multi_sids (m, ipv6, rib->rib_info->srv6_local_sid,
+                                     rib->rib_info->srv6_local_sid_addr_num);
+
+
+  _srv6_forwarding (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
+                    eth, ipv4, ipv6, vswitch, NULL, 0, false);
 #else
   /* This is a packet sent from the Linux tap thru
      the packet_down(ring_dn).  I think it is safe to send it
      without any condition, and I think indeed it should be sent,
      for the proper L3-switch behavior. */
   _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-              NULL, vswitch, eth);
+              NULL, vswitch, eth, false);
 #endif
 }
 
@@ -445,6 +479,8 @@ srv6_encap_router (__rte_unused void *dummy)
       urcu_qsbr_read_lock ();
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
+
+      _fwd_cache_invalidate ();
 
       /* better to add processing here only when absolutely necessary
          or cannot be postponed. */

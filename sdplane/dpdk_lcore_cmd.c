@@ -52,6 +52,13 @@ int pktgen_launch_one_lcore(void *arg __rte_unused);
 void
 start_lcore (struct shell *shell, int lcore_id)
 {
+  if (! rte_eal_init_done)
+    {
+      fprintf (shell->terminal,
+               "rte_eal_init() is not done: "
+               "can't start worker on lcore: %d\n", lcore_id);
+      return;
+    }
   fprintf (shell->terminal, "starting worker on lcore: %d\n", lcore_id);
   if (lcore_workers[lcore_id].func == NULL)
     {
@@ -97,12 +104,54 @@ stop_lcore (struct shell *shell, int lcore_id)
     }
 }
 
+/* rte_eal_init() makes the calling thread the DPDK main lcore
+   (the lowest lcore in the coremask, unless --main-lcore is given).
+   the lthread environment runs on that thread, so lthread_core
+   must follow.  the lthread_main marker in lcore_workers[] must
+   also move so that set/start/stop worker keep protecting the
+   lthread lcore. */
+void
+update_lthread_core (struct shell *shell)
+{
+  unsigned int current_lcore;
+
+  current_lcore = rte_lcore_id ();
+  if (current_lcore == LCORE_ID_ANY)
+    return;
+  if (lthread_core == (int) current_lcore)
+    return;
+
+  DEBUG_NEW (WARNING, "lthread lcore changed: %d -> %d.",
+             lthread_core, current_lcore);
+  fprintf (shell->terminal,
+           "lthread lcore changed: core[%d] -> core[%d]%s",
+           lthread_core, current_lcore, shell->NL);
+
+  if (lcore_workers[lthread_core].func == lthread_main)
+    {
+      lcore_workers[current_lcore] = lcore_workers[lthread_core];
+      lcore_workers[lthread_core].func = NULL;
+      lcore_workers[lthread_core].arg = NULL;
+      lcore_workers[lthread_core].func_name = NULL;
+    }
+
+  lthread_core = current_lcore;
+
+  lthread_t *lt = NULL;
+  int thread_id;
+  thread_id = thread_lookup (lthread_main);
+  if (thread_id >= 0)
+    thread_update (thread_id, lthread_core, lt, (lthread_func) lthread_main,
+                   "lthread_main", NULL);
+}
+
 int dhcp_server (__rte_unused void *dummy);
 int rib_manager (__rte_unused void *dummy);
 int netlink_thread (__rte_unused void *dummy);
+int igmp_snooping (__rte_unused void *dummy);
 
 CLI_COMMAND2 (set_worker,
-    "(set|reset|start|restart) worker lcore <0-16> "
+    "(set|reset|start|restart) worker lcore "LCORE_ID_SPEC" "
     "(|none|l2fwd|l3fwd|l3fwd-lpm"
     "|tap-handler|l3-tap-handler"
     "|l2-repeater|vlan-switch|enhanced-repeater|l2-switch"
@@ -111,7 +160,7 @@ CLI_COMMAND2 (set_worker,
 #ifdef ENABLE_PKTGEN
     "|pktgen"
 #endif
-    "|dhcp-server"
+    "|dhcp-server|igmp-snooping"
     "|rib-manager"
     "|netlink-thread"
     ")",
@@ -135,6 +184,7 @@ CLI_COMMAND2 (set_worker,
     "set lcore to launch pktgen\n"
 #endif
     "set lcore to launch dhcp-server\n"
+    "set lcore to launch igmp-snooping\n"
     "set lcore to launch rib-manager\n"
     "set lcore to launch netlink-thread\n"
     )
@@ -146,7 +196,11 @@ CLI_COMMAND2 (set_worker,
   void *arg = NULL;
 
   if (argc == 4)
-    func = lcore_workers[lcore_id].func;
+    {
+      func = lcore_workers[lcore_id].func;
+      fprintf (shell->terminal, "resetting lcore-id: %d to func %s%s",
+               lcore_id, lcore_workers[lcore_id].func_name, shell->NL);
+    }
   else if (! strcmp (argv[4], "none"))
     func = NULL;
   else if (! strcmp (argv[4], "l2fwd"))
@@ -175,6 +229,8 @@ CLI_COMMAND2 (set_worker,
 #endif
   else if (! strcmp (argv[4], "dhcp-server"))
     func = dhcp_server;
+  else if (! strcmp (argv[4], "igmp-snooping"))
+    func = igmp_snooping;
   else if (! strcmp (argv[4], "rib-manager"))
     func = rib_manager;
   else if (! strcmp (argv[4], "netlink-thread"))
@@ -186,8 +242,8 @@ CLI_COMMAND2 (set_worker,
 
   if (lcore_workers[lcore_id].func == lthread_main)
     {
-      fprintf (shell->terminal, "cannot override lthread: lcore[%d].\n",
-               lcore_id);
+      fprintf (shell->terminal, "cannot override lthread: lcore[%d].%s",
+               lcore_id, shell->NL);
       return -1;
     }
 
@@ -222,6 +278,8 @@ CLI_COMMAND2 (set_worker,
 #endif
   else if (func == dhcp_server)
     func_name = "dhcp-server";
+  else if (func == igmp_snooping)
+    func_name = "igmp-snooping";
   else if (func == rib_manager)
     func_name = "rib-manager";
   else if (func == netlink_thread)
@@ -233,31 +291,34 @@ CLI_COMMAND2 (set_worker,
   lcore_workers[lcore_id].arg = arg;
   lcore_workers[lcore_id].func_name = func_name;
 
-  fprintf (shell->terminal, "worker set to lcore[%d]: func: %s\n", lcore_id,
-           func_name);
+  fprintf (shell->terminal, "worker set to lcore[%d]: func: %s%s",
+           lcore_id, func_name, shell->NL);
 
   if (! strcmp (argv[0], "reset") || ! strcmp (argv[0], "start") ||
       ! strcmp (argv[0], "restart"))
     {
       stop_lcore (shell, lcore_id);
       start_lcore (shell, lcore_id);
-      fprintf (shell->terminal, "worker[%d]: restarted.\n", lcore_id);
+      fprintf (shell->terminal, "worker[%d]: restarted.%s",
+               lcore_id, shell->NL);
     }
   else if (! strcmp (argv[0], "set") && argc == 4)
-    fprintf (shell->terminal, "nothing changed.\n");
+    fprintf (shell->terminal, "nothing changed.%s", shell->NL);
   else
     fprintf (shell->terminal,
-             "workers need to be restarted for changes to take effect.\n");
+             "workers need to be restarted for changes to take effect.%s",
+             shell->NL);
   return 0;
 }
 
 CLI_COMMAND2 (start_stop_worker,
-              "(start|stop|reset|restart) worker lcore (<0-16>|all)",
-              START_HELP, STOP_HELP, RESET_HELP, RESTART_HELP, WORKER_HELP,
-              LCORE_HELP, LCORE_NUMBER_HELP, LCORE_ALL_HELP)
+              "(start|stop|reset|restart) worker lcore ("LCORE_ID_SPEC"|all)",
+              START_HELP, STOP_HELP, RESET_HELP, RESTART_HELP,
+              WORKER_HELP,
+              LCORE_HELP,
+              LCORE_NUMBER_HELP, LCORE_ALL_HELP)
 {
   struct shell *shell = (struct shell *) context;
-  uint32_t nb_lcores;
   unsigned int lcore_id;
   unsigned int lcore_spec = -1;
 
@@ -270,6 +331,15 @@ CLI_COMMAND2 (start_stop_worker,
     }
   else
     lcore_spec = strtol (argv[3], NULL, 0);
+
+  /* before rte_eal_init(), RTE_LCORE_FOREACH() would iterate
+     all RTE_MAX_LCORE lcores because the lcore roles are not
+     initialized yet. */
+  if (! rte_eal_init_done)
+    {
+      fprintf (shell->terminal, "rte_eal_init() is not done.%s", shell->NL);
+      return 0;
+    }
 
   RTE_LCORE_FOREACH (lcore_id)
     {
@@ -288,7 +358,9 @@ CLI_COMMAND2 (start_stop_worker,
   return 0;
 }
 
-CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
+CLI_COMMAND2 (show_worker,
+              "show worker",
+              SHOW_HELP, WORKER_HELP)
 {
   struct shell *shell = (struct shell *) context;
   unsigned int lcore_id;
@@ -296,9 +368,19 @@ CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
   char *state;
   char flags[16];
   char lcore_name[16];
+
+  if (! rte_eal_init_done)
+    {
+      fprintf (shell->terminal, "rte_eal_init() is not done.%s", shell->NL);
+      return 0;
+    }
+
   main_lcore_id = rte_get_main_lcore ();
-  fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s", "lcore", "flags", "state",
-           "func_name", shell->NL);
+  fprintf (shell->terminal, "main: %d lthread: %d%s",
+           main_lcore_id, lthread_core, shell->NL);
+
+  fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s",
+           "lcore", "flags", "state", "func_name", shell->NL);
   RTE_LCORE_FOREACH (lcore_id)
     {
       snprintf (flags, sizeof (flags), "%s%s",
@@ -308,50 +390,92 @@ CLI_COMMAND2 (show_worker, "show worker", SHOW_HELP, WORKER_HELP)
           (rte_eal_get_lcore_state (lcore_id) == RUNNING ? "running" : "wait");
       snprintf (lcore_name, sizeof (lcore_name), "lcore[%d]", lcore_id);
       fprintf (shell->terminal, "%-9s: %-12s %-8s %s%s", lcore_name, flags,
-               state, lcore_workers[lcore_id].func_name, shell->NL);
+               state,
+               (lcore_workers[lcore_id].func_name
+                ? lcore_workers[lcore_id].func_name : "none"),
+               shell->NL);
     }
   return 0;
 }
 
 CLI_COMMAND2 (set_mempool,
-              "set mempool (|<1-32768>)",
+              "set mempool (|auto|<1-1048575>)",
               SET_HELP,
               "mempool\n")
 {
   struct shell *shell = (struct shell *) context;
-  unsigned int nb_lcores = 0;
   uint16_t nb_ports;
   unsigned int nb_mbufs;
+  unsigned int nb_mbufs_auto;
+  unsigned int nb_mbufs_requested = 0;
+
+#define MAX_PKT_BURST       32
+#define MEMPOOL_CACHE_SIZE  256
+
+#define DEFAULT_NB_MBUFS    131071U
+
+  nb_ports = rte_eth_dev_count_avail ();
+  nb_mbufs = DEFAULT_NB_MBUFS;
+
+  unsigned int nb_lcores;
   uint16_t nb_rxd = 1024;
   uint16_t nb_txd = 1024;
+  nb_lcores = sysconf (_SC_NPROCESSORS_ONLN);
+  nb_mbufs_auto = RTE_MAX (nb_ports * (nb_rxd + nb_txd + MAX_PKT_BURST +
+                                       nb_lcores * MEMPOOL_CACHE_SIZE),
+                           8192U);
 
-  nb_lcores = 4;
-  nb_ports = rte_eth_dev_count_avail ();
-
-#define MAX_PKT_BURST      32
-#define MEMPOOL_CACHE_SIZE 256
-  nb_mbufs = RTE_MAX (nb_ports * (nb_rxd + nb_txd + MAX_PKT_BURST +
-                                  nb_lcores * MEMPOOL_CACHE_SIZE),
-                      8192U);
   if (argc > 2)
-    nb_mbufs = strtoul (argv[2], NULL, 0);
+    {
+      if (! strcmp (argv[2], "auto"))
+        {
+          nb_mbufs = nb_mbufs_auto;
+        }
+      else
+        {
+          unsigned long requested = strtoul (argv[2], NULL, 0);
+          nb_mbufs_requested = (unsigned int) requested;
+          nb_mbufs = nb_mbufs_requested;
+        }
+    }
+  else
+    {
+      nb_mbufs = nb_mbufs_auto;
+    }
 
+  fprintf (shell->terminal,
+           "nb_ports: %u nb_lcores: %u cache: %u data_room: %u%s",
+           nb_ports, nb_lcores, MEMPOOL_CACHE_SIZE, 9500U, shell->NL);
+  fprintf (shell->terminal, "nb_mbufs_auto: %u nb_mbuf_requested: %u%s",
+           nb_mbufs_auto, nb_mbufs_requested, shell->NL);
   fprintf (shell->terminal, "nb_mbufs: %u%s", nb_mbufs, shell->NL);
 
   if (l2fwd_pktmbuf_pool != NULL)
-    rte_mempool_free (l2fwd_pktmbuf_pool);
+    {
+#if 1
+      /* if mempool is already existing, the workers may be
+         (highly-likely) depending on it. */
+      fprintf (shell->terminal, "mempool already exists.%s", shell->NL);
+      return 0;
+#else
+      rte_mempool_free (l2fwd_pktmbuf_pool);
+      l2fwd_pktmbuf_pool = NULL;
+#endif
+    }
 
   l2fwd_pktmbuf_pool =
-      rte_pktmbuf_pool_create ("mbuf_pool", nb_mbufs, MEMPOOL_CACHE_SIZE, 0,
-                               9500U, rte_socket_id ());
+      rte_pktmbuf_pool_create ("mbuf_pool", nb_mbufs, MEMPOOL_CACHE_SIZE,
+                               0, 9500U, rte_socket_id ());
+
   if (l2fwd_pktmbuf_pool == NULL)
     {
-      fprintf (shell->terminal, "Cannot init mbuf pool.%s", shell->NL);
+      fprintf (shell->terminal, "Cannot init mbuf pool: %s%s",
+               rte_strerror (rte_errno), shell->NL);
       return -1;
     }
+
   return 0;
 }
-
 
 #define RTE_EAL_ARGV_MAX 8
 char *rte_eal_argv[RTE_EAL_ARGV_MAX];
@@ -480,14 +604,7 @@ CLI_COMMAND2 (rte_eal_init, "rte_eal_init", "rte_eal_init command\n")
     }
   rte_eal_init_done = true;
   DEBUG_NEW (RTE_ETHDEV, "rte_eal_init(): done.");
-  int current_lcore = rte_lcore_id();
-  if(lthread_core != current_lcore)
-    {
-      fprintf (shell->terminal,
-               "lthread lcore changed: core[%d] -> core[%d]%s",
-               lthread_core, current_lcore, shell->NL);
-      lthread_core = current_lcore;
-    }
+  update_lthread_core (shell);
   return 0;
 }
 
@@ -516,12 +633,73 @@ CLI_COMMAND2 (rte_eal_init_argv_list,
     }
   rte_eal_init_done = true;
   DEBUG_NEW (RTE_ETHDEV, "rte_eal_init(): done.");
+  update_lthread_core (shell);
   return 0;
 }
+
+#ifdef REGVAR_SUPPORT
+int
+regvar_lcoreid_is_spec (char *spec)
+{
+  return ! strcmp (spec, "<LCORE-ID>");
+}
+
+int
+regvar_lcoreid_is_match (char *spec, char *word)
+{
+  int lcore_id;
+  int lcore_max;
+  char *endptr;
+  lcore_max = sysconf (_SC_NPROCESSORS_ONLN);
+  lcore_id = strtol (word, &endptr, 0);
+  if (endptr[0] != '\0')
+    return 0;
+  if (0 <= lcore_id && lcore_id < lcore_max)
+    return 1;
+  return 0;
+}
+
+char *
+regvar_lcoreid_convert_cmdstr (char *spec, char *word)
+{
+  char cmdstr[32];
+  int lcore_max;
+  lcore_max = sysconf (_SC_NPROCESSORS_ONLN);
+  snprintf (cmdstr, sizeof (cmdstr), "<0-%d>", lcore_max - 1);
+  return strdup (cmdstr);
+}
+
+char *
+regvar_lcoreid_convert_helpstr (char *spec, char *orig_helpstr, char *word)
+{
+  char helpstr[32];
+  int lcore_max;
+  lcore_max = sysconf (_SC_NPROCESSORS_ONLN);
+  snprintf (helpstr, sizeof (helpstr),
+            "specify LCORE-ID. (<0-%d>)", lcore_max - 1);
+  return strdup (helpstr);
+}
+
+struct regvar regvar_lcoreid;
+#endif /*REGVAR_SUPPORT*/
 
 void
 dpdk_lcore_cmd_init (struct command_set *cmdset)
 {
+#ifdef REGVAR_SUPPORT
+  struct regvar *regvar;
+  regvar = &regvar_lcoreid;
+  regvar->spec = "<LCORE-ID>";
+  regvar->is_spec = regvar_lcoreid_is_spec;
+  regvar->is_match = regvar_lcoreid_is_match;
+  regvar->convert_cmdstr = regvar_lcoreid_convert_cmdstr;
+  regvar->convert_helpstr = regvar_lcoreid_convert_helpstr;
+
+  if (! cmdset->regvars)
+    cmdset->regvars = vector_create ();
+  vector_add (regvar, cmdset->regvars);
+#endif /*REGVAR_SUPPORT*/
+
   INSTALL_COMMAND2 (cmdset, set_worker);
   INSTALL_COMMAND2 (cmdset, start_stop_worker);
   INSTALL_COMMAND2 (cmdset, show_worker);

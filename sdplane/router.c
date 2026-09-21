@@ -34,11 +34,13 @@
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
+#define PREFETCH_OFFSET 4
+
 volatile int router_mode = 0; /* the normal/default mode. */
 
 #include "net_subr.h"
 
-static inline __attribute__ ((always_inline)) void
+static inline __attribute__ ((always_inline)) bool
 _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
                     unsigned rx_queueid)
 {
@@ -58,7 +60,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (router_mode == 1) /* process_rx_packet: the beginning. */
     {
       _debug_manual_send (m);
-      return;
+      return false;
     }
 
   eth = rte_pktmbuf_mtod (m, struct rte_ether_hdr *);
@@ -140,7 +142,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (! vswitch_link)
     {
       DEBUG_NEW (ROUTER, "m: %p cannot find the vswitch link", m);
-      return;
+      return false;
     }
 
   if (vswitch_link->vswitch_id < 0 ||
@@ -149,7 +151,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
       DEBUG_NEW (ROUTER,
                  "m: %p a broken vswitch link: vswitch: %d vswitch_size: %d",
                  m, vswitch_link->vswitch_id, rib->rib_info->vswitch_size);
-      return;
+      return false;
     }
 
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
@@ -164,16 +166,26 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (! vswitch)
     {
       DEBUG_NEW (ROUTER, "m: %p cannot find the vswitch", m);
-      return;
+      return false;
     }
 
   if (IS_DEBUG (ROUTER) || IS_DEBUG (PACKET))
     log_packet (m, rx_portid, rx_queueid);
 
   /* 2. send to capture_if */
-  struct capture_if *cif = &vswitch->capture_if;
-  if (cif->sockfd >= 0 && cif->ring_up)
-    _send_ring (m, rx_portid, rx_queueid, cif->ring_up);
+  _send_capture_if_ring (m, rx_portid, rx_queueid, vswitch);
+
+  /* 2.5 send to application_slot */
+  for (i = 0; i < rib->rib_info->application_slot_size; i++)
+    {
+      struct application_slot_entry *app;
+      app = &rib->rib_info->application_slot[i];
+      if (app->ring && (*app->is_packet_match) (m))
+        {
+          DEBUG_NEW (ROUTER, "call appli_slot[%d]", i);
+          _send_ring (m, rx_portid, rx_queueid, app->ring);
+        }
+    }
 
   struct router_if *rif = &vswitch->router_if;
 
@@ -185,7 +197,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
           DEBUG_NEW (ROUTER, "m: %p mac_addr+ipv4 match: send to router_if", m,
                      eth_type);
           _send_router_if_ring (m, rx_portid, rx_queueid, rif);
-          return;
+          return false;
         }
       else if (ipv6 && memcmp (IPV6_ADDR_BYTES (ipv6->dst_addr),
                                &rif->ipv6_addr, sizeof (struct in6_addr)) == 0)
@@ -193,7 +205,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
           DEBUG_NEW (ROUTER, "m: %p mac_addr+ipv6 match: send to router_if", m,
                      eth_type);
           _send_router_if_ring (m, rx_portid, rx_queueid, rif);
-          return;
+          return false;
         }
     }
 
@@ -225,7 +237,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
               _send_router_if_ring (m, rx_portid, rx_queueid, rif);
             }
 
-          return;
+          return false;
         }
     }
 
@@ -233,32 +245,29 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (! rte_is_same_ether_addr (&eth->dst_addr, &rif->mac_addr))
     {
       DEBUG_NEW (ROUTER, "m: %p not destined to self, L2 switching", m);
-      _switching (m, rx_portid, rx_queueid,
-                  vswitch_link, vswitch, eth);
-      return;
+      return _switching (m, rx_portid, rx_queueid,
+                         vswitch_link, vswitch, eth, true);
     }
 
   /* 5. verify IP packet */
-  if (_verify_packet (m, ipv4, ipv6) != 0)
+  if (_verify_packet (m, port_conf, ipv4, ipv6) != 0)
     {
       DEBUG_NEW (ROUTER, "m: %p failed verify", m);
-      return;
+      return false;
     }
 
   if (router_mode == 2) /* process_rx_packet: just before the forwarding. */
     {
       _debug_manual_send (m);
-      return;
+      return false;
     }
 
   /* 6. forwarding */
-  _forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6,
-               vswitch, vswitch_link);
-
-  return;
+  return _forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6,
+                      vswitch, vswitch_link, true);
 }
 
-static inline __attribute__ ((always_inline)) void
+static inline __attribute__ ((always_inline)) bool
 _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
 {
   struct rte_ether_hdr *eth;
@@ -300,22 +309,21 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
-      _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-                  NULL, vswitch, eth);
-      return;
+      return _switching (m, ROUTER_IF_RX_SELF_PORT_ID,
+                         ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vswitch, eth, true);
     }
 
-  _forwarding (m,
-               ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-               eth, ipv4, ipv6,
-               vswitch, NULL);
+  return _forwarding (m,
+                      ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
+                      eth, ipv4, ipv6,
+                      vswitch, NULL, true);
 #else
   /* This is a packet sent from the Linux tap thru
      the packet_down(ring_dn).  I think it is safe to send it
      without any condition, and I think indeed it should be sent,
      for the proper L3-switch behavior. */
-  _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-              NULL, vswitch, eth);
+  return _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
+                     NULL, vswitch, eth, true);
 #endif
 }
 
@@ -348,14 +356,20 @@ _thread_rx_burst ()
 
       port_statistics[portid].rx += nb_rx;
 
+
+      for (j = 0; j < PREFETCH_OFFSET && j < nb_rx; j++)
+        rte_prefetch0 (rte_pktmbuf_mtod (pkts_burst[j], void *));
+
       for (j = 0; j < nb_rx; j++)
         {
+          if (j + PREFETCH_OFFSET < nb_rx)
+            rte_prefetch0 (
+                rte_pktmbuf_mtod (pkts_burst[j + PREFETCH_OFFSET], void *));
+
           m = pkts_burst[j];
-          rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
-          _process_rx_packet (m, portid, queueid);
-
-          rte_pktmbuf_free (m);
+          if (! _process_rx_packet (m, portid, queueid))
+            rte_pktmbuf_free (m);
         }
     }
 }
@@ -402,9 +416,9 @@ _thread_tx_burst ()
 
           DEBUG_NEW (ROUTER, "m: %p vswitch[%d]: packet[%d]",
                      m, vswitch_id, i);
-          _process_tx_packet (m, vswitch);
 
-          rte_pktmbuf_free (m);
+          if (! _process_tx_packet (m, vswitch))
+            rte_pktmbuf_free (m);
         }
     }
 }
@@ -441,6 +455,8 @@ router (__rte_unused void *dummy)
       urcu_qsbr_read_lock ();
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
+
+      _fwd_cache_invalidate ();
 
       /* better to add processing here only when absolutely necessary
          or cannot be postponed. */

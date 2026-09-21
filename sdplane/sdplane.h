@@ -76,8 +76,17 @@ extern struct vswitch vswitch0;
 #define ENABLE_HELP  "enable feature\n"
 #define DISABLE_HELP "disable feature\n"
 
+#ifdef REGVAR_SUPPORT
+#define PORT_ID_SPEC "<PORT-ID>"
+#define LCORE_ID_SPEC "<LCORE-ID>"
+#else
+#define PORT_ID_SPEC "<0-16>"
+#define LCORE_ID_SPEC "<0-16>"
+#endif /*REGVAR_SUPPORT*/
+
 void start_lcore (struct shell *shell, int lcore_id);
 void stop_lcore (struct shell *shell, int lcore_id);
+void update_lthread_core (struct shell *shell);
 
 EXTERN_COMMAND (set_worker);
 EXTERN_COMMAND (start_stop_worker);

@@ -18,6 +18,7 @@
 
 #include "rib_manager.h"
 #include "neigh_manager.h"
+#include "fdb.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "internal_message.h"
@@ -321,6 +322,7 @@ CLI_COMMAND2 (set_fdb_entry,
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_FDB_ENTRY_ADD, &fdb_entry_add,
                               sizeof (fdb_entry_add));
   shell_rib_send_message (msgp, shell);
+  return CMD_SUCCESS;
 }
 
 CLI_COMMAND2 (show_fdb,
@@ -330,26 +332,11 @@ CLI_COMMAND2 (show_fdb,
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
-  int i, count = 0;
-  char mac_str[32];
 
   fprintf (shell->terminal, "fdb:%s", shell->NL);
-  for (i = 0; i < FDB_SIZE; i++)
-    {
-      if (rib->rib_info->fdb[i].state != FDB_STATE_NONE)
-        {
-          rte_ether_format_addr (mac_str, sizeof (mac_str),
-                                 &rib->rib_info->fdb[i].l2addr);
-          fprintf (shell->terminal,
-                   "  fdb[%d]: %s vlan:%u port:%d last_seen:%lu%s",
-                   i, mac_str, rib->rib_info->fdb[i].vlan_id,
-                   rib->rib_info->fdb[i].port,
-                   rib->rib_info->fdb[i].last_seen, shell->NL);
-          count++;
-        }
-    }
-  fprintf (shell->terminal, "total fdb entries: %d/%d%s", count, FDB_SIZE,
-           shell->NL);
+  hash_table_foreach (&rib->rib_info->fdb_table, show_fdb_entry_callback, shell);
+  fprintf (shell->terminal, "total fdb entries: %d%s",
+           rib->rib_info->fdb_table.count, shell->NL);
   return 0;
 }
 
@@ -436,19 +423,21 @@ CLI_COMMAND2 (show_neighbor,
         }
 
       int neigh_table_type;
-      struct neigh_entry *neigh_entry;
+      struct neigh_entry *neigh_entry = NULL;
       struct rte_ether_addr *dst_mac;
       char neigh_mac_str[RTE_ETHER_ADDR_FMT_SIZE];
       neigh_table_type = AF_TO_NEIGH_TABLE (family);
       switch (family)
         {
         case AF_INET:
-          neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
-                                neigh_table_type, &ipv4_addr, &neigh_entry);
+          neigh_entry =
+              neigh_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                            neigh_table_type, &ipv4_addr);
           break;
         case AF_INET6:
-          neigh_manager_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
-                                neigh_table_type, &ipv6_addr, &neigh_entry);
+          neigh_entry =
+              neigh_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                            neigh_table_type, &ipv6_addr);
           break;
         default:
           break;

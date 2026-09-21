@@ -114,6 +114,7 @@ CLI_COMMAND2 (pktgen_init,
               "specify argv-list\n",
               "specify argv-list number\n")
 {
+  struct shell *shell = (struct shell *) context;
   int index;
   index = strtol (argv[3], NULL, 0);
 
@@ -124,6 +125,7 @@ CLI_COMMAND2 (pktgen_init,
   _pktgen_main_init (*argcp, argvp);
   pthread_mutex_unlock (&argv_list_mutex);
   rte_eal_init_done = true;
+  update_lthread_core (shell);
   return 0;
 }
 
@@ -560,7 +562,7 @@ CLI_COMMAND2 (pktgen_do_rate_size,
 }
 
 CLI_COMMAND2 (pktgen_do_set_enable,
-              "pktgen do set port (<0-7>|all) (range|rate|vlan) (enable|disable)",
+              "pktgen do set port (<0-7>|all) (range|rate|vlan|qinq) (enable|disable)",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -570,6 +572,7 @@ CLI_COMMAND2 (pktgen_do_set_enable,
               "set packet range.\n",
               "set packet rate.\n",
               "set vlan.\n",
+              "set Q-in-Q.\n",
               "set to enable.\n",
               "set to disable.\n")
 {
@@ -578,7 +581,7 @@ CLI_COMMAND2 (pktgen_do_set_enable,
   char *pktgen_argv[16];
   pktgen_argv[0] = argv[6]; //enable/disable
   pktgen_argv[1] = argv[4]; //port
-  pktgen_argv[2] = argv[5]; //(range|rate|vlan)
+  pktgen_argv[2] = argv[5]; //(range|rate|vlan|qinq)
   pktgen_argc = 3;
   ret = en_dis_cmd (pktgen_argc, pktgen_argv);
   if (ret < 0)

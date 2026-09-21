@@ -3,6 +3,7 @@
 #include <rte_ethdev.h>
 #include <rte_bus_pci.h>
 #include <rte_malloc.h>
+#include <rte_version.h>
 
 #include <sdplane/debug.h>
 #include <sdplane/termio.h>
@@ -193,9 +194,11 @@ offload_flag_from_word (const char *word, struct flag_name *flags, int flags_siz
   return -1;
 }
 
-CLI_COMMAND2 (start_stop_port, "(start|stop|reset) port (|<0-16>|all)",
-              START_HELP, STOP_HELP, RESET_HELP, PORT_HELP, PORT_NUMBER_HELP,
-              PORT_ALL_HELP)
+CLI_COMMAND2 (start_stop_port,
+              "(start|stop|reset) port ("PORT_ID_SPEC"|all)",
+              START_HELP, STOP_HELP, RESET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, PORT_ALL_HELP)
 {
   int port_id;
   int port_spec = -1;
@@ -233,7 +236,10 @@ CLI_COMMAND2 (start_stop_port, "(start|stop|reset) port (|<0-16>|all)",
   return 0;
 }
 
-CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
+CLI_COMMAND2 (show_port,
+              "show port (|"PORT_ID_SPEC"|all)",
+              SHOW_HELP,
+              PORT_HELP,
               PORT_NUMBER_HELP, PORT_ALL_HELP)
 {
   struct shell *shell = (struct shell *) context;
@@ -398,6 +404,21 @@ CLI_COMMAND2 (show_port, "show port (|<0-16>|all)", SHOW_HELP, PORT_HELP,
                        shell->NL);
               fprintf (t, "  configured_rss_hf: <%s>%s", cfg_rss_hf,
                        shell->NL);
+
+              char act_rx_offload[128];
+              char act_tx_offload[128];
+              memset (act_rx_offload, 0, sizeof (act_rx_offload));
+              memset (act_tx_offload, 0, sizeof (act_tx_offload));
+              snprintf_flags (act_rx_offload, sizeof (act_rx_offload),
+                              port_cfg->rx_offloads_active, rx_offload_capa,
+                              "|", RX_OFFLOAD_CAPA_SIZE);
+              snprintf_flags (act_tx_offload, sizeof (act_tx_offload),
+                              port_cfg->tx_offloads_active, tx_offload_capa,
+                              "|", TX_OFFLOAD_CAPA_SIZE);
+              fprintf (t, "  active_rx_offloads: <%s>%s", act_rx_offload,
+                       shell->NL);
+              fprintf (t, "  active_tx_offloads: <%s>%s", act_tx_offload,
+                       shell->NL);
             }
 
           int i;
@@ -502,12 +523,13 @@ CLI_COMMAND2 (show_port_statistics,
 }
 
 CLI_COMMAND2 (show_port_queue_statistics,
-              "show port statistics per-queue (<0-16>|all) (|pps|total|bps|Bps|total-bytes)",
+              "show port statistics per-queue ("PORT_ID_SPEC"|all) "
+              "(|pps|total|bps|Bps|total-bytes)",
               SHOW_HELP,
               PORT_HELP,
+              "show port statistics\n",
               "show port statistics per-queue\n",
-              "port number (0-16 or all)\n",
-              "port number (0-16 or all)\n",
+              "specify port number to show\n",
               "show all port queues\n",
               "packets per second.\n",
               "total packets.\n",
@@ -610,6 +632,7 @@ CLI_COMMAND2 (show_port_queue_statistics,
           char queue_name[32];
           snprintf (queue_name, sizeof (queue_name), "queue[%d]:",
                   i);
+#if RTE_VERSION < RTE_VERSION_NUM(25,0,0,0)
           if (packets)
             fprintf (t, "%18s %'11lu %'13lu%s", queue_name,
                       stats->q_ipackets[i], stats->q_opackets[i], shell->NL);
@@ -620,14 +643,24 @@ CLI_COMMAND2 (show_port_queue_statistics,
             fprintf (t, "%18s %'13lu %'15lu%s", queue_name,
                       stats->q_ibytes[i] * 8, stats->q_obytes[i] * 8,
                       shell->NL);
+#else
+            fprintf (t, "%18s %17s %19s%s", queue_name,
+                      "---", "---",
+                      shell->NL);
+#endif /* DPDK < 25.0.0.0 */
         }
       fprintf (t, "%s", shell->NL);
     }
   return 0;
 }
 
-CLI_COMMAND2 (show_port_promiscuous, "show port (<0-16>|all) promiscuous",
-              SHOW_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP "promiscuous\n")
+CLI_COMMAND2 (show_port_promiscuous,
+              "show port ("PORT_ID_SPEC"|all) promiscuous",
+              SHOW_HELP
+              PORT_HELP
+              PORT_NUMBER_HELP
+              ALL_HELP
+              "promiscuous\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -656,8 +689,13 @@ CLI_COMMAND2 (show_port_promiscuous, "show port (<0-16>|all) promiscuous",
   return 0;
 }
 
-CLI_COMMAND2 (show_port_flowcontrol, "show port (<0-16>|all) flowcontrol",
-              SHOW_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP "flowcontrol\n")
+CLI_COMMAND2 (show_port_flowcontrol,
+              "show port ("PORT_ID_SPEC"|all) flowcontrol",
+              SHOW_HELP
+              PORT_HELP
+              PORT_NUMBER_HELP
+              ALL_HELP
+              "flowcontrol\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -718,9 +756,12 @@ CLI_COMMAND2 (show_port_flowcontrol, "show port (<0-16>|all) flowcontrol",
 }
 
 CLI_COMMAND2 (set_port_promiscuous,
-              "set port (<0-16>|all) promiscuous (enable|disable)",
-              SET_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP
-              "promiscuous\n" ENABLE_HELP DISABLE_HELP)
+              "set port ("PORT_ID_SPEC"|all) promiscuous (enable|disable)",
+              SET_HELP
+              PORT_HELP
+              PORT_NUMBER_HELP ALL_HELP
+              "promiscuous\n"
+              ENABLE_HELP DISABLE_HELP)
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -745,18 +786,20 @@ CLI_COMMAND2 (set_port_promiscuous,
   return 0;
 }
 
-CLI_COMMAND2 (
-    set_port_flowcontrol,
-    "set port (<0-16>|all) flowcontrol (rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)",
-    SET_HELP PORT_HELP PORT_NUMBER_HELP ALL_HELP
-    "flowcontrol\n"
-    "flowcontrol rx\n"
-    "flowcontrol tx\n"
-    "flowcontrol autoneg\n"
-    "flowcontrol send-xon\n"
-    "flowcontrol forward mac control frames\n"
-    "flowcontrol on\n"
-    "flowcontrol off\n")
+CLI_COMMAND2 (set_port_flowcontrol,
+              "set port ("PORT_ID_SPEC"|all) flowcontrol "
+              "(rx|tx|autoneg|send-xon|fwd-mac-ctrl) (on|off)",
+              SET_HELP
+              PORT_HELP
+              PORT_NUMBER_HELP ALL_HELP
+              "flowcontrol\n"
+              "flowcontrol rx\n"
+              "flowcontrol tx\n"
+              "flowcontrol autoneg\n"
+              "flowcontrol send-xon\n"
+              "flowcontrol forward mac control frames\n"
+              "flowcontrol on\n"
+              "flowcontrol off\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -862,9 +905,13 @@ lsi_event_callback(uint16_t port_id, enum rte_eth_event_type type, void *param,
 }
 
 CLI_COMMAND2 (set_port_dev_configure,
-              "set port (<0-16>|all) dev-configure <0-64> <0-64>", SHOW_HELP,
-              PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
-              "rte_eth_dev_configure.\n", "nb_rx_queue.\n", "nb_tx_queue.\n")
+              "set port ("PORT_ID_SPEC"|all) dev-configure <0-64> <0-64>",
+              SHOW_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
+              "rte_eth_dev_configure.\n",
+              "nb_rx_queue.\n",
+              "nb_tx_queue.\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -982,8 +1029,10 @@ CLI_COMMAND2 (set_port_dev_configure,
 }
 
 CLI_COMMAND2 (set_port_txrx_desc,
-              "set port (<0-16>|all) (nrxdesc|ntxdesc) <0-16384>", SET_HELP,
-              PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port ("PORT_ID_SPEC"|all) (nrxdesc|ntxdesc) <0-16384>",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
               "set the number of rx descriptor for the port\n",
               "set the number of tx descriptor for the port\n",
               "Specify the descriptor number.\n")
@@ -1027,12 +1076,8 @@ CLI_COMMAND2 (set_port_txrx_desc,
       if (tx_spec)
         nb_tx_desc = desc_val;
 
-      fprintf (shell->terminal,
-               "port: %d nb_rxd: %hu nb_txd: %hu%s",
-               port_id, nb_rx_desc, nb_tx_desc, shell->NL);
-
       DEBUG_NEW (RTE_ETHDEV, "port[%d]: rte_eth_dev_adjust_nb_rx_tx_desc(): "
-                 "nrxdesc: %d ntxdesc: %d", port_id, nb_rxd, nb_txd);
+                 "nrxdesc: %d ntxdesc: %d", port_id, nb_rx_desc, nb_tx_desc);
       ret = rte_eth_dev_adjust_nb_rx_tx_desc (port_id,
                                               &nb_rx_desc, &nb_tx_desc);
       if (ret < 0)
@@ -1049,12 +1094,18 @@ CLI_COMMAND2 (set_port_txrx_desc,
                    ret, shell->NL);
         }
 
+      fprintf (shell->terminal, "port: %d %s: %hu%s", port_id,
+               (rx_spec ? "nb_rxd" : "nb_txd"),
+               (rx_spec ? nb_rx_desc : nb_tx_desc), shell->NL);
+
       void *msgp;
       struct internal_msg_txrx_desc txrx_desc;
       memset (&txrx_desc, 0, sizeof (txrx_desc));
       txrx_desc.portid = port_id;
-      txrx_desc.nb_rxd = nb_rx_desc;
-      txrx_desc.nb_txd = nb_tx_desc;
+      if (rx_spec)
+        txrx_desc.nb_rxd = nb_rx_desc;
+      if (tx_spec)
+        txrx_desc.nb_txd = nb_tx_desc;
       msgp = internal_msg_create (INTERNAL_MSG_TYPE_TXRX_DESC, &txrx_desc,
                                   sizeof (txrx_desc));
       ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
@@ -1069,16 +1120,16 @@ CLI_COMMAND2 (set_port_txrx_desc,
   return CMD_SUCCESS;
 }
 
-CLI_COMMAND2 (
-    set_port_offload,
-    "set port (<0-16>|all) offload (rx|tx) <WORD> (on|off)",
-    SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
-    "set port offload\n",
-    "set rx offload\n",
-    "set tx offload\n",
-    "offload name or bitmask (e.g. IPV4_CKSUM, RSS_HASH, all)\n",
-    "enable this offload\n",
-    "disable this offload\n")
+CLI_COMMAND2 (set_port_offload,
+              "set port ("PORT_ID_SPEC"|all) offload (rx|tx) <WORD> (on|off)",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
+              "set port offload\n",
+              "set rx offload\n", "set tx offload\n",
+              "offload bitmask by name (e.g. IPV4_CKSUM, RSS_HASH, all)\n",
+              "enable this offload\n",
+              "disable this offload\n")
 {
   struct shell *shell = (struct shell *) context;
   int port_spec = -1;
@@ -1176,10 +1227,12 @@ CLI_COMMAND2 (
 }
 
 CLI_COMMAND2 (set_port_rss,
-              "set port (<0-16>|all) rss <WORD> (on|off)",
-              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port ("PORT_ID_SPEC"|all) rss <WORD> (on|off)",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
               "set port rss hash fields\n",
-              "rss hash field name or bitmask (e.g. IPV4, NONFRAG_IPV4_TCP, all)\n",
+              "rss hash field bitmask by name (e.g. IPV4, NONFRAG_IPV4_TCP, all)\n",
               "enable rss hash field\n",
               "disable rss hash field\n")
 {
@@ -1240,9 +1293,11 @@ CLI_COMMAND2 (set_port_rss,
                                   sizeof (txrx_desc));
       ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
       if (ret < 0)
-        return CMD_FAILURE;
-
-      fprintf (shell->terminal,
+        fprintf (shell->terminal,
+               "port[%d]: set rss %s %s failed.%s",
+               port_id, argv[4], argv[5], shell->NL);
+      else
+        fprintf (shell->terminal,
                "port[%d]: set rss %s %s queued.%s",
                port_id, argv[4], argv[5], shell->NL);
     }
@@ -1251,8 +1306,10 @@ CLI_COMMAND2 (set_port_rss,
 }
 
 CLI_COMMAND2 (set_port_mtu,
-              "set port (<0-16>|all) mtu <0-16384>",
-              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port ("PORT_ID_SPEC"|all) mtu <0-16384>",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
               "set MTU for the port\n",
               "Specify the mtu number.\n")
 {
@@ -1293,8 +1350,10 @@ CLI_COMMAND2 (set_port_mtu,
 }
 
 CLI_COMMAND2 (set_port_nb_txrx_queue,
-              "set port (<0-16>|all) (nrxq|ntxq) <0-256>",
-              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port ("PORT_ID_SPEC"|all) (nrxq|ntxq) <0-256>",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
               "set #rxqueue for the port\n",
               "set #txqueue for the port\n",
               "Specify the number of queues.\n")
@@ -1339,8 +1398,10 @@ CLI_COMMAND2 (set_port_nb_txrx_queue,
 }
 
 CLI_COMMAND2 (set_port_link_updown,
-              "set port (<0-16>|all) link (up|down)",
-              SET_HELP, PORT_HELP, PORT_NUMBER_HELP, ALL_HELP,
+              "set port ("PORT_ID_SPEC"|all) link (up|down)",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP, ALL_HELP,
               "set port link up/down status\n",
               "set port the link status up\n",
               "set port the link status down\n")
@@ -1370,8 +1431,10 @@ CLI_COMMAND2 (set_port_link_updown,
 }
 
 CLI_COMMAND2 (show_port_get_info,
-              "show port <0-16> get-info",
-              SHOW_HELP, PORT_HELP, PORT_NUMBER_HELP,
+              "show port "PORT_ID_SPEC" get-info",
+              SHOW_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP,
               "port get-info\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -1400,9 +1463,67 @@ CLI_COMMAND2 (show_port_get_info,
   return 0;
 }
 
+#ifdef REGVAR_SUPPORT
+int
+regvar_portid_is_spec (char *spec)
+{
+  return ! strcmp (spec, "<PORT-ID>");
+}
+
+int
+regvar_portid_is_match (char *spec, char *word)
+{
+  int port_id;
+  char *endptr;
+  port_id = strtol (word, &endptr, 0);
+  if (endptr[0] != '\0')
+    return 0;
+  if (0 <= port_id && port_id < rte_eth_dev_count_avail ())
+    return 1;
+  return 0;
+}
+
+char *
+regvar_portid_convert_cmdstr (char *spec, char *word)
+{
+  char cmdstr[32];
+  int nb_ports;
+  nb_ports = rte_eth_dev_count_avail ();
+  snprintf (cmdstr, sizeof (cmdstr), "<0-%d>", nb_ports - 1);
+  return strdup (cmdstr);
+}
+
+char *
+regvar_portid_convert_helpstr (char *spec, char *orig_helpstr, char *word)
+{
+  char helpstr[32];
+  int nb_ports;
+  nb_ports = rte_eth_dev_count_avail ();
+  snprintf (helpstr, sizeof (helpstr),
+            "specify PORT-ID. (<0-%d>)", nb_ports - 1);
+  return strdup (helpstr);
+}
+
+struct regvar regvar_portid;
+#endif /*REGVAR_SUPPORT*/
+
 void
 dpdk_port_cmd_init (struct command_set *cmdset)
 {
+#ifdef REGVAR_SUPPORT
+  struct regvar *regvar;
+  regvar = &regvar_portid;
+  regvar->spec = "<PORT-ID>";
+  regvar->is_spec = regvar_portid_is_spec;
+  regvar->is_match = regvar_portid_is_match;
+  regvar->convert_cmdstr = regvar_portid_convert_cmdstr;
+  regvar->convert_helpstr = regvar_portid_convert_helpstr;
+
+  if (! cmdset->regvars)
+    cmdset->regvars = vector_create ();
+  vector_add (regvar, cmdset->regvars);
+#endif /*REGVAR_SUPPORT*/
+
   INSTALL_COMMAND2 (cmdset, start_stop_port);
   INSTALL_COMMAND2 (cmdset, show_port);
   INSTALL_COMMAND2 (cmdset, show_port_statistics);

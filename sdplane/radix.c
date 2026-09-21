@@ -148,7 +148,11 @@ _delete (struct rib_node *n, const uint8_t *key, int keylen, int depth,
          int *success)
 {
   if (! n)
-    return NULL;
+    {
+      /* the key does not exist in the tree */
+      *success = -1;
+      return NULL;
+    }
 
   if (depth == keylen)
     {
@@ -162,8 +166,10 @@ _delete (struct rib_node *n, const uint8_t *key, int keylen, int depth,
         }
       else
         {
+          /* the node exists but holds no route.
+             returning the node preserves the longer prefixes below it */
           *success = -1;
-          return NULL;
+          return n;
         }
     }
   else
@@ -172,6 +178,14 @@ _delete (struct rib_node *n, const uint8_t *key, int keylen, int depth,
         n->right = _delete (n->right, key, keylen, depth + 1, success);
       else
         n->left = _delete (n->left, key, keylen, depth + 1, success);
+
+      /* _shrink() covers only the node that held the route, so its
+         ancestors are freed as the recursion unwinds */
+      if (! n->left && ! n->right && ! n->valid)
+        {
+          free (n);
+          return NULL;
+        }
       return n;
     }
 }
@@ -305,9 +319,12 @@ rib_show_route (struct rib_node *n, void *arg)
         snprintf (nexthop_str, sizeof (nexthop_str), "srv6-head");
       else if (nh_info->type == NEXTHOP_TYPE_SRV6_END)
         snprintf (nexthop_str, sizeof (nexthop_str), "srv6-end");
-      else
+      else if (nh_info->type == NEXTHOP_TYPE_GATEWAY)
         inet_ntop (nh_info->family, &nh_info->gw,
                    nexthop_str, sizeof (nexthop_str));
+      else
+        snprintf (nexthop_str, sizeof (nexthop_str), "unknown");
+
 
       snprintf (if_str, sizeof (if_str), "%s (%u)",
                 nh_info->oif_name, nh_info->oif);

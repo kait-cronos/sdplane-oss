@@ -265,6 +265,8 @@ l3_tap_handler (__rte_unused void *dummy)
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
+      fdb_now = time (NULL);
+
       l3_tap_handler_handle_packet_up ();
       l3_tap_handler_handle_packet_down ();
 

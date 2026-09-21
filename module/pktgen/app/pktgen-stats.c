@@ -19,6 +19,9 @@
 #include <rte_bus_pci.h>
 #include <rte_bus.h>
 
+#include <rte_version.h>
+#include "rte_override.h"
+
 /**
  *
  * pktgen_print_static_data - Display the static data on the screen.
@@ -523,9 +526,11 @@ pktgen_process_stats(void)
 
         rte_eth_stats_get(pid, curr);
 
+#if RTE_VERSION < RTE_VERSION_NUM(25,0,0,0)
         memcpy(&info->curr_stats.q_ipackets[0], &queue->q_ipackets[0],
                sizeof(queue->q_ipackets) + sizeof(queue->q_opackets) + sizeof(queue->q_ibytes) +
                    sizeof(queue->q_ibytes) + sizeof(queue->q_errors));
+#endif
 
         /* Normalize the counters */
         curr->ipackets  = curr->ipackets - base->ipackets;
@@ -546,6 +551,7 @@ pktgen_process_stats(void)
         rate->oerrors   = (curr->oerrors - prev->oerrors);
         rate->imissed   = (curr->imissed - prev->imissed);
         rate->rx_nombuf = (curr->rx_nombuf - prev->rx_nombuf);
+#if RTE_VERSION < RTE_VERSION_NUM(25,0,0,0)
         for (int i = 0; i < RTE_ETHDEV_QUEUE_STAT_CNTRS; i++) {
             rate->q_ipackets[i] = curr->q_ipackets[i] - prev->q_ipackets[i];
             rate->q_opackets[i] = curr->q_opackets[i] - prev->q_opackets[i];
@@ -553,6 +559,7 @@ pktgen_process_stats(void)
             rate->q_obytes[i]   = curr->q_obytes[i] - prev->q_obytes[i];
             rate->q_errors[i]   = curr->q_errors[i] - prev->q_errors[i];
         }
+#endif
 
         /* Find the new max rate values */
         if (rate->ipackets > info->max_ipackets)
@@ -628,11 +635,13 @@ pktgen_page_phys_stats(uint16_t pid)
             pktgen_display_set_color("stats.stat.values");
         }
 
+#if RTE_VERSION < RTE_VERSION_NUM(25,0,0,0)
         rxpkts  = r->q_ipackets[q];
         txpkts  = r->q_opackets[q];
         rxbytes = r->q_ibytes[q] / Million;
         txbytes = r->q_obytes[q] / Million;
         errors  = r->q_errors[q];
+#endif
 
         scrn_printf(row++, 1, "  Q %2d: %'15lu %'15lu %'17lu %'17lu %'15lu", q, rxpkts, txpkts,
                     rxbytes, txbytes, errors);

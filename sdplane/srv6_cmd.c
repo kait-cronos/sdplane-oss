@@ -11,6 +11,7 @@
 #include "sdplane.h"
 #include "rib.h"
 #include "rib_manager.h"
+#include "fib.h"
 #include "internal_message.h"
 #include "netlink_seg6.h"
 
@@ -100,6 +101,22 @@ CLI_COMMAND2 (set_srv6_local_sid,
 
   memset (&srv6_local_sid, 0, sizeof (srv6_local_sid));
 
+  if (inet_pton (AF_INET6, argv[3], &srv6_local_sid.srv6_local_sid_addr) != 1)
+    {
+      fprintf (shell->terminal, "Invalid IPv6 address: %s%s", argv[3],
+               shell->NL);
+      return CMD_FAILURE;
+    }
+
+  if (rib && rib->rib_info &&
+      srv6_local_sid_find (rib->rib_info,
+                           &srv6_local_sid.srv6_local_sid_addr) >= 0)
+    {
+      fprintf (shell->terminal, "SRv6 local-SID already exists: %s%s",
+               argv[3], shell->NL);
+      return CMD_FAILURE;
+    }
+
   int index;
   if (argc > 4)
     index = strtol (argv[4], NULL, 0);
@@ -107,8 +124,6 @@ CLI_COMMAND2 (set_srv6_local_sid,
     index = 0;
   else
     index = rib->rib_info->srv6_local_sid_addr_num;
-  inet_pton (AF_INET6, argv[3],
-             &srv6_local_sid.srv6_local_sid_addr);
   srv6_local_sid.action = SEG6_LOCAL_ACTION_END;
   srv6_local_sid.srv6_local_sid_addr_index = index;
 
@@ -198,190 +213,33 @@ CLI_COMMAND2 (show_srv6_local_sid,
   return CMD_SUCCESS;
 }
 
-bool enable_srv6_encap_mode = false;
-
-CLI_COMMAND2 (set_srv6_encap_enable,
-              "set srv6 encap enable",
+CLI_COMMAND2 (set_srv6_encap_src,
+              "set srv6 encap src <WORD>",
               SET_HELP,
               "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
-              "enable SRv6 encapsulation mode\n"
-              )
-{
-  struct shell *shell = (struct shell *) context;
-
-  enable_srv6_encap_mode = true;
-  fprintf (shell->terminal, "SRv6 encapsulation mode enabled.%s", shell->NL);
-  return CMD_SUCCESS;
-}
-
-CLI_COMMAND2 (set_srv6_encap_local_sid,
-              "set srv6 encap local-sid <WORD> "
-              "(|End|End.X|End.T|End.DX2|End.DX6|End.DX4"
-              "|End.DT6|End.DT4|End.DT46)",
-              SET_HELP,
-              "set SRv6 information\n",
-              "set SRv6 encapsulation information\n",
-              "set SRv6 encap local-SID information\n",
-              "specify SRv6 encap local-SID address\n",
-              "End behavior\n",
-              "End.X behavior\n",
-              "End.T behavior\n",
-              "End.DX2 behavior\n",
-              "End.DX6 behavior\n",
-              "End.DX4 behavior\n",
-              "End.DT6 behavior\n",
-              "End.DT4 behavior\n",
-              "End.DT46 behavior\n"
-              )
+              "set SRv6 encapsulation source address\n",
+              "specify SRv6 encapsulation source address\n")
 {
   struct shell *shell = (struct shell *) context;
   int ret;
   void *msgp;
+  struct internal_msg_srv6_encap_src *srv6_encap_src;
   struct rib *rib = rib_tlocal;
+  char *addr_ptr = argv[4];
   struct in6_addr tmp_addr;
-  struct internal_msg_route_entry* srv6_local_sid;
-  int action = SEG6_LOCAL_ACTION_END;
 
-  if (! enable_srv6_encap_mode)
-    {
-      fprintf (shell->terminal,
-        "SRv6 encapsulation mode is not enabled. "
-              "Please enable it first with 'set srv6 encap enable'.%s",
-               shell->NL);
-      return CMD_FAILURE;
-    }
-
-  if(inet_pton (AF_INET6, argv[4],
-             &tmp_addr) != 1)
+  if (inet_pton (AF_INET6, addr_ptr, &tmp_addr) != 1)
     {
       fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
-               argv[4], shell->NL);
-      return CMD_FAILURE;
-    }
-
-  if (argc > 5)
-    {
-      if (strcmp (argv[5], "End") == 0)
-        action = SEG6_LOCAL_ACTION_END;
-      else
-        {
-          fprintf (shell->terminal, 
-            "Unsupported SRv6 local-SID behavior: %s%s",
-                  argv[5], shell->NL);
-          return CMD_FAILURE;
-        }
-    }
-
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
-                              NULL, sizeof (*srv6_local_sid));
-
-  srv6_local_sid = internal_msg_body(msgp);
-
-  srv6_local_sid->dst.family = AF_INET6;
-  srv6_local_sid->dst.dst_ip_addr.ipv6_addr = tmp_addr;
-  srv6_local_sid->dst.plen = 128;
-  srv6_local_sid->family = AF_INET6;
-  srv6_local_sid->is_nhid = false;
-  srv6_local_sid->nh.nhcnt = 1;
-  srv6_local_sid->nh.members[0].info.family = AF_INET6;
-  srv6_local_sid->nh.members[0].info.type = NEXTHOP_TYPE_SRV6_END;
-  srv6_local_sid->nh.members[0].info.srv6_local_sid.action = action;
-  srv6_local_sid->nh.members[0].info.srv6_local_sid.sid =
-                          srv6_local_sid->dst.dst_ip_addr.ipv6_addr;
-  srv6_local_sid->nh.members[0].weight = 1;
-
-  ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
-  if (ret < 0)
-    {
-      return CMD_FAILURE;
-    }
-
-  return CMD_SUCCESS;
-}
-
-CLI_COMMAND2 (no_set_srv6_encap_local_sid,
-              "no set srv6 encap local-sid <WORD>",
-              NO_HELP,
-              SET_HELP,
-              "set SRv6 information\n",
-              "set SRv6 encapsulation information\n",
-              "delete SRv6 local-SID entry\n",
-              "specify SRv6 local-SID address to delete\n"
-              )
-{
-  struct shell *shell = (struct shell *) context;
-  int ret;
-  void *msgp;
-  struct in6_addr tmp_addr;
-  struct internal_msg_route_entry* msg;
-
-  if (! enable_srv6_encap_mode)
-    {
-      fprintf (shell->terminal,
-        "SRv6 encapsulation mode is not enabled. "
-              "Please enable it first with 'set srv6 encap enable'.%s",
-               shell->NL);
-      return CMD_FAILURE;
-    }
-
-  if (inet_pton (AF_INET6, argv[5], &tmp_addr) != 1)
-    {
-      fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
-               argv[4], shell->NL);
-      return CMD_FAILURE;
-    }
-
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
-                              NULL, sizeof (*msg));
-
-  msg = internal_msg_body (msgp);
-  msg->family = AF_INET6;
-  msg->dst.family = AF_INET6;
-  msg->dst.dst_ip_addr.ipv6_addr = tmp_addr;
-  msg->dst.plen = 128;
-  msg->is_nhid = false;
-  msg->nh.nhcnt = 1;
-  msg->nh.members[0].info.family = AF_INET6;
-  msg->nh.members[0].info.type = NEXTHOP_TYPE_SRV6_END;
-  msg->nh.members[0].info.srv6_local_sid.action = SEG6_LOCAL_ACTION_END;
-  msg->nh.members[0].info.srv6_local_sid.sid = msg->dst.dst_ip_addr.ipv6_addr;
-  msg->nh.members[0].weight = 1;
-
-  ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
-  if (ret < 0)
-    return CMD_FAILURE;
-
-  return CMD_SUCCESS;
-}
-
-CLI_COMMAND2(set_srv6_encap_src,"set srv6 encap src <WORD>",
-              SET_HELP,
-              "set SRv6 information\n",
-              "set SRv6 encapsulation information\n",
-             "set SRv6 encapsulation source address\n",
-             "specify SRv6 encapsulation source address\n"
-             )
-{
-  struct shell *shell = (struct shell *) context;
-  int ret;
-  void *msgp;
-  struct internal_msg_srv6_encap_src* srv6_encap_src;
-  struct rib *rib = rib_tlocal;
-  char* addr_ptr = argv[4];
-  struct in6_addr tmp_addr;
-
-  if(inet_pton (AF_INET6,addr_ptr,&tmp_addr) != 1)
-    {
-      fprintf (shell->terminal,"Invalid IPv6 address: %s%s", addr_ptr,
-               shell->NL);
+               addr_ptr, shell->NL);
       return CMD_FAILURE;
     }
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET, NULL,
                 sizeof (struct internal_msg_srv6_encap_src));
   srv6_encap_src = internal_msg_body (msgp);
-  memcpy(&srv6_encap_src->src_addr, &tmp_addr, sizeof(struct in6_addr));
+  memcpy (&srv6_encap_src->src_addr, &tmp_addr, sizeof (struct in6_addr));
 
   ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
   if (ret < 0)
@@ -392,21 +250,31 @@ CLI_COMMAND2(set_srv6_encap_src,"set srv6 encap src <WORD>",
   return CMD_SUCCESS;
 }
 
-CLI_COMMAND2(show_srv6_encap_src,"show srv6 encap src",
+CLI_COMMAND2 (show_srv6_encap_src,
+              "show srv6 encap src",
               SHOW_HELP,
               "show SRv6 information\n",
               "show SRv6 encapsulation information\n",
-              "show SRv6 encapsulation source address\n"
-             )
+              "show SRv6 encapsulation source address\n")
 {
   struct shell *shell = (struct shell *) context;
   char ip_str[INET6_ADDRSTRLEN];
-  inet_ntop (AF_INET6, &rib_tlocal->rib_info->srv6_tunnel_src_addr,
-          ip_str, sizeof (ip_str));
+  struct rib *rib = rib_tlocal;
+  if (! rib || ! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no routing information%s", shell->NL);
+      return 0;
+    }
+
+  inet_ntop (AF_INET6, &rib->rib_info->srv6_tunnel_src_addr,
+             ip_str, sizeof (ip_str));
   fprintf (shell->terminal,
-    "SRv6 encapsulation source address: %s%s", ip_str, shell->NL);
+           "SRv6 encapsulation source address: %s%s",
+           ip_str, shell->NL);
   return CMD_SUCCESS;
 }
+
+// clang-format on
 
 /*
  * Parse arguments shared by "set srv6 encap head" and
@@ -421,11 +289,13 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
   char prefix_str[INET6_ADDRSTRLEN + 8];
   char segments_str[MAX_SEGMENT_LIST_SIZE * (INET6_ADDRSTRLEN + 1)];
   char *plen_str, *seg_ptr, *comma;
-  struct in6_addr dst_addr;
+  struct in6_addr dst_addr6;
+  struct in_addr dst_addr4;
   struct in6_addr segments[MAX_SEGMENT_LIST_SIZE];
+  int dst_af = AF_INET6;
+  int max_plen = 128;
   int segment_count = 0;
-  int family, max_plen;
-  int plen = 0;
+  int plen = 128;
   int i;
 
   /* only H.Encaps is implemented in the data plane for now */
@@ -436,33 +306,55 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
       return -1;
     }
 
-  /* destination prefix: ADDR or ADDR/PLEN (default /128) */
+  /* destination prefix: ADDR or ADDR/PLEN. the address family is
+   * auto-detected (IPv4 defaults to /32, IPv6 to /128). the SID list
+   * stays IPv6 regardless of the destination family. */
   snprintf (prefix_str, sizeof (prefix_str), "%s", prefix_arg);
   plen_str = strchr (prefix_str, '/');
   if (plen_str)
+    *plen_str++ = '\0';
+
+  if (inet_pton (AF_INET, prefix_str, &dst_addr4) == 1)
     {
-      *plen_str++ = '\0';
-      plen = strtol (plen_str, NULL, 10);
-      // if (plen < 0 || plen > 128)
-      //   {
-      //     fprintf (shell->terminal, "Invalid prefix length: %s%s",
-      //              plen_str, shell->NL);
-      //     return -1;
-      //   }
+      dst_af = AF_INET;
+      max_plen = 32;
     }
-  // if (inet_pton (AF_INET6, prefix_str, &dst_addr) != 1)
-  //   {
-  //     fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
-  //              prefix_str, shell->NL);
-  //     return -1;
-  //   }
+  else if (inet_pton (AF_INET6, prefix_str, &dst_addr6) == 1)
+    {
+      dst_af = AF_INET6;
+      max_plen = 128;
+    }
+  else
+    {
+      fprintf (shell->terminal, "Invalid IP address: %s%s", prefix_str,
+               shell->NL);
+      return -1;
+    }
+
+  plen = max_plen;
+  if (plen_str)
+    {
+      char *plen_end;
+      plen = strtol (plen_str, &plen_end, 10);
+      /* reject empty ("addr/") and non-numeric ("addr/abc") prefix
+       * lengths: strtol would otherwise coerce them to 0. */
+      if (*plen_str == '\0' || *plen_end != '\0' || plen < 0 ||
+          plen > max_plen)
+        {
+          fprintf (shell->terminal, "Invalid prefix length: %s%s", plen_str,
+                   shell->NL);
+          return -1;
+        }
+    }
 
   /* comma-separated segment list, given in path order */
-  if (snprintf (segments_str, sizeof (segments_str), "%s", segments_arg)
-      >= (int) sizeof (segments_str))
+  if (snprintf (segments_str, sizeof (segments_str), "%s", segments_arg) >=
+      (int) sizeof (segments_str))
     {
-      fprintf (shell->terminal, "Too many SRv6 segments (max: %d)%s",
-               MAX_SEGMENT_LIST_SIZE, shell->NL);
+      fprintf (
+          shell->terminal,
+          "comma-separated segment list exceeds the supported length: %zu%s",
+          sizeof (segments_str) - 1, shell->NL);
       return -1;
     }
   seg_ptr = segments_str;
@@ -479,144 +371,91 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
         }
       if (inet_pton (AF_INET6, seg_ptr, &segments[segment_count]) != 1)
         {
-          fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
-                   seg_ptr, shell->NL);
+          fprintf (shell->terminal, "Invalid IPv6 address: %s%s", seg_ptr,
+                   shell->NL);
           return -1;
         }
       segment_count++;
       seg_ptr = comma;
     }
 
-  /* Address family decision */
-  family = strchr (prefix_str, ':') ? AF_INET6 : AF_INET;
-  max_plen = (family == AF_INET) ? 32 : 128;
-  if (! plen_str)
-    plen = max_plen;
-  if (plen < 0 || plen > max_plen)
-    {
-      fprintf (shell->terminal, "Invalid prefix length: %s%s",
-               plen_str ? plen_str : "", shell->NL);
-      return -1;
-    }
-
-  memset (&dst_addr, 0, sizeof (dst_addr));
-  if (inet_pton (family, prefix_str, &dst_addr) != 1)
-    {
-      fprintf (shell->terminal, "Invalid IP address: %s%s",
-               prefix_str, shell->NL);
-      return -1;
-    }
-
   memset (route, 0, sizeof (*route));
-  route->family = family;
+  route->family = dst_af;
   route->table_id = RT_TABLE_MAIN;
-  route->dst.family = family;
-  memcpy (&route->dst.dst_ip_addr, &dst_addr,
-          sizeof (route->dst.dst_ip_addr));
+  route->dst.family = dst_af;
+  if (dst_af == AF_INET)
+    route->dst.dst_ip_addr.ipv4_addr = dst_addr4;
+  else
+    route->dst.dst_ip_addr.ipv6_addr = dst_addr6;
   route->dst.plen = plen;
   route->is_nhid = false;
   route->nh.nhcnt = 1;
-  route->nh.members[0].info.family = family;
+  route->nh.members[0].info.family = AF_INET6;
   route->nh.members[0].info.type = NEXTHOP_TYPE_SRV6_HEAD;
-  route->nh.members[0].info.oif = 0; 
-  route->nh.members[0].info.srv6_encap_sid.action = SEG6_IPTUN_MODE_ENCAP;
-  route->nh.members[0].info.srv6_encap_sid.segment_list_size = segment_count;
+  route->nh.members[0].info.oif = 0;
+  route->nh.members[0].info.gw.srv6_encap_sid.action = SEG6_IPTUN_MODE_ENCAP;
+  route->nh.members[0].info.gw.srv6_encap_sid.segment_list_size =
+      segment_count;
   /* sids[] is in SRH order: sids[segment_count - 1] is the first segment
    * and becomes the outer destination address. */
   for (i = 0; i < segment_count; i++)
-    route->nh.members[0].info.srv6_encap_sid.sids[segment_count - 1 - i] =
-      segments[i];
+    route->nh.members[0].info.gw.srv6_encap_sid.sids[segment_count - 1 - i] =
+        segments[i];
   route->nh.members[0].weight = 1;
 
   return 0;
 }
 
+/*
+ * Shared body for "set" / "no set srv6 encap head": parse the arguments
+ * into a route entry and dispatch it to the RIB. msg_type selects add
+ * (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD) vs delete (..._DEL).
+ */
+static int
+srv6_encap_head_send (struct shell *shell, char *prefix_arg,
+                      char *segments_arg, char *action_arg, uint16_t msg_type)
+{
+  struct internal_msg_route_entry route;
+  void *msgp;
+  int ret;
+
+  ret = srv6_encap_head_parse_route (shell, prefix_arg, segments_arg,
+                                     action_arg, &route);
+  if (ret < 0)
+    return CMD_FAILURE;
+
+  msgp = internal_msg_create (msg_type, &route, sizeof (route));
+  if (internal_msg_send_to (msg_queue_rib, msgp, shell) < 0)
+    return CMD_FAILURE;
+
+  return CMD_SUCCESS;
+}
+
 CLI_COMMAND2 (set_srv6_encap_head,
-              "set srv6 encap head <WORD> <WORD> (|H.Encaps|H.Insert)",
-              SET_HELP,
-              "set SRv6 information\n",
+              "(|no) set srv6 encap head <WORD> <WORD> (|H.Encaps|H.Insert)",
+              NO_HELP, SET_HELP, "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
               "set SRv6 encap head-end route\n",
               "specify destination prefix (e.g. 2001:db8::/64)\n",
               "specify SRv6 segments in path order (comma-separated)\n",
               "encapsulate with H.Encaps (default)\n",
-              "insert SRH with H.Insert (not supported yet)\n"
-              )
+              "insert SRH with H.Insert (not supported yet)\n")
 {
   struct shell *shell = (struct shell *) context;
-  int ret;
-  void *msgp;
-  struct internal_msg_route_entry route;
-
-  if (! enable_srv6_encap_mode)
+  int msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD;
+  if (! strcmp (argv[0], "no"))
     {
-      fprintf (shell->terminal,
-        "SRv6 encapsulation mode is not enabled. "
-              "Please enable it first with 'set srv6 encap enable'.%s",
-               shell->NL);
-      return CMD_FAILURE;
+      msg_type = INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL;
+      argc--;
+      argv++;
     }
 
-  if (srv6_encap_head_parse_route (shell, argv[4], argv[5],
-                                   argc > 6 ? argv[6] : NULL, &route) < 0)
-    return CMD_FAILURE;
-
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD,
-                              &route, sizeof (route));
-  ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
-  if (ret < 0)
-    return CMD_FAILURE;
-
-  return CMD_SUCCESS;
+  return srv6_encap_head_send (shell, argv[4], argv[5],
+                               (argc > 6 ? argv[6] : NULL), msg_type);
 }
 
-CLI_COMMAND2 (no_set_srv6_encap_head,
-              "no set srv6 encap head <WORD> <WORD> (|H.Encaps|H.Insert)",
-              NO_HELP,
-              SET_HELP,
-              "set SRv6 information\n",
-              "set SRv6 encapsulation information\n",
-              "delete SRv6 encap head-end route\n",
-              "specify destination prefix (e.g. 2001:db8::/64)\n",
-              "specify SRv6 segments in path order (comma-separated)\n",
-              "encapsulate with H.Encaps (default)\n",
-              "insert SRH with H.Insert (not supported yet)\n"
-              )
-{
-  struct shell *shell = (struct shell *) context;
-  int ret;
-  void *msgp;
-  struct internal_msg_route_entry route;
-
-  if (! enable_srv6_encap_mode)
-    {
-      fprintf (shell->terminal,
-        "SRv6 encapsulation mode is not enabled. "
-              "Please enable it first with 'set srv6 encap enable'.%s",
-               shell->NL);
-      return CMD_FAILURE;
-    }
-
-  if (srv6_encap_head_parse_route (shell, argv[5], argv[6],
-                                   argc > 7 ? argv[7] : NULL, &route) < 0)
-    return CMD_FAILURE;
-
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL,
-                              &route, sizeof (route));
-  ret = internal_msg_send_to (msg_queue_rib, msgp, shell);
-  if (ret < 0)
-    return CMD_FAILURE;
-
-  return CMD_SUCCESS;
-}
-
-int
-_srv6_format_local_sid (const struct srv6_local_sid_entry *local_sid,
-                        char *buf, size_t buf_size);
-
-int
-_srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid,
-                        char *buf, size_t buf_size);
+int _srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid,
+                            char *buf, size_t buf_size);
 
 static int
 rib_show_srv6_route (struct rib_node *n, void *arg)
@@ -624,21 +463,18 @@ rib_show_srv6_route (struct rib_node *n, void *arg)
   struct show_route_arg *show_arg = (struct show_route_arg *) arg;
   struct rib_info *rib_info = show_arg->rib_info;
   struct shell *shell = show_arg->shell;
+  int family = show_arg->family;
   int sdplane_nh_index = n->entry.sdplane_nh_id;
-  int  i, ret;
+  int i, ret;
   char prefix_str[INET6_ADDRSTRLEN];
   char dst_str[INET6_ADDRSTRLEN + 5];
-  char nexthop_str[INET6_ADDRSTRLEN];
-  char if_str[IF_NAMESIZE + 12];
   char buffer[512];
 
-  inet_ntop (n->entry.dst.family, &n->entry.dst.dst_ip_addr,
-             prefix_str, sizeof (prefix_str));
-  snprintf (dst_str, sizeof (dst_str), "%s/%d",
-            prefix_str, n->entry.dst.plen);
+  inet_ntop (family, &n->entry.dst.dst_ip_addr, prefix_str,
+             sizeof (prefix_str));
+  snprintf (dst_str, sizeof (dst_str), "%s/%d", prefix_str, n->entry.dst.plen);
 
   struct nh_group *nh_grp = &rib_info->nexthop.groups[sdplane_nh_index];
-
   if (nh_grp->nhcnt <= 0)
     return 0;
 
@@ -649,51 +485,27 @@ rib_show_srv6_route (struct rib_node *n, void *arg)
         continue;
       const struct nh_info *nh_info = &rib_info->nexthop.info_pool[nh_idx];
 
-      if (nh_info->type != NEXTHOP_TYPE_SRV6_HEAD && nh_info->type != NEXTHOP_TYPE_SRV6_END)
+      if (nh_info->type != NEXTHOP_TYPE_SRV6_HEAD)
         continue;
 
-      if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
-        {
-          snprintf (nexthop_str, sizeof (nexthop_str), "srv6-head");
-          ret = _srv6_format_encap_sid (&nh_info->srv6_encap_sid,
-                                       buffer, sizeof (buffer));
-        }
-      else if (nh_info->type == NEXTHOP_TYPE_SRV6_END)
-        {
-          snprintf (nexthop_str, sizeof (nexthop_str), "srv6-end");
-          ret = _srv6_format_local_sid (&nh_info->srv6_local_sid,
-                                       buffer, sizeof (buffer));
-        }
-      else
-        snprintf (nexthop_str, sizeof (nexthop_str), "unknown");
-
-      fprintf (shell->terminal, "  Destination: %s, Nexthop Type: %s, Details: %s%s",
-               dst_str, nexthop_str, ret != 0 ? buffer : "format error", shell->NL);
-
+      ret = _srv6_format_encap_sid (&nh_info->gw.srv6_encap_sid, buffer,
+                                    sizeof (buffer));
+      fprintf (shell->terminal,
+               "  Destination: %s, Nexthop Type: %s, Details: %s%s", dst_str,
+               "srv6-head", ret != 0 ? buffer : "format error", shell->NL);
     }
   return 0;
 }
 
-CLI_COMMAND2 (show_srv6_encap_route,
-              "show srv6 encap route",
-              SHOW_HELP,
+CLI_COMMAND2 (show_srv6_encap_route, "show srv6 encap route", SHOW_HELP,
               "show SRv6 information\n",
               "show SRv6 encapsulation information\n",
-              "show SRv6 encapsulation routes\n"
-             )
+              "show SRv6 encapsulation routes\n")
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
   struct show_route_arg show_arg;
-  show_arg.family = AF_INET6;
-  if (! enable_srv6_encap_mode)
-    {
-      fprintf (shell->terminal,
-        "SRv6 encapsulation mode is not enabled. "
-              "Please enable it first with 'set srv6 encap enable'.%s",
-               shell->NL);
-      return CMD_FAILURE;
-    }
+  int i;
 
   if (! rib || ! rib->rib_info)
     {
@@ -704,33 +516,18 @@ CLI_COMMAND2 (show_srv6_encap_route,
   show_arg.rib_info = rib->rib_info;
   show_arg.shell = shell;
 
-  int i;
-  fprintf (shell->terminal, "SRv6 Encap Routes:%s",
-           shell->NL);
-
-  bool found = false;
+  fprintf (shell->terminal, "SRv6 Encap Routes:%s", shell->NL);
   for (i = 0; i < ROUTE_TREE_SIZE; i++)
     {
       struct rib_tree *rib_tree = rib_tree_master[i];
       if (! rib_tree)
         continue;
-
-      fprintf (shell->terminal, "rib_tree_master[%d] (table %d):%p%s",
-               i, rib_tree->table_id, rib_tree, shell->NL);
+      show_arg.family = rib_tree->family;
       rib_traverse (rib_tree, rib_show_srv6_route, &show_arg);
-      found = true;
-    }
-
-  if (! found)
-    {
-      const char *family_str = (show_arg.family == AF_INET) ? "IPv4" : "IPv6";
-      fprintf (shell->terminal, "no %s rib SRv6 routes%s",
-               family_str, shell->NL);
     }
 
   return CMD_SUCCESS;
 }
-
 
 void
 srv6_cmd_init (struct command_set *cmdset)
@@ -738,12 +535,8 @@ srv6_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_srv6_local_sid);
   INSTALL_COMMAND2 (cmdset, no_set_srv6_local_sid);
   INSTALL_COMMAND2 (cmdset, show_srv6_local_sid);
-  INSTALL_COMMAND2 (cmdset, set_srv6_encap_enable);
-  INSTALL_COMMAND2 (cmdset, set_srv6_encap_local_sid);
-  INSTALL_COMMAND2 (cmdset, no_set_srv6_encap_local_sid);
-  INSTALL_COMMAND2 (cmdset, set_srv6_encap_head);
-  INSTALL_COMMAND2 (cmdset, no_set_srv6_encap_head);
   INSTALL_COMMAND2 (cmdset, set_srv6_encap_src);
   INSTALL_COMMAND2 (cmdset, show_srv6_encap_src);
+  INSTALL_COMMAND2 (cmdset, set_srv6_encap_head);
   INSTALL_COMMAND2 (cmdset, show_srv6_encap_route);
 }

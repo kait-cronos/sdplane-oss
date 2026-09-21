@@ -13,7 +13,6 @@
 #include <sdplane/debug_zcmdsh.h>
 
 #include "debug_sdplane.h"
-#include "nexthop.h"
 #include "fib.h"
 
 /* key: address, s: start bit, n: number of bits */

@@ -33,6 +33,7 @@
 #include "l2fwd_export.h"
 #include "sdplane.h"
 #include "rib_manager.h"
+#include "fdb.h"
 #include "thread_info.h"
 
 static __thread unsigned lcore_id;
