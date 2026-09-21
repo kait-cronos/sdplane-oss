@@ -46,7 +46,7 @@ fib_new
 bitindex-bench.c - ベンチマーク用.cファイル
 bitindex-bench - コンパイル後ベンチマーク実行ファイル
 bitindex-bench.txt - ベンチマーク出力(bitindex-benchを出力してあとは)
-disasm.txt - ディスアセンブリ
+disasm.txt - コンパイルした各実装をディスアセンブルしたもの
 perf-events.txt - perfコマンドを使って個別のlookupごとにプロセスを別にして計測したもの
 
 # 測定結果例
@@ -154,6 +154,8 @@ farload         1533.4     343.2   4.47    135.4    268.2       3.4     0.08
 
 # 結果の解釈
 
+現時点での実装者の仮説である。
+
 ns - ナノ秒    
 insns - instructions(命令数)
 cycles - cpuサイクル数
@@ -167,12 +169,12 @@ stfwd_blk - Store-Forwardingが成立せず、先行ストアのデータ待ち�
 
 
 まずIPCは素朴に考えれば1サイクルで1命令になるが
-近年のCPUはスーパースカラとして複数命令を同時実行しているため
+近年のCPUはスーパースカラとして複数命令を並列に同時実行しているため
 IPCが4などの値になるのはその影響である。
 しかし、スーパースカラには限界があり後続の処理が
 直前の処理の処理結果のデータに依存しているとCPUは同時実行ができない。
 
-ここにおけるStore Forwardingとはcpuがメモリへ書き込んですぐに
+また上記指標stfwd_blkにおけるStore Forwardingとはcpuがメモリへ書き込んですぐに
 同じメモリからサイズで読みだすときにそのデータを直接送るようにするというものである。
 https://readpipe.org/posts/db632a67-296e-4992-9d2e-e3f1eae45d83
 ```
@@ -193,7 +195,7 @@ BIT_INDEX (const uint8_t *key, int s, int n)
 { 
   uint8_t key_safe[17]; /* sentinel */ 
   memcpy (key_safe, key, 16); // ここでkey -> key_safeのstoreが走る
-  key_safe[16] = 0; // そしてサイズの異なるstore
+  key_safe[16] = 0; 
 
   /* 
   *  extract from two bytes comprising byte to 
@@ -207,7 +209,7 @@ BIT_INDEX (const uint8_t *key, int s, int n)
 そのためkey_safeは`fib_router_lookup`等で一回だけ作成し探索中は`memcpy`をしないようにしたところ
 性能が改善した。
 
-当初は要因が`memcpy`数だと思っていたが対照実験として以下のような実装を用意して
+当初は要因が`memcpy`数だと考えていたが対照実験として以下のような実装を用意して
 ストア処理の回数は同一で読みだすバッファだけ違うというものを用意してみた。
 
 ```c
