@@ -36,6 +36,7 @@ struct command_set
 };
 
 #define REGVAR_SUPPORT 1
+#define REGVAR_MATCHING_SUPPORT 1
 struct regvar
 {
   char *spec;
