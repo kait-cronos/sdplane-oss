@@ -216,6 +216,22 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
         }
     }
 
+  /* 3.5 IPv4 multicast with SRv6 H.Encaps route */
+  if (ipv4 && enable_srv6_encap_mode && ipv4->next_proto_id != IPPROTO_IGMP &&
+      _is_ipv4_multicast (ipv4) && _has_srv6_h_encaps_route (ipv4))
+    {
+      if (_verify_packet (m, ipv4, ipv6) != 0)
+        {
+          DEBUG_NEW (ROUTER, "m: %p failed verify", m);
+          return;
+        }
+      DEBUG_NEW (ROUTER, "m: %p IPv4 multicast with SRv6 H.Encaps", m);
+      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, vswitch,
+                        vswitch_link, 0);
+
+      return;
+    }
+
   /* 4. check if l3_forwarding */
   if (! rte_is_same_ether_addr (&eth->dst_addr, &rif->mac_addr))
     {

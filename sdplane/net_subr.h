@@ -1124,4 +1124,33 @@ _check_control_packet (struct rte_mbuf *m,
   return is_control;
 }
 
+// IPv4 multicast (224.0.0.0/4 except 224.0.0.0/24)
+static inline bool
+_is_ipv4_multicast (struct rte_ipv4_hdr *ipv4)
+{
+  uint32_t dst_ip = rte_be_to_cpu_32 (ipv4->dst_addr);
+  return (dst_ip & 0xf0000000) == 0xe0000000 && 
+         (dst_ip & 0xffffff00) != 0xe0000000;
+}
+
+// if IPv4 FIB has an entry for SRv6 H.Encaps route
+static inline bool
+_has_srv6_h_encaps_route (const struct rte_ipv4_hdr *ipv4)
+{
+  uint8_t key[16] = { 0 };
+  struct fib_node *fib_node;
+  struct nh_info *nh_info;
+
+  memcpy (key, &ipv4->dst_addr, sizeof (ipv4->dst_addr));
+  fib_node = fib_route_lookup (rib->rib_info->fib_tree[0], key);
+  if (! fib_node)
+    return false;
+
+  nh_info = nexthop_get_info_by_index (rib->rib_info, fib_node->sdplane_nh_id);
+  if (! nh_info)
+    return false;
+  
+  return nh_info && nh_info->type == NEXTHOP_TYPE_SRV6_HEAD;
+}
+
 #endif /*__NET_SUBR_H__*/
