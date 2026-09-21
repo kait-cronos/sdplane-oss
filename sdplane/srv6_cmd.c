@@ -424,7 +424,8 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
   struct in6_addr dst_addr;
   struct in6_addr segments[MAX_SEGMENT_LIST_SIZE];
   int segment_count = 0;
-  int plen = 128;
+  int family, max_plen;
+  int plen = 0;
   int i;
 
   /* only H.Encaps is implemented in the data plane for now */
@@ -442,19 +443,19 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
     {
       *plen_str++ = '\0';
       plen = strtol (plen_str, NULL, 10);
-      if (plen < 0 || plen > 128)
-        {
-          fprintf (shell->terminal, "Invalid prefix length: %s%s",
-                   plen_str, shell->NL);
-          return -1;
-        }
+      // if (plen < 0 || plen > 128)
+      //   {
+      //     fprintf (shell->terminal, "Invalid prefix length: %s%s",
+      //              plen_str, shell->NL);
+      //     return -1;
+      //   }
     }
-  if (inet_pton (AF_INET6, prefix_str, &dst_addr) != 1)
-    {
-      fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
-               prefix_str, shell->NL);
-      return -1;
-    }
+  // if (inet_pton (AF_INET6, prefix_str, &dst_addr) != 1)
+  //   {
+  //     fprintf (shell->terminal, "Invalid IPv6 address: %s%s",
+  //              prefix_str, shell->NL);
+  //     return -1;
+  //   }
 
   /* comma-separated segment list, given in path order */
   if (snprintf (segments_str, sizeof (segments_str), "%s", segments_arg)
@@ -486,15 +487,36 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
       seg_ptr = comma;
     }
 
+  /* Address family decision */
+  family = strchr (prefix_str, ':') ? AF_INET6 : AF_INET;
+  max_plen = (family == AF_INET) ? 32 : 128;
+  if (! plen_str)
+    plen = max_plen;
+  if (plen < 0 || plen > max_plen)
+    {
+      fprintf (shell->terminal, "Invalid prefix length: %s%s",
+               plen_str ? plen_str : "", shell->NL);
+      return -1;
+    }
+
+  memset (&dst_addr, 0, sizeof (dst_addr));
+  if (inet_pton (family, prefix_str, &dst_addr) != 1)
+    {
+      fprintf (shell->terminal, "Invalid IP address: %s%s",
+               prefix_str, shell->NL);
+      return -1;
+    }
+
   memset (route, 0, sizeof (*route));
-  route->family = AF_INET6;
+  route->family = family;
   route->table_id = RT_TABLE_MAIN;
-  route->dst.family = AF_INET6;
-  route->dst.dst_ip_addr.ipv6_addr = dst_addr;
+  route->dst.family = family;
+  memcpy (&route->dst.dst_ip_addr, &dst_addr,
+          sizeof (route->dst.dst_ip_addr));
   route->dst.plen = plen;
   route->is_nhid = false;
   route->nh.nhcnt = 1;
-  route->nh.members[0].info.family = AF_INET6;
+  route->nh.members[0].info.family = family;
   route->nh.members[0].info.type = NEXTHOP_TYPE_SRV6_HEAD;
   route->nh.members[0].info.oif = 0; 
   route->nh.members[0].info.srv6_encap_sid.action = SEG6_IPTUN_MODE_ENCAP;
@@ -602,7 +624,6 @@ rib_show_srv6_route (struct rib_node *n, void *arg)
   struct show_route_arg *show_arg = (struct show_route_arg *) arg;
   struct rib_info *rib_info = show_arg->rib_info;
   struct shell *shell = show_arg->shell;
-  int family = show_arg->family;
   int sdplane_nh_index = n->entry.sdplane_nh_id;
   int  i, ret;
   char prefix_str[INET6_ADDRSTRLEN];
@@ -611,7 +632,7 @@ rib_show_srv6_route (struct rib_node *n, void *arg)
   char if_str[IF_NAMESIZE + 12];
   char buffer[512];
 
-  inet_ntop (family, &n->entry.dst.dst_ip_addr,
+  inet_ntop (n->entry.dst.family, &n->entry.dst.dst_ip_addr,
              prefix_str, sizeof (prefix_str));
   snprintf (dst_str, sizeof (dst_str), "%s/%d",
             prefix_str, n->entry.dst.plen);
@@ -665,7 +686,6 @@ CLI_COMMAND2 (show_srv6_encap_route,
   struct rib *rib = rib_tlocal;
   struct show_route_arg show_arg;
   show_arg.family = AF_INET6;
-
   if (! enable_srv6_encap_mode)
     {
       fprintf (shell->terminal,
