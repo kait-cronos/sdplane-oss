@@ -28,7 +28,7 @@ _lookup
 fib_route_lookup
 ```
 
-また以下の関数については各実装間で変化がないためoldから抽出している
+また以下の関数についてはoldから抽出している
 ```
 _count_nonzero
 _create_fib_node
