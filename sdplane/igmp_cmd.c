@@ -67,7 +67,7 @@ igmp_router_if_lookup (struct rib *rib, int vswitch_id)
 }
 
 CLI_COMMAND2 (set_vswitch_igmp_join,
-              "set vswitch igmp join <1-4094> A.B.C.D",
+              "set vswitch igmp join <1-4094> "IPV4_ADDR_SPEC,
               SET_HELP,
               "set vswitch information\n",
               "set vswitch IGMP information\n",
@@ -148,7 +148,7 @@ CLI_COMMAND2 (set_vswitch_igmp_join,
 }
 
 CLI_COMMAND2 (no_set_vswitch_igmp_join,
-              "no set vswitch igmp join <1-4094> A.B.C.D",
+              "no set vswitch igmp join <1-4094> "IPV4_ADDR_SPEC,
               NO_HELP,
               SET_HELP,
               "set vswitch information\n",
