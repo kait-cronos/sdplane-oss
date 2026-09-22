@@ -289,17 +289,17 @@ pci_bus_number_normalize (char *word, char *out, size_t outlen)
   return 1;
 }
 
-CLI_COMMAND2 (
-    set_device_driver,
-    "set device <WORD> "
+CLI_COMMAND2 (set_device_driver,
+    "set device "PCI_BUS_ADDR_SPEC" "
     "driver (ixgbe|igb|igc|uio_pci_generic|igb_uio|vfio-pci|unbound) "
     " (|bind|driver_override)",
     SET_HELP, "Devices information.\n",
-    "Specify PCI Bus Number for the device.\n", "DPDK driver information.\n",
+    "Specify PCI Bus Number for the device.\n",
+    "DPDK driver information.\n",
     "module: ixgbe.\n", "module: igb.\n", "module: igc.\n",
-    "module: uio_pci_generic.\n", "module: igb_uio.\n", "module: vfio-pci.\n",
-    "unbind the device.\n"
-    "use the bind method.\n"
+    "module: uio_pci_generic.\n", "module: igb_uio.\n",
+    "module: vfio-pci.\n", "unbind the device.\n",
+    "use the bind method.\n",
     "use the driver_override method.\n")
 {
   struct shell *shell = (struct shell *) context;

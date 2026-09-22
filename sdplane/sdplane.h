@@ -79,9 +79,21 @@ extern struct vswitch vswitch0;
 #ifdef REGVAR_SUPPORT
 #define PORT_ID_SPEC "<PORT-ID>"
 #define LCORE_ID_SPEC "<LCORE-ID>"
+#define IPV4_ADDR_SPEC "<IPV4-ADDR>"
+#define IPV6_ADDR_SPEC "<IPV6-ADDR>"
+#define IPV4_PREFIX_SPEC "<IPV4-PREFIX>"
+#define IPV6_PREFIX_SPEC "<IPV6-PREFIX>"
+#define ETHER_ADDR_SPEC "<ETHER-ADDR>"
+#define PCI_BUS_ADDR_SPEC "<PCI-BUS-ADDR>"
 #else
 #define PORT_ID_SPEC "<0-16>"
 #define LCORE_ID_SPEC "<0-16>"
+#define IPV4_ADDR_SPEC "<WORD>"
+#define IPV6_ADDR_SPEC "<WORD>"
+#define IPV4_PREFIX_SPEC "<WORD>"
+#define IPV6_PREFIX_SPEC "<WORD>"
+#define ETHER_ADDR_SPEC "<WORD>"
+#define PCI_BUS_ADDR_SPEC "<WORD>"
 #endif /*REGVAR_SUPPORT*/
 
 void start_lcore (struct shell *shell, int lcore_id);
