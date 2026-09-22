@@ -411,6 +411,134 @@ regvar_convert_helpstr_ipv6_prefix (char *spec, char *orig_helpstr, char *word)
   return strdup (helpstr);
 }
 
+/* <ETHER-ADDR> */
+int
+regvar_is_spec_ether_addr (char *spec)
+{
+  return ! strcmp (spec, "<ETHER-ADDR>");
+}
+
+int
+regvar_is_match_ether_addr (char *spec, char *word)
+{
+  int ret;
+  char addr_str[64];
+  struct rte_ether_addr eaddr;
+  snprintf (addr_str, sizeof (addr_str), "%s", word);
+  ret = rte_ether_unformat_addr (addr_str, &eaddr);
+  if (ret != 0)
+    return 0;
+  return 1;
+}
+
+int
+regvar_is_matching_ether_addr (char *spec, char *word)
+{
+  char *p;
+  int ncolon = 0;
+  int ndots = 0;
+  int nhyphen = 0;
+  int ndigits = 0;
+  char digitstr[5] = { 0 };
+  char *endptr;
+  int ret;
+
+  for (p = &word[0]; *p != '\0'; p++)
+    {
+      if (('0' <= *p && *p <= '9') ||
+          ('a' <= *p && *p <= 'f') ||
+          ('A' <= *p && *p <= 'F'))
+        {
+          digitstr[ndigits] = *p;
+          ndigits++;
+          if (ndigits > 4)
+            return 0;
+          if ((nhyphen || ncolon) && ndigits > 2)
+            return 0;
+          digitstr[ndigits] = '\0';
+          ret = strtol (digitstr, &endptr, 16);
+          if (*endptr != '\0')
+            return 0;
+          if (ret < 0 || 0xffff < ret)
+            return 0;
+          if ((nhyphen || ncolon) &&
+              (ret < 0 || 0xff < ret))
+            return 0;
+        }
+      else if (*p == ':' || *p == '-')
+        {
+          if (ndots)
+            return 0;
+          if (*p == ':' && nhyphen)
+            return 0;
+          if (*p == '-' && ncolon)
+            return 0;
+          /* "::" or "--" is not allowed. */
+          if (ndigits == 0)
+            return 0;
+          /* reset ndigits. */
+          ndigits = 0;
+          memset (digitstr, 0, sizeof (digitstr));
+          if (*p == ':')
+            {
+              ncolon++;
+              if (ncolon > 5)
+                return 0;
+            }
+          else if (*p == '-')
+            {
+              nhyphen++;
+              if (nhyphen > 5)
+                return 0;
+            }
+        }
+      else if (*p == '.')
+        {
+          if (nhyphen || ncolon)
+            return 0;
+          /* ".." is not allowed. */
+          if (ndigits == 0)
+            return 0;
+          /* "0011.2233.4455" does not seem to allow less digits */
+          if (ndigits != 4)
+            return 0;
+          /* reset ndigits. */
+          ndigits = 0;
+          memset (digitstr, 0, sizeof (digitstr));
+          if (ndots > 2)
+            return 0;
+        }
+      else
+        {
+          return 0;
+        }
+      if ((!! ncolon) + (!! nhyphen) + (!! ndots) > 2)
+        return 0;
+    }
+  if ((ncolon <= 5 && ndigits <= 2) ||
+      (nhyphen <= 5 && ndigits <= 2) ||
+      (ndots <= 2 && ndigits <= 4))
+    return 1;
+  return 0;
+}
+
+char *
+regvar_convert_cmdstr_ether_addr (char *spec, char *word)
+{
+  char cmdstr[32];
+  snprintf (cmdstr, sizeof (cmdstr), "<AA:BB:CC:DD:EE:FF>");
+  return strdup (cmdstr);
+}
+
+char *
+regvar_convert_helpstr_ether_addr (char *spec, char *orig_helpstr, char *word)
+{
+  char helpstr[128];
+  snprintf (helpstr, sizeof (helpstr),
+            "%s: %s", orig_helpstr, word);
+  return strdup (helpstr);
+}
+
 /* registry for variables */
 
 struct regvar regvar_ipv4_addr =
@@ -459,6 +587,18 @@ struct regvar regvar_ipv6_prefix =
 #endif
   regvar_convert_cmdstr_ipv6_prefix,
   regvar_convert_helpstr_ipv6_prefix
+};
+
+struct regvar regvar_ether_addr =
+{
+  "<ETHER-ADDR>",
+  regvar_is_spec_ether_addr,
+  regvar_is_match_ether_addr,
+#ifdef REGVAR_MATCHING_SUPPORT
+  regvar_is_matching_ether_addr,
+#endif
+  regvar_convert_cmdstr_ether_addr,
+  regvar_convert_helpstr_ether_addr
 };
 
 #endif /*REGVAR_SUPPORT*/
@@ -551,6 +691,17 @@ ALIAS_COMMAND (echo_ipv6_branch_prefix,
               "Specify IPv6 Prefix.\n"
               "Branch is a prefix.\n");
 
+CLI_COMMAND2 (echo_ether_addr,
+              "echo ether-addr <ETHER-ADDR>",
+              "echo command\n",
+              "echo ether address\n",
+              "Specify Ether Address.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  fprintf (shell->terminal, "echoing ether-addr: %s%s",
+           argv[2], shell->NL);
+  return CMD_SUCCESS;
+}
 
 void
 variable_cmd_init (struct command_set *cmdset)
@@ -562,6 +713,7 @@ variable_cmd_init (struct command_set *cmdset)
   vector_add (&regvar_ipv4_prefix, cmdset->regvars);
   vector_add (&regvar_ipv6_addr, cmdset->regvars);
   vector_add (&regvar_ipv6_prefix, cmdset->regvars);
+  vector_add (&regvar_ether_addr, cmdset->regvars);
 #endif /*REGVAR_SUPPORT*/
 
   INSTALL_COMMAND2 (cmdset, echo_ipv4_addr);
@@ -573,4 +725,6 @@ variable_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, echo_ipv6_addr_or_prefix);
   INSTALL_COMMAND2 (cmdset, echo_ipv6_branch_address);
   INSTALL_COMMAND2 (cmdset, echo_ipv6_branch_prefix);
+
+  INSTALL_COMMAND2 (cmdset, echo_ether_addr);
 }
