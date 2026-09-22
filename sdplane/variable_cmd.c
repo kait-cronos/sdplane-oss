@@ -171,6 +171,8 @@ regvar_is_matching_ipv4_prefix (char *spec, char *word)
           if (ret != 1)
             return 0;
           slash = p;
+          ndigits = 0;
+          memset (digitstr, 0, sizeof (digitstr));
         }
       else
         {
