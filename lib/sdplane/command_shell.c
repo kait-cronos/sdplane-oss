@@ -1079,6 +1079,9 @@ command_execute2 (int argc, char **argv, struct command_set *cmdset,
       parent = cmdnodes[index - 1];
     }
 
+  if (! parent)
+    return CMD_NOT_FOUND;
+
   /* treat cases when "show port" command is installed and the
      current command-line is "show port ?".
      In the case, the current argv is "" and the

@@ -656,11 +656,14 @@ varmatch_pri (char *spec)
 }
 
 int
-is_command_node_variable (struct command_node *node)
+is_command_node_variable (struct command_set *cmdset,
+                          struct command_node *node)
 {
   if (ipv4_spec (node->cmdstr) || range_spec (node->cmdstr) ||
       double_spec (node->cmdstr) || file_spec (node->cmdstr) ||
       line_spec (node->cmdstr) || var_spec (node->cmdstr))
+    return 1;
+  if (is_command_regvar (cmdset, node->cmdstr))
     return 1;
   if (word_spec (node->cmdstr))
     return 1;
@@ -1136,7 +1139,8 @@ command_execute (char *command_line, struct command_set *cmdset, void *context)
 }
 
 char *
-command_complete_common (char *word, struct command_node *parent)
+command_complete_common (char *word, struct command_node *parent,
+                         struct command_node *cmdset)
 {
   int nmatch = 0;
   struct vector_node *vn;
@@ -1147,7 +1151,7 @@ command_complete_common (char *word, struct command_node *parent)
   for (vn = vector_head (parent->cmdvec); vn; vn = vector_next (vn))
     {
       node = (struct command_node *) vn->data;
-      if (is_command_node_variable (node))
+      if (is_command_node_variable (cmdset, node))
         continue;
       if (! strncmp (node->cmdstr, word, strlen (word)))
         {
@@ -1196,13 +1200,13 @@ command_complete (char *command_line, int point, struct command_set *cmdset)
         snprintf (retbuf, sizeof (retbuf), "%s", completion);
     }
 
-  if (match && ! is_command_node_variable (match))
+  if (match && ! is_command_node_variable (cmdset, match))
     snprintf (retbuf, sizeof (retbuf), "%s ",
               &match->cmdstr[strlen (matched)]);
 
   if (match == NULL && parent)
     snprintf (retbuf, sizeof (retbuf), "%s",
-              command_complete_common (word, parent));
+              command_complete_common (word, parent, cmdset));
 
   free (cmd_dup);
   return retbuf;
