@@ -201,6 +201,218 @@ regvar_convert_helpstr_ipv4_prefix (char *spec, char *orig_helpstr, char *word)
   return strdup (helpstr);
 }
 
+/* IPv6 */
+int
+regvar_is_spec_ipv6_addr (char *spec)
+{
+  return ! strcmp (spec, "<IPV6-ADDR>");
+}
+
+int
+regvar_is_match_ipv6_addr (char *spec, char *word)
+{
+  int ret;
+  struct in6_addr in6_addr;
+  ret = inet_pton (AF_INET6, word, &in6_addr);
+  if (ret == 1)
+    return 1;
+  return 0;
+}
+
+int
+regvar_is_matching_ipv6_addr (char *spec, char *word)
+{
+  char *p;
+  int ncolon = 0;
+  int ndigits = 0;
+  char digitstr[5] = { 0 };
+  char *endptr;
+  int ret;
+  int coloncolon = 0;
+  for (p = &word[0]; *p != '\0'; p++)
+    {
+      if (('0' <= *p && *p <= '9') ||
+          ('a' <= *p && *p <= 'f') ||
+          ('A' <= *p && *p <= 'F'))
+        {
+          digitstr[ndigits] = *p;
+          ndigits++;
+          if (ndigits > 4)
+            return 0;
+          digitstr[ndigits] = '\0';
+          ret = strtol (digitstr, &endptr, 16);
+          if (*endptr != '\0')
+            return 0;
+          if (ret < 0 || 0xffff < ret)
+            return 0;
+        }
+      else if (*p == ':')
+        {
+          /* "::" is allowed only one time. */
+          if (ndigits == 0)
+            {
+              if (! coloncolon)
+                coloncolon++;
+              else
+                return 0;
+            }
+          /* reset ndigits. */
+          ndigits = 0;
+          memset (digitstr, 0, sizeof (digitstr));
+          ncolon++;
+          if (ncolon > 15)
+            return 0;
+        }
+      else
+        {
+          return 0;
+        }
+    }
+  if (ncolon <= 15 && ndigits <= 4)
+    return 1;
+  return 0;
+}
+
+char *
+regvar_convert_cmdstr_ipv6_addr (char *spec, char *word)
+{
+  char cmdstr[32];
+  snprintf (cmdstr, sizeof (cmdstr), "<X:X::X:X>");
+  return strdup (cmdstr);
+}
+
+char *
+regvar_convert_helpstr_ipv6_addr (char *spec, char *orig_helpstr, char *word)
+{
+  char helpstr[128];
+  snprintf (helpstr, sizeof (helpstr),
+            "%s: %s", orig_helpstr, word);
+  return strdup (helpstr);
+}
+
+int
+regvar_is_spec_ipv6_prefix (char *spec)
+{
+  return ! strcmp (spec, "<IPV6-PREFIX>");
+}
+
+int
+regvar_is_match_ipv6_prefix (char *spec, char *word)
+{
+  int ret;
+  char *p;
+  char prefix[64];
+  struct in6_addr in6_addr;
+  char *endptr;
+  snprintf (prefix, sizeof (prefix), "%s", word);
+  p = strchr (prefix, '/');
+  if (! p)
+    return 0;
+  *p++ = '\0';
+  ret = inet_pton (AF_INET6, prefix, &in6_addr);
+  if (ret != 1)
+    return 0;
+  if (strlen (p) == 0 || strlen (p) > 3)
+    return 0;
+  ret = strtol (p, &endptr, 10);
+  if (*endptr != '\0')
+    return 0;
+  if (ret < 0 || 128 < ret)
+    return 0;
+  return 1;
+}
+
+int
+regvar_is_matching_ipv6_prefix (char *spec, char *word)
+{
+  char *p;
+  int ncolon = 0;
+  int ndigits = 0;
+  char digitstr[5] = { 0 };
+  char *endptr;
+  int ret;
+  char prefix[24];
+  char *slash = NULL;
+  struct in6_addr in6_addr;
+  int coloncolon = 0;
+  for (p = &word[0]; *p != '\0'; p++)
+    {
+      if (('0' <= *p && *p <= '9') ||
+          ('a' <= *p && *p <= 'f') ||
+          ('A' <= *p && *p <= 'F'))
+        {
+          digitstr[ndigits] = *p;
+          ndigits++;
+          if ((slash && ndigits > 3) ||
+              (ndigits > 4))
+            return 0;
+          digitstr[ndigits] = '\0';
+          ret = strtol (digitstr, &endptr, 16);
+          if (*endptr != '\0')
+            return 0;
+          if ((slash && (ret < 0 || 128 < ret)) ||
+              (ret < 0 || 0xffff < ret))
+            return 0;
+        }
+      else if (*p == ':')
+        {
+          /* "::" is allowed only one time. */
+          if (ndigits == 0)
+            {
+              if (! coloncolon)
+                coloncolon++;
+              else
+                return 0;
+            }
+          /* reset ndigits. */
+          ndigits = 0;
+          memset (digitstr, 0, sizeof (digitstr));
+          ncolon++;
+          if (ncolon > 15)
+            return 0;
+        }
+      else if (*p == '/')
+        {
+          snprintf (prefix, sizeof (prefix), "%s", word);
+          slash = strchr (prefix, '/');
+          assert (slash);
+          *slash = '\0';
+          ret = inet_pton (AF_INET6, prefix, &in6_addr);
+          if (ret != 1)
+            return 0;
+          slash = p;
+          ndigits = 0;
+          memset (digitstr, 0, sizeof (digitstr));
+        }
+      else
+        {
+          return 0;
+        }
+    }
+  if (ncolon <= 15 && ndigits <= 4 && (!slash || ndigits <= 3))
+    return 1;
+  return 0;
+}
+
+char *
+regvar_convert_cmdstr_ipv6_prefix (char *spec, char *word)
+{
+  char cmdstr[32];
+  snprintf (cmdstr, sizeof (cmdstr), "<X:X::X:X/M>");
+  return strdup (cmdstr);
+}
+
+char *
+regvar_convert_helpstr_ipv6_prefix (char *spec, char *orig_helpstr, char *word)
+{
+  char helpstr[128];
+  snprintf (helpstr, sizeof (helpstr),
+            "%s: %s", orig_helpstr, word);
+  return strdup (helpstr);
+}
+
+/* registry for variables */
+
 struct regvar regvar_ipv4_addr =
 {
   "<IPV4-ADDR>",
@@ -223,6 +435,30 @@ struct regvar regvar_ipv4_prefix =
 #endif
   regvar_convert_cmdstr_ipv4_prefix,
   regvar_convert_helpstr_ipv4_prefix
+};
+
+struct regvar regvar_ipv6_addr =
+{
+  "<IPV6-ADDR>",
+  regvar_is_spec_ipv6_addr,
+  regvar_is_match_ipv6_addr,
+#ifdef REGVAR_MATCHING_SUPPORT
+  regvar_is_matching_ipv6_addr,
+#endif
+  regvar_convert_cmdstr_ipv6_addr,
+  regvar_convert_helpstr_ipv6_addr
+};
+
+struct regvar regvar_ipv6_prefix =
+{
+  "<IPV6-PREFIX>",
+  regvar_is_spec_ipv6_prefix,
+  regvar_is_match_ipv6_prefix,
+#ifdef REGVAR_MATCHING_SUPPORT
+  regvar_is_matching_ipv6_prefix,
+#endif
+  regvar_convert_cmdstr_ipv6_prefix,
+  regvar_convert_helpstr_ipv6_prefix
 };
 
 #endif /*REGVAR_SUPPORT*/
@@ -283,6 +519,39 @@ ALIAS_COMMAND (echo_ipv4_branch_prefix,
               "Specify IPv4 Prefix.\n"
               "Branch is a prefix.\n");
 
+CLI_COMMAND2 (echo_ipv6_addr_or_prefix,
+              "echo ipv6-addr-or-prefix (<IPV6-ADDR>|<IPV6-PREFIX>)",
+              "echo command\n",
+              "echo ipv6 addr or prefix\n",
+              "Specify IPv6 Address.\n",
+              "Specify IPv6 Prefix.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  fprintf (shell->terminal, "echoing ipv6-addr-or-prefix: %s%s",
+           argv[2], shell->NL);
+  if (argc > 3)
+    fprintf (shell->terminal, "%s is a %s%s",
+             argv[2], argv[3], shell->NL);
+  return CMD_SUCCESS;
+}
+
+ALIAS_COMMAND (echo_ipv6_branch_address,
+               echo_ipv6_addr_or_prefix,
+              "echo ipv6-addr-or-prefix <IPV6-ADDR> address",
+              "echo command\n"
+              "echo ipv6 addr or prefix\n"
+              "Specify IPv6 Address.\n"
+              "Branch is a address.\n");
+
+ALIAS_COMMAND (echo_ipv6_branch_prefix,
+               echo_ipv6_addr_or_prefix,
+              "echo ipv6-addr-or-prefix <IPV6-PREFIX> prefix",
+              "echo command\n"
+              "echo ipv6 addr or prefix\n"
+              "Specify IPv6 Prefix.\n"
+              "Branch is a prefix.\n");
+
+
 void
 variable_cmd_init (struct command_set *cmdset)
 {
@@ -291,10 +560,17 @@ variable_cmd_init (struct command_set *cmdset)
     cmdset->regvars = vector_create ();
   vector_add (&regvar_ipv4_addr, cmdset->regvars);
   vector_add (&regvar_ipv4_prefix, cmdset->regvars);
+  vector_add (&regvar_ipv6_addr, cmdset->regvars);
+  vector_add (&regvar_ipv6_prefix, cmdset->regvars);
 #endif /*REGVAR_SUPPORT*/
+
   INSTALL_COMMAND2 (cmdset, echo_ipv4_addr);
   INSTALL_COMMAND2 (cmdset, echo_ipv4_prefix);
   INSTALL_COMMAND2 (cmdset, echo_ipv4_addr_or_prefix);
   INSTALL_COMMAND2 (cmdset, echo_ipv4_branch_address);
   INSTALL_COMMAND2 (cmdset, echo_ipv4_branch_prefix);
+
+  INSTALL_COMMAND2 (cmdset, echo_ipv6_addr_or_prefix);
+  INSTALL_COMMAND2 (cmdset, echo_ipv6_branch_address);
+  INSTALL_COMMAND2 (cmdset, echo_ipv6_branch_prefix);
 }
