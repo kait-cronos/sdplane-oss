@@ -268,8 +268,9 @@ CLI_COMMAND2 (show_port,
     port_spec = strtol (argv[2], NULL, 0);
 
   if (brief)
-    fprintf (t, "%-8s %-7s %6s %7s %-9s %-24s%s", "port:", "device", "status",
-             "speed", "driver", "<capability>", shell->NL);
+    fprintf (t, "%-8s %-7s %6s %7s %-9s %-24s%s",
+             "port:", "device", "status",
+             "speed", "driver", "uptime", shell->NL);
 
   nb_ports = rte_eth_dev_count_avail ();
   for (port_id = 0; port_id < nb_ports; port_id++)
@@ -312,10 +313,25 @@ CLI_COMMAND2 (show_port,
       if (brief)
         {
           char port_name[16];
+          char uptimebuf[32];
           snprintf (port_name, sizeof (port_name), "port[%d]:", port_id);
+
+          if (rib_tlocal && rib_tlocal->rib_info && port_id < MAX_ETH_PORTS)
+            {
+              struct port_conf *port_cfg;
+              port_cfg = &rib_tlocal->rib_info->port[port_id];
+              snprintf_uptime (uptimebuf, sizeof (uptimebuf),
+                               port_cfg->last_changed.tv_sec);
+            }
+          else
+            {
+              snprintf (uptimebuf, sizeof (uptimebuf), "--:--:--");
+            }
+
           fprintf (t, "%-8s %-7s %6s %'7d %-9s %-24s%s", port_name,
                    (devname2 ? devname2 : devname), status, link.link_speed,
-                   (drivername2 ? drivername2 : drivername), link_capa2,
+                   (drivername2 ? drivername2 : drivername),
+                   uptimebuf,
                    shell->NL);
         }
       else
@@ -325,6 +341,20 @@ CLI_COMMAND2 (show_port,
           fprintf (t, "  link duplex: %d%s", link.link_duplex, shell->NL);
           fprintf (t, "  link autoneg: %d%s", link.link_autoneg, shell->NL);
           fprintf (t, "  link status: %d%s", link.link_status, shell->NL);
+
+          if (rib_tlocal && rib_tlocal->rib_info && port_id < MAX_ETH_PORTS)
+            {
+              struct port_conf *port_cfg;
+              port_cfg = &rib_tlocal->rib_info->port[port_id];
+              char timebuf[32], uptimebuf[32];
+              snprintf_time (timebuf, sizeof (timebuf),
+                             port_cfg->last_changed.tv_sec);
+              snprintf_uptime (uptimebuf, sizeof (uptimebuf),
+                               port_cfg->last_changed.tv_sec);
+              fprintf (t, "  last_changed: %s (%s)%s",
+                       timebuf, uptimebuf, shell->NL);
+            }
+
           fprintf (t, "  mtu: %d%s", mtu, shell->NL);
           fprintf (t, "  device name: %s%s", devname, shell->NL);
           fprintf (t, "  bus info: %s%s", businfo, shell->NL);
@@ -899,7 +929,10 @@ lsi_event_callback(uint16_t port_id, enum rte_eth_event_type type, void *param,
 		    void *ret_param)
 {
   void *msgp;
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_PORT_STATUS, NULL, 0);
+  uint16_t msg_port_id;
+  msg_port_id = port_id;
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_PORT_STATUS,
+                              &msg_port_id, sizeof (msg_port_id));
   internal_msg_send_to (msg_queue_rib, msgp, NULL);
   return 0;
 }

@@ -90,6 +90,7 @@ struct port_conf
   struct rte_eth_link link;
   struct rte_eth_dev_info dev_info;
   bool is_stopped;
+  struct timeval last_changed;
 
   /* vlan support. */
   uint16_t vlan_size; // configured vlan size.
