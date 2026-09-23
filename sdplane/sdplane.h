@@ -1,6 +1,8 @@
 #ifndef __SOFT_DPLANE_H__
 #define __SOFT_DPLANE_H__
 
+#include <sys/resource.h>
+
 #include <rte_ether.h>
 #include <rte_ethdev.h>
 #include <sdplane/shell.h>
@@ -12,6 +14,23 @@ extern bool rte_eal_init_done;
 extern volatile bool force_quit;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 extern volatile bool startup_config_completed;
+
+struct sdplane_process_status
+{
+  pid_t pid;
+  char config_file_path[64];
+  char pid_file_path[64];
+  struct timeval start_time;
+  char version_libsdplane[64];
+  char version_sdplane[64];
+  struct rusage rusage_self;
+  struct rusage rusage_children;
+};
+
+extern struct sdplane_process_status process_status;
+
+int snprintf_time (char *buf, int size, uint32_t sec);
+int snprintf_uptime (char *buf, int size, uint32_t sec);
 
 struct lcore_worker
 {
