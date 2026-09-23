@@ -73,6 +73,8 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_SWITCHING, "switching" },
   { DEBUG_SDPLANE_FLOODING, "flooding" },
   { DEBUG_SDPLANE_IGMP, "igmp" },
+  { DEBUG_SDPLANE_PORT_STATUS, "port-status" },
+  { DEBUG_SDPLANE_PORT_CONFIG, "port-config" },
 };
 
 struct command_header debug_sdplane_cmd;
