@@ -112,6 +112,17 @@ _create_fib_node (void)
   return new;
 }
 
+/*
+  Do not pass the `key` argument of `fib_route_add` directly as `key_safe`.
+  If you use the `key` directly, a buffer over-read could occur during
+  the calculation within `BIT_INDEX`.
+  For example, if `cur_plen == s == 120`,
+  `(key_safe[s >> 3] << 8) | (key_safe[(s >> 3) + 1])`
+  becomes
+  `(key_safe[15] << 8) | (key_safe[16])`
+  but `key_safe[16]` references a location outside the 16-byte range of the
+  original `key`.
+*/
 static struct fib_node *
 _add (struct fib_node *n, const uint8_t *key_safe, int keylen,
       int sdplane_nh_id, uint32_t table_id, int cur_plen, int *success)
@@ -284,6 +295,17 @@ int
 rib_route_delete4 (struct rib_tree *t, uint8_t *key, int keylen) {}
 #endif
 
+/*
+  Do not pass the `key` argument of `fib_route_lookup` directly as `key_safe`.
+  If you use the `key` directly, a buffer over-read could occur during
+  the calculation within `BIT_INDEX`.
+  For example, if `cur_plen == s == 120`,
+  `(key_safe[s >> 3] << 8) | (key_safe[(s >> 3) + 1])`
+  becomes
+  `(key_safe[15] << 8) | (key_safe[16])`
+  but `key_safe[16]` references a location outside the 16-byte range of the
+  original `key`.
+*/
 static struct fib_node *
 _lookup (struct fib_node *n, struct fib_node *cand, const uint8_t *key_safe,
          int cur_plen)
