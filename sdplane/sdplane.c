@@ -287,7 +287,7 @@ CLI_COMMAND2 (show_process_status,
   fprintf (shell->terminal, "  start-time: %s%s", timebuf, shell->NL);
 
   char uptimebuf[32];
-  snprintf_time (uptimebuf, sizeof (uptimebuf), p->start_time.tv_sec);
+  snprintf_uptime (uptimebuf, sizeof (uptimebuf), p->start_time.tv_sec);
   fprintf (shell->terminal, "  uptime: %s%s", uptimebuf, shell->NL);
 
   fprintf (shell->terminal, "  version: libsdplane: %s%s",
