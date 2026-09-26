@@ -484,7 +484,7 @@ CLI_COMMAND2 (pktgen_do_set_range_size,
 
 ALIAS_COMMAND (pktgen_do_set_range_size_inc,
                pktgen_do_set_range_size,
-              "pktgen do set port (<0-7>|all) range size inc <0-9000>",
+              "pktgen do set port ("PORT_ID_SPEC"|all) range size inc <0-9000>",
               "pktgen\n"
               "pktgen do\n"
               "pktgen set cmd\n"
