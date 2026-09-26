@@ -1418,7 +1418,7 @@ command_ls_candidate (int argc, char **argv, struct command_set *cmdset,
          current command-line is "show port ?".
          In the case, the current argv is "" and the
          upper matched node has the execution function. */
-      if (! strlen (argv[curr]))
+      if (! strlen (argv[curr]) && match->func)
         {
           if (is_command_regvar (shell->cmdset, match->cmdstr))
             {
@@ -1438,9 +1438,8 @@ command_ls_candidate (int argc, char **argv, struct command_set *cmdset,
             }
           else
             {
-              if (match->func)
-                fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
-                         match->helpstr, shell->NL);
+              fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
+                       match->helpstr, shell->NL);
             }
         }
 
