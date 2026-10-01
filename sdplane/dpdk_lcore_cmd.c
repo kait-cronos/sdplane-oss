@@ -96,12 +96,19 @@ stop_lcore (struct shell *shell, int lcore_id)
   if (lcore_id == rte_lcore_id ())
     {
       fprintf (shell->terminal, "can't stop lthread lcore: %d\n", lcore_id);
+      return;
     }
-  else
+
+  enum rte_lcore_state_t state;
+  state = rte_eal_get_lcore_state (lcore_id);
+  if (state != RUNNING)
     {
-      rte_eal_wait_lcore (lcore_id);
-      fprintf (shell->terminal, "stopped worker on lcore: %d\n", lcore_id);
+      fprintf (shell->terminal, "lcore is not running: %d\n", lcore_id);
+      return;
     }
+
+  rte_eal_wait_lcore (lcore_id);
+  fprintf (shell->terminal, "stopped worker on lcore: %d\n", lcore_id);
 }
 
 /* rte_eal_init() makes the calling thread the DPDK main lcore
