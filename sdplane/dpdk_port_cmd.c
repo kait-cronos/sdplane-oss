@@ -1496,6 +1496,72 @@ CLI_COMMAND2 (show_port_get_info,
   return 0;
 }
 
+CLI_COMMAND2 (set_port_tx_done_cleanup,
+              "set port ("PORT_ID_SPEC"|all) tx-done-cleanup",
+              SET_HELP,
+              PORT_HELP,
+              PORT_NUMBER_HELP,
+              "all port\n",
+              "tx-done-cleanup\n")
+{
+  struct shell *shell = (struct shell *) context;
+  uint16_t port_id = 0;
+  bool port_all = false;
+  uint16_t port;
+  int ret;
+
+  if (! strcmp (argv[2], "all"))
+    port_all = true;
+  else
+    port_id = strtol (argv[2], NULL, 0);
+
+  if (! rib_tlocal || ! rib_tlocal->rib_info)
+    {
+      fprintf (shell->terminal, "not yet global rib available%s",
+               shell->NL);
+      return CMD_FAILURE;
+    }
+
+  RTE_ETH_FOREACH_DEV (port)
+    {
+      if (port_all || port == port_id)
+        {
+          struct port_conf *port_cfg;
+          port_cfg = &rib_tlocal->rib_info->port[port_id];
+          uint16_t queue;
+          for (queue = 0; queue < port_cfg->nb_tx_queues; queue++)
+            {
+              ret = rte_eth_tx_done_cleanup (port, queue, 0);
+              char *mesg;
+              switch (ret)
+                {
+                case -ENODEV:
+                  mesg = "invalid dev:";
+                  break;
+                case -EIO:
+                  mesg = "dev removed:";
+                  break;
+                case -ENOTSUP:
+                  mesg = "not supported:";
+                  break;
+                default:
+                  if (ret < 0)
+                    mesg = "error:";
+                  else
+                    mesg = "freed:";
+                  break;
+                }
+              fprintf (shell->terminal, "rte_eth_tx_done_cleanup: "
+                       "port: %d queue: %d %s %d%s",
+                       port, queue, mesg, ret, shell->NL);
+            }
+        }
+    }
+
+  return CMD_SUCCESS;
+}
+
+
 #ifdef REGVAR_SUPPORT
 int
 regvar_portid_is_spec (char *spec)
@@ -1573,4 +1639,5 @@ dpdk_port_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_port_rss);
   INSTALL_COMMAND2 (cmdset, set_port_nb_txrx_queue);
   INSTALL_COMMAND2 (cmdset, set_port_link_updown);
+  INSTALL_COMMAND2 (cmdset, set_port_tx_done_cleanup);
 }

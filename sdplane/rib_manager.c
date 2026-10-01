@@ -653,6 +653,9 @@ rib_check (struct rib *new)
         };
       struct port_conf *port_cfg = &new->rib_info->port[i];
 
+      port_cfg->nb_rx_queues = dev_info.nb_rx_queues;
+      port_cfg->nb_tx_queues = dev_info.nb_tx_queues;
+
       if (port_cfg->rx_offloads_valid)
         port_conf.rxmode.offloads = port_cfg->rx_offloads;
       if (port_cfg->tx_offloads_valid)
