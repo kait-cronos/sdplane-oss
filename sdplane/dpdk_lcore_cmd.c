@@ -627,12 +627,30 @@ CLI_COMMAND2 (rte_eal_init_argv_list,
   int index;
   index = strtol (argv[2], NULL, 0);
 
-  pthread_mutex_lock (&argv_list_mutex);
+  int i;
+  char rte_argv_array[32][64];
+  char *rte_argv[32];
+  int rte_argc = 0;
+  memset (rte_argv_array, 0, sizeof (rte_argv_array));
+  memset (rte_argv, 0, sizeof (rte_argv));
+
   int *argcp = &argv_list_argc[index];
   char **argvp = argv_list[index];
 
-  ret = rte_eal_init (*argcp, argvp);
+  rte_argc = *argcp;
+
+  /* rte_eal_init() may break the argv array,
+   * so copy in a safer place, in advance. */
+  pthread_mutex_lock (&argv_list_mutex);
+  for (i = 0; i < rte_argc; i++)
+    {
+      rte_argv[i] = &rte_argv_array[i];
+      snprintf (rte_argv_array[i], sizeof (rte_argv_array[i]),
+                "%s", argvp[i]);
+    }
   pthread_mutex_unlock (&argv_list_mutex);
+
+  ret = rte_eal_init (rte_argc, rte_argv);
   if (ret < 0)
     {
       fprintf (shell->terminal, "Invalid EAL parameters.%s", shell->NL);
