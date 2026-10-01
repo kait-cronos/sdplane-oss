@@ -4,7 +4,7 @@
 #define MAX_TAP_IF              8
 #define MAX_ROUTER_IF           8
 #define MAX_VSWITCH_PORTS       16
-#define MAX_VSWITCH             4
+#define MAX_VSWITCH             8
 #define MAX_VSWITCH_LINK        32
 #define MAX_VLAN_PER_PORT       8
 #define MAX_ETH_PORTS           8
