@@ -340,7 +340,7 @@ CLI_COMMAND2 (pktgen_do_set_mac_addr,
 
 CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
               "pktgen do set port ("PORT_ID_SPEC"|all) "
-              "(ip|ipv4) (source|destination) A.B.C.D",
+              "(ip|ipv4) (source|destination) "IPV4_ADDR_SPEC,
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -375,6 +375,39 @@ CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
   pktgen_argv[3] = "ip";
   pktgen_argv[4] = argv[7];
   pktgen_argc = 5;
+  ret = set_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (pktgen_do_set_vlan,
+              "pktgen do set port ("PORT_ID_SPEC"|all) "
+              "(vlan|vlanid) <1-4094>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet VLAN.\n",
+              "set packet VLAN ID.\n",
+              "set packet VLAN ID.\n",
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  uint16_t vlan_id;
+  char *endptr;
+  vlan_id = strtol (argv[6], &endptr, 0);
+
+  pktgen_argv[0] = "set";
+  pktgen_argv[1] = argv[4];
+  pktgen_argv[2] = argv[5];
+  pktgen_argv[3] = argv[6];
+  pktgen_argc = 4;
   ret = set_cmd (pktgen_argc, pktgen_argv);
   if (ret < 0)
     return CMD_FAILURE;
@@ -616,6 +649,7 @@ pktgen_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_ttl);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_mac_addr);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_ipv4_addr);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_vlan);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_ipv4);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_mac);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_size);

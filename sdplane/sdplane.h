@@ -107,9 +107,9 @@ extern struct vswitch vswitch0;
 #else
 #define PORT_ID_SPEC "<0-16>"
 #define LCORE_ID_SPEC "<0-16>"
-#define IPV4_ADDR_SPEC "<WORD>"
+#define IPV4_ADDR_SPEC "A.B.C.D"
 #define IPV6_ADDR_SPEC "<WORD>"
-#define IPV4_PREFIX_SPEC "<WORD>"
+#define IPV4_PREFIX_SPEC "A.B.C.D/M"
 #define IPV6_PREFIX_SPEC "<WORD>"
 #define ETHER_ADDR_SPEC "<WORD>"
 #define PCI_BUS_ADDR_SPEC "<WORD>"
