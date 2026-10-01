@@ -1265,24 +1265,25 @@ rib_manager_process_message (void *msgp)
         vswitch = vswitch_new (new->rib_info, msg_vswitch_set->vswitch_id,
                                msg_vswitch_set->vlan_id);
         if (vswitch)
-          DEBUG_NEW (RIB, "create succeeded: vswitch: %u vlan_id: %u",
+          DEBUG_NEW (VSWITCH, "create succeeded: vswitch: %u vlan_id: %u",
                      msg_vswitch_set->vswitch_id,
                      msg_vswitch_set->vlan_id);
         else
-          DEBUG_NEW (RIB, "create failed: vswitch: %u vlan_id: %u",
+          DEBUG_NEW (VSWITCH, "create failed: vswitch: %u vlan_id: %u "
+                     "max-vswitch: %d",
                      msg_vswitch_set->vswitch_id,
-                     msg_vswitch_set->vlan_id);
+                     msg_vswitch_set->vlan_id, MAX_VSWITCH);
         break;
       }
 
     case INTERNAL_MSG_TYPE_VSWITCH_NO_SET:
       {
         struct internal_msg_vswitch *msg_vswitch_no_set;
-        DEBUG_NEW (RIB, "recv msg_vswitch_no_set: %p.", msgp);
+        DEBUG_NEW (VSWITCH, "recv msg_vswitch_no_set: %p.", msgp);
         msg_vswitch_no_set = (struct internal_msg_vswitch *) (msg_header + 1);
         if (! vswitch_lookup (new->rib_info, msg_vswitch_no_set->vswitch_id))
           {
-            DEBUG_NEW (RIB, "delete vswitch not found");
+            DEBUG_NEW (VSWITCH, "delete vswitch not found");
             break;
           }
         vswitch_delete (new->rib_info, msg_vswitch_no_set->vswitch_id);
