@@ -75,8 +75,10 @@ struct port_conf
 {
   uint16_t dpdk_port_id;
   uint16_t mtu;
-  uint16_t nrxq;
-  uint16_t ntxq;
+  uint16_t nrxq; //config
+  uint16_t ntxq; //config
+  uint16_t nb_rx_queues; //status
+  uint16_t nb_tx_queues; //status
   uint16_t nb_rxd;
   uint16_t nb_txd;
   uint64_t rx_offloads;
