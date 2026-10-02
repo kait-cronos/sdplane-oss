@@ -612,6 +612,7 @@ rib_check (struct rib *new)
   qsort (port_qconf, port_qconf_size, sizeof (struct port_queue_conf),
          port_qconf_compare);
 
+  /* calculate the number of rx-queues based on the qconf. */
   int port_nrxq[RTE_MAX_ETHPORTS];
   memset (port_nrxq, 0, sizeof (port_nrxq));
 
@@ -653,8 +654,13 @@ rib_check (struct rib *new)
         };
       struct port_conf *port_cfg = &new->rib_info->port[i];
 
+      /* update the current queue sizes. */
       port_cfg->nb_rx_queues = dev_info.nb_rx_queues;
       port_cfg->nb_tx_queues = dev_info.nb_tx_queues;
+
+      /* make nrxq/ntxq default to the current dev_info queue sizes. */
+      nrxq = dev_info.nb_rx_queues;
+      ntxq = dev_info.nb_tx_queues;
 
       if (port_cfg->rx_offloads_valid)
         port_conf.rxmode.offloads = port_cfg->rx_offloads;
@@ -676,12 +682,14 @@ rib_check (struct rib *new)
 
       if (port_cfg->nrxq)
         {
-          if (nrxq < port_cfg->nrxq)
+          //if (nrxq < port_cfg->nrxq)
             nrxq = port_cfg->nrxq;
         }
       if (port_cfg->ntxq)
         {
-          if (ntxq < port_cfg->ntxq)
+          DEBUG_NEW (RIB, "ntxq: %d port_cfg->ntxq: %d",
+                     ntxq, port_cfg->ntxq);
+          //if (ntxq < port_cfg->ntxq)
             ntxq = port_cfg->ntxq;
         }
 
