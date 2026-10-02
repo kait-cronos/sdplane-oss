@@ -662,6 +662,22 @@ rib_check (struct rib *new)
       nrxq = dev_info.nb_rx_queues;
       ntxq = dev_info.nb_tx_queues;
 
+      if (nrxq != port_nrxq[i])
+        {
+          DEBUG_NEW (RIB, "port[%d]: nrxq mismatch!: "
+                     "configured: %d qconf: %d",
+                     i, nrxq, port_nrxq[i]);
+          /* Ideally it should be returned as a startup-config error.
+             But currently we don't have a way to stop startup-config
+             from here. For the time being we override it by the
+             qconf value, which seems safer. */
+#if 0
+          return -1;
+#else
+          nrxq = port_nrxq[i];
+#endif
+        }
+
       if (port_cfg->rx_offloads_valid)
         port_conf.rxmode.offloads = port_cfg->rx_offloads;
       if (port_cfg->tx_offloads_valid)
