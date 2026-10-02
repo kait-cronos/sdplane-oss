@@ -449,6 +449,25 @@ CLI_COMMAND2 (show_port,
                        shell->NL);
               fprintf (t, "  active_tx_offloads: <%s>%s", act_tx_offload,
                        shell->NL);
+
+              fprintf (t, "  native-vlan: vswlink_id: %d%s",
+                       port_cfg->vswitch_link_id_of_native_vlan,
+                       shell->NL);
+              fprintf (t, "  vlan size: %d%s", port_cfg->vlan_size,
+                       shell->NL);
+              for (int j = 0; j < port_cfg->vlan_size; j++)
+                {
+                  uint16_t vswlink_id;
+                  vswlink_id = port_cfg->vswitch_link_id_of_vlan[j];
+                  struct vswitch_link *vswlink;
+                  vswlink = &rib_tlocal->rib_info->vswitch_link[vswlink_id];
+                  if (vswlink)
+                    fprintf (t, "  vswlink_id_of_vlan[%d]: %d (vlan: %d)%s",
+                             j, vswlink_id, vswlink->vlan_id, shell->NL);
+                  else
+                    fprintf (t, "  vswlink_id_of_vlan[%d]: %d%s",
+                             j, vswlink_id, shell->NL);
+                }
             }
 
           int i;
