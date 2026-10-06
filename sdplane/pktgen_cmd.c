@@ -359,46 +359,44 @@ CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
-  char ip_str[64];
   struct in_addr ipv4_addr;
-  char *type;
-  char *target;
+  char host[32];
+  char prefix[32];
+  char *p, *plen = NULL;
 
-  snprintf (ip_str, sizeof (ip_str), "%s", argv[7]);
-  char *p = strchr (ip_str, '/');
-  if (p != NULL)
-    *p = '\0';
-
-  ret = inet_pton (AF_INET, ip_str, &ipv4_addr);
+  snprintf (host, sizeof (host), "%s", argv[7]);
+  p = strchr (host, '/');
+  if (p)
+    {
+      *p++ = '\0';
+      plen = p;
+    }
+  ret = inet_pton (AF_INET, host, &ipv4_addr);
   if (ret != 1)
     {
       fprintf (shell->terminal, "invalid address: %s%s",
                argv[7], shell->NL);
       return CMD_FAILURE;
     }
-
-  if (! strcmp (argv[6], "source"))
-    {
-      type = "src";
-      if (p != NULL)
-        target = argv[7];
-      else
-        {
-          sprintf (ip_str, "%s/32", argv[7]);
-          target = ip_str;
-        }
-    }
+  if (plen)
+    snprintf (prefix, sizeof (prefix), "%s/%s", host, plen);
   else
-    {
-      type = "dst";
-      target = ip_str;
-    }
+    snprintf (prefix, sizeof (prefix), "%s/32", host);
 
   pktgen_argv[0] = "set";
   pktgen_argv[1] = argv[4];
-  pktgen_argv[2] = type;
+
+  if (! strcmp (argv[6], "source"))
+    {
+      pktgen_argv[2] = "src";
+      pktgen_argv[4] = prefix;
+    }
+  else
+    {
+      pktgen_argv[2] = "dst";
+      pktgen_argv[4] = host;
+    }
   pktgen_argv[3] = "ip";
-  pktgen_argv[4] = target;
   pktgen_argc = 5;
 
   ret = set_cmd (pktgen_argc, pktgen_argv);
