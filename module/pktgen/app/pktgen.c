@@ -1016,9 +1016,11 @@ pktgen_send_pkts(port_info_t *info, uint16_t qid, struct rte_mempool *mp)
 
     mlen = pg_pktmbuf_alloc_bulk(mp, pkts, txCnt);
 
+#if RTE_VERSION < RTE_VERSION_NUM(25,0,0,0)
     info->queue_stats.q_opackets[qid] += mlen;
     for (int i = 0; i < mlen; i++)
         info->queue_stats.q_obytes[qid] += rte_pktmbuf_data_len(pkts[i]);
+#endif
 
     tx_buffer_bulk(txbuff, pkts, mlen);
 
@@ -1125,9 +1127,11 @@ pktgen_main_receive(port_info_t *info, uint8_t lid, struct rte_mbuf **pkts_burst
     if ((nb_rx = rte_eth_rx_burst(pid, qid, pkts_burst, nb_pkts)) == 0)
         return;
 
+#if RTE_VERSION < RTE_VERSION_NUM(25,0,0,0)
     qstats->q_ipackets[qid] += nb_rx;
     for (i = 0; i < nb_rx; i++)
         qstats->q_ibytes[qid] += rte_pktmbuf_data_len(pkts_burst[i]);
+#endif
 
     pktgen_tstamp_check(info, pkts_burst, nb_rx);
 

@@ -132,7 +132,7 @@ CLI_COMMAND2 (pktgen_init,
 int start_stop_cmd(int argc, char **argv);
 
 CLI_COMMAND2 (pktgen_do_start_stop,
-              "pktgen do (start|stop) port (<0-7>|all)",
+              "pktgen do (start|stop) port ("PORT_ID_SPEC"|all)",
               "pktgen\n",
               "pktgen do\n",
               "pktgen start cmd\n",
@@ -160,7 +160,7 @@ int rate_cmd(int argc, char **argv);
 int en_dis_cmd(int argc, char **argv);
 
 CLI_COMMAND2 (pktgen_do_set_count,
-              "pktgen do set port (<0-7>|all) count <0-4000000000>",
+              "pktgen do set port ("PORT_ID_SPEC"|all) count <0-4000000000>",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -186,7 +186,7 @@ CLI_COMMAND2 (pktgen_do_set_count,
 }
 
 CLI_COMMAND2 (pktgen_do_set_size,
-              "pktgen do set port (<0-7>|all) size <0-9999>",
+              "pktgen do set port ("PORT_ID_SPEC"|all) size <0-9999>",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -212,7 +212,7 @@ CLI_COMMAND2 (pktgen_do_set_size,
 }
 
 CLI_COMMAND2 (pktgen_do_set_rate,
-              "pktgen do set port (<0-7>|all) rate <0-100>",
+              "pktgen do set port ("PORT_ID_SPEC"|all) rate <0-100>",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -238,7 +238,7 @@ CLI_COMMAND2 (pktgen_do_set_rate,
 }
 
 CLI_COMMAND2 (pktgen_do_set_tcp_port,
-              "pktgen do set port (<0-7>|all) "
+              "pktgen do set port ("PORT_ID_SPEC"|all) "
               "tcp (source-port|destination-port) <0-65535>",
               "pktgen\n",
               "pktgen do\n",
@@ -270,7 +270,7 @@ CLI_COMMAND2 (pktgen_do_set_tcp_port,
 }
 
 CLI_COMMAND2 (pktgen_do_set_ttl,
-              "pktgen do set port (<0-7>|all) "
+              "pktgen do set port ("PORT_ID_SPEC"|all) "
               "ttl <0-255>",
               "pktgen\n",
               "pktgen do\n",
@@ -297,7 +297,7 @@ CLI_COMMAND2 (pktgen_do_set_ttl,
 }
 
 CLI_COMMAND2 (pktgen_do_set_mac_addr,
-              "pktgen do set port (<0-7>|all) "
+              "pktgen do set port ("PORT_ID_SPEC"|all) "
               "mac (source|destination) <WORD>",
               "pktgen\n",
               "pktgen do\n",
@@ -339,8 +339,8 @@ CLI_COMMAND2 (pktgen_do_set_mac_addr,
 }
 
 CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
-              "pktgen do set port (<0-7>|all) "
-              "(ip|ipv4) (source|destination) (A.B.C.D|A.B.C.D/M)",
+              "pktgen do set port ("PORT_ID_SPEC"|all) "
+              "(ip|ipv4) (source|destination) ("IPV4_ADDR_SPEC"|"IPV4_PREFIX_SPEC")",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -407,8 +407,41 @@ CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
   return CMD_SUCCESS;
 }
 
+CLI_COMMAND2 (pktgen_do_set_vlan,
+              "pktgen do set port ("PORT_ID_SPEC"|all) "
+              "(vlan|vlanid) <1-4094>",
+              "pktgen\n",
+              "pktgen do\n",
+              "pktgen set cmd\n",
+              "specify port.\n",
+              "specify port.\n",
+              "specify for all ports.\n",
+              "set packet VLAN.\n",
+              "set packet VLAN ID.\n",
+              "set packet VLAN ID.\n",
+             )
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  int pktgen_argc;
+  char *pktgen_argv[16];
+  uint16_t vlan_id;
+  char *endptr;
+  vlan_id = strtol (argv[6], &endptr, 0);
+
+  pktgen_argv[0] = "set";
+  pktgen_argv[1] = argv[4];
+  pktgen_argv[2] = argv[5];
+  pktgen_argv[3] = argv[6];
+  pktgen_argc = 4;
+  ret = set_cmd (pktgen_argc, pktgen_argv);
+  if (ret < 0)
+    return CMD_FAILURE;
+  return CMD_SUCCESS;
+}
+
 CLI_COMMAND2 (pktgen_do_set_range_ipv4,
-              "pktgen do set port (<0-7>|all) range ip (src|dst) (start|min|max|inc) A.B.C.D",
+              "pktgen do set port ("PORT_ID_SPEC"|all) range ip (src|dst) (start|min|max|inc) A.B.C.D",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -443,7 +476,7 @@ CLI_COMMAND2 (pktgen_do_set_range_ipv4,
 }
 
 CLI_COMMAND2 (pktgen_do_set_range_mac,
-              "pktgen do set port (<0-7>|all) range mac (src|dst) (start|min|max|inc) <WORD>",
+              "pktgen do set port ("PORT_ID_SPEC"|all) range mac (src|dst) (start|min|max|inc) <WORD>",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -478,7 +511,7 @@ CLI_COMMAND2 (pktgen_do_set_range_mac,
 }
 
 CLI_COMMAND2 (pktgen_do_set_range_size,
-              "pktgen do set port (<0-7>|all) range size (start|min|max|inc) <1-9000>",
+              "pktgen do set port ("PORT_ID_SPEC"|all) range size (start|min|max) <1-9000>",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -490,7 +523,6 @@ CLI_COMMAND2 (pktgen_do_set_range_size,
               "set packet range for start.\n",
               "set packet range for min.\n",
               "set packet range for max.\n",
-              "set packet range for increment.\n",
               "set packet size.\n"
              )
 {
@@ -509,8 +541,23 @@ CLI_COMMAND2 (pktgen_do_set_range_size,
   return CMD_SUCCESS;
 }
 
+ALIAS_COMMAND (pktgen_do_set_range_size_inc,
+               pktgen_do_set_range_size,
+              "pktgen do set port ("PORT_ID_SPEC"|all) range size inc <0-9000>",
+              "pktgen\n"
+              "pktgen do\n"
+              "pktgen set cmd\n"
+              "specify port.\n"
+              "specify port.\n"
+              "specify for all ports.\n"
+              "set packet range.\n"
+              "set packet range size.\n"
+              "set packet range for increment.\n"
+              "set packet size.\n"
+             );
+
 CLI_COMMAND2 (pktgen_do_rate,
-              "pktgen do rate port (<0-7>|all) rate <0-100>",
+              "pktgen do rate port ("PORT_ID_SPEC"|all) rate <0-100>",
               "pktgen\n",
               "pktgen do\n",
               "pktgen rate cmd\n",
@@ -536,7 +583,7 @@ CLI_COMMAND2 (pktgen_do_rate,
 }
 
 CLI_COMMAND2 (pktgen_do_rate_count,
-              "pktgen do rate port (<0-7>|all) count <0-4000000000>",
+              "pktgen do rate port ("PORT_ID_SPEC"|all) count <0-4000000000>",
               "pktgen\n",
               "pktgen do\n",
               "pktgen rate cmd\n",
@@ -562,7 +609,7 @@ CLI_COMMAND2 (pktgen_do_rate_count,
 }
 
 CLI_COMMAND2 (pktgen_do_rate_size,
-              "pktgen do rate port (<0-7>|all) size <0-9000>",
+              "pktgen do rate port ("PORT_ID_SPEC"|all) size <0-9000>",
               "pktgen\n",
               "pktgen do\n",
               "pktgen rate cmd\n",
@@ -588,7 +635,7 @@ CLI_COMMAND2 (pktgen_do_rate_size,
 }
 
 CLI_COMMAND2 (pktgen_do_set_enable,
-              "pktgen do set port (<0-7>|all) (range|rate|vlan|qinq) (enable|disable)",
+              "pktgen do set port ("PORT_ID_SPEC"|all) (range|rate|vlan|qinq) (enable|disable)",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -628,9 +675,11 @@ pktgen_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_ttl);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_mac_addr);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_ipv4_addr);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_vlan);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_ipv4);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_mac);
   INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_size);
+  INSTALL_COMMAND2 (cmdset, pktgen_do_set_range_size_inc);
   INSTALL_COMMAND2 (cmdset, pktgen_do_rate);
   INSTALL_COMMAND2 (cmdset, pktgen_do_rate_count);
   INSTALL_COMMAND2 (cmdset, pktgen_do_rate_size);

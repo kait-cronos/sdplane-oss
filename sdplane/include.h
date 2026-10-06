@@ -12,6 +12,8 @@
 #include <inttypes.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#include <time.h>
+#include <sys/time.h>
 #include <string.h>
 #include <sys/queue.h>
 #include <stdarg.h>

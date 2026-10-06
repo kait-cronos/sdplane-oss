@@ -4,7 +4,7 @@
 #define MAX_TAP_IF              8
 #define MAX_ROUTER_IF           8
 #define MAX_VSWITCH_PORTS       16
-#define MAX_VSWITCH             4
+#define MAX_VSWITCH             8
 #define MAX_VSWITCH_LINK        32
 #define MAX_VLAN_PER_PORT       8
 #define MAX_ETH_PORTS           8
@@ -75,8 +75,10 @@ struct port_conf
 {
   uint16_t dpdk_port_id;
   uint16_t mtu;
-  uint16_t nrxq;
-  uint16_t ntxq;
+  uint16_t nrxq; //config
+  uint16_t ntxq; //config
+  uint16_t nb_rx_queues; //status
+  uint16_t nb_tx_queues; //status
   uint16_t nb_rxd;
   uint16_t nb_txd;
   uint64_t rx_offloads;
@@ -90,6 +92,7 @@ struct port_conf
   struct rte_eth_link link;
   struct rte_eth_dev_info dev_info;
   bool is_stopped;
+  struct timeval last_changed;
 
   /* vlan support. */
   uint16_t vlan_size; // configured vlan size.

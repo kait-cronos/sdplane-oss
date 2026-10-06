@@ -15,14 +15,26 @@
 #include "debug_sdplane.h"
 #include "fib.h"
 
-/* key: address, s: start bit, n: number of bits */
-static inline uint16_t
-BIT_INDEX (const uint8_t *key, int s, int n)
-{
-  uint8_t key_safe[17]; /* sentinel */
-  memcpy (key_safe, key, 16);
-  key_safe[16] = 0;
+/* The trie walk reads the byte s belongs to together with the one after it,
+   and _lookup() steps one level PAST the key: it tests a child for NULL at the
+   top of the next call, so a /128 route is walked to s = 128 and the pair read
+   there is key[16], key[17].  Rather than copy the key into a padded buffer on
+   every level -- which is what this used to do, for one sentinel byte -- the
+   entry points copy it once and the walk reads from that. */
+#define BIT_INDEX_KEY_SIZE (KEY_SIZE (128) + 2)
 
+static inline void
+bit_index_key_init (uint8_t *key_safe, const uint8_t *key)
+{
+  memcpy (key_safe, key, KEY_SIZE (128));
+  memset (key_safe + KEY_SIZE (128), 0, BIT_INDEX_KEY_SIZE - KEY_SIZE (128));
+}
+
+/* key_safe: address padded by bit_index_key_init, s: start bit,
+   n: number of bits */
+static inline uint16_t
+BIT_INDEX (const uint8_t *key_safe, int s, int n)
+{
   /*
    *  extract from two bytes comprising byte to
    *  which s belongs and adjacent byte
@@ -100,9 +112,20 @@ _create_fib_node (void)
   return new;
 }
 
+/*
+  Do not pass the `key` argument of `fib_route_add` directly as `key_safe`.
+  If you use the `key` directly, a buffer over-read could occur during
+  the calculation within `BIT_INDEX`.
+  For example, if `cur_plen == s == 120`,
+  `(key_safe[s >> 3] << 8) | (key_safe[(s >> 3) + 1])`
+  becomes
+  `(key_safe[15] << 8) | (key_safe[16])`
+  but `key_safe[16]` references a location outside the 16-byte range of the
+  original `key`.
+*/
 static struct fib_node *
-_add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
-      uint32_t table_id, int cur_plen, int *success)
+_add (struct fib_node *n, const uint8_t *key_safe, int keylen,
+      int sdplane_nh_id, uint32_t table_id, int cur_plen, int *success)
 {
   uint32_t index, i;
   uint32_t bits_in_depth, first, count;
@@ -130,7 +153,7 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
       if (! n->leaf && exists)
         {
           for (i = 0; i < BRANCH_SZ; i++)
-            n->child[i] = _add (n->child[i], key, keylen, sdplane_nh_id,
+            n->child[i] = _add (n->child[i], key_safe, keylen, sdplane_nh_id,
                                 table_id, cur_plen + K, success);
           return n;
         }
@@ -140,7 +163,8 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
           /* より長いプレフィックスの場合に更新 */
           if (keylen > n->keylen)
             {
-              memcpy ((uint8_t *) &n->key_ip_addr, key, sizeof (n->key_ip_addr));
+              memcpy ((uint8_t *) &n->key_ip_addr, key_safe,
+                      sizeof (n->key_ip_addr));
               n->keylen = keylen;
               n->sdplane_nh_id = sdplane_nh_id;
               n->table_id = table_id;
@@ -154,7 +178,8 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
       /* 新規葉ノードとして登録 */
       else
         {
-          memcpy ((uint8_t *) &n->key_ip_addr, key, sizeof (n->key_ip_addr));
+          memcpy ((uint8_t *) &n->key_ip_addr, key_safe,
+                  sizeof (n->key_ip_addr));
           n->leaf = 1;
           n->keylen = keylen;
           n->sdplane_nh_id = sdplane_nh_id;
@@ -202,7 +227,7 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
       bits_in_depth = keylen - cur_plen; // この階層で決定されるビット数（1〜K-1）
       if (bits_in_depth > K - 1)
         bits_in_depth = K;
-      base = BIT_INDEX (key, cur_plen, bits_in_depth);
+      base = BIT_INDEX (key_safe, cur_plen, bits_in_depth);
       first = base << (K - bits_in_depth); // 範囲の開始インデックス
       count = 1 << (K - bits_in_depth);    // 範囲のサイズ
       DEBUG_SDPLANE_LOG (ROUTE_ENTRY,
@@ -227,7 +252,7 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
               /* この範囲には新しいノードを登録 */
               DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding to child[%d] (in range)",
                                  i);
-              n->child[i] = _add (n->child[i], key, keylen, sdplane_nh_id,
+              n->child[i] = _add (n->child[i], key_safe, keylen, sdplane_nh_id,
                                   table_id, cur_plen + K, success);
             }
         }
@@ -239,10 +264,9 @@ _add (struct fib_node *n, const uint8_t *key, int keylen, int sdplane_nh_id,
     }
 
   /* case3: さらに深い階層へ再帰 */
-  index = BIT_INDEX (key, cur_plen, K);
-  n->child[index] =
-      _add (n->child[index], key, keylen, sdplane_nh_id, table_id,
-            cur_plen + K, success);
+  index = BIT_INDEX (key_safe, cur_plen, K);
+  n->child[index] = _add (n->child[index], key_safe, keylen, sdplane_nh_id,
+                          table_id, cur_plen + K, success);
   return n;
 }
 
@@ -251,7 +275,11 @@ fib_route_add (struct fib_tree *t, const uint8_t *key, int keylen,
                int sdplane_nh_id, uint32_t table_id)
 {
   int success = 0;
-  t->root = _add (t->root, key, keylen, sdplane_nh_id, table_id, 0, &success);
+  uint8_t key_safe[BIT_INDEX_KEY_SIZE];
+
+  bit_index_key_init (key_safe, key);
+  t->root =
+      _add (t->root, key_safe, keylen, sdplane_nh_id, table_id, 0, &success);
   return success; /* error(-1) if root is NULL */
 }
 
@@ -267,8 +295,19 @@ int
 rib_route_delete4 (struct rib_tree *t, uint8_t *key, int keylen) {}
 #endif
 
+/*
+  Do not pass the `key` argument of `fib_route_lookup` directly as `key_safe`.
+  If you use the `key` directly, a buffer over-read could occur during
+  the calculation within `BIT_INDEX`.
+  For example, if `cur_plen == s == 120`,
+  `(key_safe[s >> 3] << 8) | (key_safe[(s >> 3) + 1])`
+  becomes
+  `(key_safe[15] << 8) | (key_safe[16])`
+  but `key_safe[16]` references a location outside the 16-byte range of the
+  original `key`.
+*/
 static struct fib_node *
-_lookup (struct fib_node *n, struct fib_node *cand, const uint8_t *key,
+_lookup (struct fib_node *n, struct fib_node *cand, const uint8_t *key_safe,
          int cur_plen)
 {
   uint16_t index;
@@ -279,16 +318,19 @@ _lookup (struct fib_node *n, struct fib_node *cand, const uint8_t *key,
   if (n->leaf)
     cand = n;
 
-  index = BIT_INDEX (key, cur_plen, K);
+  index = BIT_INDEX (key_safe, cur_plen, K);
   DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "cur_plen=%d, index=%d", cur_plen, index);
 
-  return _lookup (n->child[index], cand, key, cur_plen + K);
+  return _lookup (n->child[index], cand, key_safe, cur_plen + K);
 }
 
 struct fib_node *
 fib_route_lookup (struct fib_tree *t, const uint8_t *key)
 {
-  return _lookup (t->root, NULL, key, 0);
+  uint8_t key_safe[BIT_INDEX_KEY_SIZE];
+
+  bit_index_key_init (key_safe, key);
+  return _lookup (t->root, NULL, key_safe, 0);
 }
 
 /* traverse FIB tree depth-first in-order */

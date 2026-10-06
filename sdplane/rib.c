@@ -141,34 +141,68 @@ CLI_COMMAND2 (show_rib_vswitch,
       return 0;
     }
 
-#if 0
-  fprintf (shell->terminal, "total vswitches: %d%s",
-           rib->rib_info->vswitch_size, shell->NL);
-#endif
-
   // show vswitches
-  fprintf (shell->terminal, "vswitches: %s", shell->NL);
+  fprintf (shell->terminal, "#vswitches: %d%s",
+           rib->rib_info->vswitch_size, shell->NL);
+
   for (i = 0; i < rib->rib_info->vswitch_size; i++)
     {
       struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
 
-      if (vswitch->is_deleted)
-        continue;
-
-      // show vswitch links attached to vswitch[i]
       fprintf (shell->terminal, "  vswitch[%d]: id: %d vlan: %d%s",
                i, vswitch->vswitch_id, vswitch->vlan_id, shell->NL);
+
+      if (vswitch->is_deleted)
+        {
+          fprintf (shell->terminal, "    is_deleted: true%s",
+                   shell->NL);
+        }
+
+      // show vswitch links attached to vswitch[i]
+      fprintf (shell->terminal, "    vswitch_port_size: %d%s",
+               vswitch->vswitch_port_size, shell->NL);
       for (j = 0; j < vswitch->vswitch_port_size; j++)
         {
-          uint16_t vswitch_link_id = vswitch->vswitch_link_id[j];
-          struct vswitch_link *link = &rib->rib_info->vswitch_link[vswitch_link_id];
+          uint16_t vswlink_id = vswitch->vswitch_link_id[j];
+          struct vswitch_link *link = &rib->rib_info->vswitch_link[vswlink_id];
 
-          fprintf (shell->terminal,
-                   "    vswitch_link[%d]: "
-                   "vswitch_link_id=%d, dpdk_port[%u], vlan=%u, tag=%u%s",
-                   j, vswitch_link_id,
-                   link->port_id, link->vlan_id, link->tag_id, shell->NL);
+          fprintf (shell->terminal, "    vswitch_link[%d]:"
+                   " vswitch_link_id: %d port: %u vlan: %u tag: %u%s",
+                   j, vswlink_id, link->port_id, link->vlan_id,
+                   link->tag_id, shell->NL);
         }
+
+      struct router_if *rif = &vswitch->router_if;
+      fprintf (shell->terminal,
+               "    router-if: %s ifindex: %d%s"
+               "        sockfd: %d tap_ring_id: %d ring(up/down): %p/%p%s",
+               rif->tap_name, rif->ifindex, shell->NL,
+               rif->sockfd, rif->tap_ring_id, rif->ring_up, rif->ring_dn,
+               shell->NL);
+
+      struct capture_if *cif = &vswitch->capture_if;
+      fprintf (shell->terminal,
+               "    capture-if: %s%s"
+               "        sockfd: %d tap_ring_id: %d ring(up/down): %p/%p%s",
+               cif->tap_name, shell->NL,
+               cif->sockfd, cif->tap_ring_id, cif->ring_up, cif->ring_dn,
+               shell->NL);
+
+    }
+
+  // show vswitch-links
+  fprintf (shell->terminal, "#vswitch-links: %d%s",
+           rib->rib_info->vswitch_link_size, shell->NL);
+  for (i = 0; i < rib->rib_info->vswitch_link_size; i++)
+    {
+      struct vswitch_link *link = &rib->rib_info->vswitch_link[i];
+      uint16_t vswlink_id = link->vswitch_link_id;
+      fprintf (shell->terminal, "  vswitch_link[%d]:"
+               " vswitch_link_id: %d port: %u vlan: %u tag: %u"
+               " vswitch[%d]: port[%d] (is_deleted: %d)%s",
+               i, vswlink_id, link->port_id, link->vlan_id, link->tag_id,
+               link->vswitch_id, link->vswitch_port, link->is_deleted,
+               shell->NL);
     }
 
   return 0;
@@ -301,7 +335,7 @@ CLI_COMMAND2 (show_rib_capture_if,
 }
 
 CLI_COMMAND2 (set_fdb_entry,
-              "set fdb port <0-8> vlan <0-4096> lladdr <WORD>",
+              "set fdb port <0-8> vlan <0-4096> lladdr "ETHER_ADDR_SPEC,
               SET_HELP,
               "set fdb entry\n",
               "set fdb entry port\n",
@@ -341,11 +375,13 @@ CLI_COMMAND2 (show_fdb,
 }
 
 CLI_COMMAND2 (show_neighbor,
-              "show neighbor (|ipv4|ipv6) (|<WORD>)",
+              "show neighbor (|ipv4|ipv6) (|"IPV4_ADDR_SPEC"|"IPV6_ADDR_SPEC")",
               SHOW_HELP,
               "show neighbor table.\n",
-              "show ARP table.\n",
-              "show ND table.\n")
+              "show IPv4 ARP table.\n",
+              "show IPv6 ND table.\n",
+              "IPv4 address as key.\n",
+              "IPv6 address as key.\n")
 {
   struct shell *shell = (struct shell *) context;
   FILE *t = shell->terminal;
@@ -639,7 +675,7 @@ CLI_COMMAND2 (set_vswitch,
 }
 
 CLI_COMMAND2 (set_vswitch_port,
-              "set vswitch <1-4094> port <0-7> (tagged|untag)",
+              "set vswitch <1-4094> port "PORT_ID_SPEC" (tagged|untag)",
               SET_HELP,
               "vswitch\n",
               "vswitch id\n",
@@ -676,7 +712,7 @@ CLI_COMMAND2 (set_vswitch_port,
 }
 
 CLI_COMMAND2 (set_vswitch_port_tag_swap,
-              "set vswitch <1-4094> port <0-7> tag swap <1-4094>",
+              "set vswitch <1-4094> port "PORT_ID_SPEC" tag swap <1-4094>",
               SET_HELP,
               "vswitch\n",
               "vswitch id\n",
@@ -790,7 +826,7 @@ ALIAS_COMMAND (set_router_if_vlan,
               "tap name\n");
 
 CLI_COMMAND2 (set_router_if_hwaddr,
-              "set vswitch <1-4094> router-if <WORD> hwaddr <WORD>",
+              "set vswitch <1-4094> router-if <WORD> hwaddr "ETHER_ADDR_SPEC,
               SET_HELP,
               "vswitch\n",
               "vswitch id\n",

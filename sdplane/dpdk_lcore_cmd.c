@@ -96,12 +96,19 @@ stop_lcore (struct shell *shell, int lcore_id)
   if (lcore_id == rte_lcore_id ())
     {
       fprintf (shell->terminal, "can't stop lthread lcore: %d\n", lcore_id);
+      return;
     }
-  else
+
+  enum rte_lcore_state_t state;
+  state = rte_eal_get_lcore_state (lcore_id);
+  if (state != RUNNING)
     {
-      rte_eal_wait_lcore (lcore_id);
-      fprintf (shell->terminal, "stopped worker on lcore: %d\n", lcore_id);
+      fprintf (shell->terminal, "lcore is not running: %d\n", lcore_id);
+      return;
     }
+
+  rte_eal_wait_lcore (lcore_id);
+  fprintf (shell->terminal, "stopped worker on lcore: %d\n", lcore_id);
 }
 
 /* rte_eal_init() makes the calling thread the DPDK main lcore
@@ -151,7 +158,7 @@ int netlink_thread (__rte_unused void *dummy);
 int igmp_snooping (__rte_unused void *dummy);
 
 CLI_COMMAND2 (set_worker,
-    "(set|reset|start|restart) worker lcore <0-16> "
+    "(set|reset|start|restart) worker lcore "LCORE_ID_SPEC" "
     "(|none|l2fwd|l3fwd|l3fwd-lpm"
     "|tap-handler|l3-tap-handler"
     "|l2-repeater|vlan-switch|enhanced-repeater|l2-switch"
@@ -196,7 +203,11 @@ CLI_COMMAND2 (set_worker,
   void *arg = NULL;
 
   if (argc == 4)
-    func = lcore_workers[lcore_id].func;
+    {
+      func = lcore_workers[lcore_id].func;
+      fprintf (shell->terminal, "resetting lcore-id: %d to func %s%s",
+               lcore_id, lcore_workers[lcore_id].func_name, shell->NL);
+    }
   else if (! strcmp (argv[4], "none"))
     func = NULL;
   else if (! strcmp (argv[4], "l2fwd"))
@@ -238,8 +249,8 @@ CLI_COMMAND2 (set_worker,
 
   if (lcore_workers[lcore_id].func == lthread_main)
     {
-      fprintf (shell->terminal, "cannot override lthread: lcore[%d].\n",
-               lcore_id);
+      fprintf (shell->terminal, "cannot override lthread: lcore[%d].%s",
+               lcore_id, shell->NL);
       return -1;
     }
 
@@ -287,26 +298,28 @@ CLI_COMMAND2 (set_worker,
   lcore_workers[lcore_id].arg = arg;
   lcore_workers[lcore_id].func_name = func_name;
 
-  fprintf (shell->terminal, "worker set to lcore[%d]: func: %s\n", lcore_id,
-           func_name);
+  fprintf (shell->terminal, "worker set to lcore[%d]: func: %s%s",
+           lcore_id, func_name, shell->NL);
 
   if (! strcmp (argv[0], "reset") || ! strcmp (argv[0], "start") ||
       ! strcmp (argv[0], "restart"))
     {
       stop_lcore (shell, lcore_id);
       start_lcore (shell, lcore_id);
-      fprintf (shell->terminal, "worker[%d]: restarted.\n", lcore_id);
+      fprintf (shell->terminal, "worker[%d]: restarted.%s",
+               lcore_id, shell->NL);
     }
   else if (! strcmp (argv[0], "set") && argc == 4)
-    fprintf (shell->terminal, "nothing changed.\n");
+    fprintf (shell->terminal, "nothing changed.%s", shell->NL);
   else
     fprintf (shell->terminal,
-             "workers need to be restarted for changes to take effect.\n");
+             "workers need to be restarted for changes to take effect.%s",
+             shell->NL);
   return 0;
 }
 
 CLI_COMMAND2 (start_stop_worker,
-              "(start|stop|reset|restart) worker lcore (<0-16>|all)",
+              "(start|stop|reset|restart) worker lcore ("LCORE_ID_SPEC"|all)",
               START_HELP, STOP_HELP, RESET_HELP, RESTART_HELP,
               WORKER_HELP,
               LCORE_HELP,
@@ -614,12 +627,30 @@ CLI_COMMAND2 (rte_eal_init_argv_list,
   int index;
   index = strtol (argv[2], NULL, 0);
 
-  pthread_mutex_lock (&argv_list_mutex);
+  int i;
+  char rte_argv_array[32][64];
+  char *rte_argv[32];
+  int rte_argc = 0;
+  memset (rte_argv_array, 0, sizeof (rte_argv_array));
+  memset (rte_argv, 0, sizeof (rte_argv));
+
   int *argcp = &argv_list_argc[index];
   char **argvp = argv_list[index];
 
-  ret = rte_eal_init (*argcp, argvp);
+  rte_argc = *argcp;
+
+  /* rte_eal_init() may break the argv array,
+   * so copy in a safer place, in advance. */
+  pthread_mutex_lock (&argv_list_mutex);
+  for (i = 0; i < rte_argc; i++)
+    {
+      rte_argv[i] = &rte_argv_array[i];
+      snprintf (rte_argv_array[i], sizeof (rte_argv_array[i]),
+                "%s", argvp[i]);
+    }
   pthread_mutex_unlock (&argv_list_mutex);
+
+  ret = rte_eal_init (rte_argc, rte_argv);
   if (ret < 0)
     {
       fprintf (shell->terminal, "Invalid EAL parameters.%s", shell->NL);
@@ -631,9 +662,69 @@ CLI_COMMAND2 (rte_eal_init_argv_list,
   return 0;
 }
 
+#ifdef REGVAR_SUPPORT
+int
+regvar_lcoreid_is_spec (char *spec)
+{
+  return ! strcmp (spec, "<LCORE-ID>");
+}
+
+int
+regvar_lcoreid_is_match (char *spec, char *word)
+{
+  int lcore_id;
+  int lcore_max;
+  char *endptr;
+  lcore_max = sysconf (_SC_NPROCESSORS_ONLN);
+  lcore_id = strtol (word, &endptr, 0);
+  if (endptr[0] != '\0')
+    return 0;
+  if (0 <= lcore_id && lcore_id < lcore_max)
+    return 1;
+  return 0;
+}
+
+char *
+regvar_lcoreid_convert_cmdstr (char *spec, char *word)
+{
+  char cmdstr[32];
+  int lcore_max;
+  lcore_max = sysconf (_SC_NPROCESSORS_ONLN);
+  snprintf (cmdstr, sizeof (cmdstr), "<0-%d>", lcore_max - 1);
+  return strdup (cmdstr);
+}
+
+char *
+regvar_lcoreid_convert_helpstr (char *spec, char *orig_helpstr, char *word)
+{
+  char helpstr[32];
+  int lcore_max;
+  lcore_max = sysconf (_SC_NPROCESSORS_ONLN);
+  snprintf (helpstr, sizeof (helpstr),
+            "specify LCORE-ID. (<0-%d>)", lcore_max - 1);
+  return strdup (helpstr);
+}
+
+struct regvar regvar_lcoreid;
+#endif /*REGVAR_SUPPORT*/
+
 void
 dpdk_lcore_cmd_init (struct command_set *cmdset)
 {
+#ifdef REGVAR_SUPPORT
+  struct regvar *regvar;
+  regvar = &regvar_lcoreid;
+  regvar->spec = "<LCORE-ID>";
+  regvar->is_spec = regvar_lcoreid_is_spec;
+  regvar->is_match = regvar_lcoreid_is_match;
+  regvar->convert_cmdstr = regvar_lcoreid_convert_cmdstr;
+  regvar->convert_helpstr = regvar_lcoreid_convert_helpstr;
+
+  if (! cmdset->regvars)
+    cmdset->regvars = vector_create ();
+  vector_add (regvar, cmdset->regvars);
+#endif /*REGVAR_SUPPORT*/
+
   INSTALL_COMMAND2 (cmdset, set_worker);
   INSTALL_COMMAND2 (cmdset, start_stop_worker);
   INSTALL_COMMAND2 (cmdset, show_worker);

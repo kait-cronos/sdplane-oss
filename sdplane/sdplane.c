@@ -223,6 +223,92 @@ CLI_COMMAND2 (show_router_mode,
   return 0;
 }
 
+int
+snprintf_time (char *buf, int size, uint32_t tv_sec)
+{
+  int ret = 0;
+  struct tm *tm;
+  time_t clock;
+  if (tv_sec == 0)
+    {
+      ret = snprintf (buf, size, "--/--/-- --:--:--");
+      return ret;
+    }
+  clock = tv_sec;
+  tm = localtime (&clock);
+  ret = strftime (buf, size, "%Y/%m/%d %H:%M:%S", tm);
+  return ret;
+}
+
+int
+snprintf_uptime (char *buf, int size, uint32_t tv_sec)
+{
+  int ret = 0;
+  struct timeval current_time;
+  gettimeofday (&current_time, NULL);
+  uint32_t seconds;
+  int day, hour, min, sec;
+  seconds = 0;
+  if (tv_sec)
+    seconds = current_time.tv_sec - tv_sec;
+  sec = seconds % 60;
+  min = (seconds / 60 ) % 60;
+  hour = (seconds / 60 / 60) % 24;
+  day = (seconds / 60 / 60 / 24);
+  if (tv_sec == 0)
+    ret = snprintf (buf, size, "%2s:%2s:%2s",
+                    "--", "--", "--");
+  else if (day)
+    ret = snprintf (buf, size, "%'d days %02d:%02d:%02d",
+                    day, hour, min, sec);
+  else
+    ret = snprintf (buf, size, "%02d:%02d:%02d",
+                    hour, min, sec);
+  return ret;
+}
+
+CLI_COMMAND2 (show_process_status,
+              "show process status",
+              SHOW_HELP,
+              "show process information.\n",
+              "show process status.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct sdplane_process_status *p = &process_status;
+  fprintf (shell->terminal, "process status:%s", shell->NL);
+  fprintf (shell->terminal, "  pid: %d%s", p->pid, shell->NL);
+  fprintf (shell->terminal, "  config-file: %s%s",
+           p->config_file_path, shell->NL);
+  fprintf (shell->terminal, "  pid-file: %s%s",
+           p->pid_file_path, shell->NL);
+
+  char timebuf[32];
+  snprintf_time (timebuf, sizeof (timebuf), p->start_time.tv_sec);
+  fprintf (shell->terminal, "  start-time: %s%s", timebuf, shell->NL);
+
+  char uptimebuf[32];
+  snprintf_uptime (uptimebuf, sizeof (uptimebuf), p->start_time.tv_sec);
+  fprintf (shell->terminal, "  uptime: %s%s", uptimebuf, shell->NL);
+
+  fprintf (shell->terminal, "  version: libsdplane: %s%s",
+           p->version_libsdplane, shell->NL);
+  fprintf (shell->terminal, "  version: sdplane: %s%s",
+           p->version_sdplane, shell->NL);
+
+  struct rusage rusage_self, rusage_children;
+  getrusage (RUSAGE_SELF, &rusage_self);
+  getrusage (RUSAGE_CHILDREN, &rusage_children);
+  fprintf (shell->terminal, "  rusage_self.ru_maxrss: "
+           "%'ld KB (now %'ld KB)%s",
+           p->rusage_self.ru_maxrss,
+           rusage_self.ru_maxrss, shell->NL);
+  fprintf (shell->terminal, "  rusage_children.ru_maxrss: "
+           "%'ld KB (now %'ld KB)%s",
+           p->rusage_children.ru_maxrss,
+           rusage_children.ru_maxrss, shell->NL);
+  return 0;
+}
+
 void
 shell_read_response_port_get (struct shell *shell,
                               struct internal_msg_header *imsghdr)
@@ -303,6 +389,8 @@ shell_read_response (struct shell *shell, struct rte_ring *ring_resp)
     }
 }
 
+void variable_cmd_init (struct command_set *cmdset);
+
 void dpdk_lcore_cmd_init (struct command_set *cmdset);
 void dpdk_port_cmd_init (struct command_set *cmdset);
 void lthread_cmd_init (struct command_set *cmdset);
@@ -311,11 +399,13 @@ void dpdk_devbind_cmd_init (struct command_set *cmdset);
 void pktgen_cmd_init (struct command_set *cmdset);
 void dhcp_cmd_init (struct command_set *cmdset);
 void srv6_cmd_init (struct command_set *cmdset);
+void igmp_cmd_init (struct command_set *cmdset);
 
 void
 sdplane_cmd_init (struct command_set *cmdset)
 {
   setlocale (LC_ALL, "en_US.utf8");
+  variable_cmd_init (cmdset);
   dpdk_lcore_cmd_init (cmdset);
   dpdk_port_cmd_init (cmdset);
   argv_list_cmd_init (cmdset);
@@ -343,8 +433,11 @@ sdplane_cmd_init (struct command_set *cmdset)
 
   srv6_cmd_init (cmdset);
 
+  igmp_cmd_init (cmdset);
+
   INSTALL_COMMAND2 (cmdset, set_router_mode);
   INSTALL_COMMAND2 (cmdset, show_router_mode);
+  INSTALL_COMMAND2 (cmdset, show_process_status);
 }
 
 void

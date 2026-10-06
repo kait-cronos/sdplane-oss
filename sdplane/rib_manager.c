@@ -612,6 +612,7 @@ rib_check (struct rib *new)
   qsort (port_qconf, port_qconf_size, sizeof (struct port_queue_conf),
          port_qconf_compare);
 
+  /* calculate the number of rx-queues based on the qconf. */
   int port_nrxq[RTE_MAX_ETHPORTS];
   memset (port_nrxq, 0, sizeof (port_nrxq));
 
@@ -653,6 +654,30 @@ rib_check (struct rib *new)
         };
       struct port_conf *port_cfg = &new->rib_info->port[i];
 
+      /* update the current queue sizes. */
+      port_cfg->nb_rx_queues = dev_info.nb_rx_queues;
+      port_cfg->nb_tx_queues = dev_info.nb_tx_queues;
+
+      /* make nrxq/ntxq default to the current dev_info queue sizes. */
+      nrxq = dev_info.nb_rx_queues;
+      ntxq = dev_info.nb_tx_queues;
+
+      if (nrxq != port_nrxq[i])
+        {
+          DEBUG_NEW (RIB, "port[%d]: nrxq mismatch!: "
+                     "configured: %d qconf: %d",
+                     i, nrxq, port_nrxq[i]);
+          /* Ideally it should be returned as a startup-config error.
+             But currently we don't have a way to stop startup-config
+             from here. For the time being we override it by the
+             qconf value, which seems safer. */
+#if 0
+          return -1;
+#else
+          nrxq = port_nrxq[i];
+#endif
+        }
+
       if (port_cfg->rx_offloads_valid)
         port_conf.rxmode.offloads = port_cfg->rx_offloads;
       if (port_cfg->tx_offloads_valid)
@@ -673,12 +698,14 @@ rib_check (struct rib *new)
 
       if (port_cfg->nrxq)
         {
-          if (nrxq < port_cfg->nrxq)
+          //if (nrxq < port_cfg->nrxq)
             nrxq = port_cfg->nrxq;
         }
       if (port_cfg->ntxq)
         {
-          if (ntxq < port_cfg->ntxq)
+          DEBUG_NEW (RIB, "ntxq: %d port_cfg->ntxq: %d",
+                     ntxq, port_cfg->ntxq);
+          //if (ntxq < port_cfg->ntxq)
             ntxq = port_cfg->ntxq;
         }
 
@@ -902,23 +929,23 @@ rib_replace (struct rib *new)
 }
 
 void
-update_port_status (struct rib *new)
+update_port_status (struct rib *new, uint16_t target_port)
 {
   uint16_t nb_ports, port_id;
-  DEBUG_NEW (RIB, "update port status: ver: %d rib: %p rib_info: %p.",
-             new->rib_info->ver, new, new->rib_info);
   nb_ports = rte_eth_dev_count_avail ();
   new->rib_info->port_size = nb_ports;
   for (port_id = 0; port_id < nb_ports; port_id++)
     {
+      if (target_port != 255 && port_id != target_port)
+        continue;
       rte_eth_dev_info_get (port_id, &new->rib_info->port[port_id].dev_info);
       rte_eth_link_get_nowait (port_id, &new->rib_info->port[port_id].link);
-      DEBUG_NEW (RIB, "port: %d link: %d ver: %d rib_info: %p.",
+      DEBUG_NEW (PORT_STATUS, "port: %d link: %d ver: %d rib_info: %p.",
                  port_id, new->rib_info->port[port_id].link.link_status,
                  new->rib_info->ver, new->rib_info);
       new->rib_info->port[port_id].dpdk_port_id = port_id;
+      gettimeofday (&new->rib_info->port[port_id].last_changed, NULL);
     }
-
 }
 
 void
@@ -1071,7 +1098,9 @@ rib_manager_process_message (void *msgp)
 
     case INTERNAL_MSG_TYPE_PORT_STATUS:
       DEBUG_NEW (RIB, "recv msg_port_status: %p.", msgp);
-      update_port_status (new);
+      uint16_t *msg_port_id;
+      msg_port_id = (uint16_t *) (msg_header + 1);
+      update_port_status (new, *msg_port_id);
       break;
 
     case INTERNAL_MSG_TYPE_QCONF:
@@ -1263,24 +1292,25 @@ rib_manager_process_message (void *msgp)
         vswitch = vswitch_new (new->rib_info, msg_vswitch_set->vswitch_id,
                                msg_vswitch_set->vlan_id);
         if (vswitch)
-          DEBUG_NEW (RIB, "create succeeded: vswitch: %u vlan_id: %u",
+          DEBUG_NEW (VSWITCH, "create succeeded: vswitch: %u vlan_id: %u",
                      msg_vswitch_set->vswitch_id,
                      msg_vswitch_set->vlan_id);
         else
-          DEBUG_NEW (RIB, "create failed: vswitch: %u vlan_id: %u",
+          DEBUG_NEW (VSWITCH, "create failed: vswitch: %u vlan_id: %u "
+                     "max-vswitch: %d",
                      msg_vswitch_set->vswitch_id,
-                     msg_vswitch_set->vlan_id);
+                     msg_vswitch_set->vlan_id, MAX_VSWITCH);
         break;
       }
 
     case INTERNAL_MSG_TYPE_VSWITCH_NO_SET:
       {
         struct internal_msg_vswitch *msg_vswitch_no_set;
-        DEBUG_NEW (RIB, "recv msg_vswitch_no_set: %p.", msgp);
+        DEBUG_NEW (VSWITCH, "recv msg_vswitch_no_set: %p.", msgp);
         msg_vswitch_no_set = (struct internal_msg_vswitch *) (msg_header + 1);
         if (! vswitch_lookup (new->rib_info, msg_vswitch_no_set->vswitch_id))
           {
-            DEBUG_NEW (RIB, "delete vswitch not found");
+            DEBUG_NEW (VSWITCH, "delete vswitch not found");
             break;
           }
         vswitch_delete (new->rib_info, msg_vswitch_no_set->vswitch_id);

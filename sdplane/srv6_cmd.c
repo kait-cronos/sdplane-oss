@@ -85,7 +85,7 @@ srv6_local_sid_params_str (struct srv6_local_sid_entry *entry,
 }
 
 CLI_COMMAND2 (set_srv6_local_sid,
-              "set srv6 local-sid <WORD> (|<0-15>)",
+              "set srv6 local-sid "IPV6_ADDR_SPEC" (|<0-15>)",
               SET_HELP,
               "set SRv6 information\n",
               "set SRv6 local-SID information\n",
@@ -139,7 +139,7 @@ CLI_COMMAND2 (set_srv6_local_sid,
 }
 
 CLI_COMMAND2 (no_set_srv6_local_sid,
-              "no set srv6 local-sid <WORD>",
+              "no set srv6 local-sid "IPV6_ADDR_SPEC,
               NO_HELP,
               SET_HELP,
               "set SRv6 information\n",
@@ -214,7 +214,7 @@ CLI_COMMAND2 (show_srv6_local_sid,
 }
 
 CLI_COMMAND2 (set_srv6_encap_src,
-              "set srv6 encap src <WORD>",
+              "set srv6 encap src "IPV6_ADDR_SPEC,
               SET_HELP,
               "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
@@ -432,11 +432,14 @@ srv6_encap_head_send (struct shell *shell, char *prefix_arg,
 }
 
 CLI_COMMAND2 (set_srv6_encap_head,
-              "(|no) set srv6 encap head <WORD> <WORD> (|H.Encaps|H.Insert)",
+              "(|no) set srv6 encap head "
+              IPV6_PREFIX_SPEC"|"IPV4_PREFIX_SPEC") "
+              "<WORD> (|H.Encaps|H.Insert)",
               NO_HELP, SET_HELP, "set SRv6 information\n",
               "set SRv6 encapsulation information\n",
               "set SRv6 encap head-end route\n",
-              "specify destination prefix (e.g. 2001:db8::/64)\n",
+              "specify destination IPv6 prefix (e.g. 2001:db8::/64)\n",
+              "specify destination IPv4 prefix (e.g. 192.0.2.0/24)\n",
               "specify SRv6 segments in path order (comma-separated)\n",
               "encapsulate with H.Encaps (default)\n",
               "insert SRH with H.Insert (not supported yet)\n")
@@ -497,7 +500,9 @@ rib_show_srv6_route (struct rib_node *n, void *arg)
   return 0;
 }
 
-CLI_COMMAND2 (show_srv6_encap_route, "show srv6 encap route", SHOW_HELP,
+CLI_COMMAND2 (show_srv6_encap_route,
+              "show srv6 encap route",
+              SHOW_HELP,
               "show SRv6 information\n",
               "show SRv6 encapsulation information\n",
               "show SRv6 encapsulation routes\n")

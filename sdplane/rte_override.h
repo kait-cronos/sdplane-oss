@@ -28,15 +28,21 @@
   #endif
 #endif
 
+#if 0
 #if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
   #define __rte_packed_begin
   #define __rte_packed_end __rte_packed
+#endif
 #endif
 
 #if RTE_VERSION >= RTE_VERSION_NUM(24,11,0,0)
   #define IPV6_ADDR_BYTES(x) ((x).a)
 #else
   #define IPV6_ADDR_BYTES(x) (x)
+#endif
+
+#if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
+#define RTE_ETHDEV_QUEUE_STAT_CNTRS 16 /* max 256 */
 #endif
 
 #endif /*__RTE_OVERRIDE_H__*/
