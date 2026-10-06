@@ -340,7 +340,7 @@ CLI_COMMAND2 (pktgen_do_set_mac_addr,
 
 CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
               "pktgen do set port ("PORT_ID_SPEC"|all) "
-              "(ip|ipv4) (source|destination) "IPV4_ADDR_SPEC,
+              "(ip|ipv4) (source|destination) ("IPV4_ADDR_SPEC"|"IPV4_PREFIX_SPEC")",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -351,7 +351,8 @@ CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
               "set packet IPv4 address.\n",
               "set packet IPv4 source address.\n",
               "set packet IPv4 destination address.\n",
-              "specify the packet ipv4 address: e.g., 10.0.0.1.\n"
+              "specify the packet ipv4 address: e.g., 10.0.0.1.\n",
+              "specify the packet ipv4 address with prefix: e.g., 10.0.0.1/24.\n"
              )
 {
   struct shell *shell = (struct shell *) context;
@@ -359,22 +360,45 @@ CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
   int pktgen_argc;
   char *pktgen_argv[16];
   struct in_addr ipv4_addr;
-  ret = inet_pton (AF_INET, argv[7], &ipv4_addr);
-  if (ret != 1)
+  char host[32];
+  char prefix[32];
+  char *p, *plen = NULL;
+
+  snprintf (host, sizeof (host), "%s", argv[7]);
+  p = strchr (host, '/');
+  if (p)
+    {
+      *p++ = '\0';
+      plen = p;
+    }
+  ret = inet_pton (AF_INET, host, &ipv4_addr);
+  if (ret != 1 || (plen && *plen == '\0'))
     {
       fprintf (shell->terminal, "invalid address: %s%s",
                argv[7], shell->NL);
       return CMD_FAILURE;
     }
+  if (plen)
+    snprintf (prefix, sizeof (prefix), "%s/%s", host, plen);
+  else
+    snprintf (prefix, sizeof (prefix), "%s/32", host);
+
   pktgen_argv[0] = "set";
   pktgen_argv[1] = argv[4];
+
   if (! strcmp (argv[6], "source"))
-    pktgen_argv[2] = "src";
+    {
+      pktgen_argv[2] = "src";
+      pktgen_argv[4] = prefix;
+    }
   else
-    pktgen_argv[2] = "dst";
+    {
+      pktgen_argv[2] = "dst";
+      pktgen_argv[4] = host;
+    }
   pktgen_argv[3] = "ip";
-  pktgen_argv[4] = argv[7];
   pktgen_argc = 5;
+
   ret = set_cmd (pktgen_argc, pktgen_argv);
   if (ret < 0)
     return CMD_FAILURE;
