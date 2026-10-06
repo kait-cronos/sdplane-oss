@@ -2,6 +2,7 @@
 
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <linux/rtnetlink.h>
 
 #include <lthread.h>
 
@@ -1047,6 +1048,139 @@ rib_manager_process_port_get (struct internal_msg_header *imsghdr)
   return retflag;
 }
 
+/*
+ * route entry add/delete
+ *
+ * Split out of rib_manager_process_message() so that the SRv6 local SID
+ * handler can install the same kind of entry without duplicating this.
+ */
+
+static int
+_route_entry_add (struct rib *new, struct internal_msg_route_entry *msg)
+{
+  struct route_entry route_entry;
+  char dst_str[64] = { 0 };
+  char gw_str[512] = { 0 };
+  int i, sdplane_nh_id;
+
+  /* register nexthop entry to rib_info->nexthop */
+  sdplane_nh_id = nexthop_add_entry (new->rib_info, &msg->nh);
+  if (sdplane_nh_id < 0)
+    return -1;
+  nexthop_increment_refcnt (new->rib_info, sdplane_nh_id);
+
+  /* search for existing RIB tree with matching family and table_id */
+  i = route_table_lookup_id (msg->table_id, msg->family);
+  if (i < 0)
+    {
+      /* if not found, search for empty slot and create new table */
+      i = route_table_alloc_slot (msg->table_id, msg->family);
+      if (i < 0)
+        {
+          DEBUG_NEW (RIB, "failed to create route table");
+          return -1;
+        }
+    }
+
+  /* create route entry */
+  memset (&route_entry, 0, sizeof (struct route_entry));
+  memcpy (&route_entry.dst, &msg->dst, sizeof (struct route_dst_info));
+  route_entry.sdplane_nh_id = sdplane_nh_id;
+  route_entry.table_id = msg->table_id;
+
+  /* register route entry to RIB */
+  if (rib_route_add (rib_tree_master[i], (uint8_t *) &msg->dst.dst_ip_addr,
+                     msg->dst.plen, &route_entry) > 0)
+    {
+      DEBUG_NEW (RIB, "failed to add route to RIB");
+      return -1;
+    }
+
+  inet_ntop (msg->dst.family, (uint8_t *) &msg->dst.dst_ip_addr, dst_str,
+             sizeof (dst_str));
+  DEBUG_NEW (RIB, "route added: dst=%s/%d nexthop=%s", dst_str, msg->dst.plen,
+             nexthop_format (&msg->nh, gw_str, sizeof (gw_str)));
+  return 0;
+}
+
+static int
+_route_entry_del (struct rib *new, struct internal_msg_route_entry *msg)
+{
+  char dst_str[64] = { 0 };
+  int i, sdplane_nh_id;
+
+  if (msg->is_nhid)
+    sdplane_nh_id =
+        nexthop_get_index_by_nhid (new->rib_info, msg->nh.kernel_nh_id);
+  else
+    sdplane_nh_id = nexthop_find_entry (new->rib_info, &msg->nh);
+
+  if (sdplane_nh_id < 0)
+    return -1;
+
+  /* search for existing RIB tree with matching family and table_id */
+  i = route_table_lookup_id (msg->table_id, msg->family);
+  if (i < 0)
+    {
+      DEBUG_NEW (RIB, "route table not found: table_id=%d family=%d",
+                 msg->table_id, msg->family);
+      return -1;
+    }
+
+  if (rib_route_delete (rib_tree_master[i], (uint8_t *) &msg->dst.dst_ip_addr,
+                        msg->dst.plen) != 0)
+    {
+      DEBUG_NEW (RIB, "failed to delete route to RIB");
+      return -1;
+    }
+
+  inet_ntop (msg->family, (uint8_t *) &msg->dst.dst_ip_addr, dst_str,
+             sizeof (dst_str));
+  DEBUG_NEW (RIB, "route deleted: dst=%s/%d", dst_str, msg->dst.plen);
+
+  /* Drop this route's reference only after the route was actually
+   * removed from the RIB; a delete request for a non-existent
+   * route whose nexthop matches an existing group must not touch
+   * that group's refcnt. A LEGACY group is freed when the last
+   * referencing route goes away. */
+  nexthop_decrement_refcnt (new->rib_info, sdplane_nh_id);
+  return 0;
+}
+
+/*
+ * SRv6 local SID as a route
+ *
+ * A local SID is also installed as a /128 route whose nexthop carries the
+ * SID entry, so that the forwarding path can reach it through the ordinary
+ * FIB lookup instead of scanning rib_info->srv6_local_sid[].  The array is
+ * kept as is for the srv6-router compatible path; when both are present the
+ * array is consulted first, so it stays authoritative for that path.
+ */
+
+static void
+_srv6_local_sid_route_msg (struct internal_msg_route_entry *msg,
+                           const struct srv6_local_sid_entry *entry)
+{
+  memset (msg, 0, sizeof (*msg));
+  msg->family = AF_INET6;
+  /* RT_TABLE_MAIN keeps this off the RT_TABLE_LOCAL path in the forwarding
+     code.  Note route_table_lookup_id() picks the tree by family alone, so
+     table_id does not separate routes today; it only travels with the entry. */
+  msg->table_id = RT_TABLE_MAIN;
+  msg->dst.family = AF_INET6;
+  msg->dst.dst_ip_addr.ipv6_addr = entry->sid;
+  msg->dst.plen = 128;
+  msg->is_nhid = false;
+  msg->nh.kernel_nh_id = 0;
+  msg->nh.nhcnt = 1;
+  msg->nh.members[0].kernel_nh_id = 0;
+  msg->nh.members[0].weight = 1;
+  msg->nh.members[0].info.family = AF_INET6;
+  msg->nh.members[0].info.type = NEXTHOP_TYPE_SRV6_END;
+  msg->nh.members[0].info.oif = entry->oif;
+  msg->nh.members[0].info.gw.srv6_local_sid = *entry;
+}
+
 void
 rib_manager_process_message (void *msgp)
 {
@@ -1585,112 +1719,17 @@ rib_manager_process_message (void *msgp)
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD:
       DEBUG_NEW (RIB, "recv msg_route_entry_add: %p.", msgp);
       msg_route_entry = (struct internal_msg_route_entry *) (msg_header + 1);
-      struct route_entry route_entry;
+      /* these are declared here but shared with the cases below */
       int sdplane_nh_id = 0;
-
-      /* buffer for debug log */
-      char dst_addr[64] = {0};
       char gw_addr[512] = {0};
 
-      /* register nexthop entry to rib_info->nexthop */
-      sdplane_nh_id = nexthop_add_entry (new->rib_info, &msg_route_entry->nh);
-      if (sdplane_nh_id < 0)
-        break;
-      nexthop_increment_refcnt (new->rib_info, sdplane_nh_id);
-
-      /* search for existing RIB tree with matching family and table_id */
-      i = route_table_lookup_id (msg_route_entry->table_id,
-                                 msg_route_entry->family);
-      if (i < 0)
-        {
-          /* if not found, search for empty slot and create new table */
-          i = route_table_alloc_slot (msg_route_entry->table_id,
-                                      msg_route_entry->family);
-          if (i < 0)
-            {
-              DEBUG_NEW (RIB, "failed to create route table");
-              break;
-            }
-        }
-
-      /* create route entry */
-      memset (&route_entry, 0, sizeof (struct route_entry));
-      memcpy (&route_entry.dst,
-              &msg_route_entry->dst,
-              sizeof (struct route_dst_info));
-      route_entry.sdplane_nh_id = sdplane_nh_id;
-            route_entry.table_id = msg_route_entry->table_id;
-
-      /* register route entry to RIB */
-      if (rib_route_add (rib_tree_master[i],
-                         (uint8_t *) &msg_route_entry->dst.dst_ip_addr,
-                         msg_route_entry->dst.plen,
-                         &route_entry) > 0)
-        {
-          DEBUG_NEW (RIB, "failed to add route to RIB");
-          break;
-        }
-
-      inet_ntop (msg_route_entry->dst.family,
-                 (uint8_t *) &msg_route_entry->dst.dst_ip_addr,
-                 dst_addr, sizeof (dst_addr));
-      DEBUG_NEW (RIB, "route added: dst=%s/%d nexthop=%s",
-                 dst_addr, msg_route_entry->dst.plen,
-                 nexthop_format (&msg_route_entry->nh, gw_addr,
-                 sizeof (gw_addr)));
+      _route_entry_add (new, msg_route_entry);
       break;
 
     case INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL:
       DEBUG_NEW (RIB, "recv msg_route_entry_del: %p.", msgp);
       msg_route_entry = (struct internal_msg_route_entry *) (msg_header + 1);
-
-      if (msg_route_entry->is_nhid)
-        {
-          sdplane_nh_id = nexthop_get_index_by_nhid (
-              new->rib_info, msg_route_entry->nh.kernel_nh_id);
-        }
-      else
-        {
-          sdplane_nh_id =
-              nexthop_find_entry (new->rib_info, &msg_route_entry->nh);
-        }
-      if (sdplane_nh_id < 0)
-        break;
-
-      /* search for existing RIB tree with matching family and table_id */
-      i = route_table_lookup_id (msg_route_entry->table_id,
-                                 msg_route_entry->family);
-
-      if (i >= 0)
-        {
-          if (rib_route_delete (rib_tree_master[i],
-                                (uint8_t *) &msg_route_entry->dst.dst_ip_addr,
-                                msg_route_entry->dst.plen) != 0)
-            {
-              DEBUG_NEW (RIB, "failed to delete route to RIB");
-              break;
-            }
-          inet_ntop (msg_route_entry->family,
-                     (uint8_t *) &msg_route_entry->dst.dst_ip_addr,
-                     dst_addr, sizeof (dst_addr));
-          DEBUG_NEW (RIB, "route deleted: dst=%s/%d",
-                     dst_addr, msg_route_entry->dst.plen);
-        }
-      else
-        {
-          DEBUG_NEW (RIB, "route table not found: table_id=%d family=%d",
-                             msg_route_entry->table_id,
-                             msg_route_entry->family);
-          break;
-        }
-
-      /* Drop this route's reference only after the route was actually
-       * removed from the RIB; a delete request for a non-existent
-       * route whose nexthop matches an existing group must not touch
-       * that group's refcnt. A LEGACY group is freed when the last
-       * referencing route goes away. */
-      nexthop_decrement_refcnt (new->rib_info, sdplane_nh_id);
-
+      _route_entry_del (new, msg_route_entry);
       break;
 
     case INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_ADD:
@@ -1894,6 +1933,9 @@ rib_manager_process_message (void *msgp)
             DEBUG_NEW (RIB, "saving at local_sid_addr[%d/%d] success: addr: %s.",
                        index, num_sids, addr_str);
             struct srv6_local_sid_entry *entry = &new->rib_info->srv6_local_sid[index];
+            /* keep the previous content: the route nexthop is matched by
+               value, so replacing one needs the entry as it was */
+            struct srv6_local_sid_entry old_entry = *entry;
             memcpy (&entry->sid, &msg_srv6_local_sid->srv6_local_sid_addr,
                     sizeof (struct in6_addr));
             entry->action = msg_srv6_local_sid->action;
@@ -1904,6 +1946,19 @@ rib_manager_process_message (void *msgp)
               new->rib_info->srv6_local_sid_addr_num++;
             DEBUG_NEW (RIB, "local_sid_addr_num: %d.",
                        new->rib_info->srv6_local_sid_addr_num);
+
+            /* also install it as a /128 route so that the forwarding path
+               can resolve it through the FIB */
+            struct internal_msg_route_entry sid_route;
+            if (existing_idx >= 0)
+              {
+                _srv6_local_sid_route_msg (&sid_route, &old_entry);
+                _route_entry_del (new, &sid_route);
+              }
+            _srv6_local_sid_route_msg (&sid_route, entry);
+            if (_route_entry_add (new, &sid_route) < 0)
+              DEBUG_NEW (RIB, "failed to add local SID route: addr: %s.",
+                         addr_str);
           }
         else
           DEBUG_NEW (RIB, "saving at local_sid_addr[%d/%d] failed: addr: %s.",
@@ -1920,6 +1975,20 @@ rib_manager_process_message (void *msgp)
         inet_ntop (AF_INET6, &msg_srv6_local_sid->srv6_local_sid_addr,
                    addr_str, sizeof (addr_str));
         DEBUG_NEW (RIB, "del local_sid_addr: %s.", addr_str);
+
+        /* drop the /128 route first: its nexthop is matched by value
+           against the entry, which srv6_local_sid_del() is about to move */
+        int del_idx =
+            srv6_local_sid_find (new->rib_info,
+                                 &msg_srv6_local_sid->srv6_local_sid_addr);
+        if (del_idx >= 0)
+          {
+            struct internal_msg_route_entry sid_route;
+            _srv6_local_sid_route_msg (
+                &sid_route, &new->rib_info->srv6_local_sid[del_idx]);
+            _route_entry_del (new, &sid_route);
+          }
+
         srv6_local_sid_del (new->rib_info,
                             &msg_srv6_local_sid->srv6_local_sid_addr);
         break;
