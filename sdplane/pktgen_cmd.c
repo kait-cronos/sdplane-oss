@@ -372,7 +372,7 @@ CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
       plen = p;
     }
   ret = inet_pton (AF_INET, host, &ipv4_addr);
-  if (ret != 1)
+  if (ret != 1 || (plen && *plen == '\0'))
     {
       fprintf (shell->terminal, "invalid address: %s%s",
                argv[7], shell->NL);
