@@ -189,11 +189,6 @@ main (int argc, char **argv)
      ignore SIGPIPE so a write to a closed socket returns EPIPE instead. */
   signal (SIGPIPE, SIG_IGN);
 
-  /* Use of tap PMD seems to trigger SIG35 realtime signal,
-   * and lthread may stuck by it, and
-   * the terminating the process may be in trouble. */
-  signal (35, SIG_IGN);
-
   /* Preserve name of myself. */
   char *progname, *p;
   progname = ((p = strrchr (argv[0], '/')) ? ++p : argv[0]);
