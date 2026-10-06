@@ -340,7 +340,7 @@ CLI_COMMAND2 (pktgen_do_set_mac_addr,
 
 CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
               "pktgen do set port (<0-7>|all) "
-              "(ip|ipv4) (source|destination) A.B.C.D",
+              "(ip|ipv4) (source|destination) (A.B.C.D|A.B.C.D/M)",
               "pktgen\n",
               "pktgen do\n",
               "pktgen set cmd\n",
@@ -351,30 +351,56 @@ CLI_COMMAND2 (pktgen_do_set_ipv4_addr,
               "set packet IPv4 address.\n",
               "set packet IPv4 source address.\n",
               "set packet IPv4 destination address.\n",
-              "specify the packet ipv4 address: e.g., 10.0.0.1.\n"
+              "specify the packet ipv4 address: e.g., 10.0.0.1.\n",
+              "specify the packet ipv4 address with prefix: e.g., 10.0.0.1/24.\n"
              )
 {
   struct shell *shell = (struct shell *) context;
   int ret;
   int pktgen_argc;
   char *pktgen_argv[16];
+  char ip_str[64];
   struct in_addr ipv4_addr;
-  ret = inet_pton (AF_INET, argv[7], &ipv4_addr);
+  char *type;
+  char *target;
+
+  snprintf (ip_str, sizeof (ip_str), "%s", argv[7]);
+  char *p = strchr (ip_str, '/');
+  if (p != NULL)
+    *p = '\0';
+
+  ret = inet_pton (AF_INET, ip_str, &ipv4_addr);
   if (ret != 1)
     {
       fprintf (shell->terminal, "invalid address: %s%s",
                argv[7], shell->NL);
       return CMD_FAILURE;
     }
+
+  if (! strcmp (argv[6], "source"))
+    {
+      type = "src";
+      if (p != NULL)
+        target = argv[7];
+      else
+        {
+          sprintf (ip_str, "%s/32", argv[7]);
+          target = ip_str;
+        }
+    }
+  else
+    {
+      type = "dst";
+      target = ip_str;
+    }
+
   pktgen_argv[0] = "set";
   pktgen_argv[1] = argv[4];
-  if (! strcmp (argv[6], "source"))
-    pktgen_argv[2] = "src";
-  else
-    pktgen_argv[2] = "dst";
+  pktgen_argv[2] = type;
   pktgen_argv[3] = "ip";
-  pktgen_argv[4] = argv[7];
+  pktgen_argv[4] = target;
   pktgen_argc = 5;
+
   ret = set_cmd (pktgen_argc, pktgen_argv);
   if (ret < 0)
     return CMD_FAILURE;
