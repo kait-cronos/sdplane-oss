@@ -1211,9 +1211,10 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
           return;
         }
 
+      rx_link = NULL; // to avoid split-horizon check
+
       if (sid_action == SEG6_LOCAL_ACTION_END)
         {
-          rx_link = NULL; // to avoid split-horizon check
           /* outer_is_fresh is passed through: unlike the encap case this
              outer header came off the wire, so it still owes a hop. */
           _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6,
@@ -1243,7 +1244,6 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
          the two cannot drift apart later */
       family = nh_info->family;
       oif = nh_info->oif;
-      rx_link = NULL; // to avoid split-horizon check
       /* dest was rendered before the SRH was advanced (End.X) or the outer
          header removed (End.DX6), so it still names the SID.  The End case
          re-enters this function and rebuilds it; these two fall through, so
