@@ -1191,8 +1191,8 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
               return;
             }
 
-          // verify packet length and state
-          // because hw offload state is reset by _process_srv6_end_dx_packet,
+          // verify inner packet
+          // because hw offload state of `m` is reset by `_process_srv6_end_dx_packet`,
           // rx_port can be NULL
           if (unlikely (! _verify_packet (m, NULL, ipv4, ipv6)))
             {
