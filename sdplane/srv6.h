@@ -514,14 +514,14 @@ _process_srv6_end_dx_packet (struct rte_mbuf *m, struct rte_ether_hdr **eth,
      lives in the VLAN header when there is one -- overwriting ether_type there
      would destroy the tag, which is the mistake _process_srv6_encap() carries
      the same guard against. */
-  uint16_t eth_type = inner_is_v6 ? RTE_ETHER_TYPE_IPV6 : RTE_ETHER_TYPE_IPV4;
+  uint16_t eth_type = inner_is_v6 ? rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6) : rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
   if ((*eth)->ether_type == rte_cpu_to_be_16 (RTE_ETHER_TYPE_VLAN))
     {
       struct rte_vlan_hdr *vlan = (struct rte_vlan_hdr *) (*eth + 1);
-      vlan->eth_proto = rte_cpu_to_be_16 (eth_type);
+      vlan->eth_proto = eth_type;
     }
   else
-    (*eth)->ether_type = rte_cpu_to_be_16 (eth_type);
+    (*eth)->ether_type = eth_type;
 
   if (inner_is_v6)
     {
