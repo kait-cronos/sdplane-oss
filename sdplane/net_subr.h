@@ -1084,7 +1084,7 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                   struct vswitch_link *rx_link, int recursion_count,
                   bool outer_is_fresh)
 {
-  struct nh_info *nh_info;
+  struct nh_info *nh_info, endx_nh;
   struct neigh_entry *neigh_entry;
   struct rte_ether_addr *dst_mac, *src_mac;
   struct fib_node *fib_node;
@@ -1166,20 +1166,100 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                      m);
           return;
         }
-      if (! _process_srv6_end_packet (m, ipv6, &nh_info->gw.srv6_local_sid))
+
+      uint32_t sid_action = nh_info->gw.srv6_local_sid.action;
+
+      // handle End.DX6 or End.DX4
+      if (sid_action == SEG6_LOCAL_ACTION_END_DX6 ||
+          sid_action == SEG6_LOCAL_ACTION_END_DX4)
+        {
+          bool dx6 = (sid_action == SEG6_LOCAL_ACTION_END_DX6);
+          if (dx6 ? IN6_IS_ADDR_UNSPECIFIED (
+                        &nh_info->gw.srv6_local_sid.param.nh6)
+                  : (nh_info->gw.srv6_local_sid.param.nh4.s_addr == 0))
+            {
+              DEBUG_NEW (ROUTER, "m: %p End.DX%d SID has no adjacency, drop.",
+                         m, (dx6 ? 6 : 4));
+              return;
+            }
+
+          if (! _process_srv6_end_dx_packet (
+                  m, &eth, &ipv4, &ipv6, (dx6 ? IPPROTO_IPV6 : IPPROTO_IPIP)))
+            {
+              DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 End.DX%d", m,
+                         (dx6 ? 6 : 4));
+              return;
+            }
+
+          // verify packet length and state
+          // because hw offload state is reset by _process_srv6_end_dx_packet,
+          // rx_port can be NULL
+          if (unlikely (! _verify_packet (m, NULL, ipv4, ipv6)))
+            {
+              DEBUG_NEW (ROUTER,
+                         "m: %p decapsulated packet is not forwardable, "
+                         "drop.",
+                         m);
+              return;
+            }
+        }
+      // handle End or End.X
+      else if (! _process_srv6_end_packet (m, ipv6,
+                                           &nh_info->gw.srv6_local_sid))
         {
           DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 Endpoint", m);
           return;
         }
-      rx_link = NULL; // to avoid split-horizon check
-      /* outer_is_fresh is passed through: unlike the encap case this outer
-         header came off the wire, so it still owes a hop. */
-      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch,
-                        rx_link, recursion_count + 1, outer_is_fresh);
-      return;
-    }
 
-  if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
+      if (sid_action == SEG6_LOCAL_ACTION_END)
+        {
+          rx_link = NULL; // to avoid split-horizon check
+          /* outer_is_fresh is passed through: unlike the encap case this
+             outer header came off the wire, so it still owes a hop. */
+          _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6,
+                            rx_vswitch, rx_link, recursion_count + 1,
+                            outer_is_fresh);
+          return;
+        }
+
+      memset (&endx_nh, 0, sizeof (endx_nh));
+      endx_nh.type = NEXTHOP_TYPE_GATEWAY;
+      if (sid_action == SEG6_LOCAL_ACTION_END_DX4)
+        {
+          /* End.DX4's adjacency is IPv4, and so is the packet it now
+             precedes: the tail resolves it in the ARP table and decrements a
+             TTL rather than a hop limit, both keyed off this family. */
+          endx_nh.family = AF_INET;
+          endx_nh.gw.ipv4_addr = nh_info->gw.srv6_local_sid.param.nh4;
+        }
+      else
+        {
+          endx_nh.family = AF_INET6;
+          endx_nh.gw.ipv6_addr = nh_info->gw.srv6_local_sid.param.nh6;
+        }
+      endx_nh.oif = nh_info->oif;
+      nh_info = &endx_nh;
+      /* re-read rather than keep the values taken from the SID nexthop, so
+         the two cannot drift apart later */
+      family = nh_info->family;
+      oif = nh_info->oif;
+      rx_link = NULL; // to avoid split-horizon check
+      /* dest was rendered before the SRH was advanced (End.X) or the outer
+         header removed (End.DX6), so it still names the SID.  The End case
+         re-enters this function and rebuilds it; these two fall through, so
+         refresh it here or the routing-lookup line below reports the wrong
+         destination. */
+      if (IS_DEBUG (ROUTING_LOOKUP))
+        {
+          if (ipv4)
+            inet_ntop (AF_INET, &ipv4->dst_addr, dest, sizeof (dest));
+          else
+            inet_ntop (AF_INET6, IPV6_ADDR_BYTES (ipv6->dst_addr), dest,
+                       sizeof (dest));
+        }
+
+    }
+  else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
       DEBUG_NEW (ROUTING_LOOKUP, "m: %p SRv6 Encapsulation for dest: %s", m,
                  dest);
