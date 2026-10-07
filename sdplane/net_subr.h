@@ -1222,13 +1222,13 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
           return;
         }
 
+      // now common routine of End.X, End.DX4, and End.DX6
+      // translate srv6_local_sid.param.nh4/nh6 into NEXTHOP_TYPE_GATEWAY
+      // and go through normal neighbor resolution
       memset (&endx_nh, 0, sizeof (endx_nh));
       endx_nh.type = NEXTHOP_TYPE_GATEWAY;
       if (sid_action == SEG6_LOCAL_ACTION_END_DX4)
         {
-          /* End.DX4's adjacency is IPv4, and so is the packet it now
-             precedes: the tail resolves it in the ARP table and decrements a
-             TTL rather than a hop limit, both keyed off this family. */
           endx_nh.family = AF_INET;
           endx_nh.gw.ipv4_addr = nh_info->gw.srv6_local_sid.param.nh4;
         }
