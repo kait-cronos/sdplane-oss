@@ -66,7 +66,7 @@ sudo apt install etckeeper tig bridge-utils \
 ### Dependencies
 - **DPDK**: Data Plane Development Kit
 - **libsdplane-dev**: [kait-cronos/libsdplane-dev](https://github.com/kait-cronos/libsdplane-dev) (build and install separately)
-- **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (DPDK-based cooperative threading)
+- **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (cooperative threading library, fork of halayli/lthread; does not depend on DPDK)
 - **liburcu-qsbr**: Userspace RCU library
 - **libpcap**: Packet capture library
 
