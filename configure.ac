@@ -28,7 +28,7 @@ AC_ARG_WITH([libsdplane],
                             [libsdplane libdir (/usr/lib)])],
 [
         libsdplanedir="$withval"
-        LDLFAGS="$LDFLAGS -L$withval"
+        LDFLAGS="$LDFLAGS -L$withval"
 ], [
         libsdplanedir="/usr/lib"
 ])

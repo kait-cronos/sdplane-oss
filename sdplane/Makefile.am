@@ -35,7 +35,7 @@ sdplane_SOURCES = \
         hash_table.c nexthop.c \
         fdb.c fdb.h igmp_snooping.c variable_cmd.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
-sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(zcmdshdir) -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
+sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(libsdplanedir) -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
 
 if ENABLE_PKTGEN
   sdplane_SOURCES += \
