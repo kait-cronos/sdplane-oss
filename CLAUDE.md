@@ -13,7 +13,7 @@ sdplane-dev (soft-dplane) is a high-performance DPDK-based software router writt
 The project requires these libraries to be installed:
 - DPDK (Data Plane Development Kit)
 - libsdplane-dev (kait-cronos/libsdplane-dev)
-- lthread (yasuhironet/lthread from DPDK)
+- lthread (yasuhironet/lthread, a fork of halayli/lthread; independent of DPDK, built as a static library)
 - liburcu-qsbr (userspace RCU library)
 - libpcap
 

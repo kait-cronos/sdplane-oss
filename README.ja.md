@@ -63,7 +63,7 @@ sudo apt install etckeeper tig bridge-utils \
 ### 依存関係
 - **DPDK**：Data Plane Development Kit
 - **libsdplane-dev**：[kait-cronos/libsdplane-dev](https://github.com/kait-cronos/libsdplane-dev)（別途ビルド・インストール）
-- **lthread**：[yasuhironet/lthread](https://github.com/yasuhironet/lthread)（DPDKベース協調スレッド）
+- **lthread**：[yasuhironet/lthread](https://github.com/yasuhironet/lthread)（協調スレッドライブラリ。halayli/lthread のフォークで、DPDK には依存しない）
 - **liburcu-qsbr**：ユーザー空間RCUライブラリ
 - **libpcap**：パケットキャプチャライブラリ
 
