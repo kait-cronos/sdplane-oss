@@ -19,10 +19,12 @@
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
+#include <time.h>
 
 #include "debug_sdplane.h"
 #include "rib_manager.h"
 #include "fdb.h"
+#include "mdb.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "tap.h"
@@ -480,6 +482,12 @@ rib_info_create (struct rib_info *old)
           free (new);
           return NULL;
         }
+      if (mdb_table_init (&new->mdb_table) < 0)
+        {
+          fdb_table_destroy (&new->fdb_table);
+          free (new);
+          return NULL;
+        }
     }
   else
     {
@@ -489,6 +497,12 @@ rib_info_create (struct rib_info *old)
       /* deep-copy the FDB table */
       if (fdb_table_copy (&new->fdb_table, &old->fdb_table) < 0)
         {
+          free (new);
+          return NULL;
+        }
+      if (mdb_table_copy (&new->mdb_table, &old->mdb_table) < 0)
+        {
+          fdb_table_destroy (&new->fdb_table);
           free (new);
           return NULL;
         }
@@ -512,8 +526,9 @@ rib_info_delete (struct rib_info *old)
           fib_free (old->fib_tree[i]);
         }
     }
-  /* free FDB values and bucket array */
+  /* free FDB and MDB values and bucket array */
   fdb_table_destroy (&old->fdb_table);
+  mdb_table_destroy (&old->mdb_table);
   free (old);
 }
 

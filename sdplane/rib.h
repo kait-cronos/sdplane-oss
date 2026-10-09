@@ -12,6 +12,7 @@
 #define FDB_HASH_BUCKETS        1024
 #define FDB_AGING_TIME_DEFAULT  7200 /* Default aging time: 2 hours */
 #define FDB_AGING_INTERVAL      60   /* aging scan interval in seconds */
+#define MDB_HASH_BUCKETS        256
 #define ROUTE_TREE_SIZE         2
 #define K                       2
 #define BRANCH_SZ               (1 << K)
@@ -158,6 +159,13 @@ struct fdb_entry
   time_t last_seen;
 };
 
+struct mdb_entry
+{
+  uint32_t group_addr;
+  uint16_t vswitch_id;
+  uint32_t port_bitmap;
+  time_t port_last_seen[MAX_ETH_PORTS];
+};
 
 #define APPLI_SLOT_SIZE 32
 struct application_slot_entry
@@ -184,6 +192,7 @@ struct rib_info
   struct lcore_qconf lcore_qconf[RTE_MAX_LCORE];
   struct neigh_table neigh_tables[NEIGH_NR_TABLES];
   struct hash_table fdb_table;
+  struct hash_table mdb_table;
   struct application_slot_entry application_slot[APPLI_SLOT_SIZE];
   struct nexthop nexthop;
   struct fib_tree *fib_tree[ROUTE_TREE_SIZE];
