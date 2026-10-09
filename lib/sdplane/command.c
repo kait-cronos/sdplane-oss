@@ -1302,7 +1302,19 @@ command_func_name_init ()
 void
 command_func_name_register (command_func_t command_func, char *command_name)
 {
+  struct vector_node *vn;
   struct command_func_name_entry *entry;
+
+  for (vn = vector_head (command_func_name); vn; vn = vector_next (vn))
+    {
+      entry = vn->data;
+      if (entry->command_func == command_func)
+        {
+          entry->command_name = command_name;
+          vector_break (vn);
+          return;
+        }
+    }
   entry = malloc (sizeof (struct command_func_name_entry));
   entry->command_func = command_func;
   entry->command_name = command_name;
