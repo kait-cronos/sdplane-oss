@@ -31,6 +31,8 @@
 int router (__rte_unused void *dummy);
 int srv6_router (__rte_unused void *dummy);
 int srv6_encap_router (__rte_unused void *dummy);
+int srv6_dx_router (__rte_unused void *dummy);
+
 
 #include "thread_info.h"
 
@@ -238,6 +240,8 @@ CLI_COMMAND2 (set_worker,
     func = srv6_router;
   else if (! strcmp (argv[4], "srv6-encap-router"))
     func = srv6_encap_router;
+  else if (! strcmp (argv[4], "srv6-encap-router"))
+    func = srv6_dx_router;
 #ifdef ENABLE_PKTGEN
   else if (! strcmp (argv[4], "pktgen"))
     func = pktgen_launch_one_lcore;
@@ -287,6 +291,8 @@ CLI_COMMAND2 (set_worker,
     func_name = "srv6-router";
   else if (func == srv6_encap_router)
     func_name = "srv6-encap-router";
+  else if (func == srv6_dx_router)
+    func_name = "srv6-dx-router";
 #ifdef ENABLE_PKTGEN
   else if (func == pktgen_launch_one_lcore)
     func_name = "pktgen";
