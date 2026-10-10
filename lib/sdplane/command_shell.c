@@ -1201,6 +1201,7 @@ command_shell_execute (struct shell *shell)
         }
 
       command_history_add (shell->command_line, shell->history, shell);
+      shell_clear (shell);
 
       if (shell->is_paging)
         {
