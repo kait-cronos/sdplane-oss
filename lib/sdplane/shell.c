@@ -813,6 +813,9 @@ shell_read (struct shell *shell)
   unsigned char buf[SHELL_READ_BUF_SIZE];
   int i, ret;
 
+  if (! shell_running (shell))
+    return 0;
+
   memset (buf, 0, sizeof (buf));
 
   ret = read (shell->readfd, buf, sizeof (buf));
@@ -863,6 +866,8 @@ shell_read (struct shell *shell)
                   ret_shell, shell_input_str (buf[i]));
           break;
         }
+      if (! shell_running (shell))
+        break;
     }
 
   /* pasting will end in a single read. */
