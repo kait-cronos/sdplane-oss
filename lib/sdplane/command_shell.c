@@ -61,6 +61,9 @@ void
 command_history_delete (struct command_history *history)
 {
   int i;
+
+  if (! history)
+    return;
   for (i = 0; i < HISTORY_SIZE; i++)
     free (history->array[i]);
   free (history);
@@ -468,6 +471,72 @@ pager_pipe_stages_reap (struct shell *shell)
   shell->pager_pipe_nstages = 0;
 }
 
+static void
+pager_process_cancel (pid_t *pid)
+{
+  pid_t ret;
+  int status;
+
+  if (*pid <= 0)
+    return;
+  do
+    ret = waitpid (*pid, &status, WNOHANG);
+  while (ret < 0 && errno == EINTR);
+  if (ret == 0)
+    {
+      /* The pager creates a session; include children such as less. */
+      if (getpgid (*pid) == *pid)
+        kill (-*pid, SIGKILL);
+      kill (*pid, SIGKILL);
+      do
+        ret = waitpid (*pid, &status, 0);
+      while (ret < 0 && errno == EINTR);
+    }
+  *pid = 0;
+}
+
+static void
+pager_output_close (struct shell *shell)
+{
+  if (shell->pager_saved_terminal)
+    {
+      fclose (shell->terminal);
+      shell->pipefd[1] = -1;
+      shell->terminal = shell->pager_saved_terminal;
+      shell->writefd = shell->pager_saved_writefd;
+      shell->pager_saved_terminal = NULL;
+      shell->pager_saved_writefd = -1;
+    }
+  else if (shell->pipefd[1] >= 0)
+    {
+      close (shell->pipefd[1]);
+      shell->pipefd[1] = -1;
+    }
+}
+
+static void
+pager_cleanup (struct shell *shell)
+{
+  int i;
+
+  pager_output_close (shell);
+  pager_process_cancel (&shell->pager_pid);
+  for (i = 0; i < shell->pager_pipe_nstages; i++)
+    pager_process_cancel (&shell->pager_pipe_pid[i]);
+  shell->pager_pipe_nstages = 0;
+
+  if (shell->pipefd[0] >= 0)
+    close (shell->pipefd[0]);
+  shell->pipefd[0] = -1;
+  if (shell->pty_master >= 0)
+    close (shell->pty_master);
+  shell->pty_master = -1;
+  if (shell->pty_slave >= 0)
+    close (shell->pty_slave);
+  shell->pty_slave = -1;
+  shell->is_paging = false;
+}
+
 #define PAGER_USE_POPEN 0
 void
 pager_start (struct shell *shell)
@@ -546,15 +615,20 @@ pager_start (struct shell *shell)
      output pipe itself when no stage is configured. */
   int source_fd;
   source_fd = pager_pipe_stages_start (shell, shell->pipefd[0]);
+  shell->pipefd[0] = source_fd;
 
   process_id = fork ();
   if (process_id < 0)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "fork() failed: close pipefd and pty");
       close (source_fd);
+      shell->pipefd[0] = -1;
       close (shell->pipefd[1]);
+      shell->pipefd[1] = -1;
       close (shell->pty_master);
+      shell->pty_master = -1;
       close (shell->pty_slave);
+      shell->pty_slave = -1;
       /* the stage processes (if any) exit on EOF: reap them. */
       pager_pipe_stages_reap (shell);
       return;
@@ -656,7 +730,9 @@ pager_start (struct shell *shell)
 
       /* parent */
       close (source_fd);
+      shell->pipefd[0] = -1;
       close (shell->pty_slave);
+      shell->pty_slave = -1;
 
       shell->pager_saved_terminal = shell->terminal;
       shell->pager_saved_writefd = shell->writefd;
@@ -876,6 +952,7 @@ pager_end (struct shell *shell)
     }
 
   pager_pipe_stages_reap (shell);
+  shell->pager_pid = 0;
 #endif
 
   shell->is_paging = false;
@@ -1042,6 +1119,7 @@ shell_read_nowait_paging (struct shell *shell)
     }
 
   pager_pipe_stages_reap (shell);
+  shell->pager_pid = 0;
 
   shell->is_paging = false;
 
@@ -2014,6 +2092,8 @@ command_shell_create ()
   struct shell *shell;
 
   shell = shell_create ();
+  if (! shell)
+    return NULL;
   shell->cmdset = command_set_create ();
   default_install_command (shell->cmdset);
 
@@ -2038,6 +2118,7 @@ command_shell_create ()
 void
 command_shell_delete (struct shell *shell)
 {
+  pager_cleanup (shell);
   command_set_delete (shell->cmdset);
   command_history_delete (shell->history);
   shell_delete (shell);
