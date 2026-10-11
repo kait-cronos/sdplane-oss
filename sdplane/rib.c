@@ -19,6 +19,7 @@
 #include "rib_manager.h"
 #include "neigh_manager.h"
 #include "fdb.h"
+#include "mdb.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "internal_message.h"
@@ -372,6 +373,96 @@ CLI_COMMAND2 (show_fdb,
   fprintf (shell->terminal, "total fdb entries: %d%s",
            rib->rib_info->fdb_table.count, shell->NL);
   return 0;
+}
+
+CLI_COMMAND2 (set_mdb_entry,
+              "set igmp-snooping group <WORD> vswitch <1-4094> port "PORT_ID_SPEC,
+              SET_HELP,
+              "IGMP snooping information\n",
+              "multicast group information\n",
+              "IPv4 multicast group address\n",
+              "vswitch information\n",
+              "vswitch ID\n",
+              PORT_HELP,
+              PORT_NUMBER_HELP)
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_mdb_entry mdb_entry_add;
+  struct internal_msg_header *msgp;
+  struct in_addr addr;
+  if (inet_pton (AF_INET, argv[3], &addr) != 1
+      || ! IN_MULTICAST (rte_be_to_cpu_32 (addr.s_addr)))
+    {
+      fprintf (shell->terminal, "invalid IPv4 multicast group: %s%s",
+               argv[3], shell->NL);
+      return CMD_FAILURE;
+    }
+
+  mdb_entry_add.group_addr = addr.s_addr;
+  mdb_entry_add.vswitch_id = strtol (argv[5], NULL, 10);
+  mdb_entry_add.port = strtol (argv[7], NULL, 10);
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_MDB_ENTRY_ADD, &mdb_entry_add,
+                    sizeof (mdb_entry_add));
+  shell_rib_send_message (msgp, shell);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (no_set_mdb_entry,
+              "no set igmp-snooping group <WORD> vswitch <1-4094> port "PORT_ID_SPEC,
+              NO_HELP,
+              SET_HELP,
+              "IGMP snooping information\n",
+              "multicast group information\n",
+              "IPv4 multicast group address\n",
+              "vswitch information\n",
+              "vswitch ID\n",
+              PORT_HELP,
+              PORT_NUMBER_HELP)
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_mdb_entry msg;
+  struct internal_msg_header *msgp;
+  struct in_addr addr;
+  if (inet_pton (AF_INET, argv[4], &addr) != 1
+      || ! IN_MULTICAST (rte_be_to_cpu_32 (addr.s_addr)))
+    {
+      fprintf (shell->terminal, "invalid IPv4 multicast group: %s%s",
+        argv[4], shell->NL);
+      return CMD_FAILURE;
+    }
+
+  msg.group_addr = addr.s_addr;
+  msg.vswitch_id = strtol (argv[6], NULL, 10);
+  msg.port = strtol (argv[8], NULL, 10);
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_MDB_ENTRY_DEL, &msg,
+                    sizeof (msg));
+  shell_rib_send_message (msgp, shell);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (show_mdb,
+              "show igmp-snooping group",
+              SHOW_HELP,
+              "IGMP snooping information\n",
+              "multicast group information\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+
+  if (! rib || ! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no rib information%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  fprintf (shell->terminal, "mdb:%s", shell->NL);
+  hash_table_foreach (&rib->rib_info->mdb_table,
+            show_mdb_entry_callback, shell);
+  fprintf (shell->terminal, "total mdb entries: %d%s",
+  rib->rib_info->mdb_table.count, shell->NL);
+  return CMD_SUCCESS;
 }
 
 CLI_COMMAND2 (show_neighbor,
@@ -997,6 +1088,9 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
   INSTALL_COMMAND2 (cmdset, set_fdb_entry);
   INSTALL_COMMAND2 (cmdset, show_fdb);
+  INSTALL_COMMAND2 (cmdset, set_mdb_entry);
+  INSTALL_COMMAND2 (cmdset, no_set_mdb_entry);
+  INSTALL_COMMAND2 (cmdset, show_mdb);
   INSTALL_COMMAND2 (cmdset, show_neighbor);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, show_fib_ip_route);

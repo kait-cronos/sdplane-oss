@@ -1720,6 +1720,30 @@ rib_manager_process_message (void *msgp)
         DEBUG_SDPLANE_LOG (FDB, "fdb aging: %d entries aged out", aged);
         break;
       }
+    
+    case INTERNAL_MSG_TYPE_MDB_ENTRY_ADD:
+      {
+        struct internal_msg_mdb_entry *msg_mdb_entry_add;
+        DEBUG_NEW (RIB, "recv msg_mdb_entry_add: %p.", msgp);
+
+        msg_mdb_entry_add = (struct internal_msg_mdb_entry *) (msg_header + 1);
+
+        mdb_add_entry (new->rib_info, msg_mdb_entry_add->group_addr,
+                       msg_mdb_entry_add->vswitch_id, msg_mdb_entry_add->port);
+        break;
+      }
+
+    case INTERNAL_MSG_TYPE_MDB_ENTRY_DEL:
+      {
+        struct internal_msg_mdb_entry *msg_mdb_entry_del;
+        DEBUG_NEW (RIB, "recv msg_mdb_entry_del: %p.", msgp);
+
+        msg_mdb_entry_del = (struct internal_msg_mdb_entry *) (msg_header + 1);
+
+        mdb_del_entry (new->rib_info, msg_mdb_entry_del->group_addr,
+                       msg_mdb_entry_del->vswitch_id, msg_mdb_entry_del->port);
+        break;
+      }
 
     case INTERNAL_MSG_TYPE_APPLICATION_SLOT:
       {

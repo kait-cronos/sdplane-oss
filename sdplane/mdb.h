@@ -56,4 +56,14 @@ int mdb_table_init (struct hash_table *ht);
 int mdb_table_copy (struct hash_table *dst, struct hash_table *src);
 void mdb_table_destroy (struct hash_table *ht);
 
+int mdb_add_entry (struct rib_info *rib_info,
+                   uint32_t group_addr, uint16_t vswitch_id,
+                   int port);
+
+int mdb_del_entry (struct rib_info *rib_info,
+                    uint32_t group_addr, uint16_t vswitch_id,
+                    int port);
+
+void show_mdb_entry_callback (void *key, void *value, void *arg);
+
 #endif /*__MDB_H__*/
