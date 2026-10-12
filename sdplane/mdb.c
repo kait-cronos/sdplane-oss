@@ -1,10 +1,8 @@
 #include "include.h"
 
 #include "debug_sdplane.h"
-#include "rib.h"
 #include "rib_manager.h"
 #include "sdplane.h"
-#include <netinet/in.h>
 #include "mdb.h"
 
 volatile time_t mdb_now = 0;
@@ -86,7 +84,7 @@ mdb_table_copy (struct hash_table *dst, struct hash_table *src)
 }
 
 /*
- * Add a new entry to the FDB table.
+ * Add a new entry to the MDB table.
  */
 
 int
@@ -136,8 +134,8 @@ mdb_add_entry (struct rib_info *rib_info, uint32_t group_addr,
 
   char group_str[INET_ADDRSTRLEN];
   inet_ntop (AF_INET, &group_addr, group_str, sizeof (group_str));
-  DEBUG_NEW (IGMP, "added mdb: %s vswitch:%u port:%d bitmap:%#x",
-              group_str, vswitch_id, port, entry->port_bitmap);
+  DEBUG_NEW (IGMP, "added mdb: %s vswitch:%u port:%d bitmap:%#x", group_str,
+             vswitch_id, port, entry->port_bitmap);
   return 0;
 }
 
@@ -166,6 +164,10 @@ mdb_del_entry (struct rib_info *rib_info, uint32_t group_addr,
   return 0;
 }
 
+/*
+ * Callback function to display MDB entries.
+ */
+
 void
 show_mdb_entry_callback (void *key, void *value, void *arg)
 {
@@ -173,19 +175,17 @@ show_mdb_entry_callback (void *key, void *value, void *arg)
   struct shell *shell = arg;
   char group_str[INET_ADDRSTRLEN];
 
-  inet_ntop (AF_INET, &entry->group_addr, group_str,
-    sizeof (group_str));
+  inet_ntop (AF_INET, &entry->group_addr, group_str, sizeof (group_str));
 
   fprintf (shell->terminal,
-    "  mdb: %s vswitch:%u bitmap:0x%08" PRIx32 " ports:",
-    group_str, (unsigned int) entry->vswitch_id,
-    entry->port_bitmap);
+           "  mdb: %s vswitch:%u bitmap:0x%08" PRIx32 " ports:", group_str,
+           (unsigned int) entry->vswitch_id, entry->port_bitmap);
 
   for (int port = 0; port < MAX_ETH_PORTS; port++)
-  {
-    if (entry->port_bitmap & (1U << port))
-      fprintf (shell->terminal, " %d", port);
-  }
+    {
+      if (entry->port_bitmap & (1U << port))
+        fprintf (shell->terminal, " %d", port);
+    }
 
   fprintf (shell->terminal, "%s", shell->NL);
 }

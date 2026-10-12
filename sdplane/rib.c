@@ -390,6 +390,7 @@ CLI_COMMAND2 (set_mdb_entry,
   struct internal_msg_mdb_entry mdb_entry_add;
   struct internal_msg_header *msgp;
   struct in_addr addr;
+
   if (inet_pton (AF_INET, argv[3], &addr) != 1
       || ! IN_MULTICAST (rte_be_to_cpu_32 (addr.s_addr)))
     {
@@ -402,7 +403,7 @@ CLI_COMMAND2 (set_mdb_entry,
   if (port < 0 || port >= MAX_ETH_PORTS)
     {
       fprintf (shell->terminal, "invalid MDB port: %s%s",
-              argv[7], shell->NL);
+               argv[7], shell->NL);
       return CMD_FAILURE;
     }
 
@@ -411,7 +412,7 @@ CLI_COMMAND2 (set_mdb_entry,
   mdb_entry_add.port = port;
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_MDB_ENTRY_ADD, &mdb_entry_add,
-                    sizeof (mdb_entry_add));
+                              sizeof (mdb_entry_add));
   shell_rib_send_message (msgp, shell);
   return CMD_SUCCESS;
 }
@@ -432,11 +433,12 @@ CLI_COMMAND2 (no_set_mdb_entry,
   struct internal_msg_mdb_entry msg;
   struct internal_msg_header *msgp;
   struct in_addr addr;
+
   if (inet_pton (AF_INET, argv[4], &addr) != 1
       || ! IN_MULTICAST (rte_be_to_cpu_32 (addr.s_addr)))
     {
       fprintf (shell->terminal, "invalid IPv4 multicast group: %s%s",
-        argv[4], shell->NL);
+               argv[4], shell->NL);
       return CMD_FAILURE;
     }
 
@@ -445,7 +447,7 @@ CLI_COMMAND2 (no_set_mdb_entry,
   if (port < 0 || port >= MAX_ETH_PORTS)
     {
       fprintf (shell->terminal, "invalid MDB port: %s%s",
-                argv[8], shell->NL);
+               argv[8], shell->NL);
       return CMD_FAILURE;
     }
 
@@ -454,7 +456,7 @@ CLI_COMMAND2 (no_set_mdb_entry,
   msg.port = port;
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_MDB_ENTRY_DEL, &msg,
-                    sizeof (msg));
+                              sizeof (msg));
   shell_rib_send_message (msgp, shell);
   return CMD_SUCCESS;
 }
@@ -476,9 +478,9 @@ CLI_COMMAND2 (show_mdb,
 
   fprintf (shell->terminal, "mdb:%s", shell->NL);
   hash_table_foreach (&rib->rib_info->mdb_table,
-            show_mdb_entry_callback, shell);
+                      show_mdb_entry_callback, shell);
   fprintf (shell->terminal, "total mdb entries: %d%s",
-  rib->rib_info->mdb_table.count, shell->NL);
+           rib->rib_info->mdb_table.count, shell->NL);
   return CMD_SUCCESS;
 }
 

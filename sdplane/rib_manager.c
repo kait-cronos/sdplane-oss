@@ -19,7 +19,6 @@
 #include <sdplane/debug_log.h>
 #include <sdplane/debug_category.h>
 #include <sdplane/debug_zcmdsh.h>
-#include <time.h>
 
 #include "debug_sdplane.h"
 #include "rib_manager.h"
@@ -1720,7 +1719,7 @@ rib_manager_process_message (void *msgp)
         DEBUG_SDPLANE_LOG (FDB, "fdb aging: %d entries aged out", aged);
         break;
       }
-    
+
     case INTERNAL_MSG_TYPE_MDB_ENTRY_ADD:
       {
         struct internal_msg_mdb_entry *msg_mdb_entry_add;
