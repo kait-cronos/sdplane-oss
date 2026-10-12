@@ -1508,9 +1508,11 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
           sid_action == SEG6_LOCAL_ACTION_END_DX4)
         {
           bool dx6 = (sid_action == SEG6_LOCAL_ACTION_END_DX6);
-          if (dx6 ? IN6_IS_ADDR_UNSPECIFIED (
-                        &nh_info->gw.srv6_local_sid.param.nh6)
-                  : (nh_info->gw.srv6_local_sid.param.nh4.s_addr == 0))
+          bool is_unspecified =
+              (dx6 ? IN6_IS_ADDR_UNSPECIFIED (
+                         &nh_info->gw.srv6_local_sid.param.nh6)
+                   : (nh_info->gw.srv6_local_sid.param.nh4.s_addr == 0));
+          if (is_unspecified)
             {
               DEBUG_NEW (ROUTER, "m: %p End.DX%d SID has no adjacency, drop.",
                          m, (dx6 ? 6 : 4));
