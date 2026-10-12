@@ -398,9 +398,17 @@ CLI_COMMAND2 (set_mdb_entry,
       return CMD_FAILURE;
     }
 
+  long port = strtol (argv[7], NULL, 0);
+  if (port < 0 || port >= MAX_ETH_PORTS)
+    {
+      fprintf (shell->terminal, "invalid MDB port: %s%s",
+              argv[7], shell->NL);
+      return CMD_FAILURE;
+    }
+
   mdb_entry_add.group_addr = addr.s_addr;
-  mdb_entry_add.vswitch_id = strtol (argv[5], NULL, 10);
-  mdb_entry_add.port = strtol (argv[7], NULL, 10);
+  mdb_entry_add.vswitch_id = strtol (argv[5], NULL, 0);
+  mdb_entry_add.port = port;
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_MDB_ENTRY_ADD, &mdb_entry_add,
                     sizeof (mdb_entry_add));
@@ -432,9 +440,18 @@ CLI_COMMAND2 (no_set_mdb_entry,
       return CMD_FAILURE;
     }
 
+  long port = strtol (argv[8], NULL, 0);
+
+  if (port < 0 || port >= MAX_ETH_PORTS)
+    {
+      fprintf (shell->terminal, "invalid MDB port: %s%s",
+                argv[8], shell->NL);
+      return CMD_FAILURE;
+    }
+
   msg.group_addr = addr.s_addr;
-  msg.vswitch_id = strtol (argv[6], NULL, 10);
-  msg.port = strtol (argv[8], NULL, 10);
+  msg.vswitch_id = strtol (argv[6], NULL, 0);
+  msg.port = port;
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_MDB_ENTRY_DEL, &msg,
                     sizeof (msg));
