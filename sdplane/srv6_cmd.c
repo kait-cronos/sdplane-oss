@@ -382,6 +382,7 @@ srv6_encap_head_parse_route (struct shell *shell, char *prefix_arg,
   memset (route, 0, sizeof (*route));
   route->family = dst_af;
   route->table_id = RT_TABLE_MAIN;
+  route->route_type = RTN_UNICAST;
   route->dst.family = dst_af;
   if (dst_af == AF_INET)
     route->dst.dst_ip_addr.ipv4_addr = dst_addr4;

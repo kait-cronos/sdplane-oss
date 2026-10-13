@@ -279,9 +279,9 @@ _add_to_fib (struct rib_node *n, void *arg)
   DEBUG_SDPLANE_LOG (ROUTE_ENTRY, "adding route to fib: keylen=%d key=%s nh_id=%d",
                      n->entry.dst.plen, key_str, n->entry.sdplane_nh_id);
 
-  return fib_route_add (fib_tree, (uint8_t *)&n->entry.dst.dst_ip_addr,
+  return fib_route_add (fib_tree, (uint8_t *) &n->entry.dst.dst_ip_addr,
                         n->entry.dst.plen, n->entry.sdplane_nh_id,
-                        n->entry.table_id);
+                        n->entry.table_id, n->entry.route_type);
 }
 
 /* rebuild FIB from RIB */

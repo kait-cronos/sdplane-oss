@@ -856,6 +856,7 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
     }
   msg_route_entry.table_id = rtm->rtm_table;
   msg_route_entry.family = rtm->rtm_family;
+  msg_route_entry.route_type = rtm->rtm_type;
   msg_route_entry.is_nhid = false;
 
   /* RTA_DST: destination prefix. */
