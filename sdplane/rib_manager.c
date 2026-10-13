@@ -1071,14 +1071,16 @@ static int
 _route_entry_add (struct rib *new, struct internal_msg_route_entry *msg)
 {
   struct route_entry route_entry;
+  struct rib_node *stored;
   char dst_str[64] = { 0 };
   char gw_str[512] = { 0 };
-  int i, sdplane_nh_id;
+  int i, sdplane_nh_id, old_nh_id;
 
   /* register nexthop entry to rib_info->nexthop */
   sdplane_nh_id = nexthop_add_entry (new->rib_info, &msg->nh);
   if (sdplane_nh_id < 0)
     return -1;
+  /* Keep a reused nexthop group referenced during route replacement. */
   nexthop_increment_refcnt (new->rib_info, sdplane_nh_id);
 
   /* search for existing RIB tree with matching family and table_id */
@@ -1090,6 +1092,7 @@ _route_entry_add (struct rib *new, struct internal_msg_route_entry *msg)
       if (i < 0)
         {
           DEBUG_NEW (RIB, "failed to create route table");
+          nexthop_decrement_refcnt (new->rib_info, sdplane_nh_id);
           return -1;
         }
     }
@@ -1100,13 +1103,20 @@ _route_entry_add (struct rib *new, struct internal_msg_route_entry *msg)
   route_entry.sdplane_nh_id = sdplane_nh_id;
   route_entry.table_id = msg->table_id;
 
+  stored = rib_route_lookup_exact (
+      rib_tree_master[i], (uint8_t *) &msg->dst.dst_ip_addr, msg->dst.plen);
+  old_nh_id = stored ? stored->entry.sdplane_nh_id : -1;
+
   /* register route entry to RIB */
   if (rib_route_add (rib_tree_master[i], (uint8_t *) &msg->dst.dst_ip_addr,
-                     msg->dst.plen, &route_entry) > 0)
+                     msg->dst.plen, &route_entry) != 0)
     {
       DEBUG_NEW (RIB, "failed to add route to RIB");
+      nexthop_decrement_refcnt (new->rib_info, sdplane_nh_id);
       return -1;
     }
+  if (old_nh_id >= 0)
+    nexthop_decrement_refcnt (new->rib_info, old_nh_id);
 
   inet_ntop (msg->dst.family, (uint8_t *) &msg->dst.dst_ip_addr, dst_str,
              sizeof (dst_str));
@@ -1118,17 +1128,9 @@ _route_entry_add (struct rib *new, struct internal_msg_route_entry *msg)
 static int
 _route_entry_del (struct rib *new, struct internal_msg_route_entry *msg)
 {
+  struct rib_node *stored;
   char dst_str[64] = { 0 };
   int i, sdplane_nh_id;
-
-  if (msg->is_nhid)
-    sdplane_nh_id =
-        nexthop_get_index_by_nhid (new->rib_info, msg->nh.kernel_nh_id);
-  else
-    sdplane_nh_id = nexthop_find_entry (new->rib_info, &msg->nh);
-
-  if (sdplane_nh_id < 0)
-    return -1;
 
   /* search for existing RIB tree with matching family and table_id */
   i = route_table_lookup_id (msg->table_id, msg->family);
@@ -1139,6 +1141,13 @@ _route_entry_del (struct rib *new, struct internal_msg_route_entry *msg)
       return -1;
     }
 
+  /* The delete message's nexthop may differ from the stored route's.
+     Release the stored route's reference only after successful deletion. */
+  stored = rib_route_lookup_exact (
+      rib_tree_master[i], (uint8_t *) &msg->dst.dst_ip_addr, msg->dst.plen);
+  if (! stored)
+    return -1;
+  sdplane_nh_id = stored->entry.sdplane_nh_id;
   if (rib_route_delete (rib_tree_master[i], (uint8_t *) &msg->dst.dst_ip_addr,
                         msg->dst.plen) != 0)
     {
@@ -1150,11 +1159,6 @@ _route_entry_del (struct rib *new, struct internal_msg_route_entry *msg)
              sizeof (dst_str));
   DEBUG_NEW (RIB, "route deleted: dst=%s/%d", dst_str, msg->dst.plen);
 
-  /* Drop this route's reference only after the route was actually
-   * removed from the RIB; a delete request for a non-existent
-   * route whose nexthop matches an existing group must not touch
-   * that group's refcnt. A LEGACY group is freed when the last
-   * referencing route goes away. */
   nexthop_decrement_refcnt (new->rib_info, sdplane_nh_id);
   return 0;
 }
@@ -1976,8 +1980,6 @@ rib_manager_process_message (void *msgp)
             DEBUG_NEW (RIB, "saving at local_sid_addr[%d/%d] success: addr: %s.",
                        index, num_sids, addr_str);
             struct srv6_local_sid_entry *entry = &new->rib_info->srv6_local_sid[index];
-            /* keep the previous content: the route nexthop is matched by
-               value, so replacing one needs the entry as it was */
             struct srv6_local_sid_entry old_entry = *entry;
             memcpy (&entry->sid, &msg_srv6_local_sid->srv6_local_sid_addr,
                     sizeof (struct in6_addr));
@@ -2019,8 +2021,8 @@ rib_manager_process_message (void *msgp)
                    addr_str, sizeof (addr_str));
         DEBUG_NEW (RIB, "del local_sid_addr: %s.", addr_str);
 
-        /* drop the /128 route first: its nexthop is matched by value
-           against the entry, which srv6_local_sid_del() is about to move */
+        /* Build the route deletion message before srv6_local_sid_del()
+           compacts the SID array. */
         int del_idx =
             srv6_local_sid_find (new->rib_info,
                                  &msg_srv6_local_sid->srv6_local_sid_addr);
