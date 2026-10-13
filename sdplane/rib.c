@@ -648,7 +648,7 @@ CLI_COMMAND2 (show_fib_ip_route,
 {
   struct shell *shell = (struct shell *) context;
   struct rib *rib = rib_tlocal;
-  struct show_route_arg show_arg;
+  struct show_route_arg show_arg = { .family = AF_UNSPEC };
   int i;
 
   if (! rib || ! rib->rib_info)
@@ -664,8 +664,10 @@ CLI_COMMAND2 (show_fib_ip_route,
   else if (! strcmp (argv[2], "ipv6"))
     show_arg.family = AF_INET6;
 
-  fprintf (shell->terminal, "%-30s  %-20s  %-6s%s",
-           "Destination", "Nexthop", "Table", shell->NL);
+  fprintf (shell->terminal, "    %-*s %-*s %-8s %-10s %-12s %-20s%s",
+           show_arg.family == AF_INET ? 22 : 47, "Destination",
+           show_arg.family == AF_INET ? 20 : 45, "Nexthop",
+           "NH-ID", "Table", "Type", "Interface", shell->NL);
 
   bool found = false;
   for (i = 0; i < ROUTE_TREE_SIZE; i++)

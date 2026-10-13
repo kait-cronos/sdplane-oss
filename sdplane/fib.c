@@ -4,6 +4,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <linux/rtnetlink.h>
 
 #include <sdplane/shell.h>
 #include <sdplane/debug.h>
@@ -373,6 +374,57 @@ fib_traverse (struct fib_tree *t, fib_traverse_callback callback, void *arg)
   return _traverse (t->root, callback, arg, 0);
 }
 
+static char *
+route_type_format (uint8_t type, char *buf, size_t size)
+{
+  const char *name;
+
+  switch (type)
+    {
+    case RTN_UNSPEC:
+      name = "unspec";
+      break;
+    case RTN_UNICAST:
+      name = "unicast";
+      break;
+    case RTN_LOCAL:
+      name = "local";
+      break;
+    case RTN_BROADCAST:
+      name = "broadcast";
+      break;
+    case RTN_ANYCAST:
+      name = "anycast";
+      break;
+    case RTN_MULTICAST:
+      name = "multicast";
+      break;
+    case RTN_BLACKHOLE:
+      name = "blackhole";
+      break;
+    case RTN_UNREACHABLE:
+      name = "unreachable";
+      break;
+    case RTN_PROHIBIT:
+      name = "prohibit";
+      break;
+    case RTN_THROW:
+      name = "throw";
+      break;
+    case RTN_NAT:
+      name = "nat";
+      break;
+    case RTN_XRESOLVE:
+      name = "xresolve";
+      break;
+    default:
+      snprintf (buf, size, "unknown(%u)", type);
+      return buf;
+    }
+  snprintf (buf, size, "%s", name);
+  return buf;
+}
+
 /* callback for show ip route */
 int
 fib_show_route (struct fib_node *n, void *arg)
@@ -384,6 +436,9 @@ fib_show_route (struct fib_node *n, void *arg)
   int sdplane_nh_id = n->sdplane_nh_id;
   int i;
 
+  char type_buf[16];
+  const char *type =
+      route_type_format (n->route_type, type_buf, sizeof (type_buf));
   char prefix_str[INET6_ADDRSTRLEN];
   char dst_str[INET6_ADDRSTRLEN + 5];
   char nexthop_str[INET6_ADDRSTRLEN];
@@ -418,13 +473,13 @@ fib_show_route (struct fib_node *n, void *arg)
                 nh_info->oif_name, nh_info->oif);
 
       if (family == AF_INET)
-        fprintf (shell->terminal, "    %-22s %-20s %-8d %-6u %-20s%s",
-                 i == 0 ? dst_str : "", nexthop_str,
-                 sdplane_nh_id, n->table_id, if_str, shell->NL);
+        fprintf (shell->terminal, "    %-22s %-20s %-8d %-10u %-12s %-20s%s",
+                 i == 0 ? dst_str : "", nexthop_str, sdplane_nh_id,
+                 n->table_id, type, if_str, shell->NL);
       else
-        fprintf (shell->terminal, "    %-47s %-45s %-8d %-6u %-20s%s",
-                 i == 0 ? dst_str : "", nexthop_str,
-                 sdplane_nh_id, n->table_id, if_str, shell->NL);
+        fprintf (shell->terminal, "    %-47s %-45s %-8d %-10u %-12s %-20s%s",
+                 i == 0 ? dst_str : "", nexthop_str, sdplane_nh_id,
+                 n->table_id, type, if_str, shell->NL);
     }
 
   return 0;
