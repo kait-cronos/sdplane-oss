@@ -6,6 +6,7 @@
 #include <rte_ethdev.h>
 #include <linux/rtnetlink.h>
 
+#include "fib.h"
 #include "internal_message.h"
 #include "nexthop.h"
 #include "packet_gen.h"
@@ -1480,8 +1481,6 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
   int family, oif;
 
   nh_info = nexthop_get_info_by_index (rib->rib_info, fib_node->sdplane_nh_id);
-  family = nh_info->family;
-  oif = nh_info->oif;
 
   if (nh_info->type == NEXTHOP_TYPE_SRV6_END)
     {
@@ -1530,7 +1529,7 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
           // verify inner packet
           // because hw offload state of `m` is reset by `_process_srv6_end_dx_packet`,
           // rx_port can be NULL
-          if (unlikely (! _verify_packet (m, NULL, ipv4, ipv6)))
+          if (unlikely ( _verify_packet (m, NULL, ipv4, ipv6) != 0))
             {
               DEBUG_NEW (ROUTER,
                          "m: %p decapsulated packet is not forwardable, "
@@ -1574,12 +1573,9 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
           endx_nh.family = AF_INET6;
           endx_nh.gw.ipv6_addr = nh_info->gw.srv6_local_sid.param.nh6;
         }
+
       endx_nh.oif = nh_info->oif;
       nh_info = &endx_nh;
-      /* re-read rather than keep the values taken from the SID nexthop, so
-         the two cannot drift apart later */
-      family = nh_info->family;
-      oif = nh_info->oif;
       /* dest was rendered before the SRH was advanced (End.X) or the outer
          header removed (End.DX6), so it still names the SID.  The End case
          re-enters this function and rebuilds it; these two fall through, so
@@ -1616,6 +1612,9 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
                         rx_link, recursion_count + 1, true);
       return;
     }
+
+  family = nh_info->family;
+  oif = nh_info->oif;
 
   /* Everything below resolves the nexthop as an L3 adjacency and reads
      nh_info->gw as an address, so reject the types that do not hold one.
