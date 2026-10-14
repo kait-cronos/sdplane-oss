@@ -170,7 +170,7 @@ CLI_COMMAND2 (set_worker,
 #endif
     "|tap-handler|l3-tap-handler"
     "|l2-repeater|vlan-switch|enhanced-repeater|l2-switch"
-    "|router|srv6-router|srv6-encap-router"
+    "|router|srv6-router|srv6-encap-router|srv6-dx-router"
     "|nettlp-thread"
 #ifdef ENABLE_PKTGEN
     "|pktgen"
@@ -196,6 +196,7 @@ CLI_COMMAND2 (set_worker,
     "set lcore to launch router\n"
     "set lcore to launch srv6-router\n"
     "set lcore to launch srv6-encap-router\n"
+    "set lcore to launch srv6-dx-router\n"
     "set lcore to launch nettlp-thread\n"
 #ifdef ENABLE_PKTGEN
     "set lcore to launch pktgen\n"
@@ -240,7 +241,7 @@ CLI_COMMAND2 (set_worker,
     func = srv6_router;
   else if (! strcmp (argv[4], "srv6-encap-router"))
     func = srv6_encap_router;
-  else if (! strcmp (argv[4], "srv6-encap-router"))
+  else if (! strcmp (argv[4], "srv6-dx-router"))
     func = srv6_dx_router;
 #ifdef ENABLE_PKTGEN
   else if (! strcmp (argv[4], "pktgen"))
