@@ -446,7 +446,7 @@ pager_pipe_stages_reap (struct shell *shell)
 {
   int i;
   int wstatus;
-  pid_t pid;
+  pid_t pid, ret;
 
   for (i = 0; i < shell->pager_pipe_nstages; i++)
     {
@@ -454,14 +454,19 @@ pager_pipe_stages_reap (struct shell *shell)
       if (pid <= 0)
         continue;
 
-      if (waitpid (pid, &wstatus, WNOHANG) == 0)
+      do
+        ret = waitpid (pid, &wstatus, WNOHANG);
+      while (ret < 0 && errno == EINTR);
+      if (ret == 0)
         {
           /* the stage may keep running (e.g. sponge feeding a
              pager that the user has quit): terminate it. */
           DEBUG_ZCMDSH_LOG (PAGER, "pager: stage process %d: SIGTERM.",
                             (int) pid);
           kill (pid, SIGTERM);
-          waitpid (pid, &wstatus, 0);
+          do
+            ret = waitpid (pid, &wstatus, 0);
+          while (ret < 0 && errno == EINTR);
         }
 
       DEBUG_ZCMDSH_LOG (PAGER, "pager: stage process %d reaped.", (int) pid);
@@ -515,6 +520,20 @@ pager_output_close (struct shell *shell)
 }
 
 static void
+pager_fds_close (struct shell *shell)
+{
+  if (shell->pipefd[0] >= 0)
+    close (shell->pipefd[0]);
+  shell->pipefd[0] = -1;
+  if (shell->pty_master >= 0)
+    close (shell->pty_master);
+  shell->pty_master = -1;
+  if (shell->pty_slave >= 0)
+    close (shell->pty_slave);
+  shell->pty_slave = -1;
+}
+
+static void
 pager_cleanup (struct shell *shell)
 {
   int i;
@@ -525,15 +544,7 @@ pager_cleanup (struct shell *shell)
     pager_process_cancel (&shell->pager_pipe_pid[i]);
   shell->pager_pipe_nstages = 0;
 
-  if (shell->pipefd[0] >= 0)
-    close (shell->pipefd[0]);
-  shell->pipefd[0] = -1;
-  if (shell->pty_master >= 0)
-    close (shell->pty_master);
-  shell->pty_master = -1;
-  if (shell->pty_slave >= 0)
-    close (shell->pty_slave);
-  shell->pty_slave = -1;
+  pager_fds_close (shell);
   shell->is_paging = false;
 }
 
@@ -541,7 +552,8 @@ pager_cleanup (struct shell *shell)
 void
 pager_start (struct shell *shell)
 {
-  shell->is_paging = false;
+  if (shell->is_paging)
+    return;
 #if PAGER_USE_POPEN
   FILE *pager_fp = NULL;
 
@@ -577,11 +589,16 @@ pager_start (struct shell *shell)
   int ret;
   pid_t process_id;
 
-  int pty_master, pty_slave;
   char slave_name[256];
   char *slave_name_ptr;
 
-  openpty (&shell->pty_master, &shell->pty_slave, slave_name, NULL, NULL);
+  ret = openpty (&shell->pty_master, &shell->pty_slave, slave_name, NULL, NULL);
+  if (ret < 0)
+    {
+      DEBUG_NEW (PAGER, "openpty() failed: %s.", strerror (errno));
+      pager_cleanup (shell);
+      return;
+    }
   slave_name_ptr = ptsname (shell->pty_slave);
   DEBUG_NEW (PAGER, "pty(master): fd %d, %s.", shell->pty_master,
                     ttyname (shell->pty_master));
@@ -601,6 +618,7 @@ pager_start (struct shell *shell)
   if (ret < 0)
     {
       DEBUG_NEW (PAGER, "pipe() failed: %s.", strerror (errno));
+      pager_cleanup (shell);
       return;
     }
 #if 0
@@ -621,16 +639,7 @@ pager_start (struct shell *shell)
   if (process_id < 0)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "fork() failed: close pipefd and pty");
-      close (source_fd);
-      shell->pipefd[0] = -1;
-      close (shell->pipefd[1]);
-      shell->pipefd[1] = -1;
-      close (shell->pty_master);
-      shell->pty_master = -1;
-      close (shell->pty_slave);
-      shell->pty_slave = -1;
-      /* the stage processes (if any) exit on EOF: reap them. */
-      pager_pipe_stages_reap (shell);
+      pager_cleanup (shell);
       return;
     }
   else if (process_id == 0)
@@ -720,7 +729,7 @@ pager_start (struct shell *shell)
         {
           DEBUG_NEW (PAGER, "execvp() failed: ret: %d: %s.", ret,
                             strerror (errno));
-          exit (-1);
+          _exit (127);
         }
     }
   else if (process_id > 0)
@@ -733,9 +742,6 @@ pager_start (struct shell *shell)
       shell->pipefd[0] = -1;
       close (shell->pty_slave);
       shell->pty_slave = -1;
-
-      shell->pager_saved_terminal = shell->terminal;
-      shell->pager_saved_writefd = shell->writefd;
 
 #if 0
       int flags;
@@ -756,7 +762,16 @@ pager_start (struct shell *shell)
                  "didn't set O_NONBLOCK.");
 #endif
 
-      shell->terminal = fdopen (shell->pipefd[1], "a");
+      FILE *pager_fp = fdopen (shell->pipefd[1], "a");
+      if (! pager_fp)
+        {
+          DEBUG_NEW (PAGER, "fdopen() failed: %s.", strerror (errno));
+          pager_cleanup (shell);
+          return;
+        }
+      shell->pager_saved_terminal = shell->terminal;
+      shell->pager_saved_writefd = shell->writefd;
+      shell->terminal = pager_fp;
       shell->writefd = shell->pipefd[1];
 
       fcntl (shell->writefd, F_SETPIPE_SZ, 1048576);
@@ -779,13 +794,28 @@ pager_start (struct shell *shell)
 
           DEBUG_NEW (PAGER, "poll(): fd: %d fd: %d", fds[0].fd, fds[1].fd);
           ret = poll (fds, 2, 0);
+          if (ret < 0)
+            {
+              if (errno == EINTR)
+                continue;
+              DEBUG_NEW (PAGER, "poll() failed: %s.", strerror (errno));
+              pager_cleanup (shell);
+              return;
+            }
           if (fds[0].revents & POLLIN)
             {
               DEBUG_NEW (PAGER, "poll(): pty_master: %d: POLLIN",
                          shell->pty_master);
-              nbytes = read (shell->pty_master, buf, sizeof (buf));
+              nbytes = read (shell->pty_master, buf, sizeof (buf) - 1);
+              if (nbytes < 0 && (errno == EINTR || errno == EAGAIN))
+                continue;
               DEBUG_NEW (PAGER, "read(): pty_master: %d: %d bytes",
                        shell->pty_master, nbytes);
+              if (nbytes <= 0)
+                {
+                  pager_cleanup (shell);
+                  return;
+                }
               if (nbytes > 0)
                 {
                   buf[nbytes] = '\0';
@@ -799,9 +829,17 @@ pager_start (struct shell *shell)
           if (fds[1].revents & POLLIN)
             {
               DEBUG_NEW (PAGER, "poll(): readfd: %d: POLLIN", shell->readfd);
-              nbytes = read (shell->readfd, buf, sizeof (buf));
+              nbytes = read (shell->readfd, buf, sizeof (buf) - 1);
+              if (nbytes < 0 && (errno == EINTR || errno == EAGAIN))
+                continue;
               DEBUG_NEW (PAGER, "read(): readfd: %d: %d bytes",
                        shell->readfd, nbytes);
+              if (nbytes <= 0)
+                {
+                  FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
+                  pager_cleanup (shell);
+                  return;
+                }
               if (nbytes > 0)
                 {
                   buf[nbytes] = '\0';
@@ -832,36 +870,14 @@ pager_start (struct shell *shell)
 void
 pager_end (struct shell *shell)
 {
+  if (! shell->is_paging)
+    return;
+
+  pager_output_close (shell);
 #if ! PAGER_USE_POPEN
   int wstatus;
+  pid_t wait_ret = 0;
 
-  // DEBUG_ZCMDSH_LOG (PAGER, "pager: close forked child.");
-
-  if (shell->pager_pid == 0)
-    {
-      DEBUG_ZCMDSH_LOG (PAGER, "should not be reached.");
-      exit (-1);
-    }
-
-  if (shell->pipefd[1] >= 0)
-    {
-      close (shell->pipefd[1]);
-      shell->pipefd[1] = -1;
-    }
-#endif
-
-  if (shell->pager_saved_terminal)
-    {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager end: terminal: %p -> %p.",
-                        shell->terminal, shell->pager_saved_terminal);
-      pclose (shell->terminal);
-      shell->terminal = shell->pager_saved_terminal;
-      shell->writefd = shell->pager_saved_writefd;
-      shell->pager_saved_terminal = NULL;
-      shell->pager_saved_writefd = -1;
-    }
-
-#if ! PAGER_USE_POPEN
   //DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
   int ret, nwrite;
   struct pollfd fds[2];
@@ -880,9 +896,14 @@ pager_end (struct shell *shell)
       ret = poll (fds, nfds, 0);
       if (ret < 0)
         {
+          int poll_errno = errno;
+
           DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d: %s", ret,
-                            strerror (errno));
-          break;
+                            strerror (poll_errno));
+          if (poll_errno == EINTR)
+            continue;
+          pager_cleanup (shell);
+          return;
         }
 
       for (i = 0; i < nfds; i++)
@@ -894,7 +915,7 @@ pager_end (struct shell *shell)
             closed++;
 #endif
 
-          if (! (fds[i].revents & (POLLIN | POLLHUP)))
+          if (! (fds[i].revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL)))
             continue;
 
           DEBUG_ZCMDSH_LOG (
@@ -911,9 +932,15 @@ pager_end (struct shell *shell)
           ret = read (readfd, buf, sizeof (buf));
           if (ret < 0)
             {
+              int read_errno = errno;
+
               DEBUG_ZCMDSH_LOG (PAGER,
                                 "pager: read() from fd: %d returned %d: %s",
-                                readfd, ret, strerror (errno));
+                                readfd, ret, strerror (read_errno));
+              if (read_errno == EINTR || read_errno == EAGAIN)
+                continue;
+              if (i == 0)
+                FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
               closed++;
               continue;
             }
@@ -921,6 +948,8 @@ pager_end (struct shell *shell)
             {
               DEBUG_ZCMDSH_LOG (PAGER, "pager: fds[%d]: fd: %d: closed, break",
                                 i, fds[i].fd);
+              if (i == 0)
+                FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
               closed++;
             }
           else
@@ -938,10 +967,21 @@ pager_end (struct shell *shell)
         break;
     }
 
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_CLOSE))
+    {
+      pager_cleanup (shell);
+      return;
+    }
+
   DEBUG_ZCMDSH_LOG (PAGER, "pager: waiting child: process %d...",
                     shell->pager_pid);
-  waitpid (shell->pager_pid, &wstatus, 0);
-  if (WIFEXITED (wstatus))
+  if (shell->pager_pid > 0)
+    {
+      do
+        wait_ret = waitpid (shell->pager_pid, &wstatus, 0);
+      while (wait_ret < 0 && errno == EINTR);
+    }
+  if (wait_ret > 0 && WIFEXITED (wstatus))
     {
       DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d exited normally.",
                         shell->pager_pid);
@@ -955,6 +995,7 @@ pager_end (struct shell *shell)
   shell->pager_pid = 0;
 #endif
 
+  pager_fds_close (shell);
   shell->is_paging = false;
 }
 
@@ -987,16 +1028,18 @@ shell_pager_bridge (struct shell *shell)
       ret = poll (fds, nfds, 0);
       if (ret < 0)
         {
+          int poll_errno = errno;
+
           DEBUG_NEW (PAGER, "pager: ppoll() returned: %d: %s", ret,
-                            strerror (errno));
-          return 0;
+                            strerror (poll_errno));
+          return (poll_errno == EINTR ? 0 : -1);
         }
 
       for (i = 0; i < nfds; i++)
         {
           int readfd, writefd;
 
-          if (! (fds[i].revents & (POLLIN | POLLHUP)))
+          if (! (fds[i].revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL)))
             {
 #if 0
             DEBUG_NEW (PAGER, "pager: bridge: no events: fds[%d]: %d",
@@ -1023,9 +1066,15 @@ shell_pager_bridge (struct shell *shell)
           ret = read (readfd, buf, sizeof (buf));
           if (ret < 0)
             {
+              int read_errno = errno;
+
               DEBUG_ZCMDSH_LOG (PAGER,
                                 "pager: read() from fd: %d returned %d: %s",
-                                readfd, ret, strerror (errno));
+                                readfd, ret, strerror (read_errno));
+              if (read_errno == EINTR || read_errno == EAGAIN)
+                continue;
+              if (i == 0)
+                FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
               closed++;
               continue;
             }
@@ -1033,6 +1082,8 @@ shell_pager_bridge (struct shell *shell)
             {
               DEBUG_ZCMDSH_LOG (PAGER, "pager: fds[%d]: fd: %d: closed, break",
                                 i, fds[i].fd);
+              if (i == 0)
+                FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
               closed++;
             }
           else
@@ -1078,54 +1129,53 @@ void
 shell_read_nowait_paging (struct shell *shell)
 {
   int wstatus;
-  int closed = 0;
+  pid_t wait_ret = 0;
+  int closed;
 
-  /* send the EOF to the head of the pager pipe.
-     guard against the repeated calls from the main loop:
-     the fd number may be reused after the first close. */
-  if (shell->pipefd[1] >= 0)
-    {
-      close (shell->pipefd[1]);
-      shell->pipefd[1] = -1;
-    }
+  if (! shell->is_paging)
+    return;
 
-  if (shell->pager_saved_terminal)
-    {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager end: terminal: %p -> %p.",
-                        shell->terminal, shell->pager_saved_terminal);
-      pclose (shell->terminal);
-      shell->terminal = shell->pager_saved_terminal;
-      shell->writefd = shell->pager_saved_writefd;
-      shell->pager_saved_terminal = NULL;
-      shell->pager_saved_writefd = -1;
-    }
-
+  pager_output_close (shell);
   closed = shell_pager_bridge (shell);
 
   if (! closed)
     return;
 
-  DEBUG_ZCMDSH_LOG (PAGER, "pager: waiting child: process %d...",
-                    shell->pager_pid);
-  waitpid (shell->pager_pid, &wstatus, 0);
-  if (WIFEXITED (wstatus))
-    {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d exited normally.",
-                        shell->pager_pid);
-    }
+  if (closed < 0 || FLAG_CHECK (shell->flag, SHELL_FLAG_CLOSE))
+    pager_cleanup (shell);
   else
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d failed.", shell->pager_pid);
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: waiting child: process %d...",
+                        shell->pager_pid);
+      if (shell->pager_pid > 0)
+        {
+          do
+            wait_ret = waitpid (shell->pager_pid, &wstatus, 0);
+          while (wait_ret < 0 && errno == EINTR);
+        }
+      if (wait_ret > 0 && WIFEXITED (wstatus))
+        {
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d exited normally.",
+                            shell->pager_pid);
+        }
+      else
+        {
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d failed.", shell->pager_pid);
+        }
+
+      pager_pipe_stages_reap (shell);
+      shell->pager_pid = 0;
+
+      pager_fds_close (shell);
+      shell->is_paging = false;
+
     }
-
-  pager_pipe_stages_reap (shell);
-  shell->pager_pid = 0;
-
-  shell->is_paging = false;
-
-  shell_clear (shell);
-  shell_prompt (shell);
-  shell_refresh (shell);
+  if (shell_running (shell))
+    {
+      shell_clear (shell);
+      shell_prompt (shell);
+      shell_refresh (shell);
+    }
 }
 
 int
