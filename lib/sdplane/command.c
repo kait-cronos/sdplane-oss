@@ -1168,7 +1168,7 @@ command_execute (char *command_line, struct command_set *cmdset, void *context)
 
 char *
 command_complete_common (char *word, struct command_node *parent,
-                         struct command_node *cmdset)
+                         struct command_set *cmdset)
 {
   int nmatch = 0;
   struct vector_node *vn;

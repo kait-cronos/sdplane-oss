@@ -121,6 +121,8 @@ void command_set_delete (struct command_set *cmdset);
 
 int is_command_match (char *spec, char *word);
 
+int is_command_regvar (struct command_set *cmdset, char *spec);
+
 int is_command_match_regvar (struct command_set *cmdset,
                              char *spec, char *word);
 int is_command_match_regvar_matching (struct command_set *cmdset,
