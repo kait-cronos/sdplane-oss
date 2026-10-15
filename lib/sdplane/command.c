@@ -748,7 +748,12 @@ command_install (struct command_set *cmdset, char *command_line,
   cmd_dup = strdup (command_line);
   help_dup = strdup (help_string);
   if (! cmd_dup || ! help_dup)
-    goto memory_error;
+    {
+      fprintf (stderr, "%s: cannot allocate command strings.\n", __func__);
+      free (cmd_dup);
+      free (help_dup);
+      return;
+    }
   stringp = cmd_dup;
   hstringp = help_dup;
 
@@ -765,7 +770,11 @@ command_install (struct command_set *cmdset, char *command_line,
           if (! node->cmdmem || (word_help && ! node->helpmem))
             {
               command_node_delete (node);
-              goto memory_error;
+              fprintf (stderr, "%s: cannot allocate command strings.\n",
+                       __func__);
+              free (cmd_dup);
+              free (help_dup);
+              return;
             }
           vector_add (node, parent->cmdvec);
           vector_sort (command_node_cmp_qsort, parent->cmdvec);
@@ -773,11 +782,6 @@ command_install (struct command_set *cmdset, char *command_line,
       parent = node;
     }
   node->func = func;
-  goto out;
-
-memory_error:
-  fprintf (stderr, "%s: cannot allocate command strings.\n", __func__);
-out:
   free (cmd_dup);
   free (help_dup);
 }
@@ -814,7 +818,14 @@ command_install2 (struct command_set *cmdset, char *command_line,
   cmd_dup = strdup (command_line);
   help_dup = strdup (help_string);
   if (! cmd_dup || ! help_dup)
-    goto memory_error;
+    {
+      fprintf (stderr, "%s: cannot allocate command strings.\n", __func__);
+      free (cmd_dup);
+      free (help_dup);
+      vector_delete (parents);
+      vector_delete (next_parents);
+      return;
+    }
   stringp = cmd_dup;
   hstringp = help_dup;
 
@@ -871,7 +882,13 @@ command_install2 (struct command_set *cmdset, char *command_line,
                     {
                       command_node_delete (node);
                       vector_break (vn);
-                      goto memory_error;
+                      fprintf (stderr, "%s: cannot allocate command strings.\n",
+                               __func__);
+                      free (cmd_dup);
+                      free (help_dup);
+                      vector_delete (parents);
+                      vector_delete (next_parents);
+                      return;
                     }
                   vector_add (node, parent->cmdvec);
                   vector_sort (command_node_cmp_qsort, parent->cmdvec);
@@ -891,11 +908,6 @@ command_install2 (struct command_set *cmdset, char *command_line,
       node = (struct command_node *) vn->data;
       node->func = func;
     }
-  goto out;
-
-memory_error:
-  fprintf (stderr, "%s: cannot allocate command strings.\n", __func__);
-out:
   free (cmd_dup);
   free (help_dup);
 
