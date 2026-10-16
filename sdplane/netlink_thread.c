@@ -636,6 +636,8 @@ netlink_read_rtattr_encap (struct rtattr **rtns,
               : (rtns[RTA_OIF] ? *(int *) RTA_DATA (rtns[RTA_OIF]) : 0);
       switch (seg6local_param.action)
         {
+          case SEG6_LOCAL_ACTION_END:
+            break;
           case SEG6_LOCAL_ACTION_END_X:
             memcpy (&msg_sid.param.nh6, &seg6local_param.nh6,
                     sizeof (struct in6_addr));
