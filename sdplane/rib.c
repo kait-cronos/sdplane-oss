@@ -376,7 +376,7 @@ CLI_COMMAND2 (show_fdb,
 }
 
 CLI_COMMAND2 (set_mdb_entry,
-              "set igmp-snooping group <WORD> vswitch <1-4094> port "PORT_ID_SPEC,
+              "set igmp-snooping group "IPV4_ADDR_SPEC" vswitch <1-4094> port "PORT_ID_SPEC,
               SET_HELP,
               "IGMP snooping information\n",
               "multicast group information\n",
@@ -418,7 +418,7 @@ CLI_COMMAND2 (set_mdb_entry,
 }
 
 CLI_COMMAND2 (no_set_mdb_entry,
-              "no set igmp-snooping group <WORD> vswitch <1-4094> port "PORT_ID_SPEC,
+              "no set igmp-snooping group "IPV4_ADDR_SPEC" vswitch <1-4094> port "PORT_ID_SPEC,
               NO_HELP,
               SET_HELP,
               "IGMP snooping information\n",
