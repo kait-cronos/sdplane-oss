@@ -375,6 +375,19 @@ CLI_COMMAND2 (show_fdb,
   return 0;
 }
 
+static inline __attribute__ ((always_inline)) struct vswitch_conf *
+vswitch_lookup (struct rib_info *rib_info, uint16_t vswitch_id)
+{
+  int i;
+  for (i = 0; i < rib_info->vswitch_size; i++)
+    {
+      if (rib_info->vswitch[i].vswitch_id == vswitch_id &&
+          ! rib_info->vswitch[i].is_deleted)
+        return &rib_info->vswitch[i];
+    }
+  return NULL;
+}
+
 CLI_COMMAND2 (set_mdb_entry,
               "set igmp-snooping group "IPV4_ADDR_SPEC" vswitch <1-4094> port "PORT_ID_SPEC,
               SET_HELP,
@@ -410,6 +423,14 @@ CLI_COMMAND2 (set_mdb_entry,
   mdb_entry_add.group_addr = addr.s_addr;
   mdb_entry_add.vswitch_id = strtol (argv[5], NULL, 0);
   mdb_entry_add.port = port;
+
+  if (startup_config_completed && rib_tlocal && rib_tlocal->rib_info
+      && ! vswitch_lookup (rib_tlocal->rib_info, mdb_entry_add.vswitch_id))
+    {
+      fprintf (shell->terminal, "vswitch %u does not exist%s",
+               (unsigned int) mdb_entry_add.vswitch_id, shell->NL);
+      return CMD_FAILURE;
+    }
 
   msgp = internal_msg_create (INTERNAL_MSG_TYPE_MDB_ENTRY_ADD, &mdb_entry_add,
                               sizeof (mdb_entry_add));
@@ -858,19 +879,6 @@ CLI_COMMAND2 (set_vswitch_port_tag_swap,
   shell_rib_send_message (msgp, shell);
 
   return 0;
-}
-
-static inline __attribute__ ((always_inline)) struct vswitch_conf *
-vswitch_lookup (struct rib_info *new, uint16_t vswitch_id)
-{
-  int i;
-  for (i = 0; i < new->vswitch_size; i++)
-    {
-      if (new->vswitch[i].vswitch_id == vswitch_id &&
-          ! new->vswitch[i].is_deleted)
-        return &new->vswitch[i];
-    }
-  return NULL;
 }
 
 CLI_COMMAND2 (set_router_if,

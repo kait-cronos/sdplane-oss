@@ -1727,6 +1727,13 @@ rib_manager_process_message (void *msgp)
 
         msg_mdb_entry_add = (struct internal_msg_mdb_entry *) (msg_header + 1);
 
+        if (! vswitch_lookup (new->rib_info, msg_mdb_entry_add->vswitch_id))
+          {
+            DEBUG_NEW (RIB, "vswitch: %u not found",
+                       (unsigned int) msg_mdb_entry_add->vswitch_id);
+            break;
+          }
+
         mdb_add_entry (new->rib_info, msg_mdb_entry_add->group_addr,
                        msg_mdb_entry_add->vswitch_id, msg_mdb_entry_add->port);
         break;
