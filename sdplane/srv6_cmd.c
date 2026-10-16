@@ -578,7 +578,7 @@ rib_show_srv6_end_route (struct rib_node *n, void *arg)
 }
 
 CLI_COMMAND2 (show_srv6_end_route, 
-      "show srv6 end route", 
+              "show srv6 end route", 
               SHOW_HELP,
               "show SRv6 information\n", 
               "show SRv6 endpoint information\n",
