@@ -163,7 +163,7 @@ struct mdb_entry
 {
   uint32_t group_addr;
   uint16_t vswitch_id;
-  uint32_t port_bitmap;
+  uint64_t port_bitmap;
   time_t port_last_seen[MAX_ETH_PORTS];
 };
 

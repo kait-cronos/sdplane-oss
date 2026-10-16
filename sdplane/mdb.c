@@ -33,7 +33,8 @@ mdb_table_destroy (struct hash_table *ht)
 }
 
 /*
- * MDB table deep-copy: for each entry in src, allocate a new entry and insert into dst.
+ * MDB table deep-copy: for each entry in src, allocate a new entry and insert
+ * into dst.
  */
 
 /* context carried into mdb_table_copy's foreach callback. */
@@ -106,9 +107,9 @@ mdb_add_entry (struct rib_info *rib_info, uint32_t group_addr,
   entry = hash_table_lookup (&rib_info->mdb_table, kptr);
   if (entry)
     {
-      entry->port_bitmap |= (uint32_t) 1U << port;
+      entry->port_bitmap |= (uint64_t) 1U << port;
       entry->port_last_seen[port] = current_time;
-      DEBUG_NEW (IGMP, "updated mdb: vswitch:%u port:%d bitmap:%#x",
+      DEBUG_NEW (IGMP, "updated mdb: vswitch:%u port:%d bitmap:%#" PRIx64,
                  vswitch_id, port, entry->port_bitmap);
       return 0;
     }
@@ -122,7 +123,7 @@ mdb_add_entry (struct rib_info *rib_info, uint32_t group_addr,
     }
   entry->group_addr = group_addr;
   entry->vswitch_id = vswitch_id;
-  entry->port_bitmap = (uint32_t) 1U << port;
+  entry->port_bitmap = (uint64_t) 1U << port;
   entry->port_last_seen[port] = current_time;
 
   if (hash_table_insert (&rib_info->mdb_table, kptr, entry) < 0)
@@ -134,8 +135,8 @@ mdb_add_entry (struct rib_info *rib_info, uint32_t group_addr,
 
   char group_str[INET_ADDRSTRLEN];
   inet_ntop (AF_INET, &group_addr, group_str, sizeof (group_str));
-  DEBUG_NEW (IGMP, "added mdb: %s vswitch:%u port:%d bitmap:%#x", group_str,
-             vswitch_id, port, entry->port_bitmap);
+  DEBUG_NEW (IGMP, "added mdb: %s vswitch:%u port:%d bitmap:%#" PRIx64,
+             group_str, vswitch_id, port, entry->port_bitmap);
   return 0;
 }
 
@@ -153,7 +154,7 @@ mdb_del_entry (struct rib_info *rib_info, uint32_t group_addr,
   entry = hash_table_lookup (&rib_info->mdb_table, kptr);
   if (! entry)
     return 0;
-  entry->port_bitmap &= ~((uint32_t) 1U << port);
+  entry->port_bitmap &= ~((uint64_t) 1U << port);
   entry->port_last_seen[port] = 0;
 
   if (entry->port_bitmap == 0)
@@ -177,13 +178,12 @@ show_mdb_entry_callback (void *key, void *value, void *arg)
 
   inet_ntop (AF_INET, &entry->group_addr, group_str, sizeof (group_str));
 
-  fprintf (shell->terminal,
-           "  mdb: %s vswitch:%u bitmap:0x%08" PRIx32 " ports:", group_str,
-           (unsigned int) entry->vswitch_id, entry->port_bitmap);
+  fprintf (shell->terminal, "  mdb: %s vswitch:%u ports:", group_str,
+           (unsigned int) entry->vswitch_id);
 
   for (int port = 0; port < MAX_ETH_PORTS; port++)
     {
-      if (entry->port_bitmap & (1U << port))
+      if (entry->port_bitmap & ((uint64_t) 1U << port))
         fprintf (shell->terminal, " %d", port);
     }
 

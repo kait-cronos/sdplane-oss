@@ -40,14 +40,14 @@ mdb_lookup (const struct hash_table *ht, const void *key)
   return NULL;
 }
 
-static inline __attribute__ ((always_inline)) uint32_t
+static inline __attribute__ ((always_inline)) uint64_t
 mdb_lookup_entry (const struct rib_info *rib_info, uint32_t group_addr,
                   uint16_t vswitch_id)
 {
   uint64_t key = mdb_pack_key (group_addr, vswitch_id);
   struct mdb_entry *entry =
       mdb_lookup (&rib_info->mdb_table, (void *) (uintptr_t) key);
-  uint32_t ret = entry ? entry->port_bitmap : 0;
+  uint64_t ret = entry ? entry->port_bitmap : 0;
 
   return ret;
 }
