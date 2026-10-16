@@ -568,7 +568,7 @@ rib_show_srv6_end_route (struct rib_node *n, void *arg)
       if (nh_info->type != NEXTHOP_TYPE_SRV6_END)
         continue;
 
-      ret = _srv6_format_local_sid (&nh_info->gw.srv6_encap_sid, buffer,
+      ret = _srv6_format_local_sid (&nh_info->gw.srv6_local_sid, buffer,
                                     sizeof (buffer));
       fprintf (shell->terminal,
                "  Destination: %s, Nexthop Type: %s, Details: %s%s", dst_str,
