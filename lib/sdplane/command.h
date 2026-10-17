@@ -120,6 +120,7 @@ struct command_set *command_set_create ();
 void command_set_delete (struct command_set *cmdset);
 
 int is_command_match (char *spec, char *word);
+int line_spec (char *spec);
 
 int is_command_regvar (struct command_set *cmdset, char *spec);
 
