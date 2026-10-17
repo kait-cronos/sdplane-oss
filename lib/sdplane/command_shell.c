@@ -5,11 +5,12 @@
 #include <poll.h>
 #include <stdbool.h>
 
+#include "includes.h"
+
+/* after includes.h (config.h), for HAVE_UTIL_H. */
 #if HAVE_UTIL_H
 #include <util.h> // for openpty()
 #endif /*HAVE_UTIL_H*/
-
-#include "includes.h"
 #include "command.h"
 #include "command_shell.h"
 #include "file.h"
@@ -774,7 +775,9 @@ pager_start (struct shell *shell)
       shell->terminal = pager_fp;
       shell->writefd = shell->pipefd[1];
 
+#ifdef F_SETPIPE_SZ /* Linux only. */
       fcntl (shell->writefd, F_SETPIPE_SZ, 1048576);
+#endif /*F_SETPIPE_SZ*/
 
       struct pollfd fds[2];
       fds[0].fd = shell->pty_master;
