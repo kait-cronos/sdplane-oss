@@ -1194,8 +1194,20 @@ command_execute2 (int argc, char **argv, struct command_set *cmdset,
 
   int index;
   int curr, upper;
+  int i;
 
   assert (argc > 0);
+
+  /* <LINE> takes the rest of the command line (in its argv, by
+     command_matched_nodes()): the command is the one of <LINE>,
+     not of the last word. */
+  for (i = 0; i < argc; i++)
+    if (cmdnodes[i] && line_spec (cmdnodes[i]->cmdstr))
+      {
+        argc = i + 1;
+        break;
+      }
+
   index = argc - 1;
 
   if (index == 0)
