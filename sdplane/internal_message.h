@@ -51,6 +51,9 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD    33
 #define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL    34
 #define INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET    35
+#define INTERNAL_MSG_TYPE_MDB_ENTRY_ADD         36
+#define INTERNAL_MSG_TYPE_MDB_ENTRY_DEL         37
+#define INTERNAL_MSG_TYPE_MDB_AGING             38
 
     struct internal_msg_eth_link
 {
@@ -117,6 +120,18 @@ struct internal_msg_fdb_entry
 struct internal_msg_fdb_aging
 {
   uint32_t aging_time; /* seconds */
+};
+
+struct internal_msg_mdb_entry
+{
+  uint32_t group_addr;
+  uint16_t vswitch_id;
+  uint16_t port;
+};
+
+struct internal_msg_mdb_aging
+{
+  uint32_t aging_time;
 };
 
 struct internal_msg_nh_member

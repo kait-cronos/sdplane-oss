@@ -23,6 +23,7 @@
 #include "debug_sdplane.h"
 #include "rib_manager.h"
 #include "fdb.h"
+#include "mdb.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "tap.h"
@@ -480,6 +481,12 @@ rib_info_create (struct rib_info *old)
           free (new);
           return NULL;
         }
+      if (mdb_table_init (&new->mdb_table) < 0)
+        {
+          fdb_table_destroy (&new->fdb_table);
+          free (new);
+          return NULL;
+        }
     }
   else
     {
@@ -489,6 +496,12 @@ rib_info_create (struct rib_info *old)
       /* deep-copy the FDB table */
       if (fdb_table_copy (&new->fdb_table, &old->fdb_table) < 0)
         {
+          free (new);
+          return NULL;
+        }
+      if (mdb_table_copy (&new->mdb_table, &old->mdb_table) < 0)
+        {
+          fdb_table_destroy (&new->fdb_table);
           free (new);
           return NULL;
         }
@@ -512,8 +525,9 @@ rib_info_delete (struct rib_info *old)
           fib_free (old->fib_tree[i]);
         }
     }
-  /* free FDB values and bucket array */
+  /* free FDB and MDB values and bucket array */
   fdb_table_destroy (&old->fdb_table);
+  mdb_table_destroy (&old->mdb_table);
   free (old);
 }
 
@@ -1703,6 +1717,37 @@ rib_manager_process_message (void *msgp)
 
         aged = fdb_aging_process (new->rib_info, msg_fdb_aging->aging_time);
         DEBUG_SDPLANE_LOG (FDB, "fdb aging: %d entries aged out", aged);
+        break;
+      }
+
+    case INTERNAL_MSG_TYPE_MDB_ENTRY_ADD:
+      {
+        struct internal_msg_mdb_entry *msg_mdb_entry_add;
+        DEBUG_NEW (RIB, "recv msg_mdb_entry_add: %p.", msgp);
+
+        msg_mdb_entry_add = (struct internal_msg_mdb_entry *) (msg_header + 1);
+
+        if (! vswitch_lookup (new->rib_info, msg_mdb_entry_add->vswitch_id))
+          {
+            DEBUG_NEW (RIB, "vswitch: %u not found",
+                       (unsigned int) msg_mdb_entry_add->vswitch_id);
+            break;
+          }
+
+        mdb_add_entry (new->rib_info, msg_mdb_entry_add->group_addr,
+                       msg_mdb_entry_add->vswitch_id, msg_mdb_entry_add->port);
+        break;
+      }
+
+    case INTERNAL_MSG_TYPE_MDB_ENTRY_DEL:
+      {
+        struct internal_msg_mdb_entry *msg_mdb_entry_del;
+        DEBUG_NEW (RIB, "recv msg_mdb_entry_del: %p.", msgp);
+
+        msg_mdb_entry_del = (struct internal_msg_mdb_entry *) (msg_header + 1);
+
+        mdb_del_entry (new->rib_info, msg_mdb_entry_del->group_addr,
+                       msg_mdb_entry_del->vswitch_id, msg_mdb_entry_del->port);
         break;
       }
 

@@ -19,6 +19,7 @@
 #include "rib_manager.h"
 #include "neigh_manager.h"
 #include "fdb.h"
+#include "mdb.h"
 #include "sdplane.h"
 #include "thread_info.h"
 #include "internal_message.h"
@@ -372,6 +373,136 @@ CLI_COMMAND2 (show_fdb,
   fprintf (shell->terminal, "total fdb entries: %d%s",
            rib->rib_info->fdb_table.count, shell->NL);
   return 0;
+}
+
+static inline __attribute__ ((always_inline)) struct vswitch_conf *
+vswitch_lookup (struct rib_info *rib_info, uint16_t vswitch_id)
+{
+  int i;
+  for (i = 0; i < rib_info->vswitch_size; i++)
+    {
+      if (rib_info->vswitch[i].vswitch_id == vswitch_id &&
+          ! rib_info->vswitch[i].is_deleted)
+        return &rib_info->vswitch[i];
+    }
+  return NULL;
+}
+
+CLI_COMMAND2 (set_mdb_entry,
+              "set igmp-snooping group "IPV4_ADDR_SPEC" vswitch <1-4094> port "PORT_ID_SPEC,
+              SET_HELP,
+              "IGMP snooping information\n",
+              "multicast group information\n",
+              "IPv4 multicast group address\n",
+              "vswitch information\n",
+              "vswitch ID\n",
+              PORT_HELP,
+              PORT_NUMBER_HELP)
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_mdb_entry mdb_entry_add;
+  struct internal_msg_header *msgp;
+  struct in_addr addr;
+
+  if (inet_pton (AF_INET, argv[3], &addr) != 1
+      || ! IN_MULTICAST (rte_be_to_cpu_32 (addr.s_addr)))
+    {
+      fprintf (shell->terminal, "invalid IPv4 multicast group: %s%s",
+               argv[3], shell->NL);
+      return CMD_FAILURE;
+    }
+
+  long port = strtol (argv[7], NULL, 0);
+  if (port < 0 || port >= MAX_ETH_PORTS)
+    {
+      fprintf (shell->terminal, "invalid MDB port: %s%s",
+               argv[7], shell->NL);
+      return CMD_FAILURE;
+    }
+
+  mdb_entry_add.group_addr = addr.s_addr;
+  mdb_entry_add.vswitch_id = strtol (argv[5], NULL, 0);
+  mdb_entry_add.port = port;
+
+  if (startup_config_completed && rib_tlocal && rib_tlocal->rib_info
+      && ! vswitch_lookup (rib_tlocal->rib_info, mdb_entry_add.vswitch_id))
+    {
+      fprintf (shell->terminal, "vswitch %u does not exist%s",
+               (unsigned int) mdb_entry_add.vswitch_id, shell->NL);
+      return CMD_FAILURE;
+    }
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_MDB_ENTRY_ADD, &mdb_entry_add,
+                              sizeof (mdb_entry_add));
+  shell_rib_send_message (msgp, shell);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (no_set_mdb_entry,
+              "no set igmp-snooping group "IPV4_ADDR_SPEC" vswitch <1-4094> port "PORT_ID_SPEC,
+              NO_HELP,
+              SET_HELP,
+              "IGMP snooping information\n",
+              "multicast group information\n",
+              "IPv4 multicast group address\n",
+              "vswitch information\n",
+              "vswitch ID\n",
+              PORT_HELP,
+              PORT_NUMBER_HELP)
+{
+  struct shell *shell = (struct shell *) context;
+  struct internal_msg_mdb_entry msg;
+  struct internal_msg_header *msgp;
+  struct in_addr addr;
+
+  if (inet_pton (AF_INET, argv[4], &addr) != 1
+      || ! IN_MULTICAST (rte_be_to_cpu_32 (addr.s_addr)))
+    {
+      fprintf (shell->terminal, "invalid IPv4 multicast group: %s%s",
+               argv[4], shell->NL);
+      return CMD_FAILURE;
+    }
+
+  long port = strtol (argv[8], NULL, 0);
+
+  if (port < 0 || port >= MAX_ETH_PORTS)
+    {
+      fprintf (shell->terminal, "invalid MDB port: %s%s",
+               argv[8], shell->NL);
+      return CMD_FAILURE;
+    }
+
+  msg.group_addr = addr.s_addr;
+  msg.vswitch_id = strtol (argv[6], NULL, 0);
+  msg.port = port;
+
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_MDB_ENTRY_DEL, &msg,
+                              sizeof (msg));
+  shell_rib_send_message (msgp, shell);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (show_mdb,
+              "show igmp-snooping group",
+              SHOW_HELP,
+              "IGMP snooping information\n",
+              "multicast group information\n")
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+
+  if (! rib || ! rib->rib_info)
+    {
+      fprintf (shell->terminal, "no rib information%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  fprintf (shell->terminal, "mdb:%s", shell->NL);
+  hash_table_foreach (&rib->rib_info->mdb_table,
+                      show_mdb_entry_callback, shell);
+  fprintf (shell->terminal, "total mdb entries: %d%s",
+           rib->rib_info->mdb_table.count, shell->NL);
+  return CMD_SUCCESS;
 }
 
 CLI_COMMAND2 (show_neighbor,
@@ -750,19 +881,6 @@ CLI_COMMAND2 (set_vswitch_port_tag_swap,
   return 0;
 }
 
-static inline __attribute__ ((always_inline)) struct vswitch_conf *
-vswitch_lookup (struct rib_info *new, uint16_t vswitch_id)
-{
-  int i;
-  for (i = 0; i < new->vswitch_size; i++)
-    {
-      if (new->vswitch[i].vswitch_id == vswitch_id &&
-          ! new->vswitch[i].is_deleted)
-        return &new->vswitch[i];
-    }
-  return NULL;
-}
-
 CLI_COMMAND2 (set_router_if,
               "set vswitch <1-4094> router-if <WORD>",
               SET_HELP,
@@ -997,6 +1115,9 @@ rib_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, show_rib_capture_if);
   INSTALL_COMMAND2 (cmdset, set_fdb_entry);
   INSTALL_COMMAND2 (cmdset, show_fdb);
+  INSTALL_COMMAND2 (cmdset, set_mdb_entry);
+  INSTALL_COMMAND2 (cmdset, no_set_mdb_entry);
+  INSTALL_COMMAND2 (cmdset, show_mdb);
   INSTALL_COMMAND2 (cmdset, show_neighbor);
   INSTALL_COMMAND2 (cmdset, show_vswitch);
   INSTALL_COMMAND2 (cmdset, show_fib_ip_route);
