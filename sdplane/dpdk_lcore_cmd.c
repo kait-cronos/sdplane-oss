@@ -16,7 +16,9 @@
 #include <sdplane/debug_zcmdsh.h>
 #include "debug_sdplane.h"
 
+#ifdef ENABLE_L3FWD
 #include "l3fwd.h"
+#endif
 #include "l2fwd_export.h"
 #include "l2_repeater.h"
 #include "l2_switch.h"
@@ -36,6 +38,7 @@ int srv6_encap_router (__rte_unused void *dummy);
 
 bool rte_eal_init_done = false;
 
+volatile bool force_quit;
 volatile bool force_stop[RTE_MAX_LCORE];
 volatile bool startup_config_completed = false;
 
@@ -159,7 +162,10 @@ int igmp_snooping (__rte_unused void *dummy);
 
 CLI_COMMAND2 (set_worker,
     "(set|reset|start|restart) worker lcore "LCORE_ID_SPEC" "
-    "(|none|l2fwd|l3fwd|l3fwd-lpm"
+    "(|none|l2fwd"
+#ifdef ENABLE_L3FWD
+    "|l3fwd|l3fwd-lpm"
+#endif
     "|tap-handler|l3-tap-handler"
     "|l2-repeater|vlan-switch|enhanced-repeater|l2-switch"
     "|router|srv6-router|srv6-encap-router"
@@ -175,8 +181,10 @@ CLI_COMMAND2 (set_worker,
     WORKER_HELP, LCORE_HELP, LCORE_NUMBER_HELP,
     "set lcore not to launch anything\n",
     "set lcore to launch l2fwd\n",
+#ifdef ENABLE_L3FWD
     "set lcore to launch l3fwd (default: lpm)\n",
     "set lcore to launch l3fwd-lpm\n",
+#endif
     "set lcore to launch tap-handler\n",
     "set lcore to launch l3-tap-handler\n"
     "set lcore to launch l2-repeater\n",
@@ -242,10 +250,12 @@ CLI_COMMAND2 (set_worker,
     func = rib_manager;
   else if (! strcmp (argv[4], "netlink-thread"))
     func = netlink_thread;
+#ifdef ENABLE_L3FWD
   else if (! strcmp (argv[4], "l3fwd-lpm"))
     func = lpm_main_loop;
   else /* if (! strcmp (argv[4], "l3fwd")) */
     func = lpm_main_loop;
+#endif
 
   if (lcore_workers[lcore_id].func == lthread_main)
     {
@@ -255,9 +265,7 @@ CLI_COMMAND2 (set_worker,
     }
 
   char *func_name;
-  if (func == lpm_main_loop)
-    func_name = "l3fwd-lpm";
-  else if (func == l2fwd_launch_one_lcore)
+  if (func == l2fwd_launch_one_lcore)
     func_name = "l2fwd";
   else if (func == lthread_main)
     func_name = "lthread_main";
@@ -291,6 +299,10 @@ CLI_COMMAND2 (set_worker,
     func_name = "rib-manager";
   else if (func == netlink_thread)
     func_name = "netlink-thread";
+#ifdef ENABLE_L3FWD
+  else if (func == lpm_main_loop)
+    func_name = "l3fwd-lpm";
+#endif
   else
     func_name = "none";
 
@@ -644,7 +656,7 @@ CLI_COMMAND2 (rte_eal_init_argv_list,
   pthread_mutex_lock (&argv_list_mutex);
   for (i = 0; i < rte_argc; i++)
     {
-      rte_argv[i] = &rte_argv_array[i];
+      rte_argv[i] = rte_argv_array[i];
       snprintf (rte_argv_array[i], sizeof (rte_argv_array[i]),
                 "%s", argvp[i]);
     }

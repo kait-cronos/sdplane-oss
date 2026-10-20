@@ -9,13 +9,6 @@ PKTGEN_MODULE_DIR = $(top_srcdir)/module/pktgen
 
 sbin_PROGRAMS = sdplane
 sdplane_SOURCES = \
-        $(L3FWD_MODULE_DIR)/l3fwd_acl.c $(L3FWD_MODULE_DIR)/l3fwd_lpm.c \
-        $(L3FWD_MODULE_DIR)/l3fwd_fib.c $(L3FWD_MODULE_DIR)/l3fwd_em.c \
-        $(L3FWD_MODULE_DIR)/l3fwd_event.c \
-        $(L3FWD_MODULE_DIR)/l3fwd_event_generic.c \
-        $(L3FWD_MODULE_DIR)/l3fwd_event_internal_port.c \
-        $(L3FWD_MODULE_DIR)/l3fwd.c \
-        $(L3FWD_MODULE_DIR)/l3fwd_cmd.c $(L3FWD_MODULE_DIR)/l3fwd_cmd.h \
         $(L2FWD_MODULE_DIR)/l2fwd.c \
         $(L2FWD_MODULE_DIR)/l2fwd_cmd.c $(L2FWD_MODULE_DIR)/l2fwd_cmd.h \
         tap.c stat_collector.c \
@@ -34,8 +27,20 @@ sdplane_SOURCES = \
         router.c srv6_router.c srv6_encap_router.c srv6_cmd.c igmp_cmd.c \
         hash_table.c nexthop.c \
         fdb.c fdb.h mdb.c mdb.h igmp_snooping.c variable_cmd.c
-sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) -I$(L3FWD_MODULE_DIR) $(AM_CFLAGS)
+sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) $(AM_CFLAGS)
 sdplane_LDADD = @DPDK_LIBS@ -llthread -L$(libsdplanedir) -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
+
+if ENABLE_L3FWD
+  sdplane_SOURCES += \
+        $(L3FWD_MODULE_DIR)/l3fwd_acl.c $(L3FWD_MODULE_DIR)/l3fwd_lpm.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_fib.c $(L3FWD_MODULE_DIR)/l3fwd_em.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_event.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_event_generic.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_event_internal_port.c \
+        $(L3FWD_MODULE_DIR)/l3fwd.c \
+        $(L3FWD_MODULE_DIR)/l3fwd_cmd.c $(L3FWD_MODULE_DIR)/l3fwd_cmd.h
+  sdplane_CFLAGS += -I$(L3FWD_MODULE_DIR)
+endif
 
 if ENABLE_PKTGEN
   sdplane_SOURCES += \

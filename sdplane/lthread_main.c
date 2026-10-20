@@ -44,8 +44,6 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 
-#include "l3fwd.h"
-#include "l3fwd_route.h"
 #include "sdplane.h"
 #include "tap_handler.h"
 #include "neigh_manager.h"

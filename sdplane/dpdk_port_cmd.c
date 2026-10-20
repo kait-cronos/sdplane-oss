@@ -17,7 +17,6 @@
 #include <sdplane/debug_zcmdsh.h>
 
 #include "debug_sdplane.h"
-#include "l3fwd.h"
 #include "l2fwd_export.h"
 #include "sdplane.h"
 #include "stat_collector.h"
@@ -25,6 +24,10 @@
 #include "rib.h"
 #include "rib_manager.h"
 #include "internal_message.h"
+
+/* Default number of RX/TX ring descriptors */
+#define RX_DESC_DEFAULT 1024
+#define TX_DESC_DEFAULT 1024
 
 // clang-format off
 

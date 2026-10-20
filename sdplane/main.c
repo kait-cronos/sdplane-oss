@@ -21,8 +21,6 @@
 
 #include "debug_sdplane.h"
 
-#include "l3fwd.h"
-
 #include "sdplane.h"
 #include "sdplane_version.h"
 #include "thread_info.h"

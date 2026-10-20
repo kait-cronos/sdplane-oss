@@ -27,7 +27,9 @@
 #include "sdplane.h"
 #include "thread_info.h"
 #include "l2fwd_cmd.h"
+#ifdef ENABLE_L3FWD
 #include "l3fwd_cmd.h"
+#endif
 #include "vty_server.h"
 #include "vty_shell.h"
 #include "sdplane_version.h"
@@ -198,7 +200,9 @@ vty_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, show_debug_sdplane);
 
   l2fwd_cmd_init (shell->cmdset);
+#ifdef ENABLE_L3FWD
   l3fwd_cmd_init (shell->cmdset);
+#endif
   sdplane_cmd_init (shell->cmdset);
 
   char ring_name[32];
