@@ -25,10 +25,6 @@
 #include "rib_manager.h"
 #include "internal_message.h"
 
-/* Default number of RX/TX ring descriptors */
-#define RX_DESC_DEFAULT 1024
-#define TX_DESC_DEFAULT 1024
-
 // clang-format off
 
 struct flag_name link_speeds[] = {
