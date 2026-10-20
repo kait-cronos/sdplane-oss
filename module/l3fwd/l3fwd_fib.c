@@ -23,6 +23,7 @@
 #endif
 #include "l3fwd_event.h"
 #include "l3fwd_route.h"
+#include "rte_override.h"
 
 /* Configure how many packets ahead to prefetch for fib. */
 #define FIB_PREFETCH_OFFSET 4
@@ -159,7 +160,7 @@ fib_send_packets(int nb_rx, struct rte_mbuf **pkts_burst,
 	/* Lookup IPv6 hops if IPv6 packets are present. */
 	if (ipv6_cnt > 0)
 		rte_fib6_lookup_bulk(qconf->ipv6_lookup_struct,
-				ipv6_arr, hopsv6, ipv6_cnt);
+				IPV6_ADDR_PTR(ipv6_arr), hopsv6, ipv6_cnt);
 
 	/* Add IPv4 and IPv6 hops to one array depending on type. */
 	for (i = 0; i < nb_rx; i++) {
@@ -352,7 +353,7 @@ fib_event_loop(struct l3fwd_event_resources *evt_rsrc,
 		/* Lookup IPv6 hops if IPv6 packets are present. */
 		if (ipv6_cnt > 0)
 			rte_fib6_lookup_bulk(lconf->ipv6_lookup_struct,
-					ipv6_arr, hopsv6, ipv6_cnt);
+					IPV6_ADDR_PTR(ipv6_arr), hopsv6, ipv6_cnt);
 
 		/* Assign ports looked up in fib depending on IPv4 or IPv6 */
 		for (i = 0; i < nb_deq; i++) {
@@ -480,8 +481,8 @@ fib_process_event_vector(struct rte_event_vector *vec, uint8_t *type_arr,
 	if (ipv6_cnt > 0)
 		rte_fib6_lookup_bulk(
 			lconf->ipv6_lookup_struct,
-			(uint8_t(*)[RTE_FIB6_IPV6_ADDR_SIZE])ipv6_arr, hopsv6,
-			ipv6_cnt);
+			IPV6_ADDR_PTR((uint8_t(*)[RTE_FIB6_IPV6_ADDR_SIZE])ipv6_arr),
+			hopsv6, ipv6_cnt);
 
 	/* Assign ports looked up in fib depending on IPv4 or IPv6 */
 	for (i = 0; i < vec->nb_elem; i++) {
@@ -732,7 +733,7 @@ setup_fib(const int socketid)
 		rte_eth_dev_info_get(route_base_v6[i].if_out,
 				     &dev_info);
 		ret = rte_fib6_add(ipv6_l3fwd_fib_lookup_struct[socketid],
-			route_base_v6[i].ip_8,
+			IPV6_ADDR_PTR(route_base_v6[i].ip_8),
 			route_base_v6[i].depth,
 			route_base_v6[i].if_out);
 
