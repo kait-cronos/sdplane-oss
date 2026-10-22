@@ -32,6 +32,8 @@
 
 #include "rib.h"
 
+#define NETLINK_RCVBUF_SIZE (1024 * 1024)
+
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 static __thread uint64_t loop_counter = 0;
@@ -75,6 +77,30 @@ netlink_socket (struct netlink_sock *nlsock, unsigned long groups)
       return -1;
     }
 #endif
+
+  if (groups)
+    {
+      /* Buffer notifications through startup and initial dumps. */
+      int rcvbuf = NETLINK_RCVBUF_SIZE;
+      socklen_t optlen = sizeof (rcvbuf);
+
+      ret =
+          setsockopt (sockfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof (rcvbuf));
+      if (ret < 0)
+        fprintf (stderr, "can't set %s socket SO_RCVBUF: %s\n", nlsock->name,
+                 strerror (errno));
+
+      ret = getsockopt (sockfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, &optlen);
+      if (ret < 0)
+        fprintf (stderr, "can't get %s socket SO_RCVBUF: %s\n", nlsock->name,
+                 strerror (errno));
+      else if (rcvbuf < 2 * NETLINK_RCVBUF_SIZE)
+        fprintf (stderr,
+                 "%s socket receive buffer limited to %d bytes "
+                 "(requested %d bytes, doubled by Linux); "
+                 "check net.core.rmem_max\n",
+                 nlsock->name, rcvbuf, NETLINK_RCVBUF_SIZE);
+    }
 
   memset (&snl, 0, sizeof (snl));
   snl.nl_family = AF_NETLINK;
