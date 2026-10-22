@@ -13,6 +13,10 @@ make docker
 
 You can see the test logs in `tests/logs` directory.
 
+### Route nexthop references
+
+See [route nexthop reference tests](route-nexthop-references/README.md) for route replacement, deletion, registration failure and SRv6 local SID checks.
+
 ### How to add test case
 
 1. Add a new file `tests/test_<name>.c`.
