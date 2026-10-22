@@ -13,6 +13,10 @@ make docker
 
 You can see the test logs in `tests/logs` directory.
 
+### RIB allocation failures
+
+See [RIB allocation failure test](rib-allocation-failure/README.md) for failure injection checks and ASan/UBSan execution instructions.
+
 ### How to add test case
 
 1. Add a new file `tests/test_<name>.c`.
