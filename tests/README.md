@@ -25,6 +25,10 @@ See [RIB allocation failure test](rib-allocation-failure/README.md) for failure 
 
 See [Netlink receive buffer tests](netlink-receive-buffer/README.md) for buffer configuration, socket isolation and error handling checks.
 
+### Route types
+
+See [route type tests](route-type-observability/README.md) for Netlink/CLI route types, FIB display and main/local forwarding checks.
+
 ### How to add test case
 
 1. Add a new file `tests/test_<name>.c`.
