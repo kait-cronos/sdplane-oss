@@ -9,6 +9,7 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
+#include <rte_ethdev.h>
 
 #include <sdplane/debug.h>
 #include <sdplane/termio.h>
@@ -19,8 +20,6 @@
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
 
-#include "l3fwd.h"
-#include "l3fwd_route.h"
 #include "l2fwd_export.h"
 #include "sdplane.h"
 #include "thread_info.h"

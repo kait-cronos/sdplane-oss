@@ -48,6 +48,20 @@ if test "$enable_pktgen" = yes; then
 AC_DEFINE([ENABLE_PKTGEN], [1], [enable support for pktgen])
 fi
 
+AC_ARG_ENABLE([l3fwd],
+        [AS_HELP_STRING([--disable-l3fwd], [disable l3fwd])],
+[
+        case "${enableval}" in
+        yes) enable_l3fwd=yes ;;
+        no) enable_l3fwd=no ;;
+        esac],
+        enable_l3fwd=yes)
+AC_SUBST([enable_l3fwd], [$enable_l3fwd])
+AM_CONDITIONAL([ENABLE_L3FWD], [test "$enable_l3fwd" = yes])
+if test "$enable_l3fwd" = yes; then
+AC_DEFINE([ENABLE_L3FWD], [1], [enable support for l3fwd])
+fi
+
 # FIXME: Replace `main' with a function in `-lzcmdsh':
 AC_CHECK_LIB([sdplane], [main])
 

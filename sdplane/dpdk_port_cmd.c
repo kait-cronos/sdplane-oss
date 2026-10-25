@@ -17,7 +17,6 @@
 #include <sdplane/debug_zcmdsh.h>
 
 #include "debug_sdplane.h"
-#include "l3fwd.h"
 #include "l2fwd_export.h"
 #include "sdplane.h"
 #include "stat_collector.h"

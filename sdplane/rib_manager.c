@@ -581,8 +581,6 @@ rib_check (struct rib *new)
   struct rte_eth_rxconf rxq_conf;
   struct rte_eth_txconf txq_conf;
 
-#define RX_DESC_DEFAULT 1024
-#define TX_DESC_DEFAULT 1024
   uint16_t nb_rxd = RX_DESC_DEFAULT;
   uint16_t nb_txd = TX_DESC_DEFAULT;
 

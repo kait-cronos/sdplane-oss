@@ -8,6 +8,14 @@
 #include <sdplane/shell.h>
 #include <sdplane/command.h>
 
+/* Default number of RX/TX ring descriptors */
+#ifndef RX_DESC_DEFAULT
+#define RX_DESC_DEFAULT 1024
+#endif
+#ifndef TX_DESC_DEFAULT
+#define TX_DESC_DEFAULT 1024
+#endif
+
 extern char *pid_path;
 
 extern bool rte_eal_init_done;
