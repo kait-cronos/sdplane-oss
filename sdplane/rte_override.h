@@ -37,8 +37,10 @@
 
 #if RTE_VERSION >= RTE_VERSION_NUM(24,11,0,0)
   #define IPV6_ADDR_BYTES(x) ((x).a)
+  #define IPV6_ADDR_PTR(p) ((const struct rte_ipv6_addr *) (p))
 #else
   #define IPV6_ADDR_BYTES(x) (x)
+  #define IPV6_ADDR_PTR(p) (p)
 #endif
 
 #if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
