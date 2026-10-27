@@ -7,6 +7,7 @@
 #include <lthread.h>
 
 #include <rte_common.h>
+#include <rte_ip.h>
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
@@ -89,6 +90,104 @@ is_igmp_packet (struct rte_mbuf *m)
              group_addr);
 
   return true;
+}
+
+static bool
+igmp_report_parse (const struct rte_mbuf *m, uint32_t * group_addr)
+{
+  struct rte_ether_hdr eth_buf;
+  struct rte_vlan_hdr vlan_buf;
+  struct rte_ipv4_hdr ipv4_buf;
+  struct igmp igmp_buf;
+
+  const struct rte_ether_hdr *eth;
+  const struct rte_vlan_hdr *vlan;
+  const struct rte_ipv4_hdr *ipv4;
+  const struct igmp *igmp;
+
+  uint32_t eth_type;
+  uint32_t offset;
+  uint32_t ip_hlen;
+  uint32_t ip_len;
+  uint32_t group;
+
+  if (! m || ! group_addr)
+    return false;
+
+  eth = rte_pktmbuf_read(m, 0, sizeof(eth_buf), &eth_buf);
+  if (! eth)
+    return false;
+
+  eth_type = rte_be_to_cpu_16(eth->ether_type);
+  offset = sizeof(eth_buf);
+
+  if (eth_type == RTE_ETHER_TYPE_VLAN)
+  {
+    vlan = rte_pktmbuf_read(m, offset, sizeof(vlan_buf), &vlan_buf);
+    if (! vlan)
+      return false;
+
+    eth_type = rte_be_to_cpu_16(vlan->eth_proto);
+    offset += sizeof(vlan_buf);
+  }
+
+  if (eth_type != RTE_ETHER_TYPE_IPV4)
+    return false;
+
+  ipv4 = rte_pktmbuf_read(m, offset, sizeof(ipv4_buf), &ipv4_buf);
+  if (! ipv4)
+    return false;
+
+  if (ipv4->next_proto_id != IPPROTO_IGMP)
+    return false;
+
+  ip_hlen = rte_ipv4_hdr_len(ipv4);
+  if (ip_hlen < sizeof (ipv4_buf))
+      return false;
+
+  offset += ip_hlen;
+  
+  igmp = rte_pktmbuf_read(
+      m, offset, sizeof(igmp_buf), &igmp_buf
+  );  
+  if (! igmp)
+      return false;
+  
+  if (igmp->igmp_type != IGMP_V2_MEMBERSHIP_REPORT)
+      return false;
+  
+  group = rte_be_to_cpu_32(igmp->igmp_group.s_addr);
+  
+  if (! IN_MULTICAST(group))
+      return false;
+
+  *group_addr = igmp->igmp_group.s_addr;
+  return true;
+}
+
+void
+igmp_snooping_learn (const struct rte_mbuf *m, unsigned rx_portid, uint16_t vswitch_id)
+{
+  if (! m || rx_portid >= MAX_ETH_PORTS)
+    return;
+
+  uint32_t group_addr;
+
+  if (rx_portid >= MAX_ETH_PORTS || ! igmp_report_parse(m, &group_addr))
+    return;
+
+  struct internal_msg_mdb_entry entry = {
+    .group_addr = group_addr,
+    .vswitch_id = vswitch_id,
+    .port = rx_portid,
+  };
+
+  struct internal_msg_header *msgp =
+    internal_msg_create((uint32_t) INTERNAL_MSG_TYPE_MDB_ENTRY_ADD,
+                        &entry, sizeof(entry));
+
+  if (msgp)
+    rib_send_message(msgp);
 }
 
 static inline __attribute__ ((always_inline)) void
