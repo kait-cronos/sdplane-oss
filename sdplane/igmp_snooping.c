@@ -151,7 +151,8 @@ igmp_report_parse (const struct rte_mbuf *m, uint32_t *group_addr)
   if (! igmp)
     return false;
 
-  if (igmp->igmp_type != IGMP_V2_MEMBERSHIP_REPORT)
+  if (igmp->igmp_type != IGMP_V1_MEMBERSHIP_REPORT &&
+      igmp->igmp_type != IGMP_V2_MEMBERSHIP_REPORT)
     return false;
 
   group = rte_be_to_cpu_32 (igmp->igmp_group.s_addr);
