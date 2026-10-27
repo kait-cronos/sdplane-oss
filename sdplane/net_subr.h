@@ -1608,7 +1608,7 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
           return;
         }
       rx_link = NULL; // to avoid split-horizon check
-      _srv6_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch,
+      _srv6_dx_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch,
                         rx_link, recursion_count + 1, true);
       return;
     }
