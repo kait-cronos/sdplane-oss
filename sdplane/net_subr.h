@@ -1425,11 +1425,12 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
 }
 
 static inline void
-_srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
-                  struct rte_ether_hdr *eth, struct rte_ipv4_hdr *ipv4,
-                  struct rte_ipv6_hdr *ipv6, struct vswitch_conf *rx_vswitch,
-                  struct vswitch_link *rx_link, int recursion_count,
-                  bool outer_is_fresh)
+_srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid,
+                     unsigned rx_queueid, struct rte_ether_hdr *eth,
+                     struct rte_ipv4_hdr *ipv4, struct rte_ipv6_hdr *ipv6,
+                     struct vswitch_conf *rx_vswitch,
+                     struct vswitch_link *rx_link, int recursion_count,
+                     bool outer_is_fresh)
 {
   struct nh_info *nh_info, endx_nh;
   struct neigh_entry *neigh_entry;
@@ -1539,9 +1540,9 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
             }
 
           // verify inner packet
-          // because hw offload state of `m` is reset by `_process_srv6_end_dx_packet`,
-          // rx_port can be NULL
-          if (unlikely ( _verify_packet (m, NULL, ipv4, ipv6) != 0))
+          // because hw offload state of `m` is reset by
+          // `_process_srv6_end_dx_packet`, rx_port can be NULL
+          if (unlikely (_verify_packet (m, NULL, ipv4, ipv6) != 0))
             {
               DEBUG_NEW (ROUTER,
                          "m: %p decapsulated packet is not forwardable, "
@@ -1587,8 +1588,8 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
           /* outer_is_fresh is passed through: unlike the encap case this
              outer header came off the wire, so it still owes a hop. */
           _srv6_dx_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6,
-                            rx_vswitch, rx_link, recursion_count + 1,
-                            outer_is_fresh);
+                               rx_vswitch, rx_link, recursion_count + 1,
+                               outer_is_fresh);
           return;
         }
 
@@ -1623,7 +1624,6 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
             inet_ntop (AF_INET6, IPV6_ADDR_BYTES (ipv6->dst_addr), dest,
                        sizeof (dest));
         }
-
     }
   else if (nh_info->type == NEXTHOP_TYPE_SRV6_HEAD)
     {
@@ -1642,8 +1642,8 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
           return;
         }
       rx_link = NULL; // to avoid split-horizon check
-      _srv6_dx_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6, rx_vswitch,
-                        rx_link, recursion_count + 1, true);
+      _srv6_dx_forwarding (m, rx_portid, rx_queueid, eth, ipv4, ipv6,
+                           rx_vswitch, rx_link, recursion_count + 1, true);
       return;
     }
 
@@ -1718,9 +1718,8 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
 
   /* neighbor table lookup */
   neigh_table_type = AF_TO_NEIGH_TABLE (family);
-  neigh_entry =
-      neigh_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
-                    neigh_table_type, lookup_ip);
+  neigh_entry = neigh_lookup (&rib->rib_info->neigh_tables[neigh_table_type],
+                              neigh_table_type, lookup_ip);
 
   if (router_mode == 6) /* forwarding: right after the neighbor-lookup. */
     {
