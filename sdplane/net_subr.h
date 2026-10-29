@@ -1175,7 +1175,7 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
           DEBUG_NEW (ROUTER,
                      "m: %p: unsupported seg6local action "
                      "on _srv6_forwrding: %u, drop",
-                     m, srv6_local_sid->action);
+                     m, nh_info->gw.srv6_local_sid.action);
           return;
         }
 
@@ -1568,7 +1568,7 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
               DEBUG_NEW (ROUTER,
                          "m: %p: unsupported seg6local action "
                          "on _srv6_dx_forwrding: %u, drop",
-                         m, srv6_local_sid->action);
+                         m, sid_action);
               return;
             }
 
