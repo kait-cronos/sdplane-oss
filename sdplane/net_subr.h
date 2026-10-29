@@ -1,6 +1,7 @@
 #ifndef __NET_SUBR_H__
 #define __NET_SUBR_H__
 
+#include <linux/seg6_local.h>
 #include <stdint.h>
 #include <rte_common.h>
 #include <rte_ethdev.h>
@@ -1167,6 +1168,17 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                      m);
           return;
         }
+
+      if (unlikely (nh_info->gw.srv6_local_sid.action !=
+                    SEG6_LOCAL_ACTION_END))
+        {
+          DEBUG_NEW (ROUTER,
+                     "m: %p: unsupported seg6local action "
+                     "on _srv6_forwrding: %u, drop",
+                     m, srv6_local_sid->action);
+          return;
+        }
+
       if (! _process_srv6_end_packet (m, ipv6, &nh_info->gw.srv6_local_sid))
         {
           DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 Endpoint", m);
@@ -1539,11 +1551,33 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
             }
         }
       // handle End or End.X
-      else if (! _process_srv6_end_packet (m, ipv6,
-                                           &nh_info->gw.srv6_local_sid))
+      else
         {
-          DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 Endpoint", m);
-          return;
+          if (sid_action == SEG6_LOCAL_ACTION_END_X)
+            {
+              if (IN6_IS_ADDR_UNSPECIFIED (
+                      &nh_info->gw.srv6_local_sid.param.nh6))
+                {
+                  DEBUG_NEW (ROUTER, "m: %p End.X SID has no adjacency, drop.",
+                             m);
+                  return;
+                }
+            }
+          else if (unlikely (sid_action != SEG6_LOCAL_ACTION_END))
+            {
+              DEBUG_NEW (ROUTER,
+                         "m: %p: unsupported seg6local action "
+                         "on _srv6_dx_forwrding: %u, drop",
+                         m, srv6_local_sid->action);
+              return;
+            }
+
+          if (! _process_srv6_end_packet (m, ipv6,
+                                          &nh_info->gw.srv6_local_sid))
+            {
+              DEBUG_NEW (ROUTER, "m: %p failed to process SRv6 Endpoint", m);
+              return;
+            }
         }
 
       rx_link = NULL; // to avoid split-horizon check
@@ -1624,7 +1658,7 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid
     {
       DEBUG_NEW (ROUTING_LOOKUP,
                  "m: %p routing-lookup: dest: %s nexthop is not CONNECTED "
-                 "or GATEWAY on _srv6_forwarding, drop.",
+                 "or GATEWAY on _srv6_dx_forwarding, drop.",
                  m, dest);
       return;
     }

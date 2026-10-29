@@ -164,22 +164,13 @@ _process_srv6_packet_multi_sids (struct rte_mbuf *m,
 /* SRv6 Endpoint (RFC 8986 End) processing for the nexthop-based model.
    The SID match has already been done by the FIB lookup, so unlike
    _process_srv6_packet_multi_sids() this does not compare the destination
-   against a local SID table.  Behaviors other than plain End are not
-   implemented yet and are rejected here rather than silently treated as
-   End. */
+   against a local SID table.
+   Caller MUST check srv6_local_sid->action before call */
 static inline __attribute__ ((always_inline)) bool
 _process_srv6_end_packet (struct rte_mbuf *m, struct rte_ipv6_hdr *ipv6,
                           struct srv6_local_sid_entry *srv6_local_sid)
 {
   bool modified = false;
-
-  if (srv6_local_sid->action != SEG6_LOCAL_ACTION_END &&
-      srv6_local_sid->action != SEG6_LOCAL_ACTION_END_X)
-    {
-      DEBUG_NEW (ROUTER, "m: %p: unsupported seg6local action: %u", m,
-                 srv6_local_sid->action);
-      return modified;
-    }
 
   /* If not routing-header, quit processing. */
   if (ipv6->proto != IPPROTO_ROUTING)
@@ -484,8 +475,8 @@ _process_srv6_end_dx_packet (struct rte_mbuf *m, struct rte_ether_hdr **eth,
     }
 
   bool inner_is_v6 = (inner_proto == IPPROTO_IPV6);
-  size_t inner_hdr_size = inner_is_v6 ? sizeof (struct rte_ipv6_hdr)
-                                      : sizeof (struct rte_ipv4_hdr);
+  size_t inner_hdr_size = (inner_is_v6 ? sizeof (struct rte_ipv6_hdr)
+                                       : sizeof (struct rte_ipv4_hdr));
   if (unlikely (p + inner_hdr_size > pkt_end))
     {
       DEBUG_NEW (ROUTER, "m: %p: inner header does not fit in the buffer", m);
@@ -501,8 +492,8 @@ _process_srv6_end_dx_packet (struct rte_mbuf *m, struct rte_ether_hdr **eth,
   memmove ((uint8_t *) *eth + outer_len, *eth, pre_ip_hdr_size);
   if (unlikely (! rte_pktmbuf_adj (m, outer_len)))
     {
-      DEBUG_NEW (ROUTER, "m: %p: failed to adjust %zu bytes for decapsulate", m,
-                 outer_len);
+      DEBUG_NEW (ROUTER, "m: %p: failed to adjust %zu bytes for decapsulate",
+                 m, outer_len);
       return false;
     }
 
@@ -514,7 +505,8 @@ _process_srv6_end_dx_packet (struct rte_mbuf *m, struct rte_ether_hdr **eth,
      lives in the VLAN header when there is one -- overwriting ether_type there
      would destroy the tag, which is the mistake _process_srv6_encap() carries
      the same guard against. */
-  uint16_t eth_type = inner_is_v6 ? rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6) : rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
+  uint16_t eth_type = (inner_is_v6 ? rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV6)
+                                   : rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4));
   if ((*eth)->ether_type == rte_cpu_to_be_16 (RTE_ETHER_TYPE_VLAN))
     {
       struct rte_vlan_hdr *vlan = (struct rte_vlan_hdr *) (*eth + 1);
@@ -545,8 +537,8 @@ _process_srv6_end_dx_packet (struct rte_mbuf *m, struct rte_ether_hdr **eth,
   DEBUG_NEW (ROUTER,
              "m: %p: End.DX%d removed %zu bytes of outer header, exposed %s, "
              "inner pkt len %d",
-             m,inner_is_v6 ? 6:4 , outer_len, (inner_is_v6 ? "IPv6" : "IPv4"),
-             rte_pktmbuf_pkt_len (m));
+             m, (inner_is_v6 ? 6 : 4), outer_len,
+             (inner_is_v6 ? "IPv6" : "IPv4"), rte_pktmbuf_pkt_len (m));
   return true;
 }
 
