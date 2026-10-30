@@ -36,6 +36,9 @@
 #include "fdb.h"
 #include "thread_info.h"
 
+void igmp_snooping_learn (const struct rte_mbuf *m, unsigned rx_portid,
+                          uint16_t vswitch_id);
+
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
@@ -329,6 +332,8 @@ l2_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
       DEBUG_SDPLANE_LOG (L2_SWITCH,
                          "m: %p multicast/broadcast, flooding to VLAN %u", m,
                          vswitch_link->vswitch_id);
+
+      igmp_snooping_learn (m, rx_portid, vswitch->vswitch_id);
 
       for (i = 0; i < vswitch->vswitch_port_size; i++)
         {
