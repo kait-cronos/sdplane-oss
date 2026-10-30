@@ -170,11 +170,13 @@ igmp_snooping_learn (const struct rte_mbuf *m, unsigned rx_portid,
   struct internal_msg_mdb_entry entry;
   struct internal_msg_header *msgp;
   uint32_t group_addr;
+  bool is_report;
 
   if (! m || rx_portid >= MAX_ETH_PORTS)
     return;
 
-  if (rx_portid >= MAX_ETH_PORTS || ! igmp_report_parse (m, &group_addr))
+  is_report = igmp_report_parse (m, &group_addr);
+  if (! is_report)
     return;
 
   entry.group_addr = group_addr;
