@@ -31,6 +31,9 @@
 #include "rte_override.h"
 #include "log_packet.h"
 
+void igmp_snooping_learn (const struct rte_mbuf *m, unsigned rx_portid,
+                          uint16_t vswitch_id);
+
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
 
@@ -214,6 +217,8 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
   if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
+      igmp_snooping_learn(m, rx_portid, vswitch_link->vswitch_id);
+
       is_mcast_bcast = true;
       DEBUG_NEW (ROUTER, "m: %p mac_addr bcast/mcast: send to router_if",
                  m, eth_type);
