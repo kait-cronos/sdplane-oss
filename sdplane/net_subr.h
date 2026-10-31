@@ -1,7 +1,6 @@
 #ifndef __NET_SUBR_H__
 #define __NET_SUBR_H__
 
-#include <linux/seg6_local.h>
 #include <stdint.h>
 #include <rte_common.h>
 #include <rte_ethdev.h>
@@ -1568,7 +1567,7 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid,
             {
               DEBUG_NEW (ROUTER,
                          "m: %p: unsupported seg6local action "
-                         "on _srv6_dx_forwrding: %u, drop",
+                         "on _srv6_dx_forwarding: %u, drop",
                          m, sid_action);
               return;
             }
