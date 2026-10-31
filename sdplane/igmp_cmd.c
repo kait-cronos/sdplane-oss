@@ -14,26 +14,15 @@
 #include "sdplane.h"
 #include "rib.h"
 #include "rib_manager.h"
+#include "igmp.h"
 
 // clang-format off
 
 /* IGMP Join via Kernel command */
 
-#define MAX_IGMP_JOIN_GROUPS 32
-
-struct igmp_join
-{
-    bool used;
-    int vswitch_id;
-    struct in_addr group_addr;
-    int ifindex;
-    int fd;
-};
-
-static struct igmp_join igmp_join_table[MAX_IGMP_JOIN_GROUPS];
+struct igmp_join igmp_join_table[MAX_IGMP_JOIN_GROUPS];
 
 static struct igmp_join *
-
 igmp_join_lookup (int vswitch_id, struct in_addr *group_addr)
 {
   int i;
@@ -49,7 +38,7 @@ igmp_join_lookup (int vswitch_id, struct in_addr *group_addr)
   return NULL;
 }
 
-static struct router_if *
+struct router_if *
 igmp_router_if_lookup (struct rib *rib, int vswitch_id)
 {
   int i;
@@ -194,6 +183,8 @@ CLI_COMMAND2 (show_igmp_join,
   struct shell *shell = (struct shell *) context;
   int i;
 
+  fprintf (shell->terminal, "IGMP report interval: %d sec%s",
+           igmp_report_interval, shell->NL);
   fprintf (shell->terminal, "IGMP Joins:%s", shell->NL);
   fprintf (shell->terminal, "%-10s %-15s %-10s%s",
            "VSwitchID", "GroupAddr", "IfIndex", shell->NL);
@@ -213,10 +204,181 @@ CLI_COMMAND2 (show_igmp_join,
   return CMD_SUCCESS;
 }
 
+CLI_COMMAND2 (set_igmp_report_interval,
+              "set igmp report interval <1-3600>",
+              SET_HELP,
+              "set IGMP information\n",
+              "set IGMP report information\n",
+              "set the interval to have the kernel send IGMP reports\n",
+              "specify the interval in seconds\n"
+              )
+{
+  igmp_report_interval = atoi (argv[4]);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (no_set_igmp_report_interval,
+              "no set igmp report interval",
+              NO_HELP,
+              SET_HELP,
+              "set IGMP information\n",
+              "set IGMP report information\n",
+              "reset the interval to the default\n"
+              )
+{
+  igmp_report_interval = IGMP_REPORT_INTERVAL_DEFAULT;
+  return CMD_SUCCESS;
+}
+
+static int
+igmp_version_set (const char *tap_name, int version)
+{
+  char path[128];
+  FILE *fp;
+
+  snprintf (path, sizeof (path),
+            "/proc/sys/net/ipv4/conf/%s/force_igmp_version", tap_name);
+  fp = fopen (path, "w");
+  if (! fp)
+    return -1;
+  fprintf (fp, "%d\n", version);
+  if (fclose (fp) != 0)
+    return -1;
+  return 0;
+}
+
+static int
+igmp_version_get (const char *tap_name)
+{
+  char path[128];
+  FILE *fp;
+  int version = -1;
+
+  snprintf (path, sizeof (path),
+            "/proc/sys/net/ipv4/conf/%s/force_igmp_version", tap_name);
+  fp = fopen (path, "r");
+  if (! fp)
+    return -1;
+  if (fscanf (fp, "%d", &version) != 1)
+    version = -1;
+  fclose (fp);
+  return version;
+}
+
+CLI_COMMAND2 (set_vswitch_igmp_version,
+              "set vswitch igmp version <1-4094> <2-3>",
+              SET_HELP,
+              "set vswitch information\n",
+              "set vswitch IGMP information\n",
+              "set IGMP version of the kernel for the vswitch\n",
+              "specify vswitch ID\n",
+              "specify IGMP version\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  struct router_if *rif;
+  int vswitch_id, version;
+
+  vswitch_id = atoi (argv[4]);
+  version = atoi (argv[5]);
+  rif = igmp_router_if_lookup (rib, vswitch_id);
+  if (! rif || rif->sockfd < 0)
+    {
+      fprintf (shell->terminal,
+               "Cannot find router interface for vswitch %d%s",
+               vswitch_id, shell->NL);
+      return CMD_FAILURE;
+    }
+  if (igmp_version_set (rif->tap_name, version) < 0)
+    {
+      fprintf (shell->terminal,
+               "Failed to set IGMP version %d on %s: %s%s",
+               version, rif->tap_name, strerror (errno), shell->NL);
+      return CMD_FAILURE;
+    }
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (no_set_vswitch_igmp_version,
+              "no set vswitch igmp version <1-4094>",
+              NO_HELP,
+              SET_HELP,
+              "set vswitch information\n",
+              "set vswitch IGMP information\n",
+              "reset IGMP version of the kernel for the vswitch\n",
+              "specify vswitch ID\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  struct router_if *rif;
+  int vswitch_id;
+
+  vswitch_id = atoi (argv[5]);
+  rif = igmp_router_if_lookup (rib, vswitch_id);
+  if (! rif || rif->sockfd < 0)
+    {
+      fprintf (shell->terminal,
+               "Cannot find router interface for vswitch %d%s",
+               vswitch_id, shell->NL);
+      return CMD_FAILURE;
+    }
+  if (igmp_version_set (rif->tap_name, 0) < 0)
+    {
+      fprintf (shell->terminal,
+               "Failed to reset IGMP version on %s: %s%s",
+               rif->tap_name, strerror (errno), shell->NL);
+      return CMD_FAILURE;
+    }
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (show_igmp_version,
+              "show igmp version",
+              SHOW_HELP,
+              "show IGMP information\n",
+              "show IGMP version of the kernel\n"
+              )
+{
+  struct shell *shell = (struct shell *) context;
+  struct rib *rib = rib_tlocal;
+  int i, version;
+
+  if (! rib || ! rib->rib_info)
+    return CMD_SUCCESS;
+
+  fprintf (shell->terminal, "%-10s %-16s %-10s%s",
+           "VSwitchID", "TapName", "Version", shell->NL);
+  for (i = 0; i < rib->rib_info->vswitch_size; i++)
+    {
+      struct vswitch_conf *vswitch = &rib->rib_info->vswitch[i];
+      struct router_if *rif = &vswitch->router_if;
+      char version_str[16];
+
+      if (vswitch->is_deleted || rif->sockfd < 0)
+        continue;
+      version = igmp_version_get (rif->tap_name);
+      if (version < 0)
+        snprintf (version_str, sizeof (version_str), "unknown");
+      else if (version == 0)
+        snprintf (version_str, sizeof (version_str), "auto");
+      else
+        snprintf (version_str, sizeof (version_str), "%d", version);
+      fprintf (shell->terminal, "%-10d %-16s %-10s%s",
+               vswitch->vswitch_id, rif->tap_name, version_str, shell->NL);
+    }
+  return CMD_SUCCESS;
+}
 
 void igmp_cmd_init (struct command_set *cmdset)
 {
   INSTALL_COMMAND2 (cmdset, set_vswitch_igmp_join);
   INSTALL_COMMAND2 (cmdset, no_set_vswitch_igmp_join);
   INSTALL_COMMAND2 (cmdset, show_igmp_join);
+  INSTALL_COMMAND2 (cmdset, set_igmp_report_interval);
+  INSTALL_COMMAND2 (cmdset, no_set_igmp_report_interval);
+  INSTALL_COMMAND2 (cmdset, set_vswitch_igmp_version);
+  INSTALL_COMMAND2 (cmdset, no_set_vswitch_igmp_version);
+  INSTALL_COMMAND2 (cmdset, show_igmp_version);
 }

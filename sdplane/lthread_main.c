@@ -49,6 +49,7 @@
 #include "neigh_manager.h"
 #include "thread_info.h"
 #include "dhcp_server.h"
+#include "igmp.h"
 
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
@@ -221,6 +222,18 @@ CLI_COMMAND2 (set_worker_lthread_l3_tap_handler,
   return 0;
 }
 
+CLI_COMMAND2 (set_worker_lthread_igmp_report, "set worker lthread igmp-report",
+              SET_HELP, WORKER_HELP, "lthread information\n", "igmp-report\n")
+{
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) igmp_report, NULL);
+  thread_register (lthread_core, lt, (lthread_func) igmp_report,
+                   "igmp_report", NULL);
+  lthread_detach2 (lt);
+  return 0;
+}
+
 void
 lthread_cmd_init (struct command_set *cmdset)
 {
@@ -231,6 +244,7 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_dhcp_server);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_igmp_snooping);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_l3_tap_handler);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_igmp_report);
 }
 
 int
