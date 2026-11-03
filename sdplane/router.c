@@ -308,6 +308,11 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
   if (IS_DEBUG (ROUTER) || IS_DEBUG (PACKET))
     log_packet (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
 
+  /* This is the code-path that the ARP/NDP packets from Linux tap I/F
+     uses, so we can't do forwarding() on those packets below (otherwise,
+     NDP will not work). The link between sdplane and the Linux TAP I/F
+     is considered as a L2 (or direct) link, rather than L3,
+     so forwarding() cannot be employed. */
 #if 0
   /* check if this is a non-IP packet or multicast or broadcast */
   if ((! ipv4 && ! ipv6) ||
