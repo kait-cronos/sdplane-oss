@@ -189,10 +189,19 @@ l3_tap_handler_handle_packet_down ()
       if (vswitch->router_if.ring_dn)
         {
           struct rte_mempool *mp = l2fwd_pktmbuf_pool;
-          struct rte_mbuf *m = rte_pktmbuf_alloc (mp);
+          struct rte_mbuf *m;
 
-          if (m)
+          m = rte_pktmbuf_alloc (mp);
+          if (! m)
             {
+              WARNING ("rte_pktmbuf_alloc() failed: ring_dn: drop %d bytes",
+                       ret);
+              WARNING ("avail: %d in-use: %d",
+                       rte_mempool_avail_count (mp),
+                       rte_mempool_in_use_count (mp));
+              continue;
+            }
+
               size = ret;
               if (size >= m->buf_len)
                 {
@@ -223,15 +232,6 @@ l3_tap_handler_handle_packet_down ()
                            vswitch_id,
                            vswitch->router_if.sockfd,
                            vswitch->router_if.tap_ring_id);
-            }
-          else
-            {
-              WARNING ("rte_pktmbuf_alloc() failed: ring_dn: drop %d bytes",
-                       ret);
-              WARNING ("avail: %d in-use: %d",
-                       rte_mempool_avail_count (mp),
-                       rte_mempool_in_use_count (mp));
-            }
         }
     }
 }

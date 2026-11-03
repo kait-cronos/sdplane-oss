@@ -1230,9 +1230,10 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
     inet_ntop (family, &nh_info->gw, nexthop_str, sizeof (nexthop_str));
 
   DEBUG_NEW (ROUTING_LOOKUP,
-             "m: %p: routing-lookup: dest: %s nexthop: %s oif: %d", m, dest,
-             nexthop_str, oif);
-  DEBUG_NEW (ROUTER, "m: %p route found: nexthop: %s", m, nexthop_str);
+             "m: %p: routing-lookup: dest: %s nexthop: %s oif: %d",
+             m, dest, nexthop_str, oif);
+  DEBUG_NEW (ROUTER, "m: %p route found: dest: %s nexthop: %s oif: %d",
+             m, dest, nexthop_str, oif);
 
   memcpy (lookup_ip, &nh_info->gw, sizeof (lookup_ip));
   if (IS_DEBUG (ROUTER))
@@ -1363,8 +1364,8 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
     rte_ether_format_addr (neigh_mac_str, sizeof (neigh_mac_str), dst_mac);
   DEBUG_NEW (ROUTER,
              "m: %p neighbor lookup succeeded: "
-             "neighbour: %s lladdr: %s",
-             m, lookup_ip_str, neigh_mac_str);
+             "neighbour: %s lladdr: %s oif: %d",
+             m, lookup_ip_str, neigh_mac_str, oif);
 
   /* search the target vswitch */
   struct vswitch_conf *tx_vswitch = NULL;
