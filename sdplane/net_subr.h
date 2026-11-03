@@ -1095,7 +1095,7 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
   int dst_port = -1, neigh_table_type;
 
   char dest[64];
-  if (IS_DEBUG (ROUTING_LOOKUP))
+  if (IS_DEBUG (ROUTING_LOOKUP) || IS_DEBUG (ROUTER))
     {
       if (ipv4)
         inet_ntop (AF_INET, &ipv4->dst_addr, dest, sizeof (dest));
