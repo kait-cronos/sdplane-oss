@@ -14,7 +14,7 @@
 #include "sdplane.h"
 #include "rib.h"
 #include "rib_manager.h"
-#include "igmp.h"
+#include "igmp_report.h"
 
 // clang-format off
 

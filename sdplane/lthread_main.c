@@ -49,7 +49,7 @@
 #include "neigh_manager.h"
 #include "thread_info.h"
 #include "dhcp_server.h"
-#include "igmp.h"
+#include "igmp_report.h"
 
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>

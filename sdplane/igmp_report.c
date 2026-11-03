@@ -13,7 +13,7 @@
 #include "sdplane.h"
 #include "thread_info.h"
 #include "rib_manager.h"
-#include "igmp.h"
+#include "igmp_report.h"
 
 /* IGMP Report via Kernel by injecting uery */
 
@@ -61,7 +61,7 @@ igmp_query_init (struct igmp_query_frame *f)
   f->eth.src_addr = src;
   f->eth.ether_type = rte_cpu_to_be_16 (RTE_ETHER_TYPE_IPV4);
 
-  // the source 0.0.0.0 is accepted by the kernel without rp_filter.
+  // kernel may not valid the IGMP Packet that source address is 0.0.0.0
   f->ip.version_ihl = (4 << 4) | ((sizeof (f->ip) + sizeof (f->ra)) / 4);
   f->ip.type_of_service = 0xc0;
   f->ip.total_length =
@@ -95,7 +95,7 @@ igmp_report_query_all (struct rib *rib)
       if (! entry->used)
         continue;
 
-      // a general query per router-if is enough.
+      // general query per router-if is enough.
       for (j = 0; j < i; j++)
         if (igmp_join_table[j].used &&
             igmp_join_table[j].vswitch_id == entry->vswitch_id)
@@ -103,7 +103,7 @@ igmp_report_query_all (struct rib *rib)
       if (j < i)
         continue;
 
-      // look up every time, since the tap may be recreated.
+      // look up every time, since the rib may be recreated.
       rif = igmp_router_if_lookup (rib, entry->vswitch_id);
       if (! rif || rif->sockfd < 0)
         continue;
@@ -134,7 +134,7 @@ igmp_report (__rte_unused void *dummy)
 
   while (! force_quit && ! force_stop[lthread_core])
     {
-      lthread_sleep (1000); // yield.
+      lthread_sleep (1000);
       loop_counter_igmp_report++;
 
       if (++elapsed < igmp_report_interval)
@@ -146,7 +146,6 @@ igmp_report (__rte_unused void *dummy)
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
 
-      // must not yield while holding the rib.
       igmp_report_query_all (rib);
 
 #if HAVE_LIBURCU_QSBR

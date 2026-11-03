@@ -1,5 +1,5 @@
-#ifndef __IGMP_H__
-#define __IGMP_H__
+#ifndef __IGMP_REPORT_H__
+#define __IGMP_REPORT_H__
 
 struct rib;
 struct router_if;
@@ -22,4 +22,4 @@ extern int igmp_report_interval;
 struct router_if *igmp_router_if_lookup (struct rib *rib, int vswitch_id);
 int igmp_report (void *dummy);
 
-#endif /* __IGMP_H__ */
+#endif /* __IGMP_REPORT_H__ */
