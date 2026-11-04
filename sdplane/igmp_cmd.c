@@ -56,12 +56,12 @@ igmp_router_if_lookup (struct rib *rib, int vswitch_id)
 }
 
 CLI_COMMAND2 (set_vswitch_igmp_join,
-              "set vswitch igmp join <1-4094> "IPV4_ADDR_SPEC,
+              "set vswitch <1-4094> igmp join "IPV4_ADDR_SPEC,
               SET_HELP,
               "set vswitch information\n",
+              "specify vswitch ID\n",
               "set vswitch IGMP information\n",
               "join IGMP group for the vswitch\n",
-              "specify vswitch ID\n",
               "specify IPv4 multicast group address\n"
               )
 {
@@ -73,7 +73,7 @@ CLI_COMMAND2 (set_vswitch_igmp_join,
   struct ip_mreqn mreq;
   int vswitch_id, fd, i;
 
-  vswitch_id = atoi (argv[4]);
+  vswitch_id = atoi (argv[2]);
   if (inet_pton (AF_INET, argv[5], &group_addr) != 1 ||
    ! IN_MULTICAST (ntohl (group_addr.s_addr)))
     {
@@ -137,13 +137,13 @@ CLI_COMMAND2 (set_vswitch_igmp_join,
 }
 
 CLI_COMMAND2 (no_set_vswitch_igmp_join,
-              "no set vswitch igmp join <1-4094> "IPV4_ADDR_SPEC,
+              "no set vswitch <1-4094> igmp join "IPV4_ADDR_SPEC,
               NO_HELP,
               SET_HELP,
               "set vswitch information\n",
+              "specify vswitch ID\n",
               "set vswitch IGMP information\n",
               "leave IGMP group for the vswitch\n",
-              "specify vswitch ID\n",
               "specify IPv4 multicast group address\n"
               )
 {
@@ -152,7 +152,7 @@ CLI_COMMAND2 (no_set_vswitch_igmp_join,
   struct in_addr group_addr;
   int vswitch_id;
 
-  vswitch_id = atoi (argv[5]);
+  vswitch_id = atoi (argv[3]);
   if (inet_pton (AF_INET, argv[6], &group_addr) != 1 ||
       ! IN_MULTICAST (ntohl (group_addr.s_addr)))
     {
