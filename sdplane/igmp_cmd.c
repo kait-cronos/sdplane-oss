@@ -266,12 +266,12 @@ igmp_version_get (const char *tap_name)
 }
 
 CLI_COMMAND2 (set_vswitch_igmp_version,
-              "set vswitch igmp version <1-4094> <2-3>",
+              "set vswitch <1-4094> igmp version <2-3>",
               SET_HELP,
               "set vswitch information\n",
+              "specify vswitch ID\n",
               "set vswitch IGMP information\n",
               "set IGMP version of the kernel for the vswitch\n",
-              "specify vswitch ID\n",
               "specify IGMP version\n"
               )
 {
@@ -280,7 +280,7 @@ CLI_COMMAND2 (set_vswitch_igmp_version,
   struct router_if *rif;
   int vswitch_id, version;
 
-  vswitch_id = atoi (argv[4]);
+  vswitch_id = atoi (argv[2]);
   version = atoi (argv[5]);
   rif = igmp_router_if_lookup (rib, vswitch_id);
   if (! rif || rif->sockfd < 0)
@@ -301,13 +301,13 @@ CLI_COMMAND2 (set_vswitch_igmp_version,
 }
 
 CLI_COMMAND2 (no_set_vswitch_igmp_version,
-              "no set vswitch igmp version <1-4094>",
+              "no set vswitch <1-4094> igmp version",
               NO_HELP,
               SET_HELP,
               "set vswitch information\n",
+              "specify vswitch ID\n",
               "set vswitch IGMP information\n",
-              "reset IGMP version of the kernel for the vswitch\n",
-              "specify vswitch ID\n"
+              "reset IGMP version of the kernel for the vswitch\n"
               )
 {
   struct shell *shell = (struct shell *) context;
@@ -315,7 +315,7 @@ CLI_COMMAND2 (no_set_vswitch_igmp_version,
   struct router_if *rif;
   int vswitch_id;
 
-  vswitch_id = atoi (argv[5]);
+  vswitch_id = atoi (argv[3]);
   rif = igmp_router_if_lookup (rib, vswitch_id);
   if (! rif || rif->sockfd < 0)
     {
