@@ -13,6 +13,7 @@
 #include "neigh_manager.h"
 #include "rib_manager.h"
 #include "fdb.h"
+#include "igmp_snooping.h"
 #include "packet_hdr.h"
 #include "log_packet.h"
 #include "control_packet.h"
@@ -493,7 +494,7 @@ _flooding (struct rte_mbuf *m,
            uint16_t rx_portid, uint16_t rx_queueid,
            struct vswitch_link *rx_link,
            struct vswitch_conf *vswitch,
-           bool consume)
+           uint64_t port_bitmap, bool consume)
 {
   unsigned tx_queueid = lcore_id;
   uint16_t nb_ports = _nb_ports_cached ();
@@ -509,12 +510,20 @@ _flooding (struct rte_mbuf *m,
       return false;
     }
 
-  /* flood to all ports in the same vswitch */
+  /* Send to selected ports in the same vswitch */
   for (int i = 0; i < vswitch->vswitch_port_size; i++)
     {
       uint16_t link_id = vswitch->vswitch_link_id[i];
       struct vswitch_link *link = &rib->rib_info->vswitch_link[link_id];
       unsigned tx_portid = link->port_id;
+
+      if (tx_portid >= MAX_ETH_PORTS)
+        continue;
+
+      /* skip if the port is not in the port bitmap */
+      if (port_bitmap != FLOOD_ALL_PORTS &&
+          ! (port_bitmap & (UINT64_C (1) << tx_portid)))
+        continue;
 
       /* skip if the tx_port is stopped */
       if (unlikely (rib->rib_info->port[tx_portid].is_stopped))
@@ -602,11 +611,18 @@ _switching (struct rte_mbuf *m,
     }
 
   /* check if destination MAC is multicast or broadcast */
-  if (rte_is_multicast_ether_addr (&eth->dst_addr) ||
-      rte_is_broadcast_ether_addr (&eth->dst_addr))
+  bool broadcast = rte_is_broadcast_ether_addr (&eth->dst_addr);
+  bool multicast = rte_is_multicast_ether_addr (&eth->dst_addr);
+  if (broadcast || multicast)
     {
-      DEBUG_NEW (ROUTER, "m: %p L2 switching: ether broadcast/multicast, flooding", m);
-      return _flooding (m, rx_portid, rx_queueid, rx_link, vswitch, consume);
+      uint64_t port_bitmap = FLOOD_ALL_PORTS;
+
+      if (! broadcast)
+        port_bitmap = igmp_snooping_select_ports (m, rib->rib_info, vswitch);
+
+      DEBUG_NEW (ROUTER, "m: %p L2 switching: ether broadcast/multicast", m);
+      return _flooding (m, rx_portid, rx_queueid, rx_link, vswitch,
+                        port_bitmap, consume);
     }
 
   /* switching: just before the fdb-lookup */
@@ -657,7 +673,8 @@ _switching (struct rte_mbuf *m,
     }
 
   DEBUG_NEW (ROUTER, "m: %p L2 switching: dst MAC not learned, flooding", m);
-  return _flooding (m, rx_portid, rx_queueid, rx_link, vswitch, consume);
+  return _flooding (m, rx_portid, rx_queueid, rx_link, vswitch,
+                    FLOOD_ALL_PORTS, consume);
 }
 
 
@@ -986,7 +1003,8 @@ _forwarding (struct rte_mbuf *m,
                     }
 
                   _flooding (arp_pkt, ROUTER_IF_RX_SELF_PORT_ID,
-                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs, false);
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs,
+                             FLOOD_ALL_PORTS, false);
 
                   rte_pktmbuf_free (arp_pkt);
                 }
@@ -1011,7 +1029,8 @@ _forwarding (struct rte_mbuf *m,
                                  m, ns_pkt, dst_ip_str, vs->vswitch_id);
                     }
                   _flooding (ns_pkt, ROUTER_IF_RX_SELF_PORT_ID,
-                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs, false);
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs,
+                             FLOOD_ALL_PORTS, false);
 
                   rte_pktmbuf_free (ns_pkt);
                 }
@@ -1321,7 +1340,8 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                     }
 
                   _flooding (arp_pkt, ROUTER_IF_RX_SELF_PORT_ID,
-                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs, false);
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs,
+                             FLOOD_ALL_PORTS, false);
 
                   rte_pktmbuf_free (arp_pkt);
                 }
@@ -1346,7 +1366,8 @@ _srv6_forwarding (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid,
                                  m, ns_pkt, dst_ip_str, vs->vswitch_id);
                     }
                   _flooding (ns_pkt, ROUTER_IF_RX_SELF_PORT_ID,
-                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs, false);
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs,
+                             FLOOD_ALL_PORTS, false);
 
                   rte_pktmbuf_free (ns_pkt);
                 }
@@ -1756,7 +1777,8 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid,
                     }
 
                   _flooding (arp_pkt, ROUTER_IF_RX_SELF_PORT_ID,
-                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs, false);
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs,
+                             FLOOD_ALL_PORTS, false);
 
                   rte_pktmbuf_free (arp_pkt);
                 }
@@ -1781,7 +1803,8 @@ _srv6_dx_forwarding (struct rte_mbuf *m, unsigned rx_portid,
                                  m, ns_pkt, dst_ip_str, vs->vswitch_id);
                     }
                   _flooding (ns_pkt, ROUTER_IF_RX_SELF_PORT_ID,
-                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs, false);
+                             ROUTER_IF_RX_SELF_QUEUE_ID, NULL, vs,
+                             FLOOD_ALL_PORTS, false);
 
                   rte_pktmbuf_free (ns_pkt);
                 }

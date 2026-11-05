@@ -32,6 +32,7 @@
 #include "internal_message.h"
 #include "log_packet.h"
 #include "mdb.h"
+#include "igmp_snooping.h"
 
 #include <netinet/igmp.h>
 
@@ -246,7 +247,7 @@ igmp_snooping_select_ports (const struct rte_mbuf *m,
   dst = rte_be_to_cpu_32(ipv4.dst_addr);
 
   if (! IN_MULTICAST (dst))
-    return false;
+    return 0;
 
   return mdb_lookup_entry(rib_info, ipv4.dst_addr, vswitch->vswitch_id);
 }

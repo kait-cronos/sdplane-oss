@@ -30,9 +30,7 @@
 #include "thread_info.h"
 #include "rte_override.h"
 #include "log_packet.h"
-
-void igmp_snooping_learn (const struct rte_mbuf *m, unsigned rx_portid,
-                          uint16_t vswitch_id);
+#include "igmp_snooping.h"
 
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;

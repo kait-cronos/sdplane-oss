@@ -35,14 +35,8 @@
 #include "sdplane.h"
 #include "rib_manager.h"
 #include "fdb.h"
+#include "igmp_snooping.h"
 #include "thread_info.h"
-
-void igmp_snooping_learn (const struct rte_mbuf *m, unsigned rx_portid,
-                          uint16_t vswitch_id);
-
-uint64_t igmp_snooping_select_ports (const struct rte_mbuf *m,
-                                     const struct rib_info *rib_info,
-                                     const struct vswitch_conf *vswitch);
 
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
@@ -357,7 +351,9 @@ l2_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
               continue;
             }
 
-          if (ports != 0 && !(ports & (UINT64_C(1) << tx_portid)))
+          /* skip if the port is not in the port bitmap */
+          if (ports != FLOOD_ALL_PORTS &&
+              !(ports & (UINT64_C(1) << tx_portid)))
             continue;
 
           /* skip if the tx_port is stopped. */
@@ -545,7 +541,9 @@ l2_switch_tx_burst ()
               if (vswitch_link->vswitch_id != vswitch->vswitch_id)
                 continue;
 
-              if (ports != 0 && !(ports & (UINT64_C(1) << vswitch_link->port_id)))
+              /* skip if the port is not in the port bitmap */
+              if (ports != FLOOD_ALL_PORTS &&
+                  !(ports & (UINT64_C(1) << vswitch_link->port_id)))
                 continue;
 
               l2_switch_send_link (m,
