@@ -6,6 +6,7 @@
 
 #include <lthread.h>
 
+#include <rte_byteorder.h>
 #include <rte_common.h>
 #include <rte_ip.h>
 #include <rte_ring.h>
@@ -30,6 +31,7 @@
 #include "rib_manager.h"
 #include "internal_message.h"
 #include "log_packet.h"
+#include "mdb.h"
 
 #include <netinet/igmp.h>
 
@@ -93,26 +95,24 @@ is_igmp_packet (struct rte_mbuf *m)
 }
 
 static bool
-igmp_report_parse (const struct rte_mbuf *m, uint32_t *group_addr)
+igmp_snooping_ip_parse (const struct rte_mbuf *m,
+                        struct rte_ipv4_hdr *ipv4_out,
+                        uint32_t *payload_offset,
+                        uint32_t *payload_len)
 {
   struct rte_ether_hdr eth_buf;
   struct rte_vlan_hdr vlan_buf;
   struct rte_ipv4_hdr ipv4_buf;
-  struct igmp igmp_buf;
 
   const struct rte_ether_hdr *eth;
   const struct rte_vlan_hdr *vlan;
   const struct rte_ipv4_hdr *ipv4;
-  const struct igmp *igmp;
 
-  uint32_t eth_type;
+  uint16_t eth_type;
   uint32_t offset;
   uint32_t ip_hlen;
   uint32_t ip_len;
-  uint32_t group;
-
-  if (! m || ! group_addr)
-    return false;
+  uint32_t packet_len;
 
   eth = rte_pktmbuf_read (m, 0, sizeof (eth_buf), &eth_buf);
   if (! eth)
@@ -123,7 +123,8 @@ igmp_report_parse (const struct rte_mbuf *m, uint32_t *group_addr)
 
   if (eth_type == RTE_ETHER_TYPE_VLAN)
     {
-      vlan = rte_pktmbuf_read (m, offset, sizeof (vlan_buf), &vlan_buf);
+      vlan = rte_pktmbuf_read (m, offset, sizeof (vlan_buf),
+                              &vlan_buf);
       if (! vlan)
         return false;
 
@@ -134,20 +135,53 @@ igmp_report_parse (const struct rte_mbuf *m, uint32_t *group_addr)
   if (eth_type != RTE_ETHER_TYPE_IPV4)
     return false;
 
-  ipv4 = rte_pktmbuf_read (m, offset, sizeof (ipv4_buf), &ipv4_buf);
+  ipv4 = rte_pktmbuf_read (m, offset, sizeof (ipv4_buf),
+                          &ipv4_buf);
   if (! ipv4)
     return false;
 
-  if (ipv4->next_proto_id != IPPROTO_IGMP)
+  if ((ipv4->version_ihl >> 4) != 4)
     return false;
 
   ip_hlen = rte_ipv4_hdr_len (ipv4);
-  if (ip_hlen < sizeof (ipv4_buf))
+  ip_len = rte_be_to_cpu_16 (ipv4->total_length);
+  packet_len = rte_pktmbuf_pkt_len (m);
+
+  if (ip_hlen < sizeof (ipv4_buf) ||
+      ip_len < ip_hlen ||
+      ip_len > packet_len - offset)
     return false;
 
-  offset += ip_hlen;
+  *ipv4_out = *ipv4;
+  *payload_offset = offset + ip_hlen;
+  *payload_len = ip_len - ip_hlen;
 
-  igmp = rte_pktmbuf_read (m, offset, sizeof (igmp_buf), &igmp_buf);
+  return true;
+}
+
+static bool
+igmp_report_parse (const struct rte_mbuf *m, uint32_t *group_addr)
+{
+  struct rte_ipv4_hdr ipv4;
+  struct igmp igmp_buf;
+  const struct igmp *igmp;
+
+  uint32_t payload_offset;
+  uint32_t payload_len;
+  uint32_t group;
+  bool parsed;
+
+  parsed = igmp_snooping_ip_parse(m, &ipv4, &payload_offset, &payload_len);
+  if (! parsed)
+    return false;
+
+  if (ipv4.next_proto_id != IPPROTO_IGMP)
+    return false;
+  
+  if (payload_len < sizeof (igmp_buf))
+    return false;
+
+  igmp = rte_pktmbuf_read (m, payload_offset, sizeof (igmp_buf), &igmp_buf);
   if (! igmp)
     return false;
 
@@ -188,6 +222,33 @@ igmp_snooping_learn (const struct rte_mbuf *m, unsigned rx_portid,
 
   if (msgp)
     rib_send_message (msgp);
+}
+
+uint64_t
+igmp_snooping_select_ports (const struct rte_mbuf *m,
+                            const struct rib_info *rib_info,
+                            const struct vswitch_conf *vswitch)
+{
+  struct rte_ipv4_hdr ipv4;
+  uint32_t payload_offset;
+  uint32_t payload_len;
+  uint32_t dst;
+  bool parsed;
+
+  parsed = igmp_snooping_ip_parse(m, &ipv4, &payload_offset, &payload_len);
+  if (! parsed)
+    return 0;
+
+  if (ipv4.next_proto_id == IPPROTO_IGMP ||
+      ipv4.next_proto_id == IPPROTO_PIM)
+    return 0;
+
+  dst = rte_be_to_cpu_32(ipv4.dst_addr);
+
+  if (! IN_MULTICAST (dst))
+    return false;
+
+  return mdb_lookup_entry(rib_info, ipv4.dst_addr, vswitch->vswitch_id);
 }
 
 static inline __attribute__ ((always_inline)) void

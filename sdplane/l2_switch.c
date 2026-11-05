@@ -15,6 +15,7 @@
 #include <rte_ethdev.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
+#include <stdint.h>
 
 #ifndef RTE_VLAN_TCI_ID
 #define RTE_VLAN_TCI_ID(vlan_tci) ((vlan_tci) & 0x0fff)
@@ -38,6 +39,10 @@
 
 void igmp_snooping_learn (const struct rte_mbuf *m, unsigned rx_portid,
                           uint16_t vswitch_id);
+
+uint64_t igmp_snooping_select_ports (const struct rte_mbuf *m,
+                                     const struct rib_info *rib_info,
+                                     const struct vswitch_conf *vswitch);
 
 static __thread unsigned lcore_id;
 static __thread struct rib *rib = NULL;
@@ -335,6 +340,9 @@ l2_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
 
       igmp_snooping_learn (m, rx_portid, vswitch->vswitch_id);
 
+      uint64_t ports;
+      ports = igmp_snooping_select_ports(m, rib->rib_info, vswitch);
+
       for (i = 0; i < vswitch->vswitch_port_size; i++)
         {
           uint16_t vswitch_link_id = vswitch->vswitch_link_id[i];
@@ -348,6 +356,9 @@ l2_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
               DEBUG_SDPLANE_LOG (L2_SWITCH, "m: %p split horizon.", m);
               continue;
             }
+
+          if (ports != 0 && !(ports & (UINT64_C(1) << tx_portid)))
+            continue;
 
           /* skip if the tx_port is stopped. */
           if (unlikely (rib->rib_info->port[tx_portid].is_stopped))
@@ -520,6 +531,9 @@ l2_switch_tx_burst ()
 
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
 
+          uint64_t ports;
+          ports = igmp_snooping_select_ports (m, rib->rib_info, vswitch);
+
           for (j = 0; j < vswitch->vswitch_port_size; j++)
             {
               vswitch_link_id = vswitch->vswitch_link_id[j];
@@ -529,6 +543,9 @@ l2_switch_tx_burst ()
               vswitch_link = &rib->rib_info->vswitch_link[vswitch_link_id];
 
               if (vswitch_link->vswitch_id != vswitch->vswitch_id)
+                continue;
+
+              if (ports != 0 && !(ports & (UINT64_C(1) << vswitch_link->port_id)))
                 continue;
 
               l2_switch_send_link (m,
