@@ -26,3 +26,8 @@ override_dh_auto_install:
 	  find debian/sdplane/usr/lib -name 'libsdplane.*' -delete
 	[ ! -d debian/sdplane/usr/lib ] || \
 	  find debian/sdplane/usr/lib -type d -empty -delete
+
+# do not enable or start sdplane on install; it needs to be configured
+# first (/etc/sdplane/sdplane.conf, NICs, hugepages).
+override_dh_installsystemd:
+	dh_installsystemd --no-enable --no-start
