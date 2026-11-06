@@ -13,6 +13,10 @@ SDPLANE_OSS_REPO="${SDPLANE_OSS_REPO:-git@github.com:kait-cronos/sdplane-oss.git
 
 BRANCH="$(date +%Y-%m-%d)"
 
+# oss-build/ next to this script holds the oss-specific files.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OSS_BUILD_DIR="$SCRIPT_DIR/oss-build"
+
 FILES_TO_REMOVE=(
     ai-workspace
     CLAUDE.md
@@ -36,6 +40,17 @@ OSS_BUILD_FILES=(
     sdplane/Makefile.am
 )
 
+# packaging files owned by sdplane-oss (one package, lib/ bundled).
+# they are overwritten with oss-build/ after merging sdplane-dev;
+# see apply_oss_packaging_files. to add an oss-specific file, put it in
+# oss-build/ and list it here.
+OSS_PACKAGING_FILES=(
+    build-debian.sh
+    tools/deb/build-in-container.sh
+    debian/control
+    debian/rules
+)
+
 # ---------------------------------------------------------------------------
 # logging
 # ---------------------------------------------------------------------------
@@ -52,7 +67,8 @@ if [ $# -lt 1 ] || [ $# -gt 2 ]; then
     echo "  step1: clone sdplane-dev, sdplane-oss and create branch $BRANCH" >&2
     echo "  step2: merge lib/ from libsdplane-dev" >&2
     echo "  step3: merge sdplane-dev" >&2
-    echo "  step4: check oss build files, remove internal-only files" >&2
+    echo "  step4: check oss build files, apply oss packaging files," >&2
+    echo "         remove internal-only files" >&2
     echo "  (no step: run all; stops at a merge conflict)" >&2
     exit 1
 fi
@@ -112,6 +128,8 @@ merge_sdplane() {
     # NOTE: when resolving conflicts in OSS_BUILD_FILES, keep the oss side
     # (lib/ bundled: ../lib/libsdplane.la, -I$(LIBSDPLANE_DIR), SUBDIRS = lib sdplane)
     # and take only the new sources/options from sdplane-dev.
+    # conflicts in OSS_PACKAGING_FILES may be resolved either way; step4
+    # overwrites them with oss-build/.
     git merge sdplane-dev/main \
         -m "integrate all from sdplane-dev" \
         || error "merge stopped. resolve conflicts (keep oss side of ${OSS_BUILD_FILES[*]}), 'git commit', then run: $0 $WORKDIR step4"
@@ -145,7 +163,7 @@ check_oss_build_files() {
     [ $ng -eq 0 ] || error "oss build files look wrong (dev side taken in merge?). fix them, commit, and rerun step4."
 
     # for review: differences from the reference oss build files
-    local ref="$WORKDIR/sdplane-dev/tools/update-oss/oss-build"
+    local ref="$OSS_BUILD_DIR"
     if [ -d "$ref" ]; then
         local f
         for f in "${OSS_BUILD_FILES[@]}"; do
@@ -155,6 +173,28 @@ check_oss_build_files() {
             fi
         done
     fi
+}
+
+apply_oss_packaging_files() {
+    cd "$WORKDIR"
+    cd sdplane-oss
+
+    [ -d "$OSS_BUILD_DIR" ] || error "$OSS_BUILD_DIR not found"
+
+    local f
+    for f in "${OSS_PACKAGING_FILES[@]}"; do
+        [ -f "$OSS_BUILD_DIR/$f" ] || error "oss-build/$f not found"
+        # show what sdplane-dev changed, which is dropped here. if it is
+        # needed for oss too (e.g. a new Build-Depends), update oss-build/.
+        if [ -e "$f" ] && ! diff -q "$f" "$OSS_BUILD_DIR/$f" >/dev/null; then
+            info "$f: replaced with oss-build/$f (review the dropped changes):"
+            diff -u "$f" "$OSS_BUILD_DIR/$f" || true
+        fi
+        mkdir -p "$(dirname "$f")"
+        cp -p "$OSS_BUILD_DIR/$f" "$f"
+        git add "$f"
+    done
+    git diff --cached --quiet || git commit -m "apply oss packaging files"
 }
 
 check_license_headers() {
@@ -214,6 +254,7 @@ step4() {
     echo " sdplane-oss integration script: step 4"
     echo "============================================"
     check_oss_build_files
+    apply_oss_packaging_files
     remove_internal_files
     check_license_headers
 }
@@ -229,6 +270,7 @@ if [ $# -lt 2 ]; then
     merge_libsdplane
     merge_sdplane
     check_oss_build_files
+    apply_oss_packaging_files
     remove_internal_files
     check_license_headers
 else
