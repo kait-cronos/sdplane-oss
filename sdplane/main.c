@@ -164,9 +164,15 @@ process_init ()
             sizeof (process_status.pid_file_path),
             "%s", pid_path);
   gettimeofday (&process_status.start_time, NULL);
+#ifdef HAVE_SDPLANE_LIBSDPLANE_VERSION_H
   snprintf (process_status.version_libsdplane,
             sizeof (process_status.version_libsdplane),
             "%s", libsdplane_version);
+#else
+  snprintf (process_status.version_libsdplane,
+            sizeof (process_status.version_libsdplane),
+            "%s", "unknown");
+#endif /*HAVE_SDPLANE_LIBSDPLANE_VERSION_H*/
   snprintf (process_status.version_sdplane,
             sizeof (process_status.version_sdplane),
             "%s", sdplane_version);
