@@ -17,3 +17,8 @@ override_dh_auto_configure:
 
 #override_dh_install:
 #	dh_install --list-missing -X.pyc -X.pyo
+
+# do not enable or start sdplane on install; it needs to be configured
+# first (/etc/sdplane/sdplane.conf, NICs, hugepages).
+override_dh_installsystemd:
+	dh_installsystemd --no-enable --no-start
