@@ -159,7 +159,25 @@ vty_shell (void *arg)
   snprintf (prompt, sizeof (prompt), "vty[%d]> ", client->id);
 
   shell = command_shell_create ();
+  if (! shell)
+    {
+      WARNING ("vty[%d]: command_shell_create() failed.", client->id);
+      lthread_close (client->fd);
+      client->fd = -1;
+      thread_unregister_loop_counter (thread_id);
+      thread_unregister (thread_id);
+      return;
+    }
   shell_set_terminal (shell, client->fd, client->fd);
+  if (! shell->terminal)
+    {
+      WARNING ("vty[%d]: fdopen() failed: %s.", client->id, strerror (errno));
+      command_shell_delete (shell);
+      client->fd = -1;
+      thread_unregister_loop_counter (thread_id);
+      thread_unregister (thread_id);
+      return;
+    }
   shell_set_prompt (shell, prompt);
   // get_winsize (shell);
   shell->pager = true;
@@ -260,7 +278,7 @@ vty_shell (void *arg)
 
   rte_ring_free (ring_resp);
 
-  lthread_close (client->fd);
+  command_shell_delete (shell);
   client->fd = -1;
 
   thread_unregister_loop_counter (thread_id);
