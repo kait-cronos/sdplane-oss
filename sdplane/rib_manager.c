@@ -472,8 +472,6 @@ rib_info_create (struct rib_info *old)
   if (! old)
     {
       memset (new, 0, sizeof (struct rib_info));
-      for (i = 0; i < ROUTE_TREE_SIZE; i++)
-        new->fib_tree[i] = fib_new (NULL);
       for (i = 0; i < MAX_ETH_PORTS; i++)
         new->port[i].dpdk_port_id = i;
       if (fdb_table_init (&new->fdb_table) < 0)
@@ -491,8 +489,6 @@ rib_info_create (struct rib_info *old)
   else
     {
       memcpy (new, old, sizeof (struct rib_info));
-      for (i = 0; i < ROUTE_TREE_SIZE; i++)
-        new->fib_tree[i] = fib_new (NULL);
       /* deep-copy the FDB table */
       if (fdb_table_copy (&new->fdb_table, &old->fdb_table) < 0)
         {
@@ -507,6 +503,19 @@ rib_info_create (struct rib_info *old)
         }
     }
 
+  for (i = 0; i < ROUTE_TREE_SIZE; i++)
+    {
+      new->fib_tree[i] = fib_new (NULL);
+      if (! new->fib_tree[i])
+        {
+          for (int j = 0; j < i; j++)
+            fib_free (new->fib_tree[j]);
+          fdb_table_destroy (&new->fdb_table);
+          mdb_table_destroy (&new->mdb_table);
+          free (new);
+          return NULL;
+        }
+    }
   new->ver++;
   return new;
 }
@@ -552,6 +561,11 @@ rib_create (struct rib *old)
       new->rib_info = rib_info_create (old->rib_info);
     }
 
+  if (! new->rib_info)
+    {
+      free (new);
+      return NULL;
+    }
   return new;
 }
 
@@ -1211,6 +1225,12 @@ rib_manager_process_message (void *msgp)
 #endif /*HAVE_LIBURCU_QSBR*/
 
   new = rib_create (old);
+  if (! new)
+    {
+      WARNING ("cannot allocate RIB update");
+      free (msgp);
+      return;
+    }
 
   /* related neigh table */
   struct neigh_table *neigh_table;
