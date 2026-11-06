@@ -13,6 +13,10 @@ make docker
 
 You can see the test logs in `tests/logs` directory.
 
+### Route nexthop references
+
+See [route nexthop reference tests](route-nexthop-references/README.md) for route replacement, deletion, registration failure and SRv6 local SID checks.
+
 ### RIB allocation failures
 
 See [RIB allocation failure test](rib-allocation-failure/README.md) for failure injection checks and ASan/UBSan execution instructions.

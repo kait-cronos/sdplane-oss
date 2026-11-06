@@ -221,6 +221,19 @@ rib_route_lookup (struct rib_tree *t, const uint8_t *key)
   return _lookup (t->root, NULL, key, 0);
 }
 
+/* Route updates own an exact stored prefix, never its shorter LPM fallback. */
+struct rib_node *
+rib_route_lookup_exact (struct rib_tree *t, const uint8_t *key, int keylen)
+{
+  if (! t || keylen < 0 || keylen > (t->family == AF_INET ? 32 : 128))
+    return NULL;
+
+  struct rib_node *n = t->root;
+  for (int depth = 0; n && depth < keylen; depth++)
+    n = BIT_CHECK (key, depth) ? n->right : n->left;
+  return n && n->valid ? n : NULL;
+}
+
 /* traverse RIB tree */
 static int
 _traverse (struct rib_node *n, rib_traverse_callback callback, void *arg)
