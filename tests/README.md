@@ -13,6 +13,10 @@ make docker
 
 You can see the test logs in `tests/logs` directory.
 
+### RIB allocation failures
+
+See [RIB allocation failure test](rib-allocation-failure/README.md) for failure injection checks and ASan/UBSan execution instructions.
+
 ### Netlink receive buffer
 
 See [Netlink receive buffer tests](netlink-receive-buffer/README.md) for buffer configuration, socket isolation and error handling checks.
