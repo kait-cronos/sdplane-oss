@@ -1,6 +1,11 @@
 #include "include.h"
 
+#include <limits.h>
 #include <lthread.h>
+#include <pthread.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
 
 /* for sdplane debug log */
 #include <sdplane/debug.h>
@@ -32,7 +37,8 @@
 
 #include "rib.h"
 
-#define NETLINK_RCVBUF_SIZE (1024 * 1024)
+static int netlink_rcvbuf_size = 1024 * 1024;
+static pthread_mutex_t netlink_rcvbuf_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
@@ -50,6 +56,104 @@ struct netlink_sock
 
 struct netlink_sock netlink_kernel = { -1, 0, { 0 }, "netlink-kernel" };
 struct netlink_sock netlink_cmd = { -1, 0, { 0 }, "netlink-cmd" };
+
+static int
+netlink_set_rcvbuf (int sockfd, int requested, FILE *output, const char *nl)
+{
+  if (setsockopt (sockfd, SOL_SOCKET, SO_RCVBUF, &requested,
+                  sizeof (requested)) < 0)
+    {
+      fprintf (output, "can't set netlink-kernel socket SO_RCVBUF: %s%s",
+               strerror (errno), nl);
+      return -1;
+    }
+  return 0;
+}
+
+static int
+netlink_show_rcvbuf (int sockfd, int requested, FILE *output, const char *nl,
+                     bool quiet)
+{
+  int actual;
+  socklen_t optlen = sizeof (actual);
+  if (getsockopt (sockfd, SOL_SOCKET, SO_RCVBUF, &actual, &optlen) < 0)
+    {
+      fprintf (output, "can't get netlink-kernel socket SO_RCVBUF: %s%s",
+               strerror (errno), nl);
+      return -1;
+    }
+  if (! quiet)
+    fprintf (output,
+             "Netlink receive buffer: requested %d bytes, actual %d "
+             "bytes (doubled by Linux)%s",
+             requested, actual, nl);
+  if (actual < 2 * requested)
+    fprintf (output,
+             "netlink-kernel socket receive buffer limited to %d bytes "
+             "(requested %d bytes, doubled by Linux); "
+             "check net.core.rmem_max%s",
+             actual, requested, nl);
+  return 0;
+}
+
+/* The CLI maximum is INT_MAX / 2 because Linux doubles SO_RCVBUF. */
+CLI_COMMAND2 (set_netlink_receive_buffer,
+              "set netlink receive-buffer <1-1073741823>", SET_HELP,
+              "Netlink configuration\n",
+              "set notification socket receive buffer\n",
+              "requested buffer size in bytes\n")
+{
+  struct shell *shell = (struct shell *) context;
+  char *end;
+  errno = 0;
+  long requested = strtol (argv[3], &end, 10);
+  if (errno || *end || end == argv[3] || requested < 1 ||
+      requested > INT_MAX / 2)
+    {
+      fprintf (shell->terminal, "Invalid receive buffer size%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  pthread_mutex_lock (&netlink_rcvbuf_mutex);
+  if (netlink_kernel.sockfd >= 0 &&
+      netlink_set_rcvbuf (netlink_kernel.sockfd, requested, shell->terminal,
+                          shell->NL) < 0)
+    {
+      pthread_mutex_unlock (&netlink_rcvbuf_mutex);
+      return CMD_FAILURE;
+    }
+  netlink_rcvbuf_size = requested;
+  if (netlink_kernel.sockfd >= 0)
+    netlink_show_rcvbuf (netlink_kernel.sockfd, netlink_rcvbuf_size,
+                         shell->terminal, shell->NL, true);
+  pthread_mutex_unlock (&netlink_rcvbuf_mutex);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (show_netlink_receive_buffer, "show netlink receive-buffer",
+              SHOW_HELP, "Netlink information\n",
+              "show notification socket receive buffer\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int ret = 0;
+  pthread_mutex_lock (&netlink_rcvbuf_mutex);
+  if (netlink_kernel.sockfd < 0)
+    fprintf (shell->terminal,
+             "Netlink receive buffer: requested %d bytes (socket not open)%s",
+             netlink_rcvbuf_size, shell->NL);
+  else
+    ret = netlink_show_rcvbuf (netlink_kernel.sockfd, netlink_rcvbuf_size,
+                               shell->terminal, shell->NL, false);
+  pthread_mutex_unlock (&netlink_rcvbuf_mutex);
+  return ret < 0 ? CMD_FAILURE : CMD_SUCCESS;
+}
+
+void
+netlink_cmd_init (struct command_set *cmdset)
+{
+  INSTALL_COMMAND2 (cmdset, set_netlink_receive_buffer);
+  INSTALL_COMMAND2 (cmdset, show_netlink_receive_buffer);
+}
 
 int
 netlink_socket (struct netlink_sock *nlsock, unsigned long groups)
@@ -81,25 +185,8 @@ netlink_socket (struct netlink_sock *nlsock, unsigned long groups)
   if (groups)
     {
       /* Buffer notifications through startup and initial dumps. */
-      int rcvbuf = NETLINK_RCVBUF_SIZE;
-      socklen_t optlen = sizeof (rcvbuf);
-
-      ret =
-          setsockopt (sockfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof (rcvbuf));
-      if (ret < 0)
-        fprintf (stderr, "can't set %s socket SO_RCVBUF: %s\n", nlsock->name,
-                 strerror (errno));
-
-      ret = getsockopt (sockfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, &optlen);
-      if (ret < 0)
-        fprintf (stderr, "can't get %s socket SO_RCVBUF: %s\n", nlsock->name,
-                 strerror (errno));
-      else if (rcvbuf < 2 * NETLINK_RCVBUF_SIZE)
-        fprintf (stderr,
-                 "%s socket receive buffer limited to %d bytes "
-                 "(requested %d bytes, doubled by Linux); "
-                 "check net.core.rmem_max\n",
-                 nlsock->name, rcvbuf, NETLINK_RCVBUF_SIZE);
+      netlink_set_rcvbuf (sockfd, netlink_rcvbuf_size, stderr, "\n");
+      netlink_show_rcvbuf (sockfd, netlink_rcvbuf_size, stderr, "\n", true);
     }
 
   memset (&snl, 0, sizeof (snl));
@@ -1512,7 +1599,10 @@ netlink_thread (void *arg)
   listen_groups |= RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_IFADDR;
   listen_groups |= RTMGRP_NEIGH;
   listen_groups |= 1 << (RTNLGRP_NEXTHOP - 1);
+  /* Keep CLI updates from being lost while creating the socket. */
+  pthread_mutex_lock (&netlink_rcvbuf_mutex);
   netlink_socket (&netlink_kernel, listen_groups);
+  pthread_mutex_unlock (&netlink_rcvbuf_mutex);
   netlink_socket (&netlink_cmd, 0);
 
   /* wait for startup_config to complete before subscribing to routes */
