@@ -510,7 +510,7 @@ _flooding (struct rte_mbuf *m,
       return false;
     }
 
-  /* Send to selected ports in the same vswitch */
+  /* send to selected ports in the same vswitch */
   for (int i = 0; i < vswitch->vswitch_port_size; i++)
     {
       uint16_t link_id = vswitch->vswitch_link_id[i];
@@ -611,13 +611,13 @@ _switching (struct rte_mbuf *m,
     }
 
   /* check if destination MAC is multicast or broadcast */
-  bool broadcast = rte_is_broadcast_ether_addr (&eth->dst_addr);
-  bool multicast = rte_is_multicast_ether_addr (&eth->dst_addr);
-  if (broadcast || multicast)
+  bool is_broadcast = rte_is_broadcast_ether_addr (&eth->dst_addr);
+  bool is_multicast = rte_is_multicast_ether_addr (&eth->dst_addr);
+  if (is_broadcast || is_multicast)
     {
       uint64_t port_bitmap = FLOOD_ALL_PORTS;
 
-      if (! broadcast)
+      if (! is_broadcast)
         port_bitmap = igmp_snooping_select_ports (m, rib->rib_info, vswitch);
 
       DEBUG_NEW (ROUTER, "m: %p L2 switching: ether broadcast/multicast", m);
