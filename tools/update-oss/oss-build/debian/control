@@ -1,0 +1,16 @@
+Source: sdplane
+Section: net
+Priority: optional
+Maintainer: Yasuhiro Ohara <yasu1976@gmail.com>
+Build-Depends: debhelper-compat (= 12), liburcu-dev (>= 0.13.1-1),
+ dpdk-dev, libpcap-dev, pkg-config
+Standards-Version: 4.5.0
+Homepage: https://github.com/kait-cronos/sdplane-oss
+
+Package: sdplane
+Architecture: any
+Multi-Arch: foreign
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: dpdk
+Description: DPDK software data-plane,
+  with interactive command shell.
