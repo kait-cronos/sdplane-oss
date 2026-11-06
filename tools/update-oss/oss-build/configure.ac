@@ -69,7 +69,7 @@ fi
 AC_DEFINE([HAVE_SDPLANE_LIBSDPLANE_VERSION_H], [1], [libsdplane_version.h is bundled in lib/])
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h netdb.h netinet/in.h stdint.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h syslog.h termios.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h netdb.h netinet/in.h stdint.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h syslog.h termios.h unistd.h execinfo.h pty.h util.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
