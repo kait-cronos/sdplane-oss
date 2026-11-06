@@ -40,11 +40,12 @@ OSS_BUILD_FILES=(
     sdplane/Makefile.am
 )
 
-# packaging files owned by sdplane-oss (one package, lib/ bundled).
-# they are overwritten with oss-build/ after merging sdplane-dev;
+# files owned by sdplane-oss: README.md and the packaging files (one package,
+# lib/ bundled). they are overwritten with oss-build/ after merging sdplane-dev;
 # see apply_oss_packaging_files. to add an oss-specific file, put it in
 # oss-build/ and list it here.
 OSS_PACKAGING_FILES=(
+    README.md
     build-debian.sh
     tools/deb/build-in-container.sh
     debian/control
