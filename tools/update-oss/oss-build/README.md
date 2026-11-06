@@ -10,7 +10,7 @@ packet processing threads at runtime.
 
 ## Install
 
-Packages for Ubuntu 24.04 (amd64) are available on the
+Packages for Ubuntu 24.04 and 26.04 (amd64) are available on the
 [Releases](https://github.com/kait-cronos/sdplane-oss/releases) page.
 
     sudo apt install ./sdplane_*_amd64.deb
