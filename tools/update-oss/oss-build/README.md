@@ -23,6 +23,10 @@ sdplane is not started on install. Create `/etc/sdplane/sdplane.conf`
 
     sudo systemctl enable --now sdplane
 
+Connect to the CLI:
+
+    telnet localhost 9882
+
 ## Documentation
 
 See [kait-cronos/sdplane-doc](https://github.com/kait-cronos/sdplane-doc)
