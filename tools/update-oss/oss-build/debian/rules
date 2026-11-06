@@ -3,6 +3,9 @@
 # libsdplane is bundled in lib/ and linked statically into sdplane.
 #export DH_VERBOSE = 1
 #export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+# disable LTO (on by default in Ubuntu): gcc-13's lto1 hits an internal
+# compiler error (return_token) when linking sdplane.
+export DEB_BUILD_MAINT_OPTIONS = optimize=-lto
 export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic -march=x86-64-v2
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
