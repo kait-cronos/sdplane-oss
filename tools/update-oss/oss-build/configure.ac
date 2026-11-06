@@ -24,7 +24,6 @@ AC_CHECK_LIB([lthread], [lthread_create], ,
              [AC_MSG_ERROR([lthread library not found.])])
 AC_CHECK_LIB([urcu-qsbr], [urcu_qsbr_quiescent_state], ,
              [AC_MSG_ERROR([urcu-qsbr library not found.])])
-AC_CHECK_LIB([sdplane], [main])
 
 AC_ARG_WITH([libsdplane],
             [AS_HELP_STRING([--with-libsdplane=DIR],

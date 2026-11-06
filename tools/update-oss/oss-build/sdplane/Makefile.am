@@ -30,7 +30,7 @@ sdplane_SOURCES = \
         hash_table.c nexthop.c \
         fdb.c fdb.h mdb.c mdb.h igmp_snooping.c variable_cmd.c
 sdplane_CFLAGS = @DPDK_CFLAGS@ -I$(LIBSDPLANE_DIR) -I$(COMMON_DIR) -I$(L2FWD_MODULE_DIR) $(AM_CFLAGS)
-sdplane_LDADD = ../lib/libsdplane.la @DPDK_LIBS@ -llthread -lsdplane -lurcu-qsbr -lm -lrte_net_bond -lpcap
+sdplane_LDADD = ../lib/libsdplane.la @DPDK_LIBS@ -llthread -lurcu-qsbr -lm -lrte_net_bond -lpcap
 
 if ENABLE_L3FWD
   sdplane_SOURCES += \
