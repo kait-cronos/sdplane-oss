@@ -61,6 +61,7 @@
 #define DEBUG_SDPLANE_IGMP               (1ULL << 54)
 #define DEBUG_SDPLANE_PORT_STATUS        (1ULL << 55)
 #define DEBUG_SDPLANE_PORT_CONFIG        (1ULL << 56)
+#define DEBUG_SDPLANE_MULTICASTING       (1ULL << 57)
 
 #define DEBUG_DOMAIN_OF_LTHREAD            SDPLANE
 #define DEBUG_DOMAIN_OF_CONSOLE            SDPLANE
@@ -118,6 +119,7 @@
 #define DEBUG_DOMAIN_OF_IGMP               SDPLANE
 #define DEBUG_DOMAIN_OF_PORT_STATUS        SDPLANE
 #define DEBUG_DOMAIN_OF_PORT_CONFIG        SDPLANE
+#define DEBUG_DOMAIN_OF_MULTICASTING       SDPLANE
 
 #define DEBUG_SDPLANE_LOG(type, format, ...)                                  \
   DEBUG_LOG (SDPLANE, type, format, ##__VA_ARGS__)

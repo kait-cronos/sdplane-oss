@@ -23,7 +23,19 @@ JOIN_SECONDS=20
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$TEST_DIR/../.." && pwd)"
 SDPLANE_BIN="$REPO_DIR/build/sdplane/sdplane"
-SDPLANE_CONF="$TEST_DIR/sdplane.conf"
+case "${1:-l2switch}" in
+  l2switch) SDPLANE_CONF="$TEST_DIR/sdplane-l2switch.conf" ;;
+  router) SDPLANE_CONF="$TEST_DIR/sdplane-router.conf" ;;
+  *)
+    echo "usage: $0 [l2switch|router]" >&2
+    exit 1
+    ;;
+esac
+if [[ ! -r "$SDPLANE_CONF" ]]; then
+  echo "sdplane config not readable: $SDPLANE_CONF" >&2
+  exit 1
+fi
+
 SDPLANE_LOG="/tmp/sdplane-m0-physical.log"
 RX1_CAPTURE="$(mktemp /tmp/mcast-m0-rx1.XXXXXX.log)"
 RX2_CAPTURE="$(mktemp /tmp/mcast-m0-rx2.XXXXXX.log)"
@@ -278,8 +290,14 @@ PY
 echo "[5/6] Waiting for packet counters"
 wait "$capture34_pid" || true
 capture34_pid=""
-wait "$capture35_pid" || true
+rx2_capture_status=0
+wait "$capture35_pid" || rx2_capture_status=$?
 capture35_pid=""
+# timeout returns 124 when the capture window expires.
+if [[ "$rx2_capture_status" -ne 0 && "$rx2_capture_status" -ne 124 ]]; then
+  echo "receiver 2 capture failed (exit status $rx2_capture_status)" >&2
+  exit 1
+fi
 wait "$join_pid" || true
 join_pid=""
 
@@ -291,7 +309,7 @@ rx2_count="$(awk -v target="> ${GROUP}.${PORT}: UDP," \
 
 result="FAIL"
 if [[ "$rx1_count" -eq "$PACKETS" && \
-      "$rx2_count" -eq "$PACKETS" ]]; then
+      "$rx2_count" -eq 0 ]]; then
   result="PASS"
 fi
 
@@ -303,6 +321,7 @@ fi
   echo "- rx1 received: $rx1_count"
   echo "- rx2 joined: no"
   echo "- rx2 received: $rx2_count"
+  echo "- Result: $result"
 }
 
 if [[ "$result" != "PASS" ]]; then
