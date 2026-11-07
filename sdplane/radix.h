@@ -22,6 +22,7 @@ struct route_entry
   struct route_dst_info dst;
   int sdplane_nh_id;
   uint32_t table_id;
+  uint8_t route_type;
 };
 
 struct rib_node

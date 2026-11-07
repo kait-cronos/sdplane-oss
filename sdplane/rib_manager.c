@@ -1116,6 +1116,7 @@ _route_entry_add (struct rib *new, struct internal_msg_route_entry *msg)
   memcpy (&route_entry.dst, &msg->dst, sizeof (struct route_dst_info));
   route_entry.sdplane_nh_id = sdplane_nh_id;
   route_entry.table_id = msg->table_id;
+  route_entry.route_type = msg->route_type;
 
   stored = rib_route_lookup_exact (
       rib_tree_master[i], (uint8_t *) &msg->dst.dst_ip_addr, msg->dst.plen);
@@ -1197,6 +1198,7 @@ _srv6_local_sid_route_msg (struct internal_msg_route_entry *msg,
      code.  Note route_table_lookup_id() picks the tree by family alone, so
      table_id does not separate routes today; it only travels with the entry. */
   msg->table_id = RT_TABLE_MAIN;
+  msg->route_type = RTN_UNICAST;
   msg->dst.family = AF_INET6;
   msg->dst.dst_ip_addr.ipv6_addr = entry->sid;
   msg->dst.plen = 128;

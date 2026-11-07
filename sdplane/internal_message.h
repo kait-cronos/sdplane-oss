@@ -152,6 +152,7 @@ struct internal_msg_route_entry
 {
   int family;
   int table_id;
+  uint8_t route_type;
   struct route_dst_info dst;
   bool is_nhid;
   struct internal_msg_nh_entry nh;
