@@ -607,7 +607,7 @@ _multicasting (struct rte_mbuf *m,
 
       if (tx_portid >= MAX_ETH_PORTS)
         continue;
-      
+
       /* skip if the tx_port is not in the port bitmap */
       if (! (port_bitmap & (UINT64_C (1) << tx_portid)))
         continue;
@@ -619,7 +619,7 @@ _multicasting (struct rte_mbuf *m,
                      m, tx_portid);
           continue;
         }
-      
+
       DEBUG_NEW (MULTICASTING, "m: %p send_link(): vswitch[%d].port[%d] "
                  "rx-port[%d:%d](%p) -> tx-port[%d:%d](%p)",
                  m, vswitch->vswitch_id, i,
@@ -656,15 +656,15 @@ _multicasting (struct rte_mbuf *m,
 
   /* Multicasting is also required for router_if */
   struct router_if *rif = &vswitch->router_if;
-  if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID &&
-      rif->sockfd >= 0 && rif->ring_up)
+  if (rx_portid != ROUTER_IF_RX_SELF_PORT_ID
+      && rif->sockfd >= 0 && rif->ring_up)
     _send_router_if_ring (m, rx_portid, rx_queueid, rif);
 
   if (last_link)
     return _send_link (m, rx_portid, rx_queueid, rx_link,
                        last_portid, tx_queueid, last_link, vswitch,
                        nb_ports, consume && FLOOD_CONSUME_LAST);
-  
+
   return false;
 }
 
@@ -693,15 +693,16 @@ _switching (struct rte_mbuf *m,
       DEBUG_NEW (ROUTER, "m: %p L2 switching: ether broadcast, flooding", m);
       return _flooding (m, rx_portid, rx_queueid, rx_link, vswitch, consume);
     }
-  
+
   if (rte_is_multicast_ether_addr (&eth->dst_addr))
     {
       uint64_t port_bitmap;
-  
+
       port_bitmap = igmp_snooping_select_ports (m, rib->rib_info, vswitch);
       if (port_bitmap != FLOOD_ALL_PORTS)
         {
-          DEBUG_NEW (ROUTER, "m: %p L2 switching: ether multicast, multicasting", m);
+          DEBUG_NEW (ROUTER,
+                     "m: %p L2 switching: ether multicast, multicasting", m);
           return _multicasting (m, rx_portid, rx_queueid, rx_link, vswitch,
                                 port_bitmap, consume);
         }
@@ -709,7 +710,7 @@ _switching (struct rte_mbuf *m,
       DEBUG_NEW (ROUTER, "m: %p L2 switching: ether multicast, flooding", m);
       return _flooding (m, rx_portid, rx_queueid, rx_link, vswitch, consume);
     }
-  
+
   /* switching: just before the fdb-lookup */
   if (unlikely (router_mode == 8))
     {
