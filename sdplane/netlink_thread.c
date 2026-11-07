@@ -84,13 +84,13 @@ netlink_show_rcvbuf (int sockfd, int requested, FILE *output, const char *nl,
     }
   if (! quiet)
     fprintf (output,
-             "Netlink receive buffer: requested %d bytes, actual %d "
+             "Netlink receive buffer: requested %'d bytes, actual %'d "
              "bytes (doubled by Linux)%s",
              requested, actual, nl);
   if (actual < 2 * requested)
     fprintf (output,
-             "netlink-kernel socket receive buffer limited to %d bytes "
-             "(requested %d bytes, doubled by Linux); "
+             "netlink-kernel socket receive buffer limited to %'d bytes "
+             "(requested %'d bytes, doubled by Linux); "
              "check net.core.rmem_max%s",
              actual, requested, nl);
   return 0;
@@ -130,8 +130,10 @@ CLI_COMMAND2 (set_netlink_receive_buffer,
   return CMD_SUCCESS;
 }
 
-CLI_COMMAND2 (show_netlink_receive_buffer, "show netlink receive-buffer",
-              SHOW_HELP, "Netlink information\n",
+CLI_COMMAND2 (show_netlink_receive_buffer,
+              "show netlink receive-buffer",
+              SHOW_HELP,
+              "Netlink information\n",
               "show notification socket receive buffer\n")
 {
   struct shell *shell = (struct shell *) context;
@@ -139,7 +141,7 @@ CLI_COMMAND2 (show_netlink_receive_buffer, "show netlink receive-buffer",
   pthread_mutex_lock (&netlink_rcvbuf_mutex);
   if (netlink_kernel.sockfd < 0)
     fprintf (shell->terminal,
-             "Netlink receive buffer: requested %d bytes (socket not open)%s",
+             "Netlink receive buffer: requested %'d bytes (socket not open)%s",
              netlink_rcvbuf_size, shell->NL);
   else
     ret = netlink_show_rcvbuf (netlink_kernel.sockfd, netlink_rcvbuf_size,

@@ -2117,6 +2117,9 @@ rib_manager_send_message (void *msgp, struct shell *shell)
 static __thread uint64_t loop_counter = 0;
 static __thread time_t last_fdb_aging_time = 0;
 
+int msg_queue_rib_size = 1024 * 1024;
+int msg_queue_rib_size_applied = 0;
+
 int
 rib_manager (void *arg)
 {
@@ -2131,15 +2134,18 @@ rib_manager (void *arg)
   memset (tx_buffer_per_q, 0, sizeof (tx_buffer_per_q));
 
   /* initialize */
-  msg_queue_rib =
-      rte_ring_create ("msg_queue_rib", 1024, SOCKET_ID_ANY, RING_F_SC_DEQ);
-  DEBUG_NEW (RIB, "msg_queue_rib: %p", msg_queue_rib);
+  msg_queue_rib = rte_ring_create ("msg_queue_rib", msg_queue_rib_size,
+                                   SOCKET_ID_ANY, RING_F_SC_DEQ);
+  msg_queue_rib_size_applied = msg_queue_rib_size;
+  DEBUG_NEW (RIB, "msg_queue_rib: %p size: %'d",
+             msg_queue_rib, msg_queue_rib_size_applied);
+
   if (! msg_queue_rib)
-  {
-    printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
-    DEBUG_NEW (RIB, "rte_ring_create failed: %s", rte_strerror (rte_errno));
-    return -1;
-  }
+    {
+      printf ("%s[%d]: %s: failed to start.\n", __FILE__, __LINE__, __func__);
+      DEBUG_NEW (RIB, "rte_ring_create failed: %s", rte_strerror (rte_errno));
+      return -1;
+    }
 
   int thread_id;
   thread_id = thread_lookup_by_lcore (rib_manager, lcore_id);

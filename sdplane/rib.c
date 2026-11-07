@@ -30,6 +30,46 @@
 
 // clang-format off
 
+extern int msg_queue_rib_size;
+extern int msg_queue_rib_size_applied;
+
+CLI_COMMAND2 (show_rib_msg_queue_size,
+              "show rib msg-queue size",
+              SHOW_HELP,
+              "show rib information.\n",
+              "show rib-msg-queue size.\n",
+              "show rib-msg-queue size.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  fprintf (shell->terminal, "msg-queue-rib-size: %'d%s",
+           msg_queue_rib_size_applied, shell->NL);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (set_rib_msg_queue_size,
+              "set rib msg-queue size <1024-10485760>",
+              SET_HELP,
+              "set rib information.\n",
+              "set rib-msg-queue.\n",
+              "set rib-msg-queue size.\n",
+              "set rib-msg-queue size.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int value;
+  char *endptr;
+  value = strtol (argv[4], &endptr, 0);
+  if (*endptr != '\0')
+    {
+      fprintf (shell->terminal, "invalid size: %s%s",
+               argv[4], shell->NL);
+      return CMD_FAILURE;
+    }
+  msg_queue_rib_size = value;
+  fprintf (shell->terminal, "rib-msg-queue-size: %'d%s",
+           msg_queue_rib_size, shell->NL);
+  return CMD_SUCCESS;
+}
+
 CLI_COMMAND2 (show_rib,
               "show rib",
               SHOW_HELP,
@@ -1110,6 +1150,9 @@ CLI_COMMAND2 (no_set_capture_if,
 void
 rib_cmd_init (struct command_set *cmdset)
 {
+  INSTALL_COMMAND2 (cmdset, show_rib_msg_queue_size);
+  INSTALL_COMMAND2 (cmdset, set_rib_msg_queue_size);
+
   INSTALL_COMMAND2 (cmdset, show_rib);
   INSTALL_COMMAND2 (cmdset, show_rib_vswitch);
   INSTALL_COMMAND2 (cmdset, show_rib_vswitch_link);
