@@ -156,6 +156,25 @@ CLI_COMMAND2 (set_worker_lthread_neigh_manager,
   return CMD_SUCCESS;
 }
 
+int lthread_rcu_reporter (__rte_unused void *dummy);
+
+CLI_COMMAND2 (set_worker_lthread_rcu_reporter,
+              "set worker lthread rcu-reporter",
+              SET_HELP,
+              WORKER_HELP,
+              "lthread information\n",
+              "rcu-reporter\n")
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) lthread_rcu_reporter, NULL);
+  thread_register (lthread_core, lt, (lthread_func) lthread_rcu_reporter,
+                   "rcu_reporter", NULL);
+  lthread_detach2 (lt);
+  return 0;
+}
+
 CLI_COMMAND2 (set_worker_lthread_dhcp_server,
               "set worker lthread dhcp-server", SET_HELP, WORKER_HELP,
               "lthread information\n", "dhcp-server\n")
@@ -241,6 +260,7 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_rib_manager);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_netlink_thread);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_rcu_reporter);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_dhcp_server);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_igmp_snooping);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_l3_tap_handler);
