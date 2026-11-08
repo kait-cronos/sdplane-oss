@@ -29,6 +29,8 @@ FILES_TO_REMOVE=(
     tools/check-ai-branch.sh
     README.ja.md
     LICENSE.MIT
+    README.licensing
+    README.tag
 )
 
 # build files that differ between sdplane-dev and sdplane-oss (lib/ is bundled
