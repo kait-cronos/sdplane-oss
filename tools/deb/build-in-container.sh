@@ -15,6 +15,9 @@ git clone -q "$src" "$dir"
 cd "$dir"
 git checkout -q "${SDPLANE_REF:-HEAD}"
 tools/deb/gen-changelog.sh
+# the build rewrites these tracked files (INSTALL: autoreconf -fi); hide the
+# changes so that git describe --dirty does not report -modified.
+git update-index --assume-unchanged debian/changelog INSTALL
 dpkg-buildpackage -b -us -uc
 
 cp /build/*.deb "$out/"
