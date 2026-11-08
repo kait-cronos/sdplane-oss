@@ -24,7 +24,6 @@ AC_CHECK_LIB([lthread], [lthread_create], ,
              [AC_MSG_ERROR([lthread library not found.])])
 AC_CHECK_LIB([urcu-qsbr], [urcu_qsbr_quiescent_state], ,
              [AC_MSG_ERROR([urcu-qsbr library not found.])])
-AC_CHECK_LIB([sdplane], [main])
 
 AC_ARG_WITH([libsdplane],
             [AS_HELP_STRING([--with-libsdplane=DIR],
@@ -65,11 +64,11 @@ if test "$enable_l3fwd" = yes; then
 AC_DEFINE([ENABLE_L3FWD], [1], [enable support for l3fwd])
 fi
 
-# FIXME: Replace `main' with a function in `-lzcmdsh':
-AC_CHECK_LIB([sdplane], [main])
+# libsdplane is bundled in lib/, so its version header is always available.
+AC_DEFINE([HAVE_SDPLANE_LIBSDPLANE_VERSION_H], [1], [libsdplane_version.h is bundled in lib/])
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h netdb.h netinet/in.h stdint.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h syslog.h termios.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h netdb.h netinet/in.h stdint.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h syslog.h termios.h unistd.h execinfo.h pty.h util.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
