@@ -9,6 +9,8 @@
 
 #include "pkt_group.h"
 
+#include <rte_version.h>
+
 /*
  * Group consecutive packets with the same destination port in bursts of 4.
  * Suppose we have array of destination ports:
@@ -21,10 +23,17 @@ static inline uint16_t *
 port_groupx4(uint16_t pn[FWDSTEP + 1], uint16_t *lp, uint16x8_t dp1,
 		  uint16x8_t dp2)
 {
+#if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
+__rte_packed_begin
+#endif
 	union {
 		uint16_t u16[FWDSTEP + 1];
 		uint64_t u64;
+#if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
+	} __rte_packed_end *pnum = (void *)pn;
+#else
 	} __rte_packed *pnum = (void *)pn;
+#endif
 
 	uint16x8_t mask = {1, 2, 4, 8, 0, 0, 0, 0};
 	int32_t v;

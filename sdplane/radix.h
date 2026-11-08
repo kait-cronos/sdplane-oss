@@ -4,6 +4,8 @@
 #ifndef RADIX_H
 #define RADIX_H
 
+#include <stdint.h>
+
 #include "fib.h"
 #include "rib.h"
 
@@ -22,6 +24,8 @@ struct route_entry
 {
   struct route_dst_info dst;
   int sdplane_nh_id;
+  uint32_t table_id;
+  uint8_t route_type;
 };
 
 struct rib_node
@@ -53,6 +57,9 @@ int rib_route_add (struct rib_tree *t, const uint8_t *key, int keylen,
                    struct route_entry *data);
 int rib_route_delete (struct rib_tree *t, const uint8_t *key, int keylen);
 struct rib_node *rib_route_lookup (struct rib_tree *t, const uint8_t *key);
+
+struct rib_node *rib_route_lookup_exact (struct rib_tree *t,
+                                         const uint8_t *key, int keylen);
 
 /* RIB traversal */
 typedef int (*rib_traverse_callback) (struct rib_node *n, void *arg);

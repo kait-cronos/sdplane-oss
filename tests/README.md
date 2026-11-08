@@ -13,6 +13,22 @@ make docker
 
 You can see the test logs in `tests/logs` directory.
 
+### Route nexthop references
+
+See [route nexthop reference tests](route-nexthop-references/README.md) for route replacement, deletion, registration failure and SRv6 local SID checks.
+
+### RIB allocation failures
+
+See [RIB allocation failure test](rib-allocation-failure/README.md) for failure injection checks and ASan/UBSan execution instructions.
+
+### Netlink receive buffer
+
+See [Netlink receive buffer tests](netlink-receive-buffer/README.md) for buffer configuration, socket isolation and error handling checks.
+
+### Route types
+
+See [route type tests](route-type-observability/README.md) for Netlink/CLI route types, FIB display and main/local forwarding checks.
+
 ### How to add test case
 
 1. Add a new file `tests/test_<name>.c`.
@@ -56,4 +72,3 @@ In the test case function, you can use the following macros:
 
 - `SEND_TO_PORT(data, len, port_id, queue_id)`: Send a packet with `data` of length `len` to the specified `port_id` and `queue_id`.
 - `EXPECT_FROM_PORT(data, len, port_id, lcore_id)`: Expect to receive a packet with `data` of length `len` from the specified `port_id` and `lcore_id`.
-

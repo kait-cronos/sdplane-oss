@@ -8,6 +8,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <linux/seg6_local.h>
+#include <linux/seg6_iptunnel.h>
+
 #include "debug_sdplane.h"
 
 #include "jhash.h"
@@ -16,6 +19,116 @@
 
 /* global hash table: mapping for kernel_nh_id to sdplane_nh_id. */
 struct hash_table nh_ht;
+
+static const char *
+_srv6_local_action_str (uint32_t action)
+{
+  switch (action)
+    {
+    case SEG6_LOCAL_ACTION_UNSPEC:
+      return "Unspec";
+    case SEG6_LOCAL_ACTION_END:
+      return "End";
+    case SEG6_LOCAL_ACTION_END_X:
+      return "End.X";
+    case SEG6_LOCAL_ACTION_END_T:
+      return "End.T";
+    case SEG6_LOCAL_ACTION_END_DX2:
+      return "End.DX2";
+    case SEG6_LOCAL_ACTION_END_DX6:
+      return "End.DX6";
+    case SEG6_LOCAL_ACTION_END_DX4:
+      return "End.DX4";
+    case SEG6_LOCAL_ACTION_END_DT6:
+      return "End.DT6";
+    case SEG6_LOCAL_ACTION_END_DT4:
+      return "End.DT4";
+    case SEG6_LOCAL_ACTION_END_DT46:
+      return "End.DT46";
+    default:
+      return "Unknown";
+    }
+}
+
+static const char *
+_srv6_encap_mode_str (uint32_t mode)
+{
+  switch (mode)
+    {
+    case SEG6_IPTUN_MODE_INLINE:
+      return "H.Insert";
+    case SEG6_IPTUN_MODE_ENCAP:
+      return "H.Encaps";
+    case SEG6_IPTUN_MODE_L2ENCAP:
+      return "H.Encaps.L2";
+    case SEG6_IPTUN_MODE_ENCAP_RED:
+      return "H.Encaps.Red";
+    case SEG6_IPTUN_MODE_L2ENCAP_RED:
+      return "H.Encaps.L2.Red";
+    default:
+      return "Unknown";
+    }
+}
+
+int
+_srv6_format_local_sid (const struct srv6_local_sid_entry *local_sid,
+                        char *buf, size_t buf_size)
+{
+  char sid_str[INET6_ADDRSTRLEN];
+  char param_str[INET6_ADDRSTRLEN];
+  int len;
+
+  inet_ntop (AF_INET6, &local_sid->sid, sid_str, sizeof (sid_str));
+  len = snprintf (buf, buf_size, "action=%s SID=%s oif=%d",
+                  _srv6_local_action_str (local_sid->action), sid_str,
+                  local_sid->oif);
+
+  switch (local_sid->action)
+    {
+    case SEG6_LOCAL_ACTION_END_X:
+    case SEG6_LOCAL_ACTION_END_DX6:
+      inet_ntop (AF_INET6, &local_sid->param.nh6, param_str,
+                 sizeof (param_str));
+      len += snprintf (buf + len, buf_size - len, " nh6=%s", param_str);
+      break;
+    case SEG6_LOCAL_ACTION_END_DX4:
+      inet_ntop (AF_INET, &local_sid->param.nh4, param_str,
+                 sizeof (param_str));
+      len += snprintf (buf + len, buf_size - len, " nh4=%s", param_str);
+      break;
+    case SEG6_LOCAL_ACTION_END_T:
+    case SEG6_LOCAL_ACTION_END_DT4:
+    case SEG6_LOCAL_ACTION_END_DT6:
+    case SEG6_LOCAL_ACTION_END_DT46:
+      len += snprintf (buf + len, buf_size - len, " table=%u",
+                       local_sid->param.table_id);
+      break;
+    default:
+      break;
+    }
+
+  return len;
+}
+
+int
+_srv6_format_encap_sid (const struct srv6_encap_sid_entry *encap_sid,
+                        char *buf, size_t buf_size)
+{
+  int len = 0, i;
+  len +=
+      snprintf (buf + len, buf_size - len,
+                "action=%s segs=", _srv6_encap_mode_str (encap_sid->action));
+  /* sids[] is in SRH order; print in path order like netlink_log_seg6. */
+  for (i = encap_sid->segment_list_size - 1; i >= 0; i--)
+    {
+      char sid_str[INET6_ADDRSTRLEN];
+      inet_ntop (AF_INET6, &encap_sid->sids[i], sid_str, sizeof (sid_str));
+      len += snprintf (buf + len, buf_size - len, "%s", sid_str);
+      if (i != 0)
+        len += snprintf (buf + len, buf_size - len, ",");
+    }
+  return len;
+}
 
 char *
 nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
@@ -35,6 +148,16 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
   if (nh->nhcnt == 1 && nh->members[0].kernel_nh_id == 0)
     {
       const struct nh_info *info = &nh->members[0].info;
+      if (info->type == NEXTHOP_TYPE_SRV6_END)
+        {
+          _srv6_format_local_sid (&info->gw.srv6_local_sid, buf, buf_size);
+          return buf;
+        }
+      if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
+        {
+          _srv6_format_encap_sid (&info->gw.srv6_encap_sid, buf, buf_size);
+          return buf;
+        }
       inet_ntop (info->family, &info->gw, nh_str, sizeof (nh_str));
       snprintf (buf, buf_size, "%s(oif=%d)", nh_str, info->oif);
       return buf;
@@ -54,6 +177,24 @@ nexthop_format (struct internal_msg_nh_entry *nh, char *buf, size_t buf_size)
       else
         {
           const struct nh_info *info = &nh->members[i].info;
+          if (info->type == NEXTHOP_TYPE_SRV6_END)
+            {
+              char local_sid_str[256];
+              _srv6_format_local_sid (&info->gw.srv6_local_sid, local_sid_str,
+                                      sizeof (local_sid_str));
+              len += snprintf (buf + len, buf_size - len, "%s(w=%u)%s",
+                               local_sid_str, nh->members[i].weight, sep);
+              continue;
+            }
+          if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
+            {
+              char encap_sid_str[512];
+              _srv6_format_encap_sid (&info->gw.srv6_encap_sid, encap_sid_str,
+                                      sizeof (encap_sid_str));
+              len += snprintf (buf + len, buf_size - len, "%s(w=%u)%s",
+                               encap_sid_str, nh->members[i].weight, sep);
+              continue;
+            }
           inet_ntop (info->family, &info->gw, nh_str, sizeof (nh_str));
           len += snprintf (buf + len, buf_size - len, "%s(oif=%d,w=%u)%s",
                            nh_str, info->oif, nh->members[i].weight, sep);
@@ -144,7 +285,27 @@ nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info)
                        info->oif_name, info->oif, family_str,
                        grp->members[j].weight, shell->NL);
             }
-          else
+          else if (info->type == NEXTHOP_TYPE_SRV6_END)
+            {
+              char local_sid_str[256];
+              _srv6_format_local_sid (&info->gw.srv6_local_sid, local_sid_str,
+                                      sizeof (local_sid_str));
+              fprintf (shell->terminal,
+                       "        is SRv6 local SID, %s, %s, weight %u%s",
+                       local_sid_str, family_str, grp->members[j].weight,
+                       shell->NL);
+            }
+          else if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
+            {
+              char encap_sid_str[512];
+              _srv6_format_encap_sid (&info->gw.srv6_encap_sid, encap_sid_str,
+                                      sizeof (encap_sid_str));
+              fprintf (shell->terminal,
+                       "        is SRv6 encap SID, %s, %s, weight %u%s",
+                       encap_sid_str, family_str, grp->members[j].weight,
+                       shell->NL);
+            }
+          else if (info->type == NEXTHOP_TYPE_GATEWAY)
             {
               memset (nh_str, 0, sizeof (nh_str));
               inet_ntop (info->family, &info->gw, nh_str, sizeof (nh_str));
@@ -153,6 +314,9 @@ nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info)
                        nh_str, info->oif_name, info->oif, family_str,
                        grp->members[j].weight, shell->NL);
             }
+          else
+            fprintf (shell->terminal, "        unknown %s%s", family_str,
+                     shell->NL);
         }
 
       fprintf (shell->terminal, "%s", shell->NL);
@@ -180,21 +344,43 @@ nexthop_show_pool (struct shell *shell, struct rib_info *rib_info)
         continue;
 
       const char *family_str = (info->family == AF_INET6) ? "IPv6" : "IPv4";
-      const char *type_str =
-        (info->type == NEXTHOP_TYPE_CONNECTED) ? "connected" : "gateway";
 
       if (info->type == NEXTHOP_TYPE_CONNECTED)
         {
-          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
-                   i, info->refcnt, family_str, type_str, "-",
-                   info->oif_name, info->oif, shell->NL);
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s", i,
+                   info->refcnt, family_str, "connected", "-", info->oif_name,
+                   info->oif, shell->NL);
         }
-      else
+      else if (info->type == NEXTHOP_TYPE_SRV6_END)
+        {
+          char local_sid_str[256];
+          _srv6_format_local_sid (&info->gw.srv6_local_sid, local_sid_str,
+                                  sizeof (local_sid_str));
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s%s", i,
+                   info->refcnt, family_str, "srv6-end", local_sid_str,
+                   info->oif_name, shell->NL);
+        }
+      else if (info->type == NEXTHOP_TYPE_SRV6_HEAD)
+        {
+          char encap_sid_str[512];
+          _srv6_format_encap_sid (&info->gw.srv6_encap_sid, encap_sid_str,
+                                  sizeof (encap_sid_str));
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s%s", i,
+                   info->refcnt, family_str, "srv6-head", encap_sid_str,
+                   info->oif_name, shell->NL);
+        }
+      else if (info->type == NEXTHOP_TYPE_GATEWAY)
         {
           memset (gw_str, 0, sizeof (gw_str));
           inet_ntop (info->family, &info->gw, gw_str, sizeof (gw_str));
-          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s",
-                   i, info->refcnt, family_str, type_str, gw_str,
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s", i,
+                   info->refcnt, family_str, "gateway", gw_str, info->oif_name,
+                   info->oif, shell->NL);
+        }
+      else
+        {
+          fprintf (shell->terminal, "%-6d %-8d %-10s %-20s %-20s %s (%u)%s", i,
+                   info->refcnt, family_str, "unknown", "unknown",
                    info->oif_name, info->oif, shell->NL);
         }
     }
@@ -228,6 +414,43 @@ nexthop_cleanup (void)
 }
 
 static int
+_nh_info_equal (const struct nh_info *a, const struct nh_info *b)
+{
+  if (a->type != b->type || a->family != b->family)
+    return 0;
+  if (a->type == NEXTHOP_TYPE_CONNECTED)
+    return a->oif == b->oif;
+  else if (a->type == NEXTHOP_TYPE_GATEWAY)
+    return a->oif == b->oif && memcmp (&a->gw, &b->gw, sizeof (a->gw)) == 0;
+  else if (a->type == NEXTHOP_TYPE_SRV6_HEAD)
+    {
+      if (a->gw.srv6_encap_sid.action != b->gw.srv6_encap_sid.action)
+        return 0;
+      if (a->gw.srv6_encap_sid.segment_list_size !=
+          b->gw.srv6_encap_sid.segment_list_size)
+        return 0;
+      for (int i = 0; i < a->gw.srv6_encap_sid.segment_list_size; i++)
+        {
+          if (memcmp (&a->gw.srv6_encap_sid.sids[i],
+                      &b->gw.srv6_encap_sid.sids[i],
+                      sizeof (struct in6_addr)) != 0)
+            return 0;
+        }
+      return 1;
+    }
+  else if (a->type == NEXTHOP_TYPE_SRV6_END)
+    {
+      if (a->gw.srv6_local_sid.action != b->gw.srv6_local_sid.action)
+        return 0;
+      if (memcmp (&a->gw.srv6_local_sid.sid, &b->gw.srv6_local_sid.sid,
+                  sizeof (struct in6_addr)))
+        return 0;
+      return 1;
+    }
+  return 1;
+}
+
+static int
 _info_find (struct nexthop *nexthop, const struct nh_info *src)
 {
   int i;
@@ -236,9 +459,7 @@ _info_find (struct nexthop *nexthop, const struct nh_info *src)
       const struct nh_info *p = &nexthop->info_pool[i];
       if (p->refcnt <= 0)
         continue;
-      if (p->family == src->family &&
-          memcmp (&p->gw, &src->gw, sizeof (p->gw)) == 0 &&
-          p->oif == src->oif)
+      if (_nh_info_equal (p, src))
         return i;
     }
   return -1;
@@ -295,6 +516,91 @@ _find_next_free_group_slot (struct nexthop *nexthop, int start)
   return -1; /* table full */
 }
 
+/* LEGACY: find a group without kernel_nh_id by nhcnt and inline info
+ * content */
+static int
+_group_find_by_content (struct nexthop *nexthop,
+                        const struct internal_msg_nh_entry *nh)
+{
+  int i, j;
+  for (j = 0; j < MAX_NEXTHOP_GRP_SIZE; j++)
+    {
+      struct nh_group *g = &nexthop->groups[j];
+      if (g->nhcnt == 0 || g->kernel_nh_id != 0)
+        continue;
+      if (g->nhcnt != nh->nhcnt)
+        continue;
+      int match = 1;
+      for (i = 0; i < nh->nhcnt; i++)
+        {
+          int aidx = g->members[i].info_index;
+          const struct nh_info *a =
+            (aidx >= 0) ? &nexthop->info_pool[aidx] : NULL;
+          const struct nh_info *b = &nh->members[i].info;
+          if (! a || a->family != b->family ||
+              memcmp (&a->gw, &b->gw, sizeof (a->gw)) != 0 ||
+              a->oif != b->oif)
+            {
+              match = 0;
+              break;
+            }
+        }
+      if (match)
+        return j;
+    }
+  return -1;
+}
+
+static void _group_release (struct nexthop *nexthop, int slot);
+
+/*
+ * AI-generated function - Claude Code 2026-07-05
+ * Purpose: refcnt-aware group release. A group shared by multiple
+ *          routes must survive until the last reference is dropped.
+ * Human review: reviewed
+ */
+static void
+_group_unref (struct nexthop *nexthop, int slot)
+{
+  if (slot < 0 || slot >= MAX_NEXTHOP_GRP_SIZE)
+    return;
+
+  struct nh_group *grp = &nexthop->groups[slot];
+  if (grp->nhcnt == 0)
+    return; /* already freed */
+
+  grp->refcnt--;
+
+  /* Groups tied to a kernel nexthop object live until the kernel
+   * deletes that object (NEXTHOP_ENTRY_DEL); only LEGACY groups are
+   * freed when the last route reference goes away. */
+  if (grp->refcnt <= 0 && grp->kernel_nh_id == 0)
+    _group_release (nexthop, slot);
+}
+
+static void
+_group_release (struct nexthop *nexthop, int slot)
+{
+  struct nh_group *grp = &nexthop->groups[slot];
+  int i;
+
+  /* Release all member resources */
+  for (i = 0; i < grp->nhcnt; i++)
+    {
+      _info_release (nexthop, grp->members[i].info_index);
+      if (grp->members[i].ref_sdplane_nh_id >= 0)
+        _group_unref (nexthop, grp->members[i].ref_sdplane_nh_id);
+    }
+
+  if (grp->kernel_nh_id != 0)
+    hash_table_remove (&nh_ht, (void *)(intptr_t)grp->kernel_nh_id);
+
+  DEBUG_NEW (RIB, "released group: slot=%d kernel_nh_id=%d", slot,
+             grp->kernel_nh_id);
+
+  memset (grp, 0, sizeof (*grp)); /* nhcnt -> 0 == free marker */
+}
+
 int
 nexthop_add_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
 {
@@ -315,33 +621,11 @@ nexthop_add_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
   else
     {
       /* LEGACY: deduplicate by content */
-      for (j = 0; j < MAX_NEXTHOP_GRP_SIZE; j++)
+      j = _group_find_by_content (nexthop, nh);
+      if (j >= 0)
         {
-          struct nh_group *g = &nexthop->groups[j];
-          if (g->nhcnt == 0 || g->kernel_nh_id != 0)
-            continue;
-          if (g->nhcnt != nh->nhcnt)
-            continue;
-          int match = 1;
-          for (i = 0; i < nh->nhcnt; i++)
-            {
-              int aidx = g->members[i].info_index;
-              const struct nh_info *a =
-                (aidx >= 0) ? &nexthop->info_pool[aidx] : NULL;
-              const struct nh_info *b = &nh->members[i].info;
-              if (!a || a->family != b->family ||
-                  memcmp (&a->gw, &b->gw, sizeof (a->gw)) != 0 ||
-                  a->oif != b->oif)
-                {
-                  match = 0;
-                  break;
-                }
-            }
-          if (match)
-            {
-              DEBUG_NEW (RIB, "reused group: kernel_nh_id=N/A sdplane_nh_id=%d", j);
-              return j;
-            }
+          DEBUG_NEW (RIB, "reused group: kernel_nh_id=N/A sdplane_nh_id=%d", j);
+          return j;
         }
     }
 
@@ -466,86 +750,47 @@ nexthop_add_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
 }
 
 int
-nexthop_del_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
+nexthop_find_entry (struct rib_info *rib_info,
+                    struct internal_msg_nh_entry *nh)
 {
   struct nexthop *nexthop = &rib_info->nexthop;
-  int slot = -1, i;
+  int slot;
 
   if (nh->kernel_nh_id != 0)
     {
       /* Lookup by kernel_nh_id via hash table */
       slot = nexthop_get_index_by_nhid (rib_info, nh->kernel_nh_id);
       if (slot < 0)
-        {
-          DEBUG_NEW (RIB, "nexthop not found: kernel_nh_id=%d",
-                     nh->kernel_nh_id);
-          return -1;
-        }
-
-      /* Remove from hash table */
-      hash_table_remove (&nh_ht, (void *)(intptr_t)nh->kernel_nh_id);
-    }
-  else
-    {
-      /* LEGACY: linear scan — match by nhcnt and inline info content */
-      for (slot = 0; slot < MAX_NEXTHOP_INFO_SIZE; slot++)
-        {
-          struct nh_group *g = &nexthop->groups[slot];
-          if (g->nhcnt == 0 || g->kernel_nh_id != 0)
-            continue;
-          if (g->nhcnt != nh->nhcnt)
-            continue;
-
-          int match = 1;
-          for (i = 0; i < nh->nhcnt; i++)
-            {
-              int aidx = g->members[i].info_index;
-              const struct nh_info *a =
-                (aidx >= 0) ? &nexthop->info_pool[aidx] : NULL;
-              const struct nh_info *b = &nh->members[i].info;
-
-              {
-                DEBUG_NEW (NEXTHOP, "nhcnt: %d", i);
-                DEBUG_NEW (NEXTHOP, "a: %p a->family: %d a->oif: %d",
-                           a, a->family, a->oif);
-                DEBUG_NEW (NEXTHOP, "b: %p b->family: %d b->oif: %d",
-                           b, b->family, b->oif);
-                DEBUG_NEW (NEXTHOP, "a->gw: %#x b->gw: %#x size: %d",
-                           a->gw, b->gw, sizeof (a->gw));
-              }
-
-              if (! a || a->family != b->family ||
-                  memcmp (&a->gw, &b->gw, sizeof (a->gw)) != 0 ||
-                  a->oif != b->oif)
-                {
-                  match = 0;
-                  break;
-                }
-            }
-          if (match)
-            break;
-        }
-      if (slot >= MAX_NEXTHOP_INFO_SIZE)
-        {
-          DEBUG_NEW (RIB, "LEGACY nexthop not found");
-          return -1;
-        }
+        DEBUG_NEW (RIB, "nexthop not found: kernel_nh_id=%d",
+                   nh->kernel_nh_id);
+      return slot;
     }
 
+  /* LEGACY: linear scan — match by nhcnt and inline info content */
+  slot = _group_find_by_content (nexthop, nh);
+  if (slot < 0)
+    DEBUG_NEW (RIB, "LEGACY nexthop not found");
+  return slot;
+}
+
+int
+nexthop_del_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh)
+{
+  struct nexthop *nexthop = &rib_info->nexthop;
+
+  int slot = nexthop_find_entry (rib_info, nh);
+  if (slot < 0)
+    return -1;
+
+  /* Deleting a group that routes still reference indicates a
+   * kernel/RIB desync; the kernel normally deletes routes before the
+   * nexthop object they use. Follow the kernel and free anyway. */
   struct nh_group *grp = &nexthop->groups[slot];
+  if (grp->refcnt > 0)
+    DEBUG_NEW (RIB, "deleting group still referenced: slot=%d refcnt=%d", slot,
+               grp->refcnt);
 
-  /* Release all member resources */
-  for (i = 0; i < grp->nhcnt; i++)
-    {
-      _info_release (nexthop, grp->members[i].info_index);
-      if (grp->members[i].ref_sdplane_nh_id >= 0)
-        nexthop->groups[grp->members[i].ref_sdplane_nh_id].refcnt--;
-    }
-
-  DEBUG_NEW (RIB, "deleted group: slot=%d kernel_nh_id=%d",
-             slot, grp->kernel_nh_id);
-
-  memset (grp, 0, sizeof (*grp)); /* nhcnt -> 0 == free marker */
+  _group_release (nexthop, slot);
   return slot;
 }
 
@@ -559,8 +804,7 @@ nexthop_increment_refcnt (struct rib_info *rib_info, int sdplane_nh_id)
 void
 nexthop_decrement_refcnt (struct rib_info *rib_info, int sdplane_nh_id)
 {
-  if (sdplane_nh_id >= 0 && sdplane_nh_id < MAX_NEXTHOP_GRP_SIZE)
-    rib_info->nexthop.groups[sdplane_nh_id].refcnt--;
+  _group_unref (&rib_info->nexthop, sdplane_nh_id);
 }
 
 struct nh_info *

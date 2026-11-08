@@ -36,6 +36,8 @@
 #include "l2fwd_export.h"
 #include "sdplane.h"
 #include "rib_manager.h"
+#include "fdb.h"
+#include "igmp_snooping.h"
 #include "thread_info.h"
 
 static __thread unsigned lcore_id;
@@ -328,9 +330,15 @@ l2_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
   if (rte_is_multicast_ether_addr (&eth_hdr->dst_addr) ||
       rte_is_broadcast_ether_addr (&eth_hdr->dst_addr))
     {
+      uint64_t port_bitmap;
+
       DEBUG_SDPLANE_LOG (L2_SWITCH,
                          "m: %p multicast/broadcast, flooding to VLAN %u", m,
                          vswitch_link->vswitch_id);
+
+      igmp_snooping_learn (m, rx_portid, vswitch->vswitch_id);
+
+      port_bitmap = igmp_snooping_select_ports (m, rib->rib_info, vswitch);
 
       for (i = 0; i < vswitch->vswitch_port_size; i++)
         {
@@ -345,6 +353,11 @@ l2_switch_select (struct rte_mbuf *m, unsigned rx_portid, unsigned rx_queueid)
               DEBUG_SDPLANE_LOG (L2_SWITCH, "m: %p split horizon.", m);
               continue;
             }
+
+          /* skip if the port is not in the port bitmap */
+          if (port_bitmap != FLOOD_ALL_PORTS &&
+              ! (port_bitmap & (UINT64_C (1) << tx_portid)))
+            continue;
 
           /* skip if the tx_port is stopped. */
           if (unlikely (rib->rib_info->port[tx_portid].is_stopped))
@@ -511,11 +524,15 @@ l2_switch_tx_burst ()
 
       for (i = 0; i < nb_rx; i++)
         {
+          uint64_t port_bitmap;
+
           m = pkts_burst[i];
           if (! m)
             continue;
 
           rte_prefetch0 (rte_pktmbuf_mtod (m, void *));
+
+          port_bitmap = igmp_snooping_select_ports (m, rib->rib_info, vswitch);
 
           for (j = 0; j < vswitch->vswitch_port_size; j++)
             {
@@ -526,6 +543,11 @@ l2_switch_tx_burst ()
               vswitch_link = &rib->rib_info->vswitch_link[vswitch_link_id];
 
               if (vswitch_link->vswitch_id != vswitch->vswitch_id)
+                continue;
+
+              /* skip if the port is not in the port bitmap */
+              if (port_bitmap != FLOOD_ALL_PORTS &&
+                  ! (port_bitmap & (UINT64_C (1) << vswitch_link->port_id)))
                 continue;
 
               l2_switch_send_link (m,

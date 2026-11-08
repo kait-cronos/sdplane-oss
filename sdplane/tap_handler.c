@@ -12,6 +12,7 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
+#include <rte_ethdev.h>
 
 #include <sdplane/debug.h>
 #include <sdplane/termio.h>
@@ -25,8 +26,6 @@
 #include <sdplane/debug_zcmdsh.h>
 
 #include "debug_sdplane.h"
-#include "l3fwd.h"
-#include "l3fwd_route.h"
 #include "l2fwd_export.h"
 #include "sdplane.h"
 #include "thread_info.h"
@@ -299,7 +298,10 @@ tap_handler_handle_packet_up ()
             log_packet (m, vswport->dpdk_port_id, vswport->dpdk_queue_id);
 
           uint16_t vlan_id = 0;
-          send_fdb_entry_add_msg (m, vlan_id);
+          /* learn only on FDB miss; sending per-packet floods RIB updates. */
+          if (rib && rib->rib_info &&
+              is_fdb_send_add (rib->rib_info, m, vlan_id))
+            send_fdb_entry_add_msg (m, vlan_id);
           tap_handler_write_peek (m);
           tap_handler_write_port_all (m);
 
@@ -385,15 +387,23 @@ tap_handler_handle_packet_down ()
           // mp = pktmbuf_pool[vswport->dpdk_port_id][socket];
           mp = l2fwd_pktmbuf_pool;
           m = rte_pktmbuf_alloc (mp);
+          if (! m)
+            {
+              WARNING ("rte_pktmbuf_alloc() failed: drop %d bytes", ret);
+              continue;
+            }
           rte_pktmbuf_append (m, ret);
           pkt = rte_pktmbuf_mtod (m, char *);
           memcpy (pkt, data, ret);
 
           ring = ring_dn[vswport->dpdk_port_id][vswport->dpdk_queue_id];
-          rte_ring_enqueue (ring, m);
           DEBUG_SDPLANE_LOG (
               TAPHANDLER, "packet: sockfd %d -> ring_dn[%d][%d]",
               vswport->sockfd, vswport->dpdk_port_id, vswport->dpdk_queue_id);
+          /* after a successful enqueue, m is owned by the consumer and
+             must not be touched here. */
+          if (rte_ring_enqueue (ring, m) != 0)
+            rte_pktmbuf_free (m);
         }
     }
 }
@@ -485,6 +495,8 @@ tap_handler (__rte_unused void *dummy)
           vswitch_port_update ();
           rib_ver = rib->rib_info->ver;
         }
+
+      fdb_now = time (NULL);
 
       tap_handler_handle_packet_up ();
       tap_handler_handle_packet_down ();

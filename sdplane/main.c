@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/wait.h>
+#include <sys/time.h>
 
 #include <lthread.h>
 
@@ -21,8 +23,6 @@
 #endif
 
 #include "debug_sdplane.h"
-
-#include "l3fwd.h"
 
 #include "sdplane.h"
 #include "sdplane_version.h"
@@ -154,6 +154,35 @@ pid_file_without_lock (char *path)
 
 char *pid_path = "/var/run/sdplane.pid";
 
+struct sdplane_process_status process_status;
+
+void
+process_init ()
+{
+  process_status.pid = getpid ();
+  snprintf (process_status.config_file_path,
+            sizeof (process_status.config_file_path),
+            "%s", config_file);
+  snprintf (process_status.pid_file_path,
+            sizeof (process_status.pid_file_path),
+            "%s", pid_path);
+  gettimeofday (&process_status.start_time, NULL);
+#ifdef HAVE_SDPLANE_LIBSDPLANE_VERSION_H
+  snprintf (process_status.version_libsdplane,
+            sizeof (process_status.version_libsdplane),
+            "%s", libsdplane_version);
+#else
+  snprintf (process_status.version_libsdplane,
+            sizeof (process_status.version_libsdplane),
+            "%s", "unknown");
+#endif /*HAVE_SDPLANE_LIBSDPLANE_VERSION_H*/
+  snprintf (process_status.version_sdplane,
+            sizeof (process_status.version_sdplane),
+            "%s", sdplane_version);
+  getrusage (RUSAGE_SELF, &process_status.rusage_self);
+  getrusage (RUSAGE_CHILDREN, &process_status.rusage_children);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -163,6 +192,9 @@ main (int argc, char **argv)
   signal (SIGTERM, signal_handler);
   signal (SIGHUP, signal_handler);
   signal (SIGCHLD, signal_handler);
+  /* A VTY/console client disconnecting must not kill the whole process:
+     ignore SIGPIPE so a write to a closed socket returns EPIPE instead. */
+  signal (SIGPIPE, SIG_IGN);
 
   /* Preserve name of myself. */
   char *progname, *p;
@@ -192,6 +224,7 @@ main (int argc, char **argv)
 
   debug_log_init (progname);
   sdplane_init ();
+  process_init ();
 
   lthread_create (&lt, (lthread_func) lthread_main, NULL);
   thread_register (-1, lt, (lthread_func) lthread_main, "lthread_main", NULL);

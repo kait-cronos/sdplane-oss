@@ -69,6 +69,13 @@ DPDKスレッドの動作を対話的に制御できるShellと、DPDKスレッ�
 
 設定・運用に関するヒント集は[Tips](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/tips.ja.md)を参照してください。
 
+### Dependencies
+- **DPDK**: Data Plane Development Kit
+- **libsdplane-dev**: [kait-cronos/libsdplane-dev](https://github.com/kait-cronos/libsdplane-dev) (build and install separately)
+- **lthread**: [yasuhironet/lthread](https://github.com/yasuhironet/lthread) (cooperative threading library, fork of halayli/lthread; does not depend on DPDK)
+- **liburcu-qsbr**: Userspace RCU library
+- **libpcap**: Packet capture library
+
 ## ユーザーガイド（マニュアル）
 
 詳細なユーザーガイドとコマンドリファレンスは以下をご覧ください：

@@ -50,9 +50,9 @@
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_zcmdsh.h>
 
-#include "l3fwd.h"
-#include "l3fwd_route.h"
+#ifdef ENABLE_L3FWD
 #include "l3fwd_cmd.h"
+#endif
 #include "l2fwd_cmd.h"
 #include "sdplane.h"
 #include "vty_shell.h"
@@ -73,10 +73,14 @@ CLI_COMMAND2 (exit_cmd, "(exit|quit)", "exit\n", "quite\n")
   /* don't shell_close(): this closes stdout. */
   // shell_close (shell);
 
-  int nb_lcores = rte_lcore_count ();
   int lcore_id;
-  for (lcore_id = 0; lcore_id < nb_lcores; lcore_id++)
-    stop_lcore (shell, lcore_id);
+  if (rte_eal_init_done)
+    {
+      RTE_LCORE_FOREACH (lcore_id)
+        stop_lcore (shell, lcore_id);
+    }
+  else
+    stop_lcore (shell, lthread_core);
   return 0;
 }
 
@@ -101,7 +105,7 @@ console_shell (void *arg)
   shell_set_terminal (shell, 0, 1);
   shell_set_prompt (shell, "console> ");
   get_winsize (shell);
-  shell->pager = false;
+  shell->pager = true;
 
   INSTALL_COMMAND2 (shell->cmdset, exit_cmd);
 
@@ -126,7 +130,9 @@ console_shell (void *arg)
 
   log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
+#ifdef ENABLE_L3FWD
   l3fwd_cmd_init (shell->cmdset);
+#endif
   sdplane_cmd_init (shell->cmdset);
 
   char ring_name[32];
