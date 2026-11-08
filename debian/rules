@@ -1,22 +1,31 @@
 #!/usr/bin/make -f
-# You must remove unused comment lines for the released package.
+# debian/rules for sdplane-oss.
+# libsdplane is bundled in lib/ and linked statically into sdplane.
 #export DH_VERBOSE = 1
 #export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+# disable LTO (on by default in Ubuntu): gcc-13's lto1 hits an internal
+# compiler error (return_token) when linking sdplane.
+export DEB_BUILD_MAINT_OPTIONS = optimize=-lto
 export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic -march=x86-64-v2
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
 %:
-	dh $@  
+	dh $@
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		--sysconfdir=/etc/sdplane
 
-#override_dh_auto_install:
-#	dh_auto_install -- prefix=/usr
-
-#override_dh_install:
-#	dh_install --list-missing -X.pyc -X.pyo
+# do not ship the bundled libsdplane (static library and headers);
+# it is only for building sdplane, and would conflict with the
+# libsdplane package.
+override_dh_auto_install:
+	dh_auto_install
+	rm -rf debian/sdplane/usr/include
+	[ ! -d debian/sdplane/usr/lib ] || \
+	  find debian/sdplane/usr/lib -name 'libsdplane.*' -delete
+	[ ! -d debian/sdplane/usr/lib ] || \
+	  find debian/sdplane/usr/lib -type d -empty -delete
 
 # do not enable or start sdplane on install; it needs to be configured
 # first (/etc/sdplane/sdplane.conf, NICs, hugepages).
