@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <linux/fcntl.h> // for F_SETPIPE_SZ
+#include <fcntl.h> // for open(), fcntl(), F_SETPIPE_SZ
 #include <time.h>
 #include <syslog.h>
 #include <stdarg.h>

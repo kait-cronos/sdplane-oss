@@ -168,9 +168,7 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     log_packet (m, rx_portid, rx_queueid);
 
   /* 2. send to capture_if */
-  struct capture_if *cif = &vswitch->capture_if;
-  if (cif->sockfd >= 0 && cif->ring_up)
-    _send_ring (m, rx_portid, rx_queueid, cif->ring_up);
+  _send_capture_if_ring (m, rx_portid, rx_queueid, vswitch);
 
   struct router_if *rif = &vswitch->router_if;
 
@@ -224,12 +222,12 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
     {
       DEBUG_NEW (ROUTER, "L2 switching");
       _switching (m, rx_portid, rx_queueid,
-                  vswitch_link, vswitch, eth);
+                  vswitch_link, vswitch, eth, false);
       return;
     }
 
   /* 5. verify IP packet */
-  if (_verify_packet (m, ipv4, ipv6) != 0)
+  if (_verify_packet (m, port_conf, ipv4, ipv6) != 0)
     {
       DEBUG_NEW (ROUTER, "m: %p failed verify", m);
       return;
@@ -237,20 +235,27 @@ _process_rx_packet (struct rte_mbuf *m, unsigned rx_portid,
 
   /* 6. forwarding */
   bool modified;
+
+  if (ipv6)
+    {
 #if 0
-  modified = _process_srv6_packet (m, ipv6,
-                                   &rib->rib_info->srv6_local_sid_addr[0]);
+    modified = _process_srv6_packet (m, ipv6,
+                                    &rib->rib_info->srv6_local_sid_addr[0]);
 #else
-  modified = _process_srv6_packet_multi_sids (m, ipv6,
-                                   rib->rib_info->srv6_local_sid_addr,
+    modified = _process_srv6_packet_multi_sids (m, ipv6,
+                                   rib->rib_info->srv6_local_sid,
                                    rib->rib_info->srv6_local_sid_addr_num);
 #endif
+    }
+  else
+    modified = false;
+
   /* if the packet's destination is modified, avoid split-horizon. */
   if (modified)
     vswitch_link = NULL;
   _forwarding (m, rx_portid, rx_queueid,
                eth, ipv4, ipv6,
-               vswitch, vswitch_link);
+               vswitch, vswitch_link, false);
 
   return;
 }
@@ -288,6 +293,11 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
              "m: %p received on port: %d queue: %d",
              m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID);
 
+  /* This is the code-path that the ARP/NDP packets from Linux tap I/F
+     uses, so we can't do forwarding() on those packets below (otherwise,
+     NDP will not work). The link between sdplane and the Linux TAP I/F
+     is considered as a L2 (or direct) link, rather than L3,
+     so forwarding() cannot be employed. */
 #if 0
   /* check if this is a non-IP packet or multicast or broadcast */
   if ((! ipv4 && ! ipv6) ||
@@ -295,22 +305,22 @@ _process_tx_packet (struct rte_mbuf *m, struct vswitch_conf *vswitch)
       rte_is_broadcast_ether_addr (&eth->dst_addr))
     {
       _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-                  NULL, vswitch, eth);
+                  NULL, vswitch, eth, false);
       return;
     }
-
-  _process_srv6_packet (m, ipv6, &rib->rib_info->srv6_local_sid_addr);
+  if (ipv6)
+    _process_srv6_packet (m, ipv6, &rib->rib_info->srv6_local_sid_addr);
   _forwarding (m,
                ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
                eth, ipv4, ipv6,
-               vswitch, NULL);
+               vswitch, NULL, false);
 #else
   /* This is a packet sent from the Linux tap thru
      the packet_down(ring_dn).  I think it is safe to send it
      without any condition, and I think indeed it should be sent,
      for the proper L3-switch behavior. */
   _switching (m, ROUTER_IF_RX_SELF_PORT_ID, ROUTER_IF_RX_SELF_QUEUE_ID,
-              NULL, vswitch, eth);
+              NULL, vswitch, eth, false);
 #endif
 }
 
@@ -436,6 +446,8 @@ srv6_router (__rte_unused void *dummy)
       urcu_qsbr_read_lock ();
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
+
+      _fwd_cache_invalidate ();
 
       /* better to add processing here only when absolutely necessary
          or cannot be postponed. */

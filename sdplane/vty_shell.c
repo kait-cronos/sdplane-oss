@@ -30,7 +30,9 @@
 #include "sdplane.h"
 #include "thread_info.h"
 #include "l2fwd_cmd.h"
+#ifdef ENABLE_L3FWD
 #include "l3fwd_cmd.h"
+#endif
 #include "vty_server.h"
 #include "vty_shell.h"
 #include "sdplane_version.h"
@@ -160,10 +162,28 @@ vty_shell (void *arg)
   snprintf (prompt, sizeof (prompt), "vty[%d]> ", client->id);
 
   shell = command_shell_create ();
+  if (! shell)
+    {
+      WARNING ("vty[%d]: command_shell_create() failed.", client->id);
+      lthread_close (client->fd);
+      client->fd = -1;
+      thread_unregister_loop_counter (thread_id);
+      thread_unregister (thread_id);
+      return;
+    }
   shell_set_terminal (shell, client->fd, client->fd);
+  if (! shell->terminal)
+    {
+      WARNING ("vty[%d]: fdopen() failed: %s.", client->id, strerror (errno));
+      command_shell_delete (shell);
+      client->fd = -1;
+      thread_unregister_loop_counter (thread_id);
+      thread_unregister (thread_id);
+      return;
+    }
   shell_set_prompt (shell, prompt);
   // get_winsize (shell);
-  shell->pager = false;
+  shell->pager = true;
 
   DEBUG_SDPLANE_LOG (VTY, "%s[%d]: fd: %d terminal: %p.", "vty", client->id,
                      client->fd, shell->terminal);
@@ -201,7 +221,9 @@ vty_shell (void *arg)
   INSTALL_COMMAND2 (shell->cmdset, show_debug_sdplane);
 
   l2fwd_cmd_init (shell->cmdset);
+#ifdef ENABLE_L3FWD
   l3fwd_cmd_init (shell->cmdset);
+#endif
   sdplane_cmd_init (shell->cmdset);
 
   char ring_name[32];
@@ -259,7 +281,7 @@ vty_shell (void *arg)
 
   rte_ring_free (ring_resp);
 
-  lthread_close (client->fd);
+  command_shell_delete (shell);
   client->fd = -1;
 
   thread_unregister_loop_counter (thread_id);

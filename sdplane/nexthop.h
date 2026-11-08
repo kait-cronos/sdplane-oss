@@ -22,6 +22,29 @@ enum nexthop_type
 {
   NEXTHOP_TYPE_CONNECTED,
   NEXTHOP_TYPE_GATEWAY,
+  NEXTHOP_TYPE_SRV6_HEAD,
+  NEXTHOP_TYPE_SRV6_END,
+};
+
+struct srv6_local_sid_entry
+{
+  struct in6_addr sid;
+  uint32_t action;
+  int oif;
+  union
+  {
+    struct in6_addr nh6;
+    struct in_addr nh4;
+    uint32_t table_id;
+  } param;
+};
+
+struct srv6_encap_sid_entry
+{
+#define MAX_SEGMENT_LIST_SIZE 6
+  struct in6_addr sids[MAX_SEGMENT_LIST_SIZE];
+  uint8_t action;
+  uint8_t segment_list_size;
 };
 
 struct nh_info
@@ -30,6 +53,8 @@ struct nh_info
   enum nexthop_type type;
   union
   {
+    struct srv6_local_sid_entry srv6_local_sid;
+    struct srv6_encap_sid_entry srv6_encap_sid;
     struct in_addr ipv4_addr;
     struct in6_addr ipv6_addr;
   } gw;
@@ -70,6 +95,8 @@ void nexthop_show_group_table (struct shell *shell, struct rib_info *rib_info);
 void nexthop_show_pool (struct shell *shell, struct rib_info *rib_info);
 
 int nexthop_add_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh);
+int nexthop_find_entry (struct rib_info *rib_info,
+                        struct internal_msg_nh_entry *nh);
 int nexthop_del_entry (struct rib_info *rib_info, struct internal_msg_nh_entry *nh);
 
 void nexthop_increment_refcnt (struct rib_info *rib_info, int sdplane_nh_id);

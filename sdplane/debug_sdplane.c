@@ -64,6 +64,21 @@ struct debug_type debug_sdplane_types[] = {
   { DEBUG_SDPLANE_NETLINK_HOOK, "netlink-hook" },
   { DEBUG_SDPLANE_SIGNAL, "signal" },
   { DEBUG_SDPLANE_NEXTHOP, "nexthop" },
+  { DEBUG_SDPLANE_RTE_ETHDEV, "rte-ethdev" },
+  { DEBUG_SDPLANE_TMP, "tmp-target" },
+  { DEBUG_SDPLANE_INTERFACE, "interface" },
+  { DEBUG_SDPLANE_ROUTING_LOOKUP, "routing-lookup" },
+  { DEBUG_SDPLANE_NEIGH_LOOKUP, "neigh-lookup" },
+  { DEBUG_SDPLANE_FDB_LOOKUP, "fdb-lookup" },
+  { DEBUG_SDPLANE_VSWITCH_LINK, "vswitch-link" },
+  { DEBUG_SDPLANE_ROUTING, "routing" },
+  { DEBUG_SDPLANE_FORWARDING, "forwarding" },
+  { DEBUG_SDPLANE_SWITCHING, "switching" },
+  { DEBUG_SDPLANE_FLOODING, "flooding" },
+  { DEBUG_SDPLANE_IGMP, "igmp" },
+  { DEBUG_SDPLANE_PORT_STATUS, "port-status" },
+  { DEBUG_SDPLANE_PORT_CONFIG, "port-config" },
+  { DEBUG_SDPLANE_MULTICASTING, "multicasting" },
 };
 
 struct command_header debug_sdplane_cmd;

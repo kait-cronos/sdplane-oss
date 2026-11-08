@@ -8,7 +8,6 @@
 #include <rte_ring.h>
 #include <rte_ethdev.h>
 #include <sdplane/shell.h>
-
 #include "queue_config.h"
 #include "radix.h"
 
@@ -38,22 +37,28 @@ struct internal_msg_header
 #define INTERNAL_MSG_TYPE_ROUTER_IF_NO_SET      16
 #define INTERNAL_MSG_TYPE_CAPTURE_IF_NO_SET     17
 #define INTERNAL_MSG_TYPE_FDB_ENTRY_ADD         18
-#define INTERNAL_MSG_TYPE_APPLICATION_SLOT      19
-#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       20
-#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       21
-#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_ADD     22
-#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_DEL     23
-#define INTERNAL_MSG_TYPE_PORT_GET_REQUEST      24
-#define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     25
-#define INTERNAL_MSG_TYPE_CMD_SUCCESS           26
-#define INTERNAL_MSG_TYPE_CMD_ERROR             27
-#define INTERNAL_MSG_TYPE_MAC_ADDR_ADD          28
-#define INTERNAL_MSG_TYPE_MAC_ADDR_DEL          29
-#define INTERNAL_MSG_TYPE_IP_ADDR_ADD           30
-#define INTERNAL_MSG_TYPE_IP_ADDR_DEL           31
-#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID        32
+#define INTERNAL_MSG_TYPE_FDB_AGING             19
+#define INTERNAL_MSG_TYPE_APPLICATION_SLOT      20
+#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_ADD       21
+#define INTERNAL_MSG_TYPE_ROUTE_ENTRY_DEL       22
+#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_ADD     23
+#define INTERNAL_MSG_TYPE_NEXTHOP_ENTRY_DEL     24
+#define INTERNAL_MSG_TYPE_PORT_GET_REQUEST      25
+#define INTERNAL_MSG_TYPE_PORT_GET_RESPONSE     26
+#define INTERNAL_MSG_TYPE_CMD_SUCCESS           27
+#define INTERNAL_MSG_TYPE_CMD_ERROR             28
+#define INTERNAL_MSG_TYPE_MAC_ADDR_ADD          29
+#define INTERNAL_MSG_TYPE_MAC_ADDR_DEL          30
+#define INTERNAL_MSG_TYPE_IP_ADDR_ADD           31
+#define INTERNAL_MSG_TYPE_IP_ADDR_DEL           32
+#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD    33
+#define INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL    34
+#define INTERNAL_MSG_TYPE_SRV6_ENCAP_SRC_SET    35
+#define INTERNAL_MSG_TYPE_MDB_ENTRY_ADD         36
+#define INTERNAL_MSG_TYPE_MDB_ENTRY_DEL         37
+#define INTERNAL_MSG_TYPE_MDB_AGING             38
 
-struct internal_msg_eth_link
+    struct internal_msg_eth_link
 {
   struct rte_eth_link link[RTE_MAX_ETHPORTS];
 };
@@ -71,6 +76,12 @@ struct internal_msg_txrx_desc
   uint16_t ntxq;
   uint16_t nb_rxd;
   uint16_t nb_txd;
+  uint64_t rx_offload_mask;
+  uint64_t rx_offload_value;
+  uint64_t tx_offload_mask;
+  uint64_t tx_offload_value;
+  uint64_t rss_hf_mask;
+  uint64_t rss_hf_value;
 };
 
 struct internal_msg_vswitch
@@ -109,6 +120,23 @@ struct internal_msg_fdb_entry
   uint16_t port;
 };
 
+struct internal_msg_fdb_aging
+{
+  uint32_t aging_time; /* seconds */
+};
+
+struct internal_msg_mdb_entry
+{
+  uint32_t group_addr;
+  uint16_t vswitch_id;
+  uint16_t port;
+};
+
+struct internal_msg_mdb_aging
+{
+  uint32_t aging_time;
+};
+
 struct internal_msg_nh_member
 {
   int kernel_nh_id;
@@ -127,6 +155,7 @@ struct internal_msg_route_entry
 {
   int family;
   int table_id;
+  uint8_t route_type;
   struct route_dst_info dst;
   bool is_nhid;
   struct internal_msg_nh_entry nh;
@@ -171,6 +200,19 @@ struct internal_msg_srv6_local_sid
 {
   struct in6_addr srv6_local_sid_addr;
   uint8_t srv6_local_sid_addr_index;
+  uint32_t action;
+  int oif;
+  union
+    {
+      uint32_t table_id;
+      struct in6_addr nh6;
+      struct in_addr nh4;
+    } param;
+};
+
+struct internal_msg_srv6_encap_src
+{
+  struct in6_addr src_addr;
 };
 
 void *internal_msg_body (struct internal_msg_header *msgp);

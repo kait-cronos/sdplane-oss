@@ -60,3 +60,4 @@ ltmain.sh
 /tests/build
 /tests/logs
 compile_commands.json
+/dist/

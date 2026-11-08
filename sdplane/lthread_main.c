@@ -47,13 +47,12 @@
 #include <sdplane/command.h>
 #include <sdplane/command_shell.h>
 
-#include "l3fwd.h"
-#include "l3fwd_route.h"
 #include "sdplane.h"
 #include "tap_handler.h"
 #include "neigh_manager.h"
 #include "thread_info.h"
 #include "dhcp_server.h"
+#include "igmp_report.h"
 
 #if HAVE_LIBURCU_QSBR
 #include <urcu/urcu-qsbr.h>
@@ -77,6 +76,9 @@ void vty_server (void *arg);
 int stat_collector (__rte_unused void *dummy);
 void rib_manager (void *arg);
 void netlink_thread (void *arg);
+
+extern struct rte_ring *ring_igmp_snooping_rx;
+int igmp_snooping (__rte_unused void *dummy);
 
 CLI_COMMAND2 (set_worker_lthread_stat_collector,
               "set worker lthread stat-collector", SET_HELP, WORKER_HELP,
@@ -157,6 +159,25 @@ CLI_COMMAND2 (set_worker_lthread_neigh_manager,
   return CMD_SUCCESS;
 }
 
+int lthread_rcu_reporter (__rte_unused void *dummy);
+
+CLI_COMMAND2 (set_worker_lthread_rcu_reporter,
+              "set worker lthread rcu-reporter",
+              SET_HELP,
+              WORKER_HELP,
+              "lthread information\n",
+              "rcu-reporter\n")
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) lthread_rcu_reporter, NULL);
+  thread_register (lthread_core, lt, (lthread_func) lthread_rcu_reporter,
+                   "rcu_reporter", NULL);
+  lthread_detach2 (lt);
+  return 0;
+}
+
 CLI_COMMAND2 (set_worker_lthread_dhcp_server,
               "set worker lthread dhcp-server", SET_HELP, WORKER_HELP,
               "lthread information\n", "dhcp-server\n")
@@ -183,6 +204,33 @@ CLI_COMMAND2 (set_worker_lthread_dhcp_server,
   return CMD_SUCCESS;
 }
 
+CLI_COMMAND2 (set_worker_lthread_igmp_snooping,
+              "set worker lthread igmp-snooping", SET_HELP, WORKER_HELP,
+              "lthread information\n", "igmp-snooping\n")
+{
+  struct shell *shell = (struct shell *) context;
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) igmp_snooping, NULL);
+  thread_register (lthread_core, lt, (lthread_func) igmp_snooping,
+                   "igmp-snooping", NULL);
+  lthread_detach2 (lt);
+
+  /* dhcp_server needs to be started immediately.
+     If it is a lthread, lthread_sleep() is necessary. */
+  lthread_sleep (0);
+
+  /* check whether the dhcp_server is actually started. */
+  if (! ring_igmp_snooping_rx)
+    {
+      fprintf (shell->terminal, "Can't start igmp-snooping.%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  return CMD_SUCCESS;
+}
+
+
 CLI_COMMAND2 (set_worker_lthread_l3_tap_handler,
               "set worker lthread l3-tap-handler", SET_HELP, WORKER_HELP,
               "lthread information\n", "l3-tap-handler\n")
@@ -196,6 +244,18 @@ CLI_COMMAND2 (set_worker_lthread_l3_tap_handler,
   return 0;
 }
 
+CLI_COMMAND2 (set_worker_lthread_igmp_report, "set worker lthread igmp-report",
+              SET_HELP, WORKER_HELP, "lthread information\n", "igmp-report\n")
+{
+  lthread_t *lt = NULL;
+
+  lthread_create (&lt, (lthread_func) igmp_report, NULL);
+  thread_register (lthread_core, lt, (lthread_func) igmp_report,
+                   "igmp_report", NULL);
+  lthread_detach2 (lt);
+  return 0;
+}
+
 void
 lthread_cmd_init (struct command_set *cmdset)
 {
@@ -203,8 +263,11 @@ lthread_cmd_init (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_rib_manager);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_netlink_thread);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_neigh_manager);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_rcu_reporter);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_dhcp_server);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_igmp_snooping);
   INSTALL_COMMAND2 (cmdset, set_worker_lthread_l3_tap_handler);
+  INSTALL_COMMAND2 (cmdset, set_worker_lthread_igmp_report);
 }
 
 int
@@ -254,10 +317,6 @@ lthread_main (__rte_unused void *dummy)
   debug_zcmdsh_cmd_init ();
   command_shell_init ();
 
-  lthread_create (&lt, (lthread_func) vty_server, NULL);
-  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
-  lthread_detach2 (lt);
-
   ret = startup_config (NULL);
   if (ret < 0)
     {
@@ -270,6 +329,10 @@ lthread_main (__rte_unused void *dummy)
   lthread_create (&lt, (lthread_func) console_shell, NULL);
   thread_id =
       thread_register (lthread_core, lt, console_shell, "console_shell", NULL);
+
+  lthread_create (&lt, (lthread_func) vty_server, NULL);
+  thread_register (lthread_core, lt, vty_server, "vty_server", NULL);
+  lthread_detach2 (lt);
 
   lthread_sleep (0);
   if (! ring_resp)

@@ -8,11 +8,12 @@
 #include <poll.h>
 #include <stdbool.h>
 
+#include "includes.h"
+
+/* after includes.h (config.h), for HAVE_UTIL_H. */
 #if HAVE_UTIL_H
 #include <util.h> // for openpty()
 #endif /*HAVE_UTIL_H*/
-
-#include "includes.h"
 #include "command.h"
 #include "command_shell.h"
 #include "file.h"
@@ -64,6 +65,9 @@ void
 command_history_delete (struct command_history *history)
 {
   int i;
+
+  if (! history)
+    return;
   for (i = 0; i < HISTORY_SIZE; i++)
     free (history->array[i]);
   free (history);
@@ -193,17 +197,367 @@ DEFINE_COMMAND (show_history, "show history",
 #endif /*HAVE_PTY_H*/
 #include <signal.h>
 
-#define DEFAULT_PAGER_ARG0 "/usr/bin/less"
-#define DEFAULT_PAGER_ARG1 "-FX"
-#define DEFAULT_PAGER_ARG2 "+Gg"
-#define DEFAULT_PAGER \
-  (DEFAULT_PAGER_ARG0 " " DEFAULT_PAGER_ARG1 " " DEFAULT_PAGER_ARG2)
+/* pager pipe stages: filter commands (such as moreutils sponge)
+   inserted between the command output and the pager, in the
+   index order: command output -> stage[0] -> ... -> pager.
+   an unset stage (argc == 0) is skipped. */
+struct pager_pipe_stage
+{
+  int argc;
+  char *argv[PAGER_PIPE_ARGV_MAX + 1]; /* NULL-terminated for execvp(). */
+};
+
+static struct pager_pipe_stage pager_pipe_stages[SHELL_PAGER_PIPE_MAX];
+
+/* the default pager command: the strace-wrapped less,
+   kept from the previous behavior. */
+char *pager_command_default[] = {
+  "strace", "-o", "/tmp/less.trace",
+  "/usr/bin/less", "-FX",
+  NULL
+};
+
+/* the pager command configured by 'set pager command <LINE>'.
+   when unset (argc == 0), pager_command_default[] is used. */
+static struct pager_pipe_stage pager_command_config;
+
+static void
+pager_stage_clear (struct pager_pipe_stage *stage)
+{
+  int i;
+
+  for (i = 0; i < stage->argc; i++)
+    {
+      free (stage->argv[i]);
+      stage->argv[i] = NULL;
+    }
+  stage->argc = 0;
+}
+
+static int
+pager_stage_assign (struct pager_pipe_stage *stage, int stage_argc,
+                    char **stage_argv)
+{
+  int i;
+
+  if (stage_argc < 1 || stage_argc > PAGER_PIPE_ARGV_MAX)
+    return -1;
+
+  pager_stage_clear (stage);
+
+  for (i = 0; i < stage_argc; i++)
+    stage->argv[i] = strdup (stage_argv[i]);
+  stage->argv[stage_argc] = NULL;
+  stage->argc = stage_argc;
+
+  return 0;
+}
+
+/* join the effective pager pipeline: the pipe stages and the pager
+   command (the configured one, or the default), connected with '|',
+   into buf[] as a single line, for popen()/display.
+   e.g. "sponge | strace -o /tmp/less.trace /usr/bin/less -FX".
+   returns buf (truncated when it does not fit). */
+static char *
+pager_command_line_join (char *buf, size_t size)
+{
+  char **pager_argv;
+  char *p = buf;
+  char *e = buf + size;
+  int nwrite;
+  int i, j;
+
+  buf[0] = '\0';
+
+  /* the pipe stages first: "stage0 | stage1 | ". */
+  for (i = 0; i < SHELL_PAGER_PIPE_MAX; i++)
+    {
+      struct pager_pipe_stage *stage = &pager_pipe_stages[i];
+      if (! stage->argc)
+        continue;
+      for (j = 0; j < stage->argc; j++)
+        {
+          nwrite = snprintf (p, e - p, (j == 0 ? "%s" : " %s"),
+                             stage->argv[j]);
+          if (nwrite < 0 || nwrite >= e - p)
+            return buf; /* truncated: give up appending. */
+          p += nwrite;
+        }
+      nwrite = snprintf (p, e - p, " | ");
+      if (nwrite < 0 || nwrite >= e - p)
+        return buf; /* truncated: give up appending. */
+      p += nwrite;
+    }
+
+  /* then the pager command. */
+  pager_argv = (pager_command_config.argc ? pager_command_config.argv
+                                          : pager_command_default);
+  for (i = 0; pager_argv[i]; i++)
+    {
+      nwrite = snprintf (p, e - p, (i == 0 ? "%s" : " %s"), pager_argv[i]);
+      if (nwrite < 0 || nwrite >= e - p)
+        return buf; /* truncated: give up appending. */
+      p += nwrite;
+    }
+
+  return buf;
+}
+
+/* split a command line into words. the words point into line[]:
+   the caller keeps the ownership of line[].
+   returns the number of words, or -1 when more than max words. */
+static int
+pager_command_line_split (char *line, char **words, int max)
+{
+  char *stringp = line;
+  char *word;
+  int nwords = 0;
+
+  while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
+    {
+      if (*word == '\0')
+        continue;
+      if (nwords >= max)
+        return -1;
+      words[nwords++] = word;
+    }
+
+  return nwords;
+}
+
+int
+pager_pipe_stage_set (int index, int stage_argc, char **stage_argv)
+{
+  if (index < 0 || index >= SHELL_PAGER_PIPE_MAX)
+    return -1;
+
+  return pager_stage_assign (&pager_pipe_stages[index],
+                             stage_argc, stage_argv);
+}
+
+int
+pager_pipe_stage_unset (int index)
+{
+  if (index < 0 || index >= SHELL_PAGER_PIPE_MAX)
+    return -1;
+
+  pager_stage_clear (&pager_pipe_stages[index]);
+
+  return 0;
+}
+
+int
+pager_command_set (int cmd_argc, char **cmd_argv)
+{
+  return pager_stage_assign (&pager_command_config, cmd_argc, cmd_argv);
+}
+
+int
+pager_command_unset (void)
+{
+  pager_stage_clear (&pager_command_config);
+  return 0;
+}
+
+/* fork the configured filter stages, connecting them with pipes:
+   source_fd -> stage[0] -> ... -> stage[N-1] -> (returned fd).
+   returns the read-end fd the pager should read from.
+   the forked pids are recorded in shell->pager_pipe_pid[]. */
+static int
+pager_pipe_stages_start (struct shell *shell, int source_fd)
+{
+  int ret;
+  int i;
+  int stagefd[2];
+  pid_t process_id;
+
+  shell->pager_pipe_nstages = 0;
+
+  for (i = 0; i < SHELL_PAGER_PIPE_MAX; i++)
+    {
+      struct pager_pipe_stage *stage = &pager_pipe_stages[i];
+
+      if (! stage->argc)
+        continue;
+
+      ret = pipe (stagefd);
+      if (ret < 0)
+        {
+          DEBUG_NEW (PAGER, "stage[%d]: pipe() failed: %s.",
+                     i, strerror (errno));
+          break;
+        }
+
+      process_id = fork ();
+      if (process_id < 0)
+        {
+          DEBUG_NEW (PAGER, "stage[%d]: fork() failed: %s.",
+                     i, strerror (errno));
+          close (stagefd[0]);
+          close (stagefd[1]);
+          break;
+        }
+      else if (process_id == 0)
+        {
+          /* stage child: source_fd -> argv[] -> stagefd[1]. */
+          close (stagefd[0]);
+          close (shell->pipefd[1]);
+          close (shell->pty_master);
+
+          dup2 (source_fd, 0);
+          close (source_fd);
+          dup2 (stagefd[1], 1);
+          close (stagefd[1]);
+
+          /* keep the error messages visible on the pager terminal. */
+          dup2 (shell->pty_slave, 2);
+          close (shell->pty_slave);
+
+          execvp (stage->argv[0], stage->argv);
+
+          DEBUG_NEW (PAGER, "stage[%d]: execvp() failed: %s",
+                     i, strerror (errno));
+          DEBUG_NEW (PAGER, "stage[%d]: execvp(): argc: %d argv[0]: %s",
+                     i, stage->argc, stage->argv[0]);
+
+          /* exec failed: fall back to a plain passthrough (like cat),
+             so that the command output is not lost. */
+          {
+            char fbuf[1024];
+            int nread;
+            while ((nread = read (0, fbuf, sizeof (fbuf))) > 0)
+              if (write (1, fbuf, nread) < 0)
+                break;
+          }
+          _exit (127);
+        }
+
+      /* parent. */
+      DEBUG_NEW (PAGER, "stage[%d]: %s: pid: %d.",
+                 i, stage->argv[0], (int) process_id);
+      close (stagefd[1]);
+      close (source_fd);
+      source_fd = stagefd[0];
+      shell->pager_pipe_pid[shell->pager_pipe_nstages++] = process_id;
+    }
+
+  return source_fd;
+}
+
+/* reap the filter stage processes. called after the pager exited. */
+static void
+pager_pipe_stages_reap (struct shell *shell)
+{
+  int i;
+  int wstatus;
+  pid_t pid, ret;
+
+  for (i = 0; i < shell->pager_pipe_nstages; i++)
+    {
+      pid = shell->pager_pipe_pid[i];
+      if (pid <= 0)
+        continue;
+
+      do
+        ret = waitpid (pid, &wstatus, WNOHANG);
+      while (ret < 0 && errno == EINTR);
+      if (ret == 0)
+        {
+          /* the stage may keep running (e.g. sponge feeding a
+             pager that the user has quit): terminate it. */
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: stage process %d: SIGTERM.",
+                            (int) pid);
+          kill (pid, SIGTERM);
+          do
+            ret = waitpid (pid, &wstatus, 0);
+          while (ret < 0 && errno == EINTR);
+        }
+
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: stage process %d reaped.", (int) pid);
+      shell->pager_pipe_pid[i] = 0;
+    }
+
+  shell->pager_pipe_nstages = 0;
+}
+
+static void
+pager_process_cancel (pid_t *pid)
+{
+  pid_t ret;
+  int status;
+
+  if (*pid <= 0)
+    return;
+  do
+    ret = waitpid (*pid, &status, WNOHANG);
+  while (ret < 0 && errno == EINTR);
+  if (ret == 0)
+    {
+      /* The pager creates a session; include children such as less. */
+      if (getpgid (*pid) == *pid)
+        kill (-*pid, SIGKILL);
+      kill (*pid, SIGKILL);
+      do
+        ret = waitpid (*pid, &status, 0);
+      while (ret < 0 && errno == EINTR);
+    }
+  *pid = 0;
+}
+
+static void
+pager_output_close (struct shell *shell)
+{
+  if (shell->pager_saved_terminal)
+    {
+      fclose (shell->terminal);
+      shell->pipefd[1] = -1;
+      shell->terminal = shell->pager_saved_terminal;
+      shell->writefd = shell->pager_saved_writefd;
+      shell->pager_saved_terminal = NULL;
+      shell->pager_saved_writefd = -1;
+    }
+  else if (shell->pipefd[1] >= 0)
+    {
+      close (shell->pipefd[1]);
+      shell->pipefd[1] = -1;
+    }
+}
+
+static void
+pager_fds_close (struct shell *shell)
+{
+  if (shell->pipefd[0] >= 0)
+    close (shell->pipefd[0]);
+  shell->pipefd[0] = -1;
+  if (shell->pty_master >= 0)
+    close (shell->pty_master);
+  shell->pty_master = -1;
+  if (shell->pty_slave >= 0)
+    close (shell->pty_slave);
+  shell->pty_slave = -1;
+}
+
+static void
+pager_cleanup (struct shell *shell)
+{
+  int i;
+
+  pager_output_close (shell);
+  pager_process_cancel (&shell->pager_pid);
+  for (i = 0; i < shell->pager_pipe_nstages; i++)
+    pager_process_cancel (&shell->pager_pipe_pid[i]);
+  shell->pager_pipe_nstages = 0;
+
+  pager_fds_close (shell);
+  shell->is_paging = false;
+}
 
 #define PAGER_USE_POPEN 0
 void
 pager_start (struct shell *shell)
 {
-  shell->is_paging = false;
+  if (shell->is_paging)
+    return;
 #if PAGER_USE_POPEN
   FILE *pager_fp = NULL;
 
@@ -217,8 +571,10 @@ pager_start (struct shell *shell)
 
   if (! pager_fp)
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "default pager: %s", DEFAULT_PAGER);
-      pager_fp = popen (DEFAULT_PAGER, "w");
+      char pager_line[256];
+      pager_command_line_join (pager_line, sizeof (pager_line));
+      DEBUG_ZCMDSH_LOG (PAGER, "default pager: %s", pager_line);
+      pager_fp = popen (pager_line, "w");
     }
 
   if (! pager_fp)
@@ -237,11 +593,16 @@ pager_start (struct shell *shell)
   int ret;
   pid_t process_id;
 
-  int pty_master, pty_slave;
   char slave_name[256];
   char *slave_name_ptr;
 
-  openpty (&shell->pty_master, &shell->pty_slave, slave_name, NULL, NULL);
+  ret = openpty (&shell->pty_master, &shell->pty_slave, slave_name, NULL, NULL);
+  if (ret < 0)
+    {
+      DEBUG_NEW (PAGER, "openpty() failed: %s.", strerror (errno));
+      pager_cleanup (shell);
+      return;
+    }
   slave_name_ptr = ptsname (shell->pty_slave);
   DEBUG_NEW (PAGER, "pty(master): fd %d, %s.", shell->pty_master,
                     ttyname (shell->pty_master));
@@ -261,6 +622,7 @@ pager_start (struct shell *shell)
   if (ret < 0)
     {
       DEBUG_NEW (PAGER, "pipe() failed: %s.", strerror (errno));
+      pager_cleanup (shell);
       return;
     }
 #if 0
@@ -269,14 +631,19 @@ pager_start (struct shell *shell)
                       shell->pipefd[0], shell->pipefd[1]);
 #endif
 
+  /* insert the configured filter stages (e.g. moreutils sponge)
+     between the command output and the pager. the pager reads
+     from source_fd: the last stage's output, or the command
+     output pipe itself when no stage is configured. */
+  int source_fd;
+  source_fd = pager_pipe_stages_start (shell, shell->pipefd[0]);
+  shell->pipefd[0] = source_fd;
+
   process_id = fork ();
   if (process_id < 0)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "fork() failed: close pipefd and pty");
-      close (shell->pipefd[0]);
-      close (shell->pipefd[1]);
-      close (shell->pty_master);
-      close (shell->pty_slave);
+      pager_cleanup (shell);
       return;
     }
   else if (process_id == 0)
@@ -291,7 +658,7 @@ pager_start (struct shell *shell)
         DEBUG_NEW (PAGER, "setsid(): succeeded.");
 #endif
 
-      /* child */
+      /* child (pager) */
       close (shell->pipefd[1]);
       close (shell->pty_master);
 
@@ -312,15 +679,13 @@ pager_start (struct shell *shell)
       DEBUG_NEW (PAGER, "pty(slave): fd %d, %s.", shell->pty_slave,
                         ttyname (shell->pty_slave));
 
-      char *lessargs[4];
-      lessargs[0] = DEFAULT_PAGER_ARG0;
-      lessargs[1] = DEFAULT_PAGER_ARG1;
-      lessargs[2] = DEFAULT_PAGER_ARG2;
-      lessargs[3] = NULL;
-      char *path = lessargs[0];
+      /* the pager command: the configured one, or the default. */
+      char **pager_argv;
+      pager_argv = (pager_command_config.argc ? pager_command_config.argv
+                                             : pager_command_default);
 
-      DEBUG_NEW (PAGER, "execvp: %s %s %s",
-                 lessargs[0], lessargs[1], lessargs[2]);
+      DEBUG_NEW (PAGER, "execvp: %s%s", pager_argv[0],
+                 pager_argv[1] ? " ..." : "");
 
       ret = ioctl (shell->pty_slave, TIOCSCTTY, 0);
       if (ret < 0)
@@ -356,27 +721,20 @@ pager_start (struct shell *shell)
         }
 #endif
 
-      dup2 (shell->pipefd[0], 0);
+      dup2 (source_fd, 0);
       dup2 (shell->pty_slave, 1);
       dup2 (shell->pty_slave, 2);
       stdin = fdopen (0, "r");
       stdout = fdopen (1, "w");
       stderr = fdopen (2, "r+");
 
-#define PAGER_STRACE 1
-#if PAGER_STRACE
-      execlp("strace", "strace", "-o", "/tmp/less.trace",
-             DEFAULT_PAGER_ARG0, DEFAULT_PAGER_ARG1, DEFAULT_PAGER_ARG2,
-             NULL);
-#else
-      ret = execvp (path, lessargs);
+      ret = execvp (pager_argv[0], pager_argv);
       if (ret < 0)
         {
           DEBUG_NEW (PAGER, "execvp() failed: ret: %d: %s.", ret,
                             strerror (errno));
-          exit (-1);
+          _exit (127);
         }
-#endif
     }
   else if (process_id > 0)
     {
@@ -384,11 +742,10 @@ pager_start (struct shell *shell)
       shell->pager_pid = process_id;
 
       /* parent */
-      close (shell->pipefd[0]);
+      close (source_fd);
+      shell->pipefd[0] = -1;
       close (shell->pty_slave);
-
-      shell->pager_saved_terminal = shell->terminal;
-      shell->pager_saved_writefd = shell->writefd;
+      shell->pty_slave = -1;
 
 #if 0
       int flags;
@@ -409,10 +766,21 @@ pager_start (struct shell *shell)
                  "didn't set O_NONBLOCK.");
 #endif
 
-      shell->terminal = fdopen (shell->pipefd[1], "a");
+      FILE *pager_fp = fdopen (shell->pipefd[1], "a");
+      if (! pager_fp)
+        {
+          DEBUG_NEW (PAGER, "fdopen() failed: %s.", strerror (errno));
+          pager_cleanup (shell);
+          return;
+        }
+      shell->pager_saved_terminal = shell->terminal;
+      shell->pager_saved_writefd = shell->writefd;
+      shell->terminal = pager_fp;
       shell->writefd = shell->pipefd[1];
 
+#ifdef F_SETPIPE_SZ /* Linux only. */
       fcntl (shell->writefd, F_SETPIPE_SZ, 1048576);
+#endif /*F_SETPIPE_SZ*/
 
       struct pollfd fds[2];
       fds[0].fd = shell->pty_master;
@@ -432,13 +800,28 @@ pager_start (struct shell *shell)
 
           DEBUG_NEW (PAGER, "poll(): fd: %d fd: %d", fds[0].fd, fds[1].fd);
           ret = poll (fds, 2, 0);
+          if (ret < 0)
+            {
+              if (errno == EINTR)
+                continue;
+              DEBUG_NEW (PAGER, "poll() failed: %s.", strerror (errno));
+              pager_cleanup (shell);
+              return;
+            }
           if (fds[0].revents & POLLIN)
             {
               DEBUG_NEW (PAGER, "poll(): pty_master: %d: POLLIN",
                          shell->pty_master);
-              nbytes = read (shell->pty_master, buf, sizeof (buf));
+              nbytes = read (shell->pty_master, buf, sizeof (buf) - 1);
+              if (nbytes < 0 && (errno == EINTR || errno == EAGAIN))
+                continue;
               DEBUG_NEW (PAGER, "read(): pty_master: %d: %d bytes",
                        shell->pty_master, nbytes);
+              if (nbytes <= 0)
+                {
+                  pager_cleanup (shell);
+                  return;
+                }
               if (nbytes > 0)
                 {
                   buf[nbytes] = '\0';
@@ -452,9 +835,17 @@ pager_start (struct shell *shell)
           if (fds[1].revents & POLLIN)
             {
               DEBUG_NEW (PAGER, "poll(): readfd: %d: POLLIN", shell->readfd);
-              nbytes = read (shell->readfd, buf, sizeof (buf));
+              nbytes = read (shell->readfd, buf, sizeof (buf) - 1);
+              if (nbytes < 0 && (errno == EINTR || errno == EAGAIN))
+                continue;
               DEBUG_NEW (PAGER, "read(): readfd: %d: %d bytes",
                        shell->readfd, nbytes);
+              if (nbytes <= 0)
+                {
+                  FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
+                  pager_cleanup (shell);
+                  return;
+                }
               if (nbytes > 0)
                 {
                   buf[nbytes] = '\0';
@@ -485,32 +876,14 @@ pager_start (struct shell *shell)
 void
 pager_end (struct shell *shell)
 {
+  if (! shell->is_paging)
+    return;
+
+  pager_output_close (shell);
 #if ! PAGER_USE_POPEN
   int wstatus;
+  pid_t wait_ret = 0;
 
-  // DEBUG_ZCMDSH_LOG (PAGER, "pager: close forked child.");
-
-  if (shell->pager_pid == 0)
-    {
-      DEBUG_ZCMDSH_LOG (PAGER, "should not be reached.");
-      exit (-1);
-    }
-
-  close (shell->pipefd[1]);
-#endif
-
-  if (shell->pager_saved_terminal)
-    {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager end: terminal: %p -> %p.",
-                        shell->terminal, shell->pager_saved_terminal);
-      pclose (shell->terminal);
-      shell->terminal = shell->pager_saved_terminal;
-      shell->writefd = shell->pager_saved_writefd;
-      shell->pager_saved_terminal = NULL;
-      shell->pager_saved_writefd = -1;
-    }
-
-#if ! PAGER_USE_POPEN
   //DEBUG_ZCMDSH_LOG (PAGER, "pager: bridging sockets and pty...");
   int ret, nwrite;
   struct pollfd fds[2];
@@ -529,9 +902,14 @@ pager_end (struct shell *shell)
       ret = poll (fds, nfds, 0);
       if (ret < 0)
         {
+          int poll_errno = errno;
+
           DEBUG_ZCMDSH_LOG (PAGER, "pager: ppoll() returned: %d: %s", ret,
-                            strerror (errno));
-          break;
+                            strerror (poll_errno));
+          if (poll_errno == EINTR)
+            continue;
+          pager_cleanup (shell);
+          return;
         }
 
       for (i = 0; i < nfds; i++)
@@ -543,7 +921,7 @@ pager_end (struct shell *shell)
             closed++;
 #endif
 
-          if (! (fds[i].revents & (POLLIN | POLLHUP)))
+          if (! (fds[i].revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL)))
             continue;
 
           DEBUG_ZCMDSH_LOG (
@@ -560,9 +938,15 @@ pager_end (struct shell *shell)
           ret = read (readfd, buf, sizeof (buf));
           if (ret < 0)
             {
+              int read_errno = errno;
+
               DEBUG_ZCMDSH_LOG (PAGER,
                                 "pager: read() from fd: %d returned %d: %s",
-                                readfd, ret, strerror (errno));
+                                readfd, ret, strerror (read_errno));
+              if (read_errno == EINTR || read_errno == EAGAIN)
+                continue;
+              if (i == 0)
+                FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
               closed++;
               continue;
             }
@@ -570,6 +954,8 @@ pager_end (struct shell *shell)
             {
               DEBUG_ZCMDSH_LOG (PAGER, "pager: fds[%d]: fd: %d: closed, break",
                                 i, fds[i].fd);
+              if (i == 0)
+                FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
               closed++;
             }
           else
@@ -587,10 +973,21 @@ pager_end (struct shell *shell)
         break;
     }
 
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_CLOSE))
+    {
+      pager_cleanup (shell);
+      return;
+    }
+
   DEBUG_ZCMDSH_LOG (PAGER, "pager: waiting child: process %d...",
                     shell->pager_pid);
-  waitpid (shell->pager_pid, &wstatus, 0);
-  if (WIFEXITED (wstatus))
+  if (shell->pager_pid > 0)
+    {
+      do
+        wait_ret = waitpid (shell->pager_pid, &wstatus, 0);
+      while (wait_ret < 0 && errno == EINTR);
+    }
+  if (wait_ret > 0 && WIFEXITED (wstatus))
     {
       DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d exited normally.",
                         shell->pager_pid);
@@ -599,8 +996,12 @@ pager_end (struct shell *shell)
     {
       DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d failed.", shell->pager_pid);
     }
+
+  pager_pipe_stages_reap (shell);
+  shell->pager_pid = 0;
 #endif
 
+  pager_fds_close (shell);
   shell->is_paging = false;
 }
 
@@ -633,16 +1034,18 @@ shell_pager_bridge (struct shell *shell)
       ret = poll (fds, nfds, 0);
       if (ret < 0)
         {
+          int poll_errno = errno;
+
           DEBUG_NEW (PAGER, "pager: ppoll() returned: %d: %s", ret,
-                            strerror (errno));
-          return 0;
+                            strerror (poll_errno));
+          return (poll_errno == EINTR ? 0 : -1);
         }
 
       for (i = 0; i < nfds; i++)
         {
           int readfd, writefd;
 
-          if (! (fds[i].revents & (POLLIN | POLLHUP)))
+          if (! (fds[i].revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL)))
             {
 #if 0
             DEBUG_NEW (PAGER, "pager: bridge: no events: fds[%d]: %d",
@@ -669,9 +1072,15 @@ shell_pager_bridge (struct shell *shell)
           ret = read (readfd, buf, sizeof (buf));
           if (ret < 0)
             {
+              int read_errno = errno;
+
               DEBUG_ZCMDSH_LOG (PAGER,
                                 "pager: read() from fd: %d returned %d: %s",
-                                readfd, ret, strerror (errno));
+                                readfd, ret, strerror (read_errno));
+              if (read_errno == EINTR || read_errno == EAGAIN)
+                continue;
+              if (i == 0)
+                FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
               closed++;
               continue;
             }
@@ -679,6 +1088,8 @@ shell_pager_bridge (struct shell *shell)
             {
               DEBUG_ZCMDSH_LOG (PAGER, "pager: fds[%d]: fd: %d: closed, break",
                                 i, fds[i].fd);
+              if (i == 0)
+                FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
               closed++;
             }
           else
@@ -724,44 +1135,116 @@ void
 shell_read_nowait_paging (struct shell *shell)
 {
   int wstatus;
-  int closed = 0;
+  pid_t wait_ret = 0;
+  int closed;
 
-  close (shell->pipefd[1]);
+  if (! shell->is_paging)
+    return;
 
-  if (shell->pager_saved_terminal)
-    {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager end: terminal: %p -> %p.",
-                        shell->terminal, shell->pager_saved_terminal);
-      pclose (shell->terminal);
-      shell->terminal = shell->pager_saved_terminal;
-      shell->writefd = shell->pager_saved_writefd;
-      shell->pager_saved_terminal = NULL;
-      shell->pager_saved_writefd = -1;
-    }
-
+  pager_output_close (shell);
   closed = shell_pager_bridge (shell);
 
   if (! closed)
     return;
 
-  DEBUG_ZCMDSH_LOG (PAGER, "pager: waiting child: process %d...",
-                    shell->pager_pid);
-  waitpid (shell->pager_pid, &wstatus, 0);
-  if (WIFEXITED (wstatus))
+  if (closed < 0 || FLAG_CHECK (shell->flag, SHELL_FLAG_CLOSE))
+    pager_cleanup (shell);
+  else
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d exited normally.",
+      DEBUG_ZCMDSH_LOG (PAGER, "pager: waiting child: process %d...",
                         shell->pager_pid);
+      if (shell->pager_pid > 0)
+        {
+          do
+            wait_ret = waitpid (shell->pager_pid, &wstatus, 0);
+          while (wait_ret < 0 && errno == EINTR);
+        }
+      if (wait_ret > 0 && WIFEXITED (wstatus))
+        {
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d exited normally.",
+                            shell->pager_pid);
+        }
+      else
+        {
+          DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d failed.", shell->pager_pid);
+        }
+
+      pager_pipe_stages_reap (shell);
+      shell->pager_pid = 0;
+
+      pager_fds_close (shell);
+      shell->is_paging = false;
+
+    }
+  if (shell_running (shell))
+    {
+      shell_clear (shell);
+      shell_prompt (shell);
+      shell_refresh (shell);
+    }
+}
+
+int
+command_execute2 (int argc, char **argv, struct command_set *cmdset,
+                  struct command_node **cmdnodes, struct shell *shell)
+{
+  int ret;
+
+  struct command_node *node;
+  struct vector_node *vn;
+  struct command_node *match = NULL;
+  struct command_node *parent = NULL;
+
+  int index;
+  int curr, upper;
+  int i;
+
+  assert (argc > 0);
+
+  /* <LINE> takes the rest of the command line (in its argv, by
+     command_matched_nodes()): the command is the one of <LINE>,
+     not of the last word. */
+  for (i = 0; i < argc; i++)
+    if (cmdnodes[i] && line_spec (cmdnodes[i]->cmdstr))
+      {
+        argc = i + 1;
+        break;
+      }
+
+  index = argc - 1;
+
+  if (index == 0)
+    {
+      if (cmdnodes[0])
+        match = cmdnodes[0];
+      parent = cmdset->root;
     }
   else
     {
-      DEBUG_ZCMDSH_LOG (PAGER, "pager: process %d failed.", shell->pager_pid);
+      match = cmdnodes[index];
+      parent = cmdnodes[index - 1];
     }
 
-  shell->is_paging = false;
+  if (! parent)
+    return CMD_NOT_FOUND;
 
-  shell_clear (shell);
-  shell_prompt (shell);
-  shell_refresh (shell);
+  /* treat cases when "show port" command is installed and the
+     current command-line is "show port ?".
+     In the case, the current argv is "" and the
+     upper matched node has the execution function. */
+  if (! strlen (argv[index]) && parent->func)
+    {
+      match = parent;
+      argc--;
+      argv[argc] = NULL;
+    }
+
+  if (! match || ! match->func)
+    ret = CMD_NOT_FOUND;
+  else
+    ret = (*match->func) (shell, argc, argv);
+
+  return ret;
 }
 
 int
@@ -811,7 +1294,31 @@ command_shell_execute (struct shell *shell)
                  shell->command_line, shell->NL);
 #endif
 
+#if 0
       ret = command_execute (shell->command_line, shell->cmdset, shell);
+#else
+
+  char *command_line_dup;
+  int argc;
+  char **argv;
+  struct command_node **cmdnodes;
+  struct command_set *cmdset;
+
+  command_line_dup = strdup (shell->command_line);
+
+  /* parse current command-line's argv. */
+  command_argv_parse (command_line_dup, &argc, &argv);
+
+  /* find matching command nodes. */
+  command_matched_nodes (argc, argv, shell->command_line,
+                         shell->cmdset, &cmdnodes);
+
+      ret = command_execute2 (argc, argv, shell->cmdset, cmdnodes, shell);
+
+  free (command_line_dup);
+  free (argv);
+  free (cmdnodes);
+#endif
 
 #if 0
       if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
@@ -840,6 +1347,7 @@ command_shell_execute (struct shell *shell)
         }
 
       command_history_add (shell->command_line, shell->history, shell);
+      shell_clear (shell);
 
       if (shell->is_paging)
         {
@@ -1003,6 +1511,131 @@ file_ls_candidate (struct shell *shell, char *file_path)
 }
 
 int
+command_ls_candidate (int argc, char **argv, struct command_set *cmdset,
+                      struct command_node **cmdnodes, struct shell *shell)
+{
+  struct command_node *match;
+  struct command_node *node;
+  struct vector_node *vn;
+
+  int index;
+  int curr, upper;
+
+  assert (argc > 0);
+  index = argc - 1;
+
+  if (index == 0)
+    {
+      if (cmdnodes[0])
+        match = cmdnodes[0];
+      else
+        match = cmdset->root;
+    }
+  else
+    {
+      match = cmdnodes[index - 1];
+    }
+
+  curr = argc - 1;
+  upper = (curr > 0 ? upper = curr - 1 : -1);
+
+#if 0
+  if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
+    {
+      fprintf (shell->terminal, "upper: %d curr: %d%s",
+               upper, curr, shell->NL);
+      fprintf (shell->terminal, "argv[%d]: \"%s\" (strlen: %lu)%s",
+               index, argv[index], strlen (argv[index]), shell->NL);
+      fprintf (shell->terminal, "cmdnodes[upper]: %p cmdnodes[curr]: %p%s",
+               cmdnodes[upper], cmdnodes[curr], shell->NL);
+      if (upper >= 0 && cmdnodes[upper])
+      fprintf (shell->terminal, "cmdnodes[upper]: %s%s",
+               cmdnodes[upper]->cmdstr, shell->NL);
+      if (cmdnodes[curr])
+      fprintf (shell->terminal, "cmdnodes[curr]: %s%s",
+               cmdnodes[curr]->cmdstr, shell->NL);
+    }
+#endif
+
+  if (upper >= 0 && cmdnodes[upper])
+    {
+      match = cmdnodes[upper];
+
+      /* treat cases when "show port" command is installed and the
+         current command-line is "show port ?".
+         In the case, the current argv is "" and the
+         upper matched node has the execution function. */
+      if (! strlen (argv[curr]) && match->func)
+        {
+          if (is_command_regvar (shell->cmdset, match->cmdstr))
+            {
+              /* regvar match is completed
+                 (i.e., "matched", not "matching") */
+              if (is_command_match_regvar (shell->cmdset, match->cmdstr,
+                                           argv[upper]))
+                {
+                  char *regvar_help;
+                  regvar_help = (char *)
+                    regvar_helpstr (shell->cmdset, match->cmdstr,
+                                    match->helpstr, argv[upper]);
+                  fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
+                          regvar_help, shell->NL);
+                  free (regvar_help);
+                }
+            }
+          else
+            {
+              fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
+                       match->helpstr, shell->NL);
+            }
+        }
+
+      for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
+        {
+          node = (struct command_node *) vn->data;
+          if (is_command_regvar (shell->cmdset, node->cmdstr))
+            {
+              if (is_command_match_regvar (shell->cmdset, node->cmdstr,
+                                           argv[index]) ||
+                  is_command_match_regvar_matching (shell->cmdset,
+                                           node->cmdstr, argv[index]))
+                {
+                  char *regvar_spec;
+                  char *regvar_help;
+                  regvar_spec = (char *)
+                    regvar_cmdstr (shell->cmdset, node->cmdstr, argv[index]);
+                  regvar_help = (char *)
+                    regvar_helpstr (shell->cmdset, node->cmdstr,
+                                    node->helpstr, argv[index]);
+                  fprintf (shell->terminal, "  %-16s %s%s",
+                           regvar_spec, regvar_help, shell->NL);
+                  free (regvar_spec);
+                  free (regvar_help);
+                }
+            }
+          else
+          if (is_command_match (node->cmdstr, argv[index]))
+            fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
+                     node->helpstr, shell->NL);
+
+          if (file_spec (node->cmdstr))
+            file_ls_candidate (shell, argv[index]);
+        }
+    }
+  else if (argc == 1)
+    {
+      match = cmdset->root;
+      for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
+        {
+          node = (struct command_node *) vn->data;
+          if (is_command_match (node->cmdstr, argv[index]))
+            fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
+                     node->helpstr, shell->NL);
+        }
+    }
+}
+
+int
 command_shell_ls_candidate (struct shell *shell)
 {
   char *cmd_dup;
@@ -1037,6 +1670,10 @@ command_shell_ls_candidate (struct shell *shell)
   command_matched_nodes (argc, argv, shell->command_line,
                          shell->cmdset, &cmdnodes);
 
+#if 1
+  command_ls_candidate (argc, argv, shell->cmdset, cmdnodes, shell);
+#else
+
   cmdset = shell->cmdset;
   int index;
   int curr, upper;
@@ -1059,6 +1696,7 @@ command_shell_ls_candidate (struct shell *shell)
   curr = argc - 1;
   upper = (curr > 0 ? upper = curr - 1 : -1);
 
+#if 0
   if (FLAG_CHECK (shell->flag, SHELL_FLAG_DEBUG))
     {
       fprintf (shell->terminal, "upper: %d curr: %d%s",
@@ -1074,16 +1712,35 @@ command_shell_ls_candidate (struct shell *shell)
       fprintf (shell->terminal, "cmdnodes[curr]: %s%s",
                cmdnodes[curr]->cmdstr, shell->NL);
     }
+#endif
 
   if (upper >= 0 && cmdnodes[upper])
     {
       match = cmdnodes[upper];
+
+      /* treat cases when "show port" command is installed and the
+         current command-line is "show port ?".
+         In the case, the current argv is "" and the
+         upper matched node has the execution function. */
       if (! strlen (argv[curr]) && match->func)
         fprintf (shell->terminal, "  %-16s %s%s", "<cr>",
                  match->helpstr, shell->NL);
+
       for (vn = vector_head (match->cmdvec); vn; vn = vector_next (vn))
         {
           node = (struct command_node *) vn->data;
+          if (is_command_match_regvar (shell->cmdset, node->cmdstr, argv[index]))
+            {
+          char *regvar_spec;
+          char *regvar_help;
+            regvar_spec = (char *) regvar_cmdstr (shell->cmdset, node->cmdstr, argv[index]);
+            regvar_help = (char *) regvar_helpstr (shell->cmdset, node->cmdstr, node->helpstr, argv[index]);
+            fprintf (shell->terminal, "  %-16s %s%s",
+                     regvar_spec,
+                     regvar_help,
+                     shell->NL);
+            }
+          else
           if (is_command_match (node->cmdstr, argv[index]))
             fprintf (shell->terminal, "  %-16s %s%s", node->cmdstr,
                      node->helpstr, shell->NL);
@@ -1103,6 +1760,7 @@ command_shell_ls_candidate (struct shell *shell)
                      node->helpstr, shell->NL);
         }
     }
+#endif
 
   free (command_line_dup);
   free (argv);
@@ -1290,17 +1948,162 @@ DEFINE_COMMAND (set_pager_default, "set pager default",
   return 0;
 }
 
+DEFINE_COMMAND (set_pager_pipe,
+                "set pager pipe <0-7> command <LINE>",
+                "set.\n"
+                "set pager.\n"
+                "set pager pipe stage.\n"
+                "specify pager pipe stage index.\n"
+                "set pager pipe stage command.\n"
+                "specify command and arguments (e.g. sponge).\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int index;
+  int ret;
+  char *line;
+  int stage_argc;
+  char *stage_argv[PAGER_PIPE_ARGV_MAX];
+
+  index = strtol (argv[3], NULL, 0);
+
+  /* argv[5] holds the rest of the line: split it into words. */
+  line = strdup (argv[5]);
+  stage_argc = pager_command_line_split (line, stage_argv,
+                                         PAGER_PIPE_ARGV_MAX);
+  if (stage_argc > 0)
+    ret = pager_pipe_stage_set (index, stage_argc, stage_argv);
+  else
+    ret = -1;
+  free (line);
+
+  if (ret < 0)
+    {
+      fprintf (shell->terminal, "can't set pager pipe[%d].%s",
+               index, shell->NL);
+      return CMD_FAILURE;
+    }
+
+  fprintf (shell->terminal, "pager pipe[%d]: %s%s", index, argv[5], shell->NL);
+  return CMD_SUCCESS;
+}
+
+DEFINE_COMMAND (set_pager_command_line,
+                "set pager command <LINE>",
+                "set.\n"
+                "set pager.\n"
+                "set pager command.\n"
+                "specify command and arguments (e.g. less -FX).\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int ret;
+  char *line;
+  int cmd_argc;
+  char *cmd_argv[PAGER_PIPE_ARGV_MAX];
+
+  /* argv[3] holds the rest of the line: split it into words. */
+  line = strdup (argv[3]);
+  cmd_argc = pager_command_line_split (line, cmd_argv, PAGER_PIPE_ARGV_MAX);
+  if (cmd_argc > 0)
+    ret = pager_command_set (cmd_argc, cmd_argv);
+  else
+    ret = -1;
+  free (line);
+
+  if (ret < 0)
+    {
+      fprintf (shell->terminal, "can't set pager command.%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  fprintf (shell->terminal, "pager command: %s%s", argv[3], shell->NL);
+  return CMD_SUCCESS;
+}
+
+DEFINE_COMMAND (no_pager_command,
+                "no pager command",
+                "negate command.\n"
+                "pager.\n"
+                "pager command: restore the default.\n")
+{
+  struct shell *shell = (struct shell *) context;
+
+  pager_command_unset ();
+  fprintf (shell->terminal, "pager command: default.%s", shell->NL);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (show_pager_command,
+              "show pager command",
+              SHOW_HELP,
+              "pager information.\n",
+              "pager command.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  char pager_line[256];
+
+  /* the whole pipeline: the pipe stages and the pager command. */
+  pager_command_line_join (pager_line, sizeof (pager_line));
+  fprintf (shell->terminal, "pager command%s: %s%s",
+           (pager_command_config.argc ? "" : " (default)"),
+           pager_line, shell->NL);
+  return CMD_SUCCESS;
+}
+
+DEFINE_COMMAND (no_pager_pipe,
+                "no pager pipe <0-7>",
+                "negate command.\n"
+                "pager.\n"
+                "pager pipe stage.\n"
+                "specify pager pipe stage index.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int index;
+
+  index = strtol (argv[3], NULL, 0);
+  pager_pipe_stage_unset (index);
+  fprintf (shell->terminal, "pager pipe[%d]: unset.%s", index, shell->NL);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (show_pager_pipe,
+              "show pager pipe",
+              SHOW_HELP,
+              "pager information.\n",
+              "pager pipe stages.\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int i, j;
+
+  for (i = 0; i < SHELL_PAGER_PIPE_MAX; i++)
+    {
+      struct pager_pipe_stage *stage = &pager_pipe_stages[i];
+      if (! stage->argc)
+        continue;
+      fprintf (shell->terminal, "pager pipe[%d]:", i);
+      for (j = 0; j < stage->argc; j++)
+        fprintf (shell->terminal, " %s", stage->argv[j]);
+      fprintf (shell->terminal, "%s", shell->NL);
+    }
+  return CMD_SUCCESS;
+}
+
 CLI_COMMAND2 (show_shell,
               "show shell",
               SHOW_HELP,
               "shell information.\n")
 {
   struct shell *shell = (struct shell *) context;
+  char pager_line[256];
+
+  /* the effective pager pipeline (the pipe stages and the pager
+     command) for display. */
+  pager_command_line_join (pager_line, sizeof (pager_line));
+
   fprintf (shell->terminal, "shell winsize row: %d col: %d%s",
            shell->winsize.ws_row, shell->winsize.ws_col, shell->NL);
   fprintf (shell->terminal, "shell pager %d pager_command: %s%s",
            shell->pager,
-           shell->pager_command ? shell->pager_command : DEFAULT_PAGER,
+           shell->pager_command ? shell->pager_command : pager_line,
            shell->NL);
   return CMD_SUCCESS;
 }
@@ -1338,6 +2141,12 @@ default_install_command (struct command_set *cmdset)
   INSTALL_COMMAND2 (cmdset, set_pager);
   INSTALL_COMMAND2 (cmdset, set_pager_command);
   INSTALL_COMMAND2 (cmdset, set_pager_default);
+  INSTALL_COMMAND2 (cmdset, set_pager_pipe);
+  INSTALL_COMMAND2 (cmdset, no_pager_pipe);
+  INSTALL_COMMAND2 (cmdset, show_pager_pipe);
+  INSTALL_COMMAND2 (cmdset, set_pager_command_line);
+  INSTALL_COMMAND2 (cmdset, no_pager_command);
+  INSTALL_COMMAND2 (cmdset, show_pager_command);
   INSTALL_COMMAND2 (cmdset, show_shell);
   INSTALL_COMMAND2 (cmdset, set_shell_winsize);
 
@@ -1351,6 +2160,8 @@ command_shell_create ()
   struct shell *shell;
 
   shell = shell_create ();
+  if (! shell)
+    return NULL;
   shell->cmdset = command_set_create ();
   default_install_command (shell->cmdset);
 
@@ -1375,6 +2186,7 @@ command_shell_create ()
 void
 command_shell_delete (struct shell *shell)
 {
+  pager_cleanup (shell);
   command_set_delete (shell->cmdset);
   command_history_delete (shell->history);
   shell_delete (shell);

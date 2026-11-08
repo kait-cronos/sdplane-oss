@@ -19,6 +19,7 @@
 #include "sdplane.h"
 #include "dhcp_server.h"
 
+#if 0
 CLI_COMMAND2 (init_dhcp_server,
               "init dhcp-server",
               "init\n",
@@ -34,6 +35,7 @@ CLI_COMMAND2 (init_dhcp_server,
   dhcp_server_init ();
   return 0;
 }
+#endif
 
 void
 dhcp_cmd_init (struct command_set *cmdset)

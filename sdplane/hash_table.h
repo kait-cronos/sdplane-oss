@@ -21,6 +21,20 @@ struct hash_table
   int (*key_eq) (const void *a, const void *b);
 };
 
+static inline __attribute__ ((always_inline)) void *
+hash_table_lookup (const struct hash_table *ht, const void *key)
+{
+  uint32_t idx = ht->hash_fn (key) & ht->mask;
+  const struct ht_node *cur;
+
+  for (cur = ht->buckets[idx]; cur; cur = cur->next)
+    {
+      if (ht->key_eq (cur->key, key))
+        return cur->value;
+    }
+  return NULL;
+}
+
 int hash_table_init (struct hash_table *ht, int size,
                      uint32_t (*hash_fn) (const void *key),
                      int (*key_eq) (const void *a, const void *b));
@@ -30,6 +44,8 @@ void hash_table_destroy (struct hash_table *ht);
 int hash_table_insert (struct hash_table *ht, void *key, void *value);
 int hash_table_remove (struct hash_table *ht, const void *key);
 
-void *hash_table_lookup (const struct hash_table *ht, const void *key);
+void hash_table_foreach (struct hash_table *ht,
+                         void (*callback) (void *key, void *value, void *arg),
+                         void *arg);
 
 #endif /* HASH_TABLE_H */

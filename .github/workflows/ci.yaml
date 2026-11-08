@@ -15,12 +15,12 @@ jobs:
       fail-fast: false
       matrix:
         dpdk_version:
-          - "23.11.5"
-          - "24.11.3"
-          # - "25.07"
+          - "23.11.7"
+          - "24.11.7"
+          - "25.11.3"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
@@ -49,7 +49,7 @@ jobs:
 
       - name: Cache DPDK
         id: cache-dpdk
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         env:
           cache-name: cache-dpdk
         with:
@@ -74,11 +74,6 @@ jobs:
         run: |
           sudo tar -xzf ~/dpdk-${{ matrix.dpdk_version }}.pkg.tar.gz -C /
           sudo ldconfig
-
-      - name: Install libsdplane
-        run: |
-          wget https://www.yasuhironet.net/download/n305/libsdplane_0.3.37-73_amd64.deb
-          sudo apt-get install -y ./libsdplane_0.3.37-73_amd64.deb
 
       - name: Build sdplane
         run: |

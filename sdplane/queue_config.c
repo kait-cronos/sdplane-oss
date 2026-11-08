@@ -78,15 +78,22 @@ CLI_COMMAND2 (update_port_status, "update port status", "update information\n",
 {
   struct shell *shell = (struct shell *) context;
   void *msgp;
-  msgp = internal_msg_create (INTERNAL_MSG_TYPE_PORT_STATUS, NULL, 0);
+  uint16_t msg_port_id = 255;
+  msgp = internal_msg_create (INTERNAL_MSG_TYPE_PORT_STATUS,
+                              &msg_port_id, sizeof (msg_port_id));
   internal_msg_send_to (msg_queue_rib, msgp, shell);
   return 0;
 }
 
 CLI_COMMAND2 (set_thread_lcore_port_queue,
-              "set thread <0-128> port <0-128> queue <0-128>", SET_HELP,
-              "thread-information\n", "thread-id (lcore-id)\n", PORT_HELP,
-              PORT_NUMBER_HELP, QUEUE_HELP, QUEUE_NUMBER_HELP)
+              "set thread "LCORE_ID_SPEC" port "PORT_ID_SPEC" queue <0-128>",
+              SET_HELP,
+              "thread-information\n",
+              "thread-id (lcore-id)\n",
+              PORT_HELP,
+              PORT_NUMBER_HELP,
+              QUEUE_HELP,
+              QUEUE_NUMBER_HELP)
 {
   struct shell *shell = (struct shell *) context;
   uint16_t lcore_id, port_id, queue_id;
@@ -156,10 +163,51 @@ CLI_COMMAND2 (set_thread_lcore_port_queue,
           fprintf (
               shell->terminal,
               "thread_qconf[%d]: lcore: %d rxq[%d/%d]: port: %d queue: %d%s",
-              i, i, j, qconf->nrxq, qconf->rx_queue_list[j].port_id,
-              qconf->rx_queue_list[j].queue_id, shell->NL);
+              i, i, j, qconf->nrxq,
+              qconf->rx_queue_list[j].port_id,
+              qconf->rx_queue_list[j].queue_id,
+              shell->NL);
         }
     }
+
+#if 0
+  /* check rib_info configuration. */
+  /* if the number of queues configured is different,
+     issue an error. */
+  struct rib *rib = rib_tlocal;
+  if (rib && rib->rib_info)
+    {
+      uint16_t target_port;
+      uint16_t target_nrxq[RTE_MAX_ETHPORTS];
+      memset (target_nrxq, 0, sizeof (target_nrxq));
+      /* count the number of rxq configured. */
+      for (i = 0; i < RTE_MAX_LCORE; i++)
+        {
+          qconf = &thread_qconf[i];
+          for (j = 0; j < qconf->nrxq; j++)
+            {
+              target_port = qconf->rx_queue_list[j].port_id;
+              target_nrxq[target_port]++;
+            }
+        }
+
+      /* check it against the rib_info nrxq. */
+      RTE_ETH_FOREACH_DEV (i)
+        {
+          struct port_conf *port_cfg =
+            (struct port_conf *) &rib->rib_info->port[i];
+          if (port_cfg->nrxq && port_cfg->nrxq < target_nrxq[i])
+            {
+              fprintf (shell->terminal,
+                       "port: %d: specified queue (%dth) exceeds "
+                       "the configured nrxq: %d%s",
+                       i, target_nrxq[i], port_cfg->nrxq,
+                       shell->NL);
+              return CMD_FAILURE;
+            }
+        }
+    }
+#endif
 
   void *msgp;
   struct internal_msg_qconf *msg_qconf;
@@ -188,7 +236,7 @@ CLI_COMMAND2 (show_thread_qconf, "show thread qconf", SHOW_HELP,
 
   if (rib && rib->rib_info)
     {
-      for (i = 0; i < rib->rib_info->lcore_size; i++)
+      RTE_LCORE_FOREACH (i)
         {
           int nrxq;
           nrxq = rib->rib_info->lcore_qconf[i].nrxq;

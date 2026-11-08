@@ -123,13 +123,21 @@ dhcp_server_write (char *data, int size, unsigned vswitch_id)
 
   struct rte_mempool *mp = l2fwd_pktmbuf_pool;
   struct rte_mbuf *m = rte_pktmbuf_alloc (mp);
+  if (! m)
+    {
+      WARNING ("rte_pktmbuf_alloc() failed: drop %d bytes", size);
+      return;
+    }
   rte_pktmbuf_append (m, size);
   pkt = rte_pktmbuf_mtod (m, char *);
   memcpy (pkt, data, size);
 
-  rte_ring_enqueue (vswitch->router_if.ring_dn, m);
   DEBUG_NEW (DHCP_SERVER, "m: %p size: %d -> vswitch %d ring_dn %d",
              m, size, vswitch_id, vswitch->router_if.tap_ring_id);
+  /* after a successful enqueue, m is owned by the consumer (router lcore)
+     and must not be touched here. */
+  if (rte_ring_enqueue (vswitch->router_if.ring_dn, m) != 0)
+    rte_pktmbuf_free (m);
 }
 
 static inline __attribute__ ((always_inline)) void
@@ -186,7 +194,7 @@ dhcp_server (__rte_unused void *dummy)
     {
       DEBUG_SDPLANE_LOG (DHCP_SERVER, "dhcp_server_init() failed: unable to create rx ring");
       return -1;
-  }
+    }
 
   /* register an application slot entry in rib,
      to receive packets from enhanced_repeater. */

@@ -2,6 +2,8 @@
  * Copyright(c) 2021 Intel Corporation
  */
 
+#include <rte_version.h>
+
 /* Log file related character defs. */
 #define COMMENT_LEAD_CHAR	('#')
 #define ROUTE_LEAD_CHAR		('R')
@@ -34,21 +36,35 @@ struct ipv6_l3fwd_route {
 	uint8_t if_out;
 };
 
+#if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
+__rte_packed_begin
+#endif
 struct ipv4_5tuple {
 	uint32_t ip_dst;
 	uint32_t ip_src;
 	uint16_t port_dst;
 	uint16_t port_src;
 	uint8_t  proto;
+#if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
+} __rte_packed_end;
+#else
 } __rte_packed;
+#endif
 
+#if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
+__rte_packed_begin
+#endif
 struct ipv6_5tuple {
 	uint8_t  ip_dst[IPV6_ADDR_LEN];
 	uint8_t  ip_src[IPV6_ADDR_LEN];
 	uint16_t port_dst;
 	uint16_t port_src;
 	uint8_t  proto;
+#if RTE_VERSION >= RTE_VERSION_NUM(25,0,0,0)
+} __rte_packed_end;
+#else
 } __rte_packed;
+#endif
 
 struct lpm_route_rule {
 	union {

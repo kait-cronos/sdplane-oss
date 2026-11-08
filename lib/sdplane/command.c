@@ -57,7 +57,13 @@ command_node_create ()
 void
 command_node_delete (struct command_node *node)
 {
+  int i;
+
+  for (i = 0; i < node->cmdvec->size; i++)
+    command_node_delete (vector_get (node->cmdvec, i));
   vector_delete (node->cmdvec);
+  free (node->cmdmem);
+  free (node->helpmem);
   free (node);
 }
 
@@ -517,6 +523,127 @@ is_command_match (char *spec, char *word)
   return 0;
 }
 
+char *
+regvar_cmdstr (struct command_set *cmdset, char *spec, char *word)
+{
+  struct vector_node *vn;
+  char *retval = NULL;
+
+  if (cmdset->regvars)
+    {
+      for (vn = vector_head (cmdset->regvars); vn; vn = vector_next (vn))
+        {
+          struct regvar *regvar = (struct regvar *) vn->data;
+          if (regvar && regvar->is_spec &&
+              (*regvar->is_spec) (spec))
+            {
+              if (regvar->convert_cmdstr)
+                retval = (*regvar->convert_cmdstr) (spec, word);
+              else
+                retval = spec;
+            }
+        }
+    }
+
+  return retval;
+}
+
+char *
+regvar_helpstr (struct command_set *cmdset, char *spec, char *helpstr, char *word)
+{
+  struct vector_node *vn;
+  char *retval = NULL;
+
+  if (cmdset->regvars)
+    {
+      for (vn = vector_head (cmdset->regvars); vn; vn = vector_next (vn))
+        {
+          struct regvar *regvar = (struct regvar *) vn->data;
+          if (regvar && regvar->is_spec &&
+              (*regvar->is_spec) (spec))
+            {
+              if (regvar->convert_helpstr)
+                retval = (*regvar->convert_helpstr) (spec, helpstr, word);
+              else
+                retval = helpstr;
+            }
+        }
+    }
+
+  return retval;
+}
+
+int
+is_command_regvar (struct command_set *cmdset, char *spec)
+{
+  struct vector_node *vn;
+  int ret = 0;
+
+  if (cmdset->regvars)
+    {
+      for (vn = vector_head (cmdset->regvars); vn; vn = vector_next (vn))
+        {
+          struct regvar *regvar = (struct regvar *) vn->data;
+          if (regvar && regvar->is_spec &&
+              (*regvar->is_spec) (spec))
+            {
+              ret++;
+            }
+        }
+    }
+
+  return ret;
+}
+
+int
+is_command_match_regvar (struct command_set *cmdset, char *spec, char *word)
+{
+  struct vector_node *vn;
+  int ret = 0;
+
+  if (cmdset->regvars)
+    {
+      for (vn = vector_head (cmdset->regvars); vn; vn = vector_next (vn))
+        {
+          struct regvar *regvar = (struct regvar *) vn->data;
+          if (regvar && regvar->is_spec &&
+              (*regvar->is_spec) (spec))
+            {
+              if (regvar->is_match &&
+                  (*regvar->is_match) (spec, word))
+                ret++;
+            }
+        }
+    }
+
+  return ret;
+}
+
+int
+is_command_match_regvar_matching (struct command_set *cmdset,
+                                  char *spec, char *word)
+{
+  struct vector_node *vn;
+  int ret = 0;
+
+  if (cmdset->regvars)
+    {
+      for (vn = vector_head (cmdset->regvars); vn; vn = vector_next (vn))
+        {
+          struct regvar *regvar = (struct regvar *) vn->data;
+          if (regvar && regvar->is_spec &&
+              (*regvar->is_spec) (spec))
+            {
+              if (regvar->is_matching &&
+                  (*regvar->is_matching) (spec, word))
+                ret++;
+            }
+        }
+    }
+
+  return ret;
+}
+
 int
 varmatch_pri (char *spec)
 {
@@ -538,11 +665,14 @@ varmatch_pri (char *spec)
 }
 
 int
-is_command_node_variable (struct command_node *node)
+is_command_node_variable (struct command_set *cmdset,
+                          struct command_node *node)
 {
   if (ipv4_spec (node->cmdstr) || range_spec (node->cmdstr) ||
       double_spec (node->cmdstr) || file_spec (node->cmdstr) ||
       line_spec (node->cmdstr) || var_spec (node->cmdstr))
+    return 1;
+  if (is_command_regvar (cmdset, node->cmdstr))
     return 1;
   if (word_spec (node->cmdstr))
     return 1;
@@ -550,7 +680,7 @@ is_command_node_variable (struct command_node *node)
 }
 
 struct command_node *
-command_match_unique (struct command_node *parent, char *word)
+command_match_unique (struct command_set *cmdset, struct command_node *parent, char *word)
 {
   struct vector_node *vn;
   struct command_node *node, *match = NULL, *varmatch = NULL;
@@ -564,6 +694,13 @@ command_match_unique (struct command_node *parent, char *word)
           if (! varmatch ||
               varmatch_pri (node->cmdstr) > varmatch_pri (varmatch->cmdstr))
             varmatch = node;
+          varmatch_count++;
+          match_count++;
+        }
+      if (is_command_match_regvar (cmdset, node->cmdstr, word))
+        {
+          match = node;
+          varmatch = node;
           varmatch_count++;
           match_count++;
         }
@@ -588,11 +725,11 @@ command_match_unique (struct command_node *parent, char *word)
 }
 
 struct command_node *
-command_match_unique_exact (struct command_node *parent, char *word)
+command_match_unique_exact (struct command_set *cmdset, struct command_node *parent, char *word)
 {
   struct command_node *match = NULL;
 
-  match = command_match_unique (parent, word);
+  match = command_match_unique (cmdset, parent, word);
   if (match)
     return match;
 
@@ -613,6 +750,13 @@ command_install (struct command_set *cmdset, char *command_line,
 
   cmd_dup = strdup (command_line);
   help_dup = strdup (help_string);
+  if (! cmd_dup || ! help_dup)
+    {
+      fprintf (stderr, "%s: cannot allocate command strings.\n", __func__);
+      free (cmd_dup);
+      free (help_dup);
+      return;
+    }
   stringp = cmd_dup;
   hstringp = help_dup;
 
@@ -623,16 +767,26 @@ command_install (struct command_set *cmdset, char *command_line,
       if (node == NULL)
         {
           node = command_node_create ();
-          node->cmdstr = word;
-          node->helpstr = word_help;
+          node->cmdstr = node->cmdmem = strdup (word);
+          node->helpstr = node->helpmem =
+              word_help ? strdup (word_help) : NULL;
+          if (! node->cmdmem || (word_help && ! node->helpmem))
+            {
+              command_node_delete (node);
+              fprintf (stderr, "%s: cannot allocate command strings.\n",
+                       __func__);
+              free (cmd_dup);
+              free (help_dup);
+              return;
+            }
           vector_add (node, parent->cmdvec);
           vector_sort (command_node_cmp_qsort, parent->cmdvec);
         }
       parent = node;
     }
   node->func = func;
-  node->cmdmem = cmd_dup;
-  node->helpmem = help_dup;
+  free (cmd_dup);
+  free (help_dup);
 }
 
 void
@@ -666,6 +820,15 @@ command_install2 (struct command_set *cmdset, char *command_line,
 
   cmd_dup = strdup (command_line);
   help_dup = strdup (help_string);
+  if (! cmd_dup || ! help_dup)
+    {
+      fprintf (stderr, "%s: cannot allocate command strings.\n", __func__);
+      free (cmd_dup);
+      free (help_dup);
+      vector_delete (parents);
+      vector_delete (next_parents);
+      return;
+    }
   stringp = cmd_dup;
   hstringp = help_dup;
 
@@ -715,8 +878,21 @@ command_install2 (struct command_set *cmdset, char *command_line,
               if (node == NULL)
                 {
                   node = command_node_create ();
-                  node->cmdstr = subword;
-                  node->helpstr = word_help;
+                  node->cmdstr = node->cmdmem = strdup (subword);
+                  node->helpstr = node->helpmem =
+                      word_help ? strdup (word_help) : NULL;
+                  if (! node->cmdmem || (word_help && ! node->helpmem))
+                    {
+                      command_node_delete (node);
+                      vector_break (vn);
+                      fprintf (stderr, "%s: cannot allocate command strings.\n",
+                               __func__);
+                      free (cmd_dup);
+                      free (help_dup);
+                      vector_delete (parents);
+                      vector_delete (next_parents);
+                      return;
+                    }
                   vector_add (node, parent->cmdvec);
                   vector_sort (command_node_cmp_qsort, parent->cmdvec);
                 }
@@ -735,13 +911,8 @@ command_install2 (struct command_set *cmdset, char *command_line,
       node = (struct command_node *) vn->data;
       node->func = func;
     }
-
-  /* attache the string memory to free in the last processed node. */
-  if (node)
-    {
-  node->cmdmem = cmd_dup;
-  node->helpmem = help_dup;
-    }
+  free (cmd_dup);
+  free (help_dup);
 
   vector_delete (parents);
   vector_delete (next_parents);
@@ -914,7 +1085,7 @@ command_matched_nodes (int argc, char **argv, char *command_line,
   for (i = 0; i < argc; i++)
     {
       word = argv[i];
-      match = command_match_unique_exact (parent, word);
+      match = command_match_unique_exact (cmdset, parent, word);
       if (match == NULL)
         break;
       cmdnodes[i] = match;
@@ -926,7 +1097,11 @@ command_matched_nodes (int argc, char **argv, char *command_line,
           break;
         }
 
-      argv[i] = command_replace (match, word);
+#if 0 /* this replace breaks commands when regvar is working. */
+      /* update the word if unique and not empty word */
+      if (strlen (word) > 0)
+        argv[i] = command_replace (match, word);
+#endif
 
       parent = match;
     }
@@ -962,7 +1137,7 @@ command_execute (char *command_line, struct command_set *cmdset, void *context)
       if (*word == '\0')
         break;
 
-      match = command_match_unique_exact (parent, word);
+      match = command_match_unique_exact (cmdset, parent, word);
       if (match == NULL)
         break;
 
@@ -1007,7 +1182,8 @@ command_execute (char *command_line, struct command_set *cmdset, void *context)
 }
 
 char *
-command_complete_common (char *word, struct command_node *parent)
+command_complete_common (char *word, struct command_node *parent,
+                         struct command_set *cmdset)
 {
   int nmatch = 0;
   struct vector_node *vn;
@@ -1018,7 +1194,7 @@ command_complete_common (char *word, struct command_node *parent)
   for (vn = vector_head (parent->cmdvec); vn; vn = vector_next (vn))
     {
       node = (struct command_node *) vn->data;
-      if (is_command_node_variable (node))
+      if (is_command_node_variable (cmdset, node))
         continue;
       if (! strncmp (node->cmdstr, word, strlen (word)))
         {
@@ -1051,7 +1227,7 @@ command_complete (char *command_line, int point, struct command_set *cmdset)
 
   while ((word = strsep (&stringp, COMMAND_WORD_DELIMITERS)) != NULL)
     {
-      match = command_match_unique_exact (parent, word);
+      match = command_match_unique_exact (cmdset, parent, word);
       if (match == NULL)
         break;
       matched = word;
@@ -1067,13 +1243,13 @@ command_complete (char *command_line, int point, struct command_set *cmdset)
         snprintf (retbuf, sizeof (retbuf), "%s", completion);
     }
 
-  if (match && ! is_command_node_variable (match))
+  if (match && ! is_command_node_variable (cmdset, match))
     snprintf (retbuf, sizeof (retbuf), "%s ",
               &match->cmdstr[strlen (matched)]);
 
   if (match == NULL && parent)
     snprintf (retbuf, sizeof (retbuf), "%s",
-              command_complete_common (word, parent));
+              command_complete_common (word, parent, cmdset));
 
   free (cmd_dup);
   return retbuf;
@@ -1098,10 +1274,12 @@ command_match_node (char *command_line, struct command_set *cmdset)
       if (*word == '\0')
         break;
 
-      match = command_match_unique_exact (parent, word);
+      match = command_match_unique_exact (cmdset, parent, word);
       if (match == NULL)
         break;
 
+      /* <LINE> and <FILE> are special ones. stop decsending search and
+         return the current match. */
       if (line_spec (match->cmdstr) || file_spec (match->cmdstr))
         break;
 
@@ -1167,7 +1345,19 @@ command_func_name_init ()
 void
 command_func_name_register (command_func_t command_func, char *command_name)
 {
+  struct vector_node *vn;
   struct command_func_name_entry *entry;
+
+  for (vn = vector_head (command_func_name); vn; vn = vector_next (vn))
+    {
+      entry = vn->data;
+      if (entry->command_func == command_func)
+        {
+          entry->command_name = command_name;
+          vector_break (vn);
+          return;
+        }
+    }
   entry = malloc (sizeof (struct command_func_name_entry));
   entry->command_func = command_func;
   entry->command_name = command_name;

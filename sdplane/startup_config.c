@@ -20,7 +20,9 @@
 #include <sdplane/debug_zcmdsh.h>
 #include <sdplane/log_cmd.h>
 
+#ifdef ENABLE_L3FWD
 #include "l3fwd_cmd.h"
+#endif
 #include "l2fwd_cmd.h"
 #include "sdplane.h"
 #include "debug_sdplane.h"
@@ -51,7 +53,9 @@ startup_config (__rte_unused void *dummy)
 
   log_cmd_init (shell->cmdset);
   l2fwd_cmd_init (shell->cmdset);
+#ifdef ENABLE_L3FWD
   l3fwd_cmd_init (shell->cmdset);
+#endif
   sdplane_cmd_init (shell->cmdset);
 
   // termio_init ();

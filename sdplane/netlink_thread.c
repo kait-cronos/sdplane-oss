@@ -3,7 +3,12 @@
 
 #include "include.h"
 
+#include <limits.h>
 #include <lthread.h>
+#include <pthread.h>
+#include <sdplane/shell.h>
+#include <sdplane/command.h>
+#include <sdplane/command_shell.h>
 
 /* for sdplane debug log */
 #include <sdplane/debug.h>
@@ -33,9 +38,16 @@
 
 #include "netlink_hook.h"
 
+#include "rib.h"
+
+static int netlink_rcvbuf_size = 1024 * 1024;
+static pthread_mutex_t netlink_rcvbuf_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 extern int lthread_core;
 extern volatile bool force_stop[RTE_MAX_LCORE];
 static __thread uint64_t loop_counter = 0;
+
+struct rib *rib = NULL;
 
 struct netlink_sock
 {
@@ -47,6 +59,106 @@ struct netlink_sock
 
 struct netlink_sock netlink_kernel = { -1, 0, { 0 }, "netlink-kernel" };
 struct netlink_sock netlink_cmd = { -1, 0, { 0 }, "netlink-cmd" };
+
+static int
+netlink_set_rcvbuf (int sockfd, int requested, FILE *output, const char *nl)
+{
+  if (setsockopt (sockfd, SOL_SOCKET, SO_RCVBUF, &requested,
+                  sizeof (requested)) < 0)
+    {
+      fprintf (output, "can't set netlink-kernel socket SO_RCVBUF: %s%s",
+               strerror (errno), nl);
+      return -1;
+    }
+  return 0;
+}
+
+static int
+netlink_show_rcvbuf (int sockfd, int requested, FILE *output, const char *nl,
+                     bool quiet)
+{
+  int actual;
+  socklen_t optlen = sizeof (actual);
+  if (getsockopt (sockfd, SOL_SOCKET, SO_RCVBUF, &actual, &optlen) < 0)
+    {
+      fprintf (output, "can't get netlink-kernel socket SO_RCVBUF: %s%s",
+               strerror (errno), nl);
+      return -1;
+    }
+  if (! quiet)
+    fprintf (output,
+             "Netlink receive buffer: requested %'d bytes, actual %'d "
+             "bytes (doubled by Linux)%s",
+             requested, actual, nl);
+  if (actual < 2 * requested)
+    fprintf (output,
+             "netlink-kernel socket receive buffer limited to %'d bytes "
+             "(requested %'d bytes, doubled by Linux); "
+             "check net.core.rmem_max%s",
+             actual, requested, nl);
+  return 0;
+}
+
+/* The CLI maximum is INT_MAX / 2 because Linux doubles SO_RCVBUF. */
+CLI_COMMAND2 (set_netlink_receive_buffer,
+              "set netlink receive-buffer <1-1073741823>", SET_HELP,
+              "Netlink configuration\n",
+              "set notification socket receive buffer\n",
+              "requested buffer size in bytes\n")
+{
+  struct shell *shell = (struct shell *) context;
+  char *end;
+  errno = 0;
+  long requested = strtol (argv[3], &end, 10);
+  if (errno || *end || end == argv[3] || requested < 1 ||
+      requested > INT_MAX / 2)
+    {
+      fprintf (shell->terminal, "Invalid receive buffer size%s", shell->NL);
+      return CMD_FAILURE;
+    }
+
+  pthread_mutex_lock (&netlink_rcvbuf_mutex);
+  if (netlink_kernel.sockfd >= 0 &&
+      netlink_set_rcvbuf (netlink_kernel.sockfd, requested, shell->terminal,
+                          shell->NL) < 0)
+    {
+      pthread_mutex_unlock (&netlink_rcvbuf_mutex);
+      return CMD_FAILURE;
+    }
+  netlink_rcvbuf_size = requested;
+  if (netlink_kernel.sockfd >= 0)
+    netlink_show_rcvbuf (netlink_kernel.sockfd, netlink_rcvbuf_size,
+                         shell->terminal, shell->NL, true);
+  pthread_mutex_unlock (&netlink_rcvbuf_mutex);
+  return CMD_SUCCESS;
+}
+
+CLI_COMMAND2 (show_netlink_receive_buffer,
+              "show netlink receive-buffer",
+              SHOW_HELP,
+              "Netlink information\n",
+              "show notification socket receive buffer\n")
+{
+  struct shell *shell = (struct shell *) context;
+  int ret = 0;
+  pthread_mutex_lock (&netlink_rcvbuf_mutex);
+  if (netlink_kernel.sockfd < 0)
+    fprintf (shell->terminal,
+             "Netlink receive buffer: requested %'d bytes (socket not open)%s",
+             netlink_rcvbuf_size, shell->NL);
+  else
+    ret = netlink_show_rcvbuf (netlink_kernel.sockfd, netlink_rcvbuf_size,
+                               shell->terminal, shell->NL, false);
+  pthread_mutex_unlock (&netlink_rcvbuf_mutex);
+  return ret < 0 ? CMD_FAILURE : CMD_SUCCESS;
+}
+
+void
+netlink_cmd_init (struct command_set *cmdset)
+{
+  INSTALL_COMMAND2 (cmdset, set_netlink_receive_buffer);
+  INSTALL_COMMAND2 (cmdset, show_netlink_receive_buffer);
+}
 
 int
 netlink_socket (struct netlink_sock *nlsock, unsigned long groups)
@@ -74,6 +186,13 @@ netlink_socket (struct netlink_sock *nlsock, unsigned long groups)
       return -1;
     }
 #endif
+
+  if (groups)
+    {
+      /* Buffer notifications through startup and initial dumps. */
+      netlink_set_rcvbuf (sockfd, netlink_rcvbuf_size, stderr, "\n");
+      netlink_show_rcvbuf (sockfd, netlink_rcvbuf_size, stderr, "\n", true);
+    }
 
   memset (&snl, 0, sizeof (snl));
   snl.nl_family = AF_NETLINK;
@@ -554,6 +673,156 @@ netlink_parse_seg6local (struct rtattr *rta, struct seg6local_param *param)
 #endif
 }
 
+/* return 1 if the route entry should be skipped, 0 otherwise */
+static int
+netlink_read_rtattr_encap (struct rtattr **rtns,
+                           struct internal_msg_route_entry *route,
+                           uint16_t nlmsg_type)
+{
+  if (! rtns[RTA_ENCAP])
+    return 0;
+
+  uint16_t encap_type = *(uint16_t *) RTA_DATA (rtns[RTA_ENCAP_TYPE]);
+
+  if (encap_type == LWTUNNEL_ENCAP_SEG6)
+    {
+      struct seg6_param seg6_param;
+      memset (&seg6_param, 0, sizeof (seg6_param));
+      netlink_parse_seg6 (rtns[RTA_ENCAP], &seg6_param);
+      netlink_log_seg6 (&seg6_param);
+
+      if (! seg6_param.seg6_tuninfo)
+        {
+          DEBUG_NEW (NETLINK, "seg6 encap without SRH; ignore encap.");
+          return 0;
+        }
+
+      /* Only H.Encaps is implemented on the forwarding side, and it does
+       * not look at the action at all: _process_srv6_encap() encapsulates
+       * unconditionally.  Taking any other mode in here would silently
+       * encapsulate packets that were meant to be handled differently
+       * (H.Insert inserts an SRH instead, and the kernel leaves a
+       * placeholder :: in its segment list for the original destination).
+       * Skip the whole route entry until those modes are implemented. */
+      if (seg6_param.seg6_tuninfo->mode != SEG6_IPTUN_MODE_ENCAP)
+        {
+          DEBUG_NEW (NETLINK, "unsupported seg6 mode: %s; skip this route.",
+                     seg6_mode_str (seg6_param.seg6_tuninfo->mode));
+          return 1;
+        }
+
+      int segment_count = seg6_param.seg6_tuninfo->srh->first_segment + 1;
+      if (segment_count > MAX_SEGMENT_LIST_SIZE)
+        {
+          DEBUG_NEW (NETLINK, "too many segments: %d > %d", segment_count,
+                     MAX_SEGMENT_LIST_SIZE);
+          return 0;
+        }
+
+      /* Turn every inline nexthop of this route into an SRv6 head-end
+       * (H.Encaps) nexthop carrying the segment list. */
+      int i;
+      for (i = 0; i < route->nh.nhcnt; i++)
+        {
+          struct nh_info *info = &route->nh.members[i].info;
+          info->type = NEXTHOP_TYPE_SRV6_HEAD;
+          info->gw.srv6_encap_sid.action = seg6_param.seg6_tuninfo->mode;
+          info->gw.srv6_encap_sid.segment_list_size = segment_count;
+          memcpy (info->gw.srv6_encap_sid.sids,
+                  seg6_param.seg6_tuninfo->srh->segments,
+                  sizeof (struct in6_addr) * segment_count);
+        }
+      return 0;
+    }
+
+  if (encap_type == LWTUNNEL_ENCAP_SEG6_LOCAL)
+    {
+      struct seg6local_param seg6local_param;
+      memset (&seg6local_param, 0, sizeof (seg6local_param));
+      netlink_parse_seg6local (rtns[RTA_ENCAP], &seg6local_param);
+      netlink_log_seg6local (&seg6local_param);
+
+      struct internal_msg_srv6_local_sid msg_sid;
+      memset (&msg_sid, 0, sizeof (msg_sid));
+      memcpy (&msg_sid.srv6_local_sid_addr, &route->dst.dst_ip_addr.ipv6_addr,
+              sizeof (struct in6_addr));
+      msg_sid.srv6_local_sid_addr_index = UINT8_MAX; /* auto-assign */
+      msg_sid.action = seg6local_param.action;
+      /* SEG6_LOCAL_OIF is often unset by iproute2; fall back to RTA_OIF. */
+      msg_sid.oif = seg6local_param.oif
+              ? seg6local_param.oif
+              : (rtns[RTA_OIF] ? *(int *) RTA_DATA (rtns[RTA_OIF]) : 0);
+      switch (seg6local_param.action)
+        {
+          case SEG6_LOCAL_ACTION_END:
+            break;
+          case SEG6_LOCAL_ACTION_END_X:
+            memcpy (&msg_sid.param.nh6, &seg6local_param.nh6,
+                    sizeof (struct in6_addr));
+            break;
+          case SEG6_LOCAL_ACTION_END_DX2:
+            break;
+          case SEG6_LOCAL_ACTION_END_DX6:
+            memcpy (&msg_sid.param.nh6, &seg6local_param.nh6,
+                    sizeof (struct in6_addr));
+            break;
+          case SEG6_LOCAL_ACTION_END_DX4:
+            memcpy (&msg_sid.param.nh4, &seg6local_param.nh4,
+                    sizeof (struct in_addr));
+            break;
+          case SEG6_LOCAL_ACTION_END_T:
+          case SEG6_LOCAL_ACTION_END_DT4:
+          case SEG6_LOCAL_ACTION_END_DT6:
+          case SEG6_LOCAL_ACTION_END_DT46:
+            msg_sid.param.table_id = seg6local_param.table_id
+                                     ? seg6local_param.table_id
+                                     : seg6local_param.vrf_id;
+            break;
+          default:
+            DEBUG_NEW (NETLINK, "unsupported seg6local action: %u",
+                       seg6local_param.action);
+            break;
+        }
+
+      /* create and send internal message */
+      uint16_t msg_type = (nlmsg_type == RTM_NEWROUTE)
+                           ? INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_ADD
+                           : INTERNAL_MSG_TYPE_SRV6_LOCAL_SID_DEL;
+      if (msg_queue_rib)
+        {
+          void *msgp = internal_msg_create (msg_type, &msg_sid,
+                                            sizeof (msg_sid));
+          if (msgp)
+            internal_msg_send_to (msg_queue_rib, msgp, NULL);
+        }
+      return 1; /* skip route entry */
+    }
+
+  return 0;
+}
+
+int
+netlink_oif_filter (int ifindex)
+{
+  if (! rib || ! rib->rib_info)
+    {
+      DEBUG_NEW (INTERFACE, "skip to check ifindex(%d): null rib.",
+                 ifindex);
+      return 0;
+    }
+
+  int i;
+  struct vswitch_conf *vswitch;
+  for (i = 0; i < rib->rib_info->vswitch_size; i++)
+    {
+      vswitch = &rib->rib_info->vswitch[i];
+      if (ifindex != 0 && vswitch->router_if.ifindex == ifindex)
+        return 1;
+    }
+
+  return 0;
+}
+
 int
 netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
 {
@@ -583,11 +852,16 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
   uint16_t msg_type;
   const char *action_type;
 
-  /* only the main routing table is supported. */
-  if (rtm->rtm_table != RT_TABLE_MAIN)
-    return -1;
+  /* accept both main and local routing tables. */
+  if (rtm->rtm_table != RT_TABLE_MAIN && rtm->rtm_table != RT_TABLE_LOCAL)
+    {
+      DEBUG_SDPLANE_LOG (NETLINK, "%s: skip unsupported route table: %d",
+                         nlsock->name, rtm->rtm_table);
+      return -1;
+    }
   msg_route_entry.table_id = rtm->rtm_table;
   msg_route_entry.family = rtm->rtm_family;
+  msg_route_entry.route_type = rtm->rtm_type;
   msg_route_entry.is_nhid = false;
 
   /* RTA_DST: destination prefix. */
@@ -659,6 +933,9 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
         }
     }
 
+  int ifindex = 0;
+  char ifname[IF_NAMESIZE] = { 0 };
+
   /* RTA_GATEWAY / RTA_OIF: single nexthop. */
   if (rtns[RTA_GATEWAY] || rtns[RTA_OIF])
     {
@@ -683,8 +960,20 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
           member->info.type = NEXTHOP_TYPE_CONNECTED;
         }
 
-      member->info.oif = rtns[RTA_OIF] ? *(int *) RTA_DATA (rtns[RTA_OIF]) : 0;
-      if_indextoname (member->info.oif, member->info.oif_name);
+      ifindex = rtns[RTA_OIF] ? *(int *) RTA_DATA (rtns[RTA_OIF]) : 0;
+      if_indextoname (ifindex, ifname);
+
+      member->info.oif = ifindex;
+      memcpy (member->info.oif_name, ifname, IF_NAMESIZE);
+    }
+
+  int ret;
+  ret = netlink_oif_filter (ifindex);
+  if (ret == 0)
+    {
+      DEBUG_NEW (INTERFACE, "ifname: %s ifindex: %d out of domain.",
+                 ifname, ifindex);
+      return -1;
     }
 
   /* RTA_NH_ID: route references a kernel nexthop object by ID. */
@@ -695,24 +984,8 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
     }
 
   /* RTA_ENCAP: SRv6 tunnel encapsulation. */
-  if (rtns[RTA_ENCAP])
-    {
-      uint16_t encap_type = *(uint16_t *) RTA_DATA (rtns[RTA_ENCAP_TYPE]);
-      if (encap_type == LWTUNNEL_ENCAP_SEG6)
-        {
-          struct seg6_param seg6_param;
-          memset (&seg6_param, 0, sizeof (seg6_param));
-          netlink_parse_seg6 (rtns[RTA_ENCAP], &seg6_param);
-          netlink_log_seg6 (&seg6_param);
-        }
-      else if (encap_type == LWTUNNEL_ENCAP_SEG6_LOCAL)
-        {
-          struct seg6local_param seg6local_param;
-          memset (&seg6local_param, 0, sizeof (seg6local_param));
-          netlink_parse_seg6local (rtns[RTA_ENCAP], &seg6local_param);
-          netlink_log_seg6local (&seg6local_param);
-        }
-    }
+  if (netlink_read_rtattr_encap (rtns, &msg_route_entry, h->nlmsg_type))
+    return 0;
 
   /* create and send internal message */
   if (h->nlmsg_type == RTM_NEWROUTE)
@@ -756,7 +1029,7 @@ netlink_read_nlmsg_route (struct netlink_sock *nlsock, struct nlmsghdr *h)
       return -1;
     }
 
-  int ret = internal_msg_send_to (msg_queue_rib, msgp, NULL);
+  ret = internal_msg_send_to (msg_queue_rib, msgp, NULL);
   if (ret < 0)
     {
       WARNING ("send imsg to msg_queue_rib (%p) failed.",
@@ -1155,6 +1428,8 @@ netlink_read (struct netlink_sock *nlsock)
 
   while (1)
     {
+      rib = rcu_dereference (rcu_global_ptr_rib);
+
       ret = recvmsg (nlsock->sockfd, &msg, flags);
       if (ret < 0)
         {
@@ -1330,7 +1605,10 @@ netlink_thread (void *arg)
   listen_groups |= RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_IFADDR;
   listen_groups |= RTMGRP_NEIGH;
   listen_groups |= 1 << (RTNLGRP_NEXTHOP - 1);
+  /* Keep CLI updates from being lost while creating the socket. */
+  pthread_mutex_lock (&netlink_rcvbuf_mutex);
   netlink_socket (&netlink_kernel, listen_groups);
+  pthread_mutex_unlock (&netlink_rcvbuf_mutex);
   netlink_socket (&netlink_cmd, 0);
 
   /* wait for startup_config to complete before subscribing to routes */
@@ -1363,6 +1641,11 @@ netlink_thread (void *arg)
     }                                                                         \
   while (0)
 
+
+    {
+      //urcu_qsbr_read_lock ();
+      rib = rcu_dereference (rcu_global_ptr_rib);
+
   NETLINK_REQUEST_CMD (AF_PACKET, RTM_GETLINK, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
@@ -1384,17 +1667,25 @@ netlink_thread (void *arg)
   NETLINK_REQUEST_CMD (AF_INET6, RTM_GETNEIGH, &netlink_cmd);
   netlink_read_block (&netlink_cmd);
 
+      //urcu_qsbr_read_unlock ();
+      urcu_qsbr_quiescent_state ();
+    }
+
   while (! force_quit && ! force_stop[lthread_core])
     {
       if (IS_LTHREAD ())
         lthread_sleep (0); // yield.
       // DEBUG_SDPLANE_LOG (NETLINK, "%s: schedule.", __func__);
 
+      //urcu_qsbr_read_lock ();
+      rib = rcu_dereference (rcu_global_ptr_rib);
+
       netlink_read (&netlink_cmd);
       netlink_read (&netlink_kernel);
 
       netlink_hook_exec ();
 
+      //urcu_qsbr_read_unlock ();
       urcu_qsbr_quiescent_state ();
       loop_counter++;
     }

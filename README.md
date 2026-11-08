@@ -2,142 +2,36 @@
 <img src="sdplane-oss-logo.png" alt="sdplane-oss Logo" width="160">
 </div>
 
-# sdplane-oss (ソフトデータプレーン)
+# sdplane-oss
 
-> [!WARNING]
-> このリポジトリは履歴が上書きされています。既にクローン済みの場合は、改めて `git clone` してください。
-> ```
-> git clone https://github.com/kait-cronos/sdplane-oss.git
-> ```
+sdplane is a software data plane built on DPDK.
+It comes with an interactive shell to configure and control
+packet processing threads at runtime.
 
-> [!NOTE]
-> ドキュメントへのリンクは [kait-cronos/sdplane-doc](https://github.com/kait-cronos/sdplane-doc) リポジトリを参照します。
+## Install
 
-DPDKスレッドの動作を対話的に制御できるShellと、DPDKスレッド実行環境（sd-plane）で構成された「DPDK-dock開発環境」
+Packages for Ubuntu 24.04 and 26.04 (amd64) are available on the
+[Releases](https://github.com/kait-cronos/sdplane-oss/releases) page.
 
-**Language:** [English](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/README.en.md) | **日本語**
+    sudo apt install ./sdplane_*_amd64.deb
 
-## 特徴
+The DPDK runtime libraries are installed from Ubuntu as dependencies.
+The configuration files are installed in `/etc/sdplane/`.
 
-- **高性能パケット処理**：
-  DPDKを活用したゼロコピー、ユーザー空間パケット処理
-- **レイヤー2/3フォワーディング**：
-  LPM、FIBサポートを統合したL2・L3フォワーディング
-- **SRv6サポート**：
-  SRv6 End動作に対応したSegment Routingエンドポイント処理
-- **パケット生成**：
-  テストとベンチマーク用の内蔵パケットジェネレーター
-- **ネットワーク仮想化**：
-  TAPインターフェースサポートとVLANスイッチング機能
-- **CLI管理**：
-  設定と監視のためのインタラクティブコマンドラインインターフェース
-- **マルチスレッド**：
-  コア別ワーカーによる協調スレッドモデル
+sdplane is not started on install. Create `/etc/sdplane/sdplane.conf`
+(see `sdplane.conf.sample`), then start it:
 
-### アーキテクチャ
-- **メインアプリケーション**：コアルーターロジックと初期化
-- **DPDKモジュール**：L2/L3フォワーディングとパケット生成
-- **CLIシステム**：補完とヘルプ機能付きコマンドラインインターフェース
-- **スレッド**：lthreadベースの協調マルチタスク
-- **仮想化**：TAPインターフェースと仮想スイッチング
+    sudo systemctl enable --now sdplane
 
-## サポートシステム
+Connect to the CLI:
 
-### ソフトウェア要件
-- **OS**：
-  Ubuntu 24.04 LTS（現在サポート中）
-- **NIC**：
-  [ドライバー](https://doc.dpdk.org/guides/nics/) | [サポートNIC](https://core.dpdk.org/supported/)
-- **メモリ**：
-  ヒュージページサポートが必要
-- **CPU**：
-  マルチコアプロセッサ推奨
+    telnet localhost 9882
 
-### 対象ハードウェアプラットフォーム
+## Documentation
 
-本プロジェクトは以下でテスト済みです：
-- **Topton (N305/N100)**：10G NIC搭載ミニPC (tested)
-- **Partaker (J3160)**：1G NIC搭載ミニPC (tested)
-- **Intel汎用PC**：Intel x520 / Mellanox ConnectX5搭載
-- **その他のCPU**：AMD、ARM CPU等でも動作するはずです。
+See [kait-cronos/sdplane-doc](https://github.com/kait-cronos/sdplane-doc)
+for installation, configuration, and the user guide.
 
-## 始めるには
+## License
 
-インストール、設定、実行までの手順は[始めるには](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/getting-started.ja.md)を参照してください。
-
-## Tips
-
-設定・運用に関するヒント集は[Tips](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/tips.ja.md)を参照してください。
-
-## ユーザーガイド（マニュアル）
-
-詳細なユーザーガイドとコマンドリファレンスは以下をご覧ください：
-
-- [ユーザーガイド](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/README.md) - 全機能の概要とコマンド分類
-
-**シナリオガイド:**
-- [L2リピーターアプリケーション](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/l2-repeater-application.md) - MACラーニングによるシンプルなL2パケット転送
-- [拡張リピーターアプリケーション](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/enhanced-repeater-application.md) - TAPインターフェース付きVLAN対応スイッチング
-- [パケットジェネレーターアプリケーション](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/packet-generator-application.md) - 高性能トラフィック生成とテスト
-- [スイッチを使う](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/scenario-switch.md) - VLANベースのL2スイッチングを構成する
-- [ルータを設定する：静的経路のみ](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/scenario-static-router.md) - 静的経路によるIPルーターを構成する
-
-**管理・設定ガイド:**
-- [ポート管理・統計](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/port-management.md) - DPDKポートの管理と統計情報
-- [ワーカー・lcore管理・スレッド情報](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/worker-lcore-thread-management.md) - ワーカースレッド、lcore、スレッド情報の管理
-- [デバッグ・ログ](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/debug-logging.md) - デバッグとログ機能
-- [VTY・シェル管理](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/vty-shell.md) - VTYとシェルの管理
-- [システム情報・監視](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/system-monitoring.md) - システム情報と監視機能
-- [仮想スイッチ（vswitch）](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/vswitch.md) - 仮想スイッチの設定と管理
-- [ネイバーテーブル（ARP/ND）](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/neighbor.md) - ネイバーテーブルの表示
-- [FDB（転送データベース）](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/fdb.md) - FDBの表示
-- [RIB・ルーティング](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/routing.md) - RIBとルーティング機能
-- [SRv6](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/srv6.md) - SRv6 Local SIDの設定と表示
-- [キュー設定](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/queue-configuration.md) - キューの設定と管理
-- [パケット生成](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/packet-generation.md) - PKTGENを使用したパケット生成
-- [TAPインターフェース](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/tap-interface.md) - TAPインターフェースの管理
-- [lthread管理](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/lthread-management.md) - lthreadの管理
-- [デバイス管理](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/device-management.md) - デバイスとドライバーの管理
-- [rte-flow](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/rte-flow.md) - ハードウェアフロー分類の設定
-
-**コマンド一覧:**
-- [全コマンド一覧（アルファベット順）](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/command-list.md) - 全120コマンドの索引
-
-## 開発者ガイド
-
-### 統合ガイド
-
-- [DPDKアプリケーション統合ガイド](https://github.com/kait-cronos/sdplane-doc/blob/main/doc/manual/ja/dpdk-integration-guide.md) - DPDK-dock方式でDPDKアプリケーションをsdplaneに統合する方法
-
-### ドキュメント
-
-- [技術プレゼンテーション/2024-11-22-sdn-onsen-yasu.pdf)](https://enog.jp/wordpress/wp-content/uploads/2024/11/2024-11-22-sdn-onsen-yasu.pdf)（日本語）
-- [技術プレゼンテーション/20250822_ENOG87_ohara.pdf](https://enog.jp/wordpress/wp-content/uploads/2025/08/20250822_ENOG87_ohara.pdf)（日本語）
-
-### コードスタイル
-本プロジェクトはGNU コーディング標準に従います。提供されたスクリプトを使用してコードの確認とフォーマットを行ってください：
-
-```bash
-# フォーマットの確認
-./style/check_gnu_style.sh check
-
-# フォーマットの差分表示
-./style/check_gnu_style.sh diff
-
-# コードの自動フォーマット
-./style/check_gnu_style.sh update
-```
-
-## ライセンス
-
-本プロジェクトはGNU General Public License v3.0の下でライセンスされています。詳細については[COPYING](COPYING)ファイルをご覧ください。
-
-## お問い合わせ
-
-ご質問、問題、貢献については、こちらまでご連絡ください：**sdplane [at] nwlab.org**
-
-## 評価用機器の購入
-
-評価用機器には追加機能やソフトウェアの修正が含まれる場合があります。詳細については販売ページをご覧ください：
-
-**[https://www.rca.co.jp/sdplane/](https://www.rca.co.jp/sdplane/)**
+GNU General Public License v3.0. See [COPYING](COPYING).

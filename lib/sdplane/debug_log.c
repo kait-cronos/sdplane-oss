@@ -163,6 +163,23 @@ debug_log_rotate_file ()
 }
 
 void
+debug_log_clear_file ()
+{
+  if (! FLAG_CHECK (debug_output, DEBUG_OUTPUT_FILE))
+    return;
+
+  if (debug_log_file)
+    fclose (debug_log_file);
+  if (debug_log_filename)
+    {
+      unlink (debug_log_filename);
+      debug_log_file = fopen (debug_log_filename, "a");
+    }
+  else
+    debug_log_file = NULL;
+}
+
+void
 debug_log_init (char *progname)
 {
   char *p;

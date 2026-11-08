@@ -194,6 +194,9 @@ CLI_COMMAND2 (nlhook_ifaddr_ifname,
   argv_list_index = strtol (argv[9], NULL, 0);
 
   pthread_mutex_lock (&nlhook_mutex);
+  /* free the previous ifname before overwriting the entry. */
+  if (nlhook_entries[index].ifname)
+    free (nlhook_entries[index].ifname);
   memset (&nlhook_entries[index], 0, sizeof (struct nlhook_entry));
   nlhook_entries[index].flag = 0;
   nlhook_entries[index].nlmsg_type = nlmsg_type;

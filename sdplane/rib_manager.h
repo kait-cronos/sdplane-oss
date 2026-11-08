@@ -10,6 +10,8 @@
 #include "rib.h"
 #include "sdplane.h"
 
+#include "debug_sdplane.h"
+
 extern struct rib_tree *rib_tree_master[ROUTE_TREE_SIZE];
 extern struct hash_table nh_ht;
 
@@ -32,8 +34,7 @@ extern struct rte_ring *capture_if_ring_dn[MAX_VSWITCH];
 void rib_manager_recv_message (void *msgp);
 //void rib_manager_send_message (void *msgp, struct shell *shell);
 
-int fdb_lookup_entry (const struct rib_info *rib_info,
-                      const struct rte_ether_addr *mac_addr, uint16_t vlan_id);
+int srv6_local_sid_find (struct rib_info *rib_info, const struct in6_addr *sid);
 
 #include <sdplane/debug.h>
 #include <sdplane/debug_cmd.h>

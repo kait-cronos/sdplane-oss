@@ -87,8 +87,6 @@ static int relax_rx_offload; /**< Relax Rx offload mode, disabled by default */
 static int per_port_pool; /**< Use separate buffer pools per port; disabled */
                           /**< by default */
 
-volatile bool force_quit;
-
 /* ethernet addresses of ports */
 uint64_t dest_eth_addr[RTE_MAX_ETHPORTS];
 struct rte_ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];

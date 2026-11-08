@@ -12,6 +12,7 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
+#include <rte_ethdev.h>
 
 #include <sdplane/debug.h>
 #include <sdplane/termio.h>
@@ -22,8 +23,6 @@
 #include <sdplane/debug_cmd.h>
 #include <sdplane/debug_log.h>
 
-#include "l3fwd.h"
-#include "l3fwd_route.h"
 #include "l2fwd_export.h"
 #include "sdplane.h"
 #include "thread_info.h"
@@ -193,10 +192,19 @@ l3_tap_handler_handle_packet_down ()
       if (vswitch->router_if.ring_dn)
         {
           struct rte_mempool *mp = l2fwd_pktmbuf_pool;
-          struct rte_mbuf *m = rte_pktmbuf_alloc (mp);
+          struct rte_mbuf *m;
 
-	  if (m)
+          m = rte_pktmbuf_alloc (mp);
+          if (! m)
             {
+              WARNING ("rte_pktmbuf_alloc() failed: ring_dn: drop %d bytes",
+                       ret);
+              WARNING ("avail: %d in-use: %d",
+                       rte_mempool_avail_count (mp),
+                       rte_mempool_in_use_count (mp));
+              continue;
+            }
+
               size = ret;
               if (size >= m->buf_len)
                 {
@@ -209,19 +217,24 @@ l3_tap_handler_handle_packet_down ()
               pkt = rte_pktmbuf_mtod (m, char *);
               memcpy (pkt, data, size);
 
-              rte_ring_enqueue (vswitch->router_if.ring_dn, m);
-              DEBUG_NEW (TAPHANDLER,
-                         "vswitch[%d]: packet: sockfd %d -> ring_dn %d",
-                         vswitch_id,
-                         vswitch->router_if.sockfd,
-                         vswitch->router_if.tap_ring_id);
-
               if (IS_DEBUG (PACKET))
                 log_packet (m, vswitch_id, vswitch->router_if.tap_ring_id);
-            }
-	  else
-              WARNING ("rte_pktmbuf_alloc() failed: ring_dn: drop %d bytes",
-                       ret);
+
+              /* after a successful enqueue, m is owned by the consumer
+                 (router lcore) and must not be touched here. */
+              if (rte_ring_enqueue (vswitch->router_if.ring_dn, m) != 0)
+                {
+                  DEBUG_NEW (TAPHANDLER,
+                             "vswitch[%d]: ring_dn full, drop packet",
+                             vswitch_id);
+                  rte_pktmbuf_free (m);
+                }
+              else
+                DEBUG_NEW (TAPHANDLER,
+                           "vswitch[%d]: packet: sockfd %d -> ring_dn %d",
+                           vswitch_id,
+                           vswitch->router_if.sockfd,
+                           vswitch->router_if.tap_ring_id);
         }
     }
 }
@@ -258,6 +271,8 @@ l3_tap_handler (__rte_unused void *dummy)
       urcu_qsbr_read_lock ();
       rib = (struct rib *) rcu_dereference (rcu_global_ptr_rib);
 #endif /*HAVE_LIBURCU_QSBR*/
+
+      fdb_now = time (NULL);
 
       l3_tap_handler_handle_packet_up ();
       l3_tap_handler_handle_packet_down ();

@@ -8,6 +8,7 @@
 #include <sdplane/command.h>
 
 #include "rib_manager.h"
+#include "fdb.h"
 #include "internal_message.h"
 
 extern int capture_fd;
