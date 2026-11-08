@@ -11,7 +11,7 @@
 3. 対向のホスト(sdplaneと対向ホストそれぞれ物理NICが2つ必要)でnamespace/simple_router_ns.sh実行
 
 # 動作確認
-[動作確認用トポロジ](https://github.com/kait-cronos/sdplane-dev/blob/feature/router/example-config/control_plane/topology.png)
+[動作確認用トポロジ](topology.png)
 
 ## sdplane上でrouter_ifの情報を取得
 

@@ -29,6 +29,8 @@ FILES_TO_REMOVE=(
     tools/check-ai-branch.sh
     README.ja.md
     LICENSE.MIT
+    README.licensing
+    README.tag
 )
 
 # build files that differ between sdplane-dev and sdplane-oss (lib/ is bundled
@@ -46,8 +48,11 @@ OSS_BUILD_FILES=(
 # oss-build/ and list it here.
 OSS_PACKAGING_FILES=(
     README.md
+    .github/workflows/ci.yaml
     build-debian.sh
+    tools/deb/Dockerfile
     tools/deb/build-in-container.sh
+    tools/deb/gen-changelog.sh
     debian/control
     debian/rules
 )

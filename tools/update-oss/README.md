@@ -36,8 +36,9 @@ sdplane-oss 用のファイル。sdplane-oss では lib/ (libsdplane) を同梱�
   sdplane-dev の変更 (新しいソースなど) をマージで取り込む必要があるため、
   上書きしない。step4 で OSS 用の設定が残っているか確認し、oss-build/ との差分を表示する。
   リリース後は oss-build/ を sdplane-oss の内容に合わせて更新しておく。
-- README.md とパッケージングファイル (build-debian.sh, tools/deb/build-in-container.sh,
-  debian/control, debian/rules): step4 で oss-build/ の内容に置き換える。
+- README.md、CI (.github/workflows/ci.yaml)、パッケージングファイル (build-debian.sh,
+  tools/deb/{Dockerfile,build-in-container.sh,gen-changelog.sh}, debian/control,
+  debian/rules): step4 で oss-build/ の内容に置き換える。マージで消えていても復元される。
   sdplane-oss は libsdplane を同梱した sdplane パッケージ 1 つだけをビルドする。
   OSS 用のファイルを増やすときは、oss-build/ に置いて update-oss2.sh の
   OSS_PACKAGING_FILES に追加する。
