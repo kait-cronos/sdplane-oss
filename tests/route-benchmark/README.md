@@ -142,9 +142,11 @@ uv run measure_route_loss.py --plot results/XXXX/results.csv
 | `rib-lcore-netlink-lthread.conf` | lcore 3 | lthread |
 | `rib-lcore-netlink-lcore.conf` | lcore 3 | lcore 4 |
 
+どの設定にも `set worker lthread rcu-reporter` を入れています。rib-manager の RCU の同期待ちが、lthread 側の報告を待って長引かないようにするためです。
+
 ## 参考結果
 
-ロス率（%）です。commit `1e64c30`、各3回の平均、投入速度は約3,500〜4,000経路/秒です。
+ロス率（%）です。commit `1e64c30`、各3回の平均、投入速度は約3,500〜4,000経路/秒です。`rcu-reporter` と `set rib msg-queue size`（既定値 1M 件）が入る前に測ったもので、今の設定と main では結果が変わります。
 
 | 投入経路数 | rib lthread<br>netlink lthread | rib lthread<br>netlink lcore | rib lcore<br>netlink lthread | rib lcore<br>netlink lcore |
 |---:|---:|---:|---:|---:|
