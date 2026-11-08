@@ -173,7 +173,6 @@ uv run measure_route_loss.py --plot results/XXXX/results.csv
 | `download_mrt.sh` | MRT データをダウンロードする |
 | `run_sdplane.sh` | 設定の確認用に sdplane を手で起動する |
 | `configs/` | 計測用の sdplane 設定 |
-| `test_install_routes.py` | `install_routes.py` の単体テスト（`python3 -m unittest test_install_routes`） |
 
 ## 手で動かす
 
