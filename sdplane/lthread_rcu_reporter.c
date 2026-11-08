@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include <lthread.h>
+#include <urcu/urcu-qsbr.h>
 
 #include <sdplane/log.h>
 #include <sdplane/debug.h>
