@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in.
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib
+AM_CPPFLAGS = -I$(top_srcdir)/lib -D_GNU_SOURCE
 
 lib_LTLIBRARIES = libsdplane.la
 
@@ -14,6 +14,9 @@ libsdplane_la_SOURCES = \
 	sdplane/shell_telnet.c sdplane/exec_limit.c \
 	sdplane/shell_debug.c
 
+nodist_libsdplane_la_SOURCES = sdplane/libsdplane_version.c
+CLEANFILES = sdplane/libsdplane_version.c
+
 nobase_include_HEADERS = \
 	sdplane/vector.h sdplane/termio.h sdplane/flag.h \
 	sdplane/shell.h sdplane/command.h sdplane/command_shell.h \
@@ -23,4 +26,12 @@ nobase_include_HEADERS = \
 	sdplane/log_cmd.h sdplane/shell_keyfunc.h \
 	sdplane/debug.h sdplane/debug_log.h \
 	sdplane/shell_telnet.h sdplane/exec_limit.h \
-	sdplane/shell_debug.h
+	sdplane/shell_debug.h sdplane/libsdplane_version.h
+
+FORCE:
+.PHONY: FORCE
+
+sdplane/libsdplane_version.c: FORCE
+	@$(MKDIR_P) sdplane
+	top_srcdir=$(top_srcdir) bash $(top_srcdir)/lib/sdplane/libsdplane-version-c.sh > $@
+

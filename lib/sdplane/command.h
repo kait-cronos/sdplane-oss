@@ -34,6 +34,20 @@ struct command_node
 struct command_set
 {
   struct command_node *root;
+
+  struct vector *regvars;
+};
+
+#define REGVAR_SUPPORT 1
+#define REGVAR_MATCHING_SUPPORT 1
+struct regvar
+{
+  char *spec;
+  int (*is_spec) (char *spec);
+  int (*is_match) (char *spec, char *word);
+  int (*is_matching) (char *spec, char *word);
+  char * (*convert_cmdstr) (char *spec, char *word);
+  char * (*convert_helpstr) (char *spec, char *helpstr, char *word);
 };
 
 struct command_header
@@ -54,6 +68,9 @@ void command_func_name_register (command_func_t command_func,
                                  char *command_name);
 char *command_func_name_lookup (command_func_t command_func);
 void command_func_name_finish ();
+
+char *regvar_cmdstr (struct command_set *cmdset, char *spec, char *word);
+char *regvar_helpstr (struct command_set *cmdset, char *spec, char *helpstr, char *word);
 
 #define DEFINE_COMMAND(cmdname, cmdstr, helpstr)                              \
   int cmdname##_func (void *context, int argc, char **argv);                  \
@@ -106,6 +123,14 @@ struct command_set *command_set_create ();
 void command_set_delete (struct command_set *cmdset);
 
 int is_command_match (char *spec, char *word);
+int line_spec (char *spec);
+
+int is_command_regvar (struct command_set *cmdset, char *spec);
+
+int is_command_match_regvar (struct command_set *cmdset,
+                             char *spec, char *word);
+int is_command_match_regvar_matching (struct command_set *cmdset,
+                                      char *spec, char *word);
 
 void command_install (struct command_set *cmdset, char *command_line,
                       char *help_string, command_func_t func);
@@ -215,6 +240,24 @@ void command_config_write (struct vector *config, FILE *fp);
 #define NCLI22(n, s, h1, h2, ...) NCLI21 (n, s, LIST (h1, h2), __VA_ARGS__)
 #define NCLI23(n, s, h1, h2, ...) NCLI22 (n, s, LIST (h1, h2), __VA_ARGS__)
 #define NCLI24(n, s, h1, h2, ...) NCLI23 (n, s, LIST (h1, h2), __VA_ARGS__)
+
+#define NCLI25(n, s, h1, h2, ...) NCLI24 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI26(n, s, h1, h2, ...) NCLI25 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI27(n, s, h1, h2, ...) NCLI26 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI28(n, s, h1, h2, ...) NCLI27 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI29(n, s, h1, h2, ...) NCLI28 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI30(n, s, h1, h2, ...) NCLI29 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI31(n, s, h1, h2, ...) NCLI30 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI32(n, s, h1, h2, ...) NCLI31 (n, s, LIST (h1, h2), __VA_ARGS__)
+
+#define NCLI33(n, s, h1, h2, ...) NCLI32 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI34(n, s, h1, h2, ...) NCLI33 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI35(n, s, h1, h2, ...) NCLI34 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI36(n, s, h1, h2, ...) NCLI35 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI37(n, s, h1, h2, ...) NCLI36 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI38(n, s, h1, h2, ...) NCLI37 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI39(n, s, h1, h2, ...) NCLI38 (n, s, LIST (h1, h2), __VA_ARGS__)
+#define NCLI40(n, s, h1, h2, ...) NCLI39 (n, s, LIST (h1, h2), __VA_ARGS__)
 
 /* CLI_COMMAND2() computes the number of args, 'X',
    and calls NCLI'X' */

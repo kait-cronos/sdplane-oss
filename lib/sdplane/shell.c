@@ -756,6 +756,13 @@ void
 shell_read_close (struct shell *shell)
 {
   FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
+
+  /* A stdio stream keeps ownership of its fd until fclose(). */
+  if ((shell->terminal && shell->readfd == shell->writefd) ||
+      (shell->pager_saved_terminal &&
+       shell->readfd == shell->pager_saved_writefd))
+    return;
+
   if (shell->readfd >= 0)
     close (shell->readfd);
   shell->readfd = -1;
@@ -764,10 +771,15 @@ shell_read_close (struct shell *shell)
 void
 shell_write_close (struct shell *shell)
 {
-  fclose (shell->terminal);
-  shell->terminal = NULL;
-  if (shell->writefd >= 0)
+  if (shell->writefd == shell->pipefd[1])
+    shell->pipefd[1] = -1;
+  if (shell->readfd == shell->writefd)
+    shell->readfd = -1;
+  if (shell->terminal)
+    fclose (shell->terminal);
+  else if (shell->writefd >= 0)
     close (shell->writefd);
+  shell->terminal = NULL;
   shell->writefd = -1;
 }
 
@@ -775,27 +787,18 @@ void
 shell_close (struct shell *shell)
 {
   FLAG_SET (shell->flag, SHELL_FLAG_CLOSE);
-
-  if (shell->terminal)
-    fclose (shell->terminal);
-  shell->terminal = NULL;
-
-  if (shell->readfd == shell->writefd)
+  shell_write_close (shell);
+  if (shell->pager_saved_terminal)
     {
-      if (shell->readfd >= 0)
-        close (shell->readfd);
-      shell->readfd = -1;
-      shell->writefd = -1;
+      shell->terminal = shell->pager_saved_terminal;
+      shell->writefd = shell->pager_saved_writefd;
+      shell->pager_saved_terminal = NULL;
+      shell->pager_saved_writefd = -1;
+      shell_write_close (shell);
     }
-  else
-    {
-      if (shell->readfd >= 0)
-        close (shell->readfd);
-      if (shell->writefd >= 0)
-        close (shell->writefd);
-      shell->readfd = -1;
-      shell->writefd = -1;
-    }
+  if (shell->readfd >= 0)
+    close (shell->readfd);
+  shell->readfd = -1;
 }
 
 char *
@@ -815,6 +818,9 @@ shell_read (struct shell *shell)
 #define SHELL_READ_BUF_SIZE 256
   unsigned char buf[SHELL_READ_BUF_SIZE];
   int i, ret;
+
+  if (! shell_running (shell))
+    return 0;
 
   memset (buf, 0, sizeof (buf));
 
@@ -866,6 +872,8 @@ shell_read (struct shell *shell)
                   ret_shell, shell_input_str (buf[i]));
           break;
         }
+      if (! shell_running (shell))
+        break;
     }
 
   /* pasting will end in a single read. */
@@ -916,6 +924,10 @@ shell_create ()
 
   shell->readfd = -1;
   shell->writefd = -1;
+  shell->pager_saved_readfd = -1;
+  shell->pager_saved_writefd = -1;
+  shell->pipefd[0] = shell->pipefd[1] = -1;
+  shell->pty_master = shell->pty_slave = -1;
 
   return shell;
 }
@@ -923,13 +935,13 @@ shell_create ()
 void
 shell_delete (struct shell *shell)
 {
-  if (! FLAG_CHECK (shell->flag, SHELL_FLAG_CLOSE))
-    shell_close (shell);
+  shell_close (shell);
   if (shell->prompt)
     free (shell->prompt);
   free (shell->command_line);
   if (shell->cut_buffer)
     free (shell->cut_buffer);
+  free (shell->pager_command);
   free (shell);
 }
 
