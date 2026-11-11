@@ -35,3 +35,14 @@ for installation, configuration, and the user guide.
 ## License
 
 GNU General Public License v3.0. See [COPYING](COPYING).
+
+sdplane includes third-party code under its own licenses, which is
+built into the sdplane binary:
+
+- `module/pktgen/`: [Pktgen-DPDK](https://github.com/pktgen/Pktgen-DPDK)
+  23.10.2, BSD-3-Clause (Intel Corporation). See
+  [module/pktgen/LICENSE](module/pktgen/LICENSE).
+- `module/l2fwd/`, `module/l3fwd/`, `module/common/`: based on the DPDK
+  sample applications, BSD-3-Clause.
+
+See [debian/copyright](debian/copyright) for the details.
