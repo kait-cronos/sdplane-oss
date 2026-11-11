@@ -5,8 +5,8 @@ authors:
   given-names: "Yasuhiro"
   orcid: "https://orcid.org/0009-0007-9265-6435"
 title: "sdplane-oss (Soft Data Plane)"
-version: v0.1.7-489
-commit: 945227afda741eacbff0f1dd92d2b462fca83810
-date-released: 2026-11-10
+version: v0.1.7-491
+commit: f7751e349a65ee3a7bb7911c43871268cef51c69
+date-released: 2026-11-11
 license: GPL-3.0-only
 url: "https://github.com/kait-cronos/sdplane-oss/"
